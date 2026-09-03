@@ -1,0 +1,19 @@
+1. after the renewal data of the client
+	what happens?
+	does it really work?
+2. health score
+	based on what?
+	clarify all the formulas for all the assessment
+3. alert of burnout
+	based on what?
+	where can I see about members' burnout?
+4. after stopping subscription
+	how long data saving?
+5. multiple organizations
+	have you tried making multiple organizations?
+	Did it work well?
+6. have you checked the invitation?
+	having multiple managers worked well?
+	inviting and removing worked fine?
+7. risk of client?
+	based on what?

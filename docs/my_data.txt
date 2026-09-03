@@ -1,0 +1,10 @@
+01	dev-audit-01@scalyo.app	ScalyoAudit01!2026	Claire Dupont	Member
+02	dev-audit-02@scalyo.app	ScalyoAudit02!2026								terminated
+03	dev-audit-03@scalyo.app	ScalyoAudit03!2026								terminated
+04	dev-audit-04@scalyo.app	ScalyoAudit04!2026								terminated
+05	dev-audit-05@scalyo.app	ScalyoAudit05!2026	Dev Auditor 05				empty
+06	dev-audit-06@scalyo.app	ScalyoAudit06!2026	Thomas Moreau	Member
+07	dev-audit-07@scalyo.app	ScalyoAudit07!2026	"Invalid login credentials"
+08	dev-audit-08@scalyo.app	ScalyoAudit08!2026	Audrey Klein	Manager
+09	dev-audit-09@scalyo.app	ScalyoAudit09!2026	Amira Benali	Member
+10	dev-audit-10@scalyo.app	ScalyoAudit10!2026	Lucas Martin	Member

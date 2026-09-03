@@ -1,0 +1,80 @@
+1. button's design changed
+	when I click client's info, after refreshing in https://scalyo.app/app/dashboard,
+	the button looks weird
+	
+2. automatic logout
+	after for a while it logout automatically, not good.
+
+3. team member's subscription management
+	if one member is terminated to use the app then the manager has to know who
+	who will be terminated or who to choose to terminate shall be managed and visible
+
+4. ARR in dashboard shall be compressed
+	when the number is too much then hard to see
+	$1.64K / $633.7M / $55.73B
+	
+5. currency unit changing
+	right now, it is only euro but it is not good.
+	
+6. member's authority what they are allowed to do
+	1) nominating CSM (manager only)
+	2) information changing (CSM or manager only)
+	3) manager's granting the authorities to members
+		(1) manager may see what functions the each members can access
+		(2) if a member is not allowed to do something, then the related UI components shall be invisible
+		(3) changing the title is now inavailable
+	4) creating clients
+		(1) fulfilling the information of the client can be done by anyone
+		(2) manager has to confirm the registration.
+		(3) 
+	5) health management
+		(1) members can see only their own health information
+		(2) manager can see members' health information
+	6) team information
+		(1) hiarchy system shall be shown
+		(2) 
+
+7. data accordance
+	1) MRR x 12 = ARR
+		(1) if MRR is average, MRR shall be constant
+		(2) if ARR is the calculation, ARR shall be constant
+		(3) if MRR shall be input every month, then MRR is monthly average, ARR is annual summary. (Thus : both are const)
+
+8. client information
+	1) communication history
+	2) charts
+		(1) its growth
+		(2) goal achievement
+		(3) churn progress
+	3) client's communicator's information
+		(1) basic profil
+		(2) what to be careful, personality, preference (if it is legal to manage)
+	4) CSM history
+		(1) who was/were, who is/are now, who did what, who will do what?
+
+9. member information
+	1) general performance
+	2) quitter's information
+		(1) what they did
+		(2) was responsible in what
+	3) health tracking
+		burn out / brown out/ black out / bore out / rust out / freeze out / sell out / zone out / etc.
+		burden's check
+		task difficulty check
+		communication difficulty check
+	4) task
+		(1) task management
+		(2) achievement / difficulty
+	5) charge in which clients
+	6) cons & pros review (if it is legal to write)
+	
+10. organization information
+	1) what company we are
+	2) our performance
+
+11. Manager Functions
+	1) giving goals to CSMs
+	2) giving goals to clients
+	3) CRUD CSMs
+	4) CRUD clients (confirmation)
+	5) right now all the info is not shown
