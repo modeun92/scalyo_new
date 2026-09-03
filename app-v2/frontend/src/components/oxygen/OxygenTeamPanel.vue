@@ -1,0 +1,102 @@
+<template>
+  <div class="oxyteam">
+    <!-- Contrat de confidentialité — TOUJOURS affiché, quel que soit l'état -->
+    <div class="oxy-privacy">🛡️ <span>{{ t('oxy_team_privacy') }}</span></div>
+
+    <div v-if="team.status === 'loading' || team.status === 'idle'" class="oxy-card oxyteam-state">
+      {{ t('oxy_team_loading') }}
+    </div>
+
+    <div v-else-if="team.status === 'disabled'" class="oxy-card oxyteam-state">
+      <strong>{{ t('oxy_team_disabled_title') }}</strong>
+      <p>{{ t('oxy_team_disabled_body') }}</p>
+    </div>
+
+    <div v-else-if="team.status === 'insufficient'" class="oxy-card oxyteam-state">
+      <strong>{{ t('oxy_team_threshold_title') }}</strong>
+      <p>{{ t('oxy_team_threshold_body') }}</p>
+    </div>
+
+    <div v-else-if="team.status === 'error' || team.status === 'forbidden'" class="oxy-card oxyteam-state">
+      {{ t('oxy_team_error') }}
+    </div>
+
+    <template v-else>
+      <p class="oxyteam-meta">{{ t('oxy_team_window', { n: team.data.n }) }}</p>
+      <div class="oxyteam-grid">
+        <div v-for="m in metrics" :key="m.key" class="oxy-card oxyteam-card">
+          <span class="oxyteam-value">{{ m.display }}</span>
+          <span class="oxyteam-label">{{ t(m.label) }}</span>
+          <span v-if="m.trend !== null" class="oxyteam-trend">{{ m.trend }} {{ t('oxy_team_trend') }}</span>
+          <span v-else class="oxyteam-trend quiet">{{ t('oxy_team_no_trend') }}</span>
+        </div>
+      </div>
+      <p class="oxyteam-note">{{ t('oxy_team_closure_note') }}</p>
+      <button class="oxy-how" @click="how = !how">{{ t('oxy_team_how') }}</button>
+      <p v-if="how" class="oxy-how-body">{{ t('oxy_team_how_body') }}</p>
+    </template>
+  </div>
+</template>
+
+<script setup>
+// OXYGEN Lot 4 — vue MANAGER de la boucle équipe (growth+, onglet ManagerView).
+// Anti-compulsion by design : 3 moyennes d'équipe + tendance, jamais de
+// classement, jamais d'individuel, jamais de time-spent. Zéro rouge (palette
+// oxygen). La confidentialité est un CONTRAT affiché, pas une note de bas de page.
+import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { useOxygenTeamStore } from '@/stores/oxygenTeam'
+import { fmtNumber } from '@/lib/formatters'
+import '@/assets/oxygen.css'
+
+const { t } = useI18n({ useScope: 'global' })
+const team = useOxygenTeamStore()
+const how = ref(false)
+
+onMounted(() => { team.load() })
+
+// v = nombre ou null (avg SQL sur zéro ligne) → jamais un chiffre inventé (R21)
+function show(v, pct = false) {
+  if (typeof v !== 'number') return '—'
+  return pct ? `${fmtNumber(v)} %` : fmtNumber(v)
+}
+// Tendance : delta courant − précédent, null si l'une des deux valeurs manque
+function trend(cur, prev, pct = false) {
+  if (typeof cur !== 'number' || typeof prev !== 'number') return null
+  const d = Math.round((cur - prev) * 10) / 10
+  const arrow = d > 0 ? '↗' : d < 0 ? '↘' : '→'
+  const num = `${d > 0 ? '+' : ''}${fmtNumber(d)}${pct ? ' pt' : ''}`
+  return `${arrow} ${num}`
+}
+
+const metrics = computed(() => {
+  const cur = team.data?.current || {}
+  const prev = team.data?.previous || null
+  return [
+    { key: 'index', label: 'oxy_team_index', display: show(cur.index_avg),
+      trend: trend(cur.index_avg, prev?.index_avg) },
+    { key: 'load', label: 'oxy_team_load', display: show(cur.load_avg),
+      trend: trend(cur.load_avg, prev?.load_avg) },
+    { key: 'closure', label: 'oxy_team_closure', display: show(cur.closure_rate, true),
+      trend: trend(cur.closure_rate, prev?.closure_rate, true) },
+  ]
+})
+</script>
+
+<style scoped>
+.oxyteam { max-width: 800px; }
+.oxyteam-state { font-size: 0.85rem; color: var(--text-secondary); line-height: 1.5; }
+.oxyteam-state strong { display: block; color: var(--text); margin-bottom: 6px; font-size: 0.9rem; }
+.oxyteam-state p { margin: 0; }
+.oxyteam-meta { font-size: 0.8rem; color: var(--text-muted); margin: 0 0 14px; }
+.oxyteam-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.oxyteam-card { display: flex; flex-direction: column; gap: 4px; margin-bottom: 0; }
+.oxyteam-value { font-size: 1.9rem; font-weight: 800; color: var(--purple); line-height: 1.1; }
+.oxyteam-label { font-size: 0.76rem; color: var(--text-secondary); }
+.oxyteam-trend { font-size: 0.74rem; color: var(--text-muted); margin-top: 4px; }
+.oxyteam-trend.quiet { opacity: 0.6; }
+.oxyteam-note { font-size: 0.74rem; color: var(--text-muted); margin: 14px 0 0; }
+@media (max-width: 768px) {
+  .oxyteam-grid { grid-template-columns: 1fr; }
+}
+</style>

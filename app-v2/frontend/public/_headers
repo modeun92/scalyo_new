@@ -1,0 +1,36 @@
+# Scalyo — en-tetes Cloudflare Pages
+# Desindexation des surfaces sans valeur de recherche.
+# "follow" est conserve pour que le maillage interne reste lu par Googlebot.
+
+/login
+  X-Robots-Tag: noindex, follow
+/register
+  X-Robots-Tag: noindex, follow
+/join
+  X-Robots-Tag: noindex, follow
+/join/*
+  X-Robots-Tag: noindex, follow
+/paywall
+  X-Robots-Tag: noindex, follow
+/payment-success
+  X-Robots-Tag: noindex, follow
+/reset-password
+  X-Robots-Tag: noindex, follow
+/reset-password-confirm
+  X-Robots-Tag: noindex, follow
+/app/*
+  X-Robots-Tag: noindex, follow
+
+# Assets de marque : cache long, ils ne changent pas.
+/favicon.ico
+  Cache-Control: public, max-age=604800
+/favicon-96.png
+  Cache-Control: public, max-age=604800
+/favicon-192.png
+  Cache-Control: public, max-age=604800
+/apple-touch-icon.png
+  Cache-Control: public, max-age=604800
+/scalyo-logo.png
+  Cache-Control: public, max-age=604800
+/og-default.png
+  Cache-Control: public, max-age=604800

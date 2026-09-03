@@ -1,0 +1,12 @@
+# Scalyo — https://scalyo.app
+# Le site public est entierement ouvert au crawl.
+# Les surfaces applicatives et transactionnelles (/app, /login, /register,
+# /join, /paywall, /payment-success, /reset-password) sont exclues de l'index
+# via l'en-tete X-Robots-Tag: noindex declare dans public/_headers.
+# Elles ne sont volontairement PAS bloquees ici : un Disallow empecherait
+# Googlebot de lire le noindex, donc de desindexer les pages deja indexees.
+
+User-agent: *
+Allow: /
+
+Sitemap: https://scalyo.app/sitemap.xml

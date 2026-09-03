@@ -1,0 +1,90 @@
+import { defineStore } from 'pinia'
+import { ref, computed } from 'vue'
+import { supabase } from '@/lib/supabase'
+import { INTEGRATIONS, getIntegrationsByCategory, getAvailableForPlan } from '@/config/integrations'
+
+export const useIntegrationStore = defineStore('integrations', () => {
+  const connections = ref([])
+  const loading = ref(false)
+  const lastError = ref(null)
+
+  const connectedIds = computed(() => connections.value.filter(c => c.status === 'active').map(c => c.integration_id))
+
+  function isConnected(integrationId) {
+    return connectedIds.value.includes(integrationId)
+  }
+
+  function getConnection(integrationId) {
+    return connections.value.find(c => c.integration_id === integrationId) || null
+  }
+
+  // CR-8 (E-09) : colonnes sûres uniquement — access_token/refresh_token/config
+  // ne redescendent jamais au client (REVOKE colonne en base, migration CR-8)
+  async function loadConnections() {
+    loading.value = true
+    lastError.value = null
+    try {
+      const { data, error } = await supabase
+        .from('org_integrations')
+        .select('id, integration_id, status, connected_at, updated_at')
+        .order('connected_at', { ascending: false })
+      if (error) throw error
+      connections.value = data || []
+    } catch (err) {
+      lastError.value = err.message
+      connections.value = []
+    } finally {
+      loading.value = false
+    }
+  }
+
+  // CR-8 (E-09) : écriture via le backend, qui chiffre les champs secrets
+  async function pushConfig(integrationId, config) {
+    const token = (await supabase.auth.getSession()).data.session?.access_token
+    const r = await fetch('/api/integrations/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({ provider: integrationId, fields: config }),
+    })
+    if (!r.ok) {
+      const data = await r.json().catch(() => ({}))
+      throw new Error(data.error || 'save_failed')
+    }
+    return r.json()
+  }
+
+  async function saveConfig(integrationId, config) {
+    lastError.value = null
+    try {
+      const existing = getConnection(integrationId)
+      if (!existing) throw new Error('not_connected')
+      await pushConfig(integrationId, config)
+    } catch (err) { lastError.value = err.message; throw err }
+  }
+
+  async function disconnect(integrationId) {
+    lastError.value = null
+    try {
+      const existing = getConnection(integrationId)
+      if (!existing) return
+      const { error } = await supabase.from('org_integrations').delete().eq('id', existing.id)
+      if (error) throw error
+      connections.value = connections.value.filter(c => c.id !== existing.id)
+    } catch (err) { lastError.value = err.message; throw err }
+  }
+
+  async function connectWebhook(integrationId, config) {
+    lastError.value = null
+    try {
+      const data = await pushConfig(integrationId, config)
+      connections.value.unshift(data)
+      return data
+    } catch (err) { lastError.value = err.message; throw err }
+  }
+
+  function getCatalog(locale = 'fr') { return getIntegrationsByCategory(locale) }
+  function getAvailable(plan) { return getAvailableForPlan(plan) }
+  function getIntegrationMeta(id) { return INTEGRATIONS[id] || null }
+
+  return { connections, loading, lastError, connectedIds, isConnected, getConnection, loadConnections, saveConfig, disconnect, connectWebhook, getCatalog, getAvailable, getIntegrationMeta }
+})

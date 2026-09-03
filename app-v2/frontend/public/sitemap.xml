@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <url>
+    <loc>https://scalyo.app/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://scalyo.app/blog/</loc>
+    <image:image><image:loc>https://scalyo.app/scalyo-blog-guide-customer-success.webp</image:loc></image:image>
+    <image:image><image:loc>https://scalyo.app/scalyo-blog-reduire-churn-saas.webp</image:loc></image:image>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scalyo.app/presse/</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://scalyo.app/presse/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://scalyo.app/press/" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://scalyo.app/press-ko/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://scalyo.app/presse/" />
+    <image:image><image:loc>https://scalyo.app/scalyo-logo.png</image:loc></image:image>
+    <image:image><image:loc>https://scalyo.app/scalyo-logo-wordmark.png</image:loc></image:image>
+    <image:image><image:loc>https://scalyo.app/scalyo-logo-wordmark-fond-sombre.png</image:loc></image:image>
+    <image:image><image:loc>https://scalyo.app/scalyo-dashboard.webp</image:loc></image:image>
+    <image:image><image:loc>https://scalyo.app/scalyo-portefeuille-health-scores.webp</image:loc></image:image>
+    <image:image><image:loc>https://scalyo.app/scalyo-planning.webp</image:loc></image:image>
+    <image:image><image:loc>https://scalyo.app/scalyo-playbook-retention.webp</image:loc></image:image>
+    <image:image><image:loc>https://scalyo.app/scalyo-agent-ia.webp</image:loc></image:image>
+    <image:image><image:loc>https://scalyo.app/scalyo-oxygen-bien-etre.webp</image:loc></image:image>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://scalyo.app/press/</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://scalyo.app/presse/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://scalyo.app/press/" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://scalyo.app/press-ko/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://scalyo.app/presse/" />
+    <image:image><image:loc>https://scalyo.app/scalyo-logo.png</image:loc></image:image>
+    <image:image><image:loc>https://scalyo.app/scalyo-logo-wordmark.png</image:loc></image:image>
+    <image:image><image:loc>https://scalyo.app/scalyo-logo-wordmark-fond-sombre.png</image:loc></image:image>
+    <image:image><image:loc>https://scalyo.app/scalyo-dashboard.webp</image:loc></image:image>
+    <image:image><image:loc>https://scalyo.app/scalyo-portefeuille-health-scores.webp</image:loc></image:image>
+    <image:image><image:loc>https://scalyo.app/scalyo-planning.webp</image:loc></image:image>
+    <image:image><image:loc>https://scalyo.app/scalyo-playbook-retention.webp</image:loc></image:image>
+    <image:image><image:loc>https://scalyo.app/scalyo-agent-ia.webp</image:loc></image:image>
+    <image:image><image:loc>https://scalyo.app/scalyo-oxygen-bien-etre.webp</image:loc></image:image>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://scalyo.app/press-ko/</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://scalyo.app/presse/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://scalyo.app/press/" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://scalyo.app/press-ko/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://scalyo.app/presse/" />
+    <image:image><image:loc>https://scalyo.app/scalyo-logo.png</image:loc></image:image>
+    <image:image><image:loc>https://scalyo.app/scalyo-logo-wordmark.png</image:loc></image:image>
+    <image:image><image:loc>https://scalyo.app/scalyo-logo-wordmark-fond-sombre.png</image:loc></image:image>
+    <image:image><image:loc>https://scalyo.app/scalyo-dashboard.webp</image:loc></image:image>
+    <image:image><image:loc>https://scalyo.app/scalyo-portefeuille-health-scores.webp</image:loc></image:image>
+    <image:image><image:loc>https://scalyo.app/scalyo-planning.webp</image:loc></image:image>
+    <image:image><image:loc>https://scalyo.app/scalyo-playbook-retention.webp</image:loc></image:image>
+    <image:image><image:loc>https://scalyo.app/scalyo-agent-ia.webp</image:loc></image:image>
+    <image:image><image:loc>https://scalyo.app/scalyo-oxygen-bien-etre.webp</image:loc></image:image>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://scalyo.app/support</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://scalyo.app/cgu</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://scalyo.app/privacy</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://scalyo.app/dpa</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://scalyo.app/blog/guide-customer-success/</loc>
+    <lastmod>2026-05-11</lastmod>
+    <image:image><image:loc>https://scalyo.app/og-guide-customer-success.png</image:loc></image:image>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://scalyo.app/blog/reduire-churn-saas/</loc>
+    <lastmod>2026-05-11</lastmod>
+    <image:image><image:loc>https://scalyo.app/og-reduire-churn-saas.png</image:loc></image:image>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+</urlset>

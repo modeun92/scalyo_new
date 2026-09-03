@@ -1,0 +1,140 @@
+<template>
+  <div class="pb-card" @click="$emit('open', pb)">
+    <div class="pbc-header">
+      <div class="pbc-left">
+        <span
+          class="pbc-icon"
+          :style="{ background: pb.color + '15', color: pb.color }"
+        >{{ pb.icon }}</span>
+        <div>
+          <strong>{{ t('pb_template_' + pb.templateKey) }}</strong>
+          <span class="pbc-client" v-if="pb.clientId">
+            {{ clientLabel }}
+          </span>
+        </div>
+      </div>
+      <span class="pbc-status" :class="pb.status">
+        {{ t('pb_status_' + pb.status) }}
+      </span>
+    </div>
+
+    <div class="pbc-progress">
+      <div class="pbc-progress-header">
+        <span>{{ t('pb_progress') }}</span>
+        <span class="pbc-pct">{{ progressPct }}%</span>
+      </div>
+      <div class="pbc-bar">
+        <div
+          class="pbc-fill"
+          :style="{ width: progressPct + '%', background: pb.color }"
+        />
+      </div>
+    </div>
+
+    <div class="pbc-steps">
+      <template v-for="step in pb.steps" :key="step.id">
+        <div
+          class="pbc-step"
+          :class="{ done: step.done, expandable: hasGuide(step) }"
+          @click.stop="toggleGuide(step)"
+        >
+          <span
+            class="step-check"
+            @click.stop="$emit('toggleStep', pb.id, step.id)"
+          >{{ step.done ? '✅' : '⬜' }}</span>
+          <span class="step-title">{{ t(step.title) }}</span>
+          <!-- Échéance réelle du step (posée à l'activation) ; rouge si dépassée et non faite -->
+          <span
+            v-if="step.due"
+            class="step-due"
+            :class="{ late: !step.done && step.due < todayIso }"
+          >{{ dueLabel(step.due) }}</span>
+          <span v-if="hasGuide(step)" class="step-chev">{{ openGuides.has(step.id) ? '▾' : '▸' }}</span>
+        </div>
+        <!-- Guide du step : Objectif / Méthode / Piège / Sortie (clic sur la ligne) -->
+        <div v-if="hasGuide(step) && openGuides.has(step.id)" class="step-guide" @click.stop>
+          {{ t(step.title + '_g') }}
+        </div>
+      </template>
+    </div>
+
+    <div class="pbc-footer">
+      <span class="pbc-date">
+        {{ t('pb_started') }} {{ formattedDate }}
+      </span>
+      <div class="pbc-btns">
+        <button
+          v-if="pb.status === 'active'"
+          class="btn-sm green"
+          @click.stop="$emit('complete', pb.id)"
+        >{{ t('pb_complete') }}</button>
+        <button
+          class="btn-sm red"
+          @click.stop="$emit('delete', pb.id)"
+        >{{ t('pb_delete') }}</button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { computed, reactive } from 'vue'
+import { useI18n } from 'vue-i18n'
+
+const { t, te, locale } = useI18n({ useScope: 'global' })
+
+const props = defineProps({
+  pb: { type: Object, required: true },
+  clientLabel: { type: String, default: '' }
+})
+
+defineEmits(['open', 'toggleStep', 'complete', 'delete'])
+
+const progressPct = computed(() => {
+  if (!props.pb.steps.length) return 0
+  return Math.round(
+    (props.pb.steps.filter(s => s.done).length / props.pb.steps.length) * 100
+  )
+})
+
+const formattedDate = computed(() => {
+  if (!props.pb.startedAt) return '—'
+  const loc = locale.value === 'ko' ? 'ko-KR'
+    : locale.value === 'en' ? 'en-US' : 'fr-FR'
+  return new Date(props.pb.startedAt).toLocaleDateString(loc, {
+    day: 'numeric',
+    month: 'short'
+  })
+})
+
+// Échéances par step (refonte 21/07) — legacy sans `due` : rien d'affiché
+const todayIso = new Date().toISOString().slice(0, 10)
+function dueLabel(d) {
+  const loc = locale.value === 'ko' ? 'ko-KR'
+    : locale.value === 'en' ? 'en-US' : 'fr-FR'
+  return new Date(d).toLocaleDateString(loc, { day: 'numeric', month: 'short' })
+}
+
+// Guides par step (clé `<step>_g`) : dépliage au clic sur la ligne.
+// te() = la clé existe dans la locale courante (legacy/custom : pas de chevron).
+const openGuides = reactive(new Set())
+function hasGuide(step) { return te(step.title + '_g') }
+function toggleGuide(step) {
+  if (!hasGuide(step)) return
+  if (openGuides.has(step.id)) openGuides.delete(step.id)
+  else openGuides.add(step.id)
+}
+</script>
+
+<style scoped>
+.step-due { margin-left: auto; font-size: 0.7rem; color: var(--text-muted); white-space: nowrap; }
+.step-due.late { color: #ef4444; font-weight: 600; }
+.pbc-step.expandable { cursor: pointer; }
+.step-chev { font-size: 0.7rem; color: var(--text-muted); flex-shrink: 0; }
+.step-guide {
+  white-space: pre-line; font-size: 0.76rem; line-height: 1.5;
+  color: var(--text-secondary); background: var(--bg);
+  border-left: 3px solid var(--border); border-radius: 6px;
+  padding: 8px 12px; margin: 0 0 6px 30px;
+}
+</style>
