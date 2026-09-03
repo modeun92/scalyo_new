@@ -61,7 +61,7 @@ Three migrations also live under `app-v2/frontend/supabase/migrations/`.
 | a product feature | [docs/MODULES.md](docs/MODULES.md) |
 | plans, seats, roles, gating, Stripe | [docs/BILLING_AND_PLANS.md](docs/BILLING_AND_PLANS.md) |
 | secrets, GDPR, AI residency, Oxygen privacy | [docs/SECURITY_AND_PRIVACY.md](docs/SECURITY_AND_PRIVACY.md) |
-| pricing, Terms, Privacy, DPA, positioning | [docs/BUSINESS.md](docs/BUSINESS.md) |
+| the business model, entitlements, monetization logic | [docs/BUSINESS.md](docs/BUSINESS.md) |
 | conventions and doctrine | [docs/CODE_STYLE.md](docs/CODE_STYLE.md) |
 | setup, scripts, env vars, deploy | [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) |
 
@@ -120,7 +120,10 @@ broke something visible. Do not relax one without saying so explicitly.
 - **Cloudflare Pages does not reliably resolve newly added module files** — that is why
   the `wellbeing` AI handler is inlined twice.
 - **`src/i18n/legal.js` has duplicated keys in its `fr` object** (last-one-wins). Editing
-  the wrong copy has no effect. See discrepancy #3 in [docs/BUSINESS.md](docs/BUSINESS.md).
+  the wrong copy has no effect.
+- **`/api/ai`, `/api/email` and `/api/usage` read `profiles.plan`**, while the front end
+  and the SQL client-limit trigger read `organizations.plan`. A member of a paying org
+  can be entitled in the UI and 403'd by the API. Use the org plan when you touch these.
 - **Oxygen data is legally self-only.** The only aggregation path is
   `oxygen_team_aggregate` (owner-only, literal `n ≥ 5`, fail-closed behind an org flag).
   Changing this is a legal change.
@@ -157,12 +160,12 @@ Do not "fix" these without asking:
 
 Tracked, not fixed in this snapshot:
 
-- The two `plans.config.js` copies are synced by hand; a parity test would remove a class
-  of drift.
-- Ten discrepancies between the shipped legal/marketing copy and the code, listed in
-  [docs/BUSINESS.md](docs/BUSINESS.md#discrepancies-to-resolve) — notably the Founders
-  offer (3 + 20 promised vs a flat 10 implemented), two different liability caps, and
-  DeepSeek not being listed as a sub-processor.
+- The two `plans.config.js` copies are synced by hand and **have already drifted**
+  (`oxygen_team` is front-end only). A parity test would remove a class of drift.
+- Eight code-vs-code contradictions, derived and listed in
+  [docs/BUSINESS.md](docs/BUSINESS.md#8-contradictions-inside-the-machine) — notably the
+  split plan source above, and a burnout alert that fires for every team member because
+  `null < 55` is true.
 - Upstream hygiene: macOS duplicate files, a committed `.env.production`, session notes at
   the repository root (see [`REVIEW_NOTES.md`](REVIEW_NOTES.md)).
 

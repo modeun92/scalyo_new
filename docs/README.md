@@ -11,7 +11,7 @@ view to the narrowest.
 | 4 | [DATABASE.md](DATABASE.md) | the tables, the RLS model, the RPCs, the migration protocol |
 | 5 | [MODULES.md](MODULES.md) | what each product module does and the rules baked into it |
 | 6 | [BILLING_AND_PLANS.md](BILLING_AND_PLANS.md) | plans, roles, seats, gating, Stripe |
-| 7 | [BUSINESS.md](BUSINESS.md) | what Scalyo sells, pricing, commercial and legal policies, and where copy contradicts code |
+| 7 | [BUSINESS.md](BUSINESS.md) | the business model reconstructed from executable logic alone: data model, monetization, entitlements, enforced policies |
 | 8 | [SECURITY_AND_PRIVACY.md](SECURITY_AND_PRIVACY.md) | secret custody, GDPR, AI data residency, well-being confidentiality |
 | 9 | [CODE_STYLE.md](CODE_STYLE.md) | the doctrine you are expected to follow, and why |
 | 10 | [DEVELOPMENT.md](DEVELOPMENT.md) | local setup, scripts, env vars, the pre-commit checklist |

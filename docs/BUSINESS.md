@@ -1,334 +1,394 @@
-# The business
+# The business, reconstructed from the code
 
-Everything below is derived from the code in this repository — the landing copy
-(`src/i18n/landing.js`), the plan configuration (`src/config/plans.config.js`), the price
-table (`functions/api/_config/prices.js`), the legal texts (`src/i18n/legal.js`,
-`src/i18n/dpa.js`) and the press kit (`public/presse/index.html`). Where the code
-contradicts the published copy, it is flagged in
-[Discrepancies to resolve](#discrepancies-to-resolve).
+## Method
 
-## What Scalyo sells
+This document is derived **only from executable logic and data structures**: schema and
+RLS policies, Pinia store computeds, plan and price configuration, the Stripe webhook,
+seat accounting, gating checks, quota services, and the catalogs that shape the data model.
 
-**Scalyo is a B2B SaaS Customer Success platform**, sold per seat, per month, to
-Customer Success teams — CSMs, KAMs, CS managers — in B2B SaaS and adjacent industries.
+Deliberately **not used as evidence**: the landing page copy (`src/i18n/landing.js`), the
+Terms / Privacy / DPA texts (`src/i18n/legal.js`, `src/i18n/dpa.js`), the press kit
+(`public/presse/`), blog articles, AI system prompts, and any other prose that describes
+the business rather than implementing it.
 
-The official self-description from the press kit:
+The consequence is worth stating plainly: what follows is what the software **does**, not
+what the company **says**. Where the two would differ, only the first is recorded here.
 
-> Scalyo is a B2B Customer Success platform that helps CS teams steer their accounts and
-> their team: client portfolio and health scores, KPIs, retention playbooks, planning and
-> tasks, AI agents, and monitoring of Customer Success Managers' well-being. The platform
-> is natively multilingual — French, English and Korean.
+---
 
-### Company
+## 1. What the software is, from the data model
 
-| | |
+The schema defines one root tenant and one root business object.
+
+**Tenant** — `organizations`, with `organization_members` (unique on the
+`(organization_id, user_id)` pair) and `profiles.organization_id`. Every non-personal
+table is scoped to it. The tenant, not the user, carries `plan`, `seats_paid`,
+`stripe_subscription_id` and `trial_ends_at`. **The buying unit is a company, not an
+individual.**
+
+**Root object** — `clients`, whose columns are the whole thesis:
+
+```
+name · industry · arr · mrr · health (0–10) · nps · status · churn_risk
+renewal_date · csm_id · lifecycle('prospect'|'client') · pipeline_stage · churned_at
+contacts (jsonb) · organization_id
+```
+
+Nothing here describes a sale being *made*. `arr`, `mrr`, `renewal_date`, `churn_risk`
+and `churned_at` describe a contract already signed and the question of whether it will
+survive. The object is a **revenue relationship under management**, and every derived
+computed in `stores/clients.js` measures its survival: `arrAtRisk`, `criticalCount`,
+`watchCount`, `healthyCount`, `renewalsNext30`, `avgHealth`, `avgNps`.
+
+Seven satellite tables hang off that root, and they say what the work consists of:
+
+| Table | What it implies the job is |
 |---|---|
-| Name | Scalyo (operated by Stratima Agency; the legal texts also refer to "Scalyo SAS") |
-| Founder / CEO | Lidia Chikhoune, a former Customer Success Manager |
-| Category | B2B SaaS — Customer Success platform |
-| Site / app | `scalyo.app` / `app.scalyo.app` |
-| Languages | French, English, Korean (native, not an afterthought) |
-| Markets | Francophone (FR, BE, CH, QC), Anglophone, Korean |
-| Hosting | European Union |
-| Contact | `contact@scalyo.app` · support `support@scalyo.app` · DPO `dpo@scalyo.app` |
+| `client_notes` | Logging calls, emails and meetings against an account |
+| `client_metrics` | Entering one manual measurement per (client, KPI, month) |
+| `playbooks` | Running a dated, multi-step intervention on an account |
+| `planning_events`, `tasks`, `projects` | Scheduling and executing the follow-up work |
+| `copils` | Building a deck to present results **to** that account |
+| `quotes` | Pricing a renewal or an expansion |
+| `oxygen_*` | Measuring the load on the person doing all of the above |
 
-### The positioning
+**Derived conclusion:** this is post-sale revenue retention software. The unit of work is
+an existing account; the unit of value is that account not churning.
 
-Two claims carry the whole go-to-market:
+### The prospect branch is subordinate, by construction
 
-1. **Churn prevention, 30 days ahead.** Health scores, predictive alerts and playbooks
-   tell a CSM which account to act on and when.
-2. **The only CS platform that also measures the CSM.** The founding conviction, stated
-   in the press kit, is *"an exhausted CSM saves no client."* Where competing tools
-   measure account performance, Scalyo also measures the load on the people handling
-   those accounts. This is the Oxygen module, and it is the explicit differentiator.
+`lifecycle` admits `'prospect'`, and `PIPELINE_STAGES = ['new','contacted','qualified','won','lost']`
+exists. But the code systematically excludes prospects from everything that matters:
 
-Scalyo positions itself as **complementary to a CRM**, not a replacement: the CRM owns the
-sales pipeline, Scalyo owns retention and the post-sale relationship (FAQ 7).
+- `clientsOnly` (prospects filtered out) is the base for `totalArr`, `totalMrr`,
+  `avgHealth`, `avgNps`, every status counter and `arrAtRisk`.
+- The alert generator hard-returns on `lifecycle === 'prospect'` — "churn/nps/renewal make
+  no sense before signing."
+- The database client quota (`check_client_limit`) does not count prospects at all.
+- `clientToDb` auto-converts: a prospect whose stage becomes `won` is rewritten as a
+  `client`, and a client can hold no pipeline stage.
 
-### Claimed outcomes — stated as targets, not averages
+So the pipeline is a **pre-registration funnel that terminates at the first contract**, not
+a sales CRM. The software's economics start where the pipeline ends.
 
-The landing page advertises −34 % churn, +18 % NRR, 6 hours saved per CSM per week, and a
-30-day head start on churn. The copy is careful and the wording is worth preserving:
+---
 
-> Product targets, not observed averages. Scalyo measures these four indicators in your
-> dashboard — your figures replace ours from the first month.
+## 2. Who the buyer is, from the taxonomies and the permission matrix
 
-That disclaimer (`stats_note`) is a compliance-relevant piece of copy. It should not be
-removed or softened without a deliberate decision.
+`src/data/kpiCatalog.js` carries 64 KPIs, each tagged with the roles and sectors it serves.
+Counting the tags is the cleanest available description of the target user:
 
-## Pricing
+| Role tag | KPIs |
+|---|---|
+| `manager` | 41 |
+| `csm` | 32 |
+| `commercial` | 20 |
+| `kam` | 14 |
+| `support` | 6 |
 
-Four plans, billed **per seat per month**, no commitment, cancellable at any time.
-Payment is by Stripe Payment Link; Scalyo never sees card details.
+| Sector tag | KPIs |
+|---|---|
+| `b2b` | 45 |
+| `b2c` | 27 |
+| `saas` | 25 |
+| `ecommerce` | 4 |
+| `retail` | 3 |
+| `marketplace` | 2 |
 
-| Plan | EUR | USD | KRW | Seats | Clients |
-|---|---|---|---|---|---|
-| Starter | 79 | 89 | 139,000 | 3 | 50 |
-| Growth | 119 | 139 | 209,000 | 7 | unlimited |
-| Elite | 159 | 189 | 279,000 | 24 | unlimited |
-| Enterprise | quote-based | quote-based | quote-based | unlimited | unlimited |
+The KPI categories are weighted the same way: `revenue` 9, `retention` 7, `acquisition` 6,
+`satisfaction` 5, `activation` 5, `team` 5, `expansion` 4, `support` 3, `engagement` 3,
+`ecommerce` 3, `projects` 3. Ten of the 64 are marked `inverse: true` — lower is better —
+and every one of those is a churn, risk or cost metric.
 
-Prices are declared once, in Stripe's smallest unit, in
-`functions/api/_config/prices.js`. KRW is a zero-decimal currency, so 279000 KRW is
-279,000 won, not 2,790. **The currency is a property of the account**
-(`user_profiles.currency`), never of the display language: a French-speaking user with a
-KRW account sees won.
+`ROLES` in `plans.config.js` defines four levels with a full read/write matrix over eleven
+entities:
 
-### What each plan unlocks
+| Role | Level | Consumes a seat | Invite | Revoke | Change roles | Billing |
+|---|---|---|---|---|---|---|
+| `owner` | 100 | yes | yes | yes | yes | manage |
+| `admin` | 50 | yes | yes | yes | no | view only |
+| `member` | 10 | yes | no | no | no | none |
+| `viewer` | 1 | **no** | no | no | no | none |
 
-| | Starter | Growth | Elite | Enterprise |
+`member` writes `own` and reads `all` on client data; `viewer` reads `all` and writes
+nothing. A dedicated non-billable read-only role exists — which only makes economic sense
+if someone outside the CS team (an executive, a stakeholder) needs to look at the data
+without operating it.
+
+**Derived conclusion:** the buyer is a **managed B2B/SaaS Customer Success team**, bought
+by a manager or owner, staffed by CSMs and KAMs, with commercial and support roles as
+secondary audiences and free spectator access for stakeholders.
+
+### The differentiator is visible in the schema, not just in the feature list
+
+Three tables — `oxygen_checkins`, `oxygen_daily`, `oxygen_recoveries` — measure the
+**operator**, not the account. They are self-only under RLS, and the single aggregation
+path is a `SECURITY DEFINER` function with a hard-coded `n ≥ 5` floor, an owner-only
+caller guard, and a fail-closed organization flag defaulting to `false`.
+
+No competitor feature parity claim is needed to see the intent: the product treats CSM
+workload as a first-class measured object, and it spent schema, RLS, a definer function
+and a legal gate on protecting it. `oxygenLoad.js` even derives the load *from the
+portfolio itself* — critical accounts × 20 (cap 40), renewals ≤ 30 d × 10 (cap 30),
+overdue tasks × 5 (cap 15), churn/NPS alerts ≤ 7 d × 5 (cap 10), active playbooks × 2.5
+(cap 5) — so the two halves of the product are wired to each other.
+
+---
+
+## 3. The monetization machine
+
+Only three code paths move money, and together they fully specify the revenue model.
+
+### The price table
+
+`functions/api/_config/prices.js`, in Stripe's smallest unit:
+
+| Plan | `eur` | `usd` | `krw` |
+|---|---|---|---|
+| starter | 7900 | 8900 | 139000 |
+| growth | 11900 | 13900 | 209000 |
+| elite | 15900 | 18900 | 279000 |
+
+`MINOR_UNITS = { eur: 100, usd: 100, krw: 1 }`, so the major-unit grid is 79/119/159 EUR,
+89/139/189 USD, 139,000/209,000/279,000 KRW. `BILLING_INTERVAL = 'month'`.
+`DEFAULT_CURRENCY = 'eur'`.
+
+`enterprise` **has no row in the table**. `tableBilling()` returns `unit_amount: null` and
+`total: null` for it, and `PLANS.enterprise.maxSeats` is `null`. Enterprise is therefore
+not a price — it is a code path that declines to compute one. Structurally, it is
+quote-based.
+
+### The billing formula
+
+`functions/api/billing.js` is the only place an amount is produced:
+
+```
+seats  = organizations.seats_paid ?? 1
+amount = pricesFor(account_currency).prices[plan] × seats     (no Stripe subscription)
+       | Stripe subscription item unit_amount × quantity      (subscription present)
+```
+
+Three properties fall out of that code:
+
+1. **The currency is a property of the account**, resolved by `normalizeCurrency` from
+   the account record, not from the display locale. `lib/formatters.js` enforces the same
+   rule on the client with zero conversion.
+2. **`can_view_amounts = canPerform(role, 'canViewBilling')`.** A `member` or `viewer`
+   receives `source: 'none'` and no amount at all. Price visibility is a role permission.
+3. **Stripe is authoritative when present.** The endpoint returns
+   `plan_mismatch: stripe.plan !== orgPlan` rather than silently trusting the local record.
+
+### Seat accounting — billed at invitation, not at acceptance
+
+`functions/api/invite.js` and `functions/api/members.js` compute the same quantity:
+
+```
+seatsCommitted = organization_members.filter(role !== 'viewer').length
+               + invitations.filter(status='pending' && role !== 'viewer').length
+```
+
+`invite.js` then, in order: checks `canAddSeat(plan, seatsCommitted)`, inserts the
+invitation, calls Stripe with `quantity = seatsCommitted + 1` and
+`create_prorations`, and — if Stripe fails — **deletes the invitation it just created**.
+`organizations.seats_paid` is only written after Stripe agrees.
+
+The inverse operations (`members/[id].js`, `invitations/[id].js`) call Stripe **before**
+any database write, with `proration_behavior: 'none'`.
+
+**Derived conclusion:** revenue recognizes on *reserved capacity*, not on usage or on
+activation. Upgrades are charged instantly and prorated; downgrades take effect at
+renewal with no credit. A `viewer` is free by design and is the only role that is.
+
+So:
+
+```
+MRR = Σ over organizations: price[plan][account_currency] × (non-viewer members + pending non-viewer invitations)
+```
+
+### Subscription lifecycle
+
+`functions/api/stripe-webhook.js` handles exactly three events —
+`checkout.session.completed`, `customer.subscription.updated`,
+`customer.subscription.deleted` — and each writes **both** `profiles` and
+`organizations` (`updateOrgForOwner`).
+
+On `canceled`, `unpaid` or `deleted`, the profile is reset to `plan: null, seats_paid: 0`
+while the organization is set to `plan: 'starter', seats_paid: 1`. **Cancellation
+downgrades to Starter rather than terminating access.** The comment records the reason:
+`organizations.plan` is `NOT NULL`, so `'starter'` is the floor, and a still-valid promo
+window carried by `trial_ends_at` is deliberately not touched.
+
+Checkout uses Stripe **Payment Links**, not a server-created session:
+`src/config/stripeLinks.js` holds three links injected per environment, appends
+`client_reference_id` (the only user-mapping key the webhook has), and refuses to serve a
+`live` link from a non-production host. A missing link yields `''` and an inert button.
+
+---
+
+## 4. Entitlement, as three separate enforcement points
+
+`PLANS[plan].modules` is the declared source of gating:
+
+| Plan | Modules |
+|---|---|
+| starter | coach, nova, wellbeing, dashboard, copil, matrix |
+| growth | + import, playbook, resources, **oxygen_team*** |
+| elite | + email, notif, okr, roadmap |
+| enterprise | same set as elite |
+
+\* see the drift finding in §7.
+
+Alongside it, `functions/api/_config/plans.js` carries the metered limits:
+
+| | starter | growth | elite | enterprise |
 |---|---|---|---|---|
-| Dashboard, Tasks, Smart Matrix | ✓ | ✓ | ✓ | ✓ |
-| CS Coach AI + Health Chat (Nova) | ✓ | ✓ | ✓ | ✓ |
-| Email & COPIL templates | ✓ | ✓ | ✓ | ✓ |
-| Oxygen well-being (private data) | ✓ | ✓ | ✓ | ✓ |
-| CS resource library | | ✓ | ✓ | ✓ |
-| CSV / Excel import | | ✓ | ✓ | ✓ |
-| Guided manual playbooks | | ✓ | ✓ | ✓ |
-| Advanced dashboard & KPIs | | ✓ | ✓ | ✓ |
-| Team Oxygen loop (manager view) | | ✓ | ✓ | ✓ |
-| AI-automated playbooks | | | ✓ | ✓ |
-| AI Email Studio (send via Resend) | | | ✓ | ✓ |
-| OKR Tracker | | | ✓ | ✓ |
-| Product roadmap | | | ✓ | ✓ |
-| Notifications module | | | ✓ | ✓ |
-| SSO / SAML, dedicated API | | | | ✓ |
-| Priority support, tailored onboarding, compliance audit | | | | ✓ |
-| Unlimited viewers | | | | ✓ |
+| AI calls / day / user / module | 35 | 100 | 200 | −1 (unlimited) |
+| `maxUsers` | 3 | 7 | 24 | −1 |
+| `maxClients` | 50 | −1 | −1 | −1 |
 
-The authoritative list is `PLANS[plan].modules` in `src/config/plans.config.js`, mirrored
-in `functions/api/_config/plans.config.js`. See
-[BILLING_AND_PLANS.md](BILLING_AND_PLANS.md) for the gating mechanics.
+Only `coach` and `nova` are in `QUOTA_MODULES` — every other AI module is declared with a
+quota that is never checked and never logged. Rate limiting is separate and flat:
+**10 requests/minute/user**, in-memory per Worker isolate.
 
-### Usage limits inside a plan
+Feature flags (`PLANS[plan].features`) are a 22-key map, but only four keys are ever read:
+`advancedDashboardKpis` (three views), `aiEmailStudio` (one view), and
+`unlimitedViewers` (inside `canAddViewer` / `getAvailableRolesForInvite`). The other
+eighteen — SSO, dedicated API, priority support, compliance audit, tailored onboarding,
+manual playbooks, OKR tracker, product roadmap and so on — are **declared but never
+consulted by any code path**. Whatever they represent, it is delivered by humans or not at
+all.
 
-| Limit | Starter | Growth | Elite | Enterprise |
+### Client quota is the one limit enforced in the database
+
+`check_client_limit()` (trigger `enforce_client_limit`, `SECURITY DEFINER`) reads
+`organizations.plan`, falls back to `profiles.plan`, counts by `organization_id`, and
+skips prospects. Everything else — seats, modules, AI quota — is enforced in application
+code only.
+
+---
+
+## 5. Operating policies the code actually enforces
+
+These are policies in the strict sense: rules the machine applies without asking anyone.
+
+| Policy | Mechanism |
+|---|---|
+| **The organization grants access, not the profile** | `auth.js: orgGrantsAccess = org.stripe_subscription_id \|\| isOnBetaAccess`. `isOnTrial` and `trialExpired` both consult it, so a member of a paying org never hits the paywall even with a personal trial burned. |
+| **Trial is 14 days, once per profile** | `ORG_SETTINGS.trialDays = 14`; `trialDaysLeft = 14 − floor(elapsed days)`; `trialUsed` is a one-way flag set by the webhook on first checkout. |
+| **Promo access is time-boxed at the org** | `isOnBetaAccess = !org.stripe_subscription_id && org.trial_ends_at > now`. It is a distinct, org-level entitlement that survives a used personal trial. |
+| **Alpha testers bypass the paywall entirely** | `needsPayment = trialExpired && !hasActiveSubscription && !isAlphaTester`. |
+| **Unknown plan resolves to the most restrictive** | `effectivePlan = currentPlan \|\| 'starter'`; `modulesFor()` falls back to `PLANS.starter.modules`; `getUserPlan()` returns `'starter'` on any read failure. Gating fails closed. |
+| **Invitations expire in 180 days** | `ORG_SETTINGS.invitationExpiryDays = 180`, written explicitly by `invite.js` because the database default is 7. |
+| **Invitation tokens are a privileged capability** | `members.js` strips `token` from the payload unless `canPerform(role, 'canInvite')`. |
+| **An invitation binds to one email and one org** | `invite/accept.js` refuses when the target email ≠ the logged-in account, and refuses when the account already belongs to another org. `profiles.organization_id` is never implicitly overwritten. |
+| **Client data is shared across the whole team** | RLS on `clients`, `client_notes`, `client_metrics` and `quotes` is org-wide for both read **and** write. Deletion stays with the author or the owner. Continuity of service is enforced at the database layer, not by convention. |
+| **Well-being data is unreadable by management** | Oxygen tables are self-only. `oxygen_team_aggregate` is owner-only, `SECURITY DEFINER`, fail-closed on an org flag that defaults to `false`, with a **literal** `n ≥ 5` threshold that cannot be parameterized, returning 14-day averages and a trend only. |
+| **Payment data never lands in Scalyo** | No card column exists anywhere in the schema. Stripe Payment Links + Billing Portal are the only payment surfaces. |
+| **AI context can never exceed the caller's own visibility** | `context.service.js` queries PostgREST with the **user's JWT** and the anon key, so RLS decides; the column list is explicit and excludes notes and contact details; list lengths are capped. |
+| **Non-EU AI is a scrubbed emergency path** | `ai.service.js` falls back to DeepSeek only on timeout / network error / 5xx — never on 429 or any other 4xx — and only after `anonymize.js` strips the portfolio block and scrubs emails, amounts, dates and phone numbers, including the user's own question. An empty `DEEPSEEK_API_KEY` disables the path entirely. |
+| **Erasure and portability are wired, not promised** | `DELETE /api/users/me`, `POST /api/account/delete`, `GET /api/export`, `GET /api/account/export`. |
+| **Secrets are never returned to the browser** | `org_email_config` has no client grant at all; `org_integrations` secret columns are revoked; both are AES-256-GCM encrypted; `/api/email/test` exists so the browser never calls Resend directly. |
+| **Plans cannot be self-granted** | Triggers `protect_billing_fields` (profiles) and `protect_org_billing_fields` (organizations) block the `authenticated` role from writing billing columns — and the same trigger protects `oxygen_team_enabled`. |
+
+---
+
+## 6. Geographic and regulatory reach, from the code
+
+`countryLaws.js` is the only place the product encodes jurisdiction, and it encodes six:
+
+| Code | Currency | Tax | Statutory hours/week | Privacy regime |
 |---|---|---|---|---|
-| AI calls / day / user (per module) | 35 | 100 | 200 | unlimited |
-| Client accounts | 50 | unlimited | unlimited | unlimited |
-| Seats | 3 | 7 | 24 | unlimited |
+| FR | EUR | 20 % | 35 | GDPR / CNIL |
+| BE | EUR | 21 % | 38 | GDPR / APD |
+| CH | CHF | 8.1 % | 42 | nLPD 2023 / PFPDT |
+| CA | CAD | 5 % | 40 | PIPEDA + Québec Law 25 |
+| US | USD | — | — | CCPA/CPRA |
+| KR | KRW | — | — | — |
 
-Only the `coach` and `nova` chat modules actually consume quota; the other AI modules run
-unmetered (`_services/quota.service.js`). Emails: 3,000/month included, then €1.50 per
-1,000 (`EMAIL_FREE_QUOTA`, `EMAIL_OVERAGE_RATE`).
+Two things are notable in that table. First, it carries **labour law** — weekly hours,
+daily hours, vacation days, public holidays — which no billing feature needs. It exists
+because the workload half of the product has to know what a normal working week is.
+Second, every entry carries an `emergencyNumber` (`3114` in France, `143` in Switzerland,
+`1-866-APPELLE` in Canada): the product routes a user in distress to a national crisis
+line. That is a duty-of-care decision expressed in a config file.
 
-### Seat model
+Billing currency support is narrower than jurisdiction support: `PRICES` covers only
+`eur`, `usd`, `krw`. A Swiss or Canadian buyer is billed in EUR or USD even though quotes
+they issue can be denominated in CHF or CAD.
 
-A **viewer never consumes a seat**. Every other role does, and the seat is committed and
-billed at **invitation** time, not at acceptance — the GitHub model. Adding a seat is
-prorated immediately; removing one takes effect at the next renewal with no credit.
+Interface and server-side messages exist in exactly three locales (`fr`, `en`, `ko`), with
+`fr` as the fallback everywhere — `i18n/index.js`, `extractLang()` in the API, and the
+deck language selector in COPIL. Korea is a first-class market in the code: it has its own
+price row, its own locale, its own font handling in the PPTX export, and Korean-specific
+number formatting rules in `fmtCurrency`.
 
-## Revenue model in one line
+---
 
-`monthly revenue = Σ (plan unit price in the account currency × non-viewer seats)`, with a
-14-day full-access trial in front of it and no commitment behind it.
+## 7. What the code proves is *not* built
 
-## Commercial policies
+Reading only mechanisms makes the gaps visible too.
 
-### Trial
+- **Email metering does not exist.** `EMAIL_FREE_QUOTA = 3000` and
+  `EMAIL_OVERAGE_RATE = 1.5` are exported from `emailTemplates.js` and **imported by
+  nothing**. `/api/email` checks the plan module and then sends. There is no counter, no
+  cap and no overage billing anywhere in the repository.
+- **Eighteen of the 22 plan feature flags are inert** (see §4). SSO/SAML, dedicated API,
+  priority support, compliance audit and tailored onboarding have no code behind them.
+- **AI quotas are declared for ten modules and enforced for two.** `QUOTA_MODULES` is
+  `['coach', 'nova']`; `logUsage` returns early for everything else, so the `matrix`,
+  `copil`, `playbook`, `dashboard`, `notif`, `import`, `email` and `wellbeing` quota
+  numbers in `plans.js` are decorative.
+- **Rate limiting is not durable.** It lives in a `Map` inside a Worker isolate and resets
+  on every cold start; it is a courtesy limit, not an enforcement mechanism.
+- **The Integrations module is disabled.** The route redirects to the dashboard; the OAuth
+  and credential-custody code is complete and dormant. No third-party data actually flows
+  in, which means every account figure in the product is manually entered or imported.
+- **`_future/proactive-agent.config.js` and `_future/autonomous-actions.config.js`** are
+  fully specified rule engines that nothing imports.
 
-14 days with **full access to Elite features**. A Stripe sign-up is required up front.
-At the end of the trial, access is adjusted to the chosen plan. The trial also applies to
-upgrades, not only to first subscriptions.
+---
 
-The trial is a property of the account, but paid access is a property of the
-**organization**: an org that pays — or that has beta access — covers all its members,
-including those whose personal trial is already used up.
+## 8. Contradictions inside the machine
 
-### Founders offer
+These are inconsistencies between code and code — no marketing text involved. Each is
+derivable by reading two files.
 
-Published in the Terms (`cgu_s6_founders`): the **first three** companies to sign up get
-the product free for life, and the **next twenty** get 50 % off for life. The benefit
-holds only while the subscription stays active and continuous; on cancellation it ends
-permanently and any new subscription is billed at the public rate.
-
-Implemented in the code as a single `is_founding` flag capped at **10** organizations
-(`functions/api/founding-status.js`, `functions/api/alpha/activate.js`), granted through a
-promo code. See [Discrepancies](#discrepancies-to-resolve).
-
-### Alpha / promo codes
-
-`POST /api/alpha/verify` validates a code against `promo_codes`; `POST /api/alpha/activate`
-creates the organization, applies the plan and the validity window from the code, and sets
-the founding flag when fewer than ten founding orgs exist. Beta access is carried by
-`organizations.trial_ends_at` and grants the full plan without a Stripe subscription.
-
-### Billing, renewal and cancellation
-
-- Monthly, automatic renewal, **no commitment**.
-- Cancellation at any time from the customer area (Stripe Billing Portal), effective at
-  the end of the current period.
-- Plan changes (upgrade or downgrade) are immediate, with no fee.
-- Prices are quoted excluding tax (HT) in the Terms.
-- Scalyo stores no card details — Stripe is the sole payment processor.
-
-### Support
-
-- Channel: email, `contact@scalyo.app` (the landing footer also advertises
-  `support@scalyo.app`).
-- Languages: French, English, Korean.
-- Press and partner requests: answered within 48 working hours.
-- Elite adds a multi-team executive view; Enterprise adds priority support and tailored
-  onboarding.
-- There is **no contractual uptime SLA** anywhere in the legal texts. The Terms state
-  24/7 availability *subject to maintenance*, and reserve the right to interrupt the
-  service for maintenance **without prior notice**.
-
-## Legal and privacy policies
-
-Governing law: **French law and EU law**. Disputes go to amicable resolution first, then
-to the French courts. Regulation of reference: **GDPR (EU) 2016/679**.
-
-### Terms of Service — key clauses
-
-| Clause | Substance |
-|---|---|
-| Object | SaaS Customer Success Management platform at `scalyo.app` |
-| Access | 24/7 subject to maintenance; maintenance interruptions without notice; a valid email is required |
-| Trial | 14 days, full Elite access, Stripe sign-up required |
-| Renewal | Automatic monthly; cancel any time, effective at period end |
-| Data ownership | **The user owns their data.** Scalyo does not exploit user data commercially. |
-| Liability | Provided as-is. No liability for indirect damages, data loss, lost revenue or lost opportunity. **Capped at the amounts paid in the preceding 12 months.** |
-| Force majeure | Standard exclusion under the French Civil Code |
-| Changes to the Terms | Users notified by email **30 days** before a change takes effect; continued use is acceptance |
-| Contact | `contact@scalyo.app` |
-
-Note that clause 8 (an earlier section) caps liability at **3 months** of fees while
-clause 11 caps it at **12 months**. Both are present in the shipped text — see
-[Discrepancies](#discrepancies-to-resolve).
-
-### Privacy policy — key clauses
-
-**Data collected**
-
-- Account data: first name, last name, email, hashed password.
-- Usage data: clients, tasks, team, KPIs entered in the application.
-- Technical data: IP address, browser, access logs.
-- Payment data: handled exclusively by Stripe — **Scalyo stores no card details**.
-
-**Purposes** — service delivery and account management, billing and subscription
-management, customer support and product improvement, security and fraud prevention.
-
-**Legal basis** — performance of the contract (the Terms), the user's consent at sign-up,
-and applicable GDPR obligations.
-
-**Retention** — for the duration of the subscription plus **3 years** after termination for
-legal obligations. Data can be deleted on request at any time.
-
-**Hosting** — Supabase (EU, Frankfurt) and Cloudflare. No transfer outside the EEA without
-adequate safeguards.
-
-**Sharing** — Scalyo does **not** sell or rent data. It is shared only with the technical
-sub-processors needed to run the service.
-
-**Cookies** — strictly necessary cookies only (authentication, session). **No advertising
-and no tracking cookies.** There is consequently no cookie banner in the product, which is
-consistent with this policy.
-
-**Rights** — access, rectification, erasure, portability (CSV export), objection.
-Exercised at `dpo@scalyo.app`, or directly in the product:
-
-| Right | Endpoint |
-|---|---|
-| Portability (Art. 20) | `GET /api/export`, `GET /api/account/export` |
-| Erasure (Art. 17) | `DELETE /api/users/me`, `POST /api/account/delete` |
-
-**Breach notification** — CNIL notified within **72 hours** (GDPR Art. 33); affected users
-informed as soon as possible when the breach presents a high risk.
-
-### Data Processing Agreement (GDPR Art. 28)
-
-Served publicly at `/dpa`. Scalyo is the **processor**; the customer is the
-**controller**.
-
-- **Duration** — for the term of the service agreement; deletion within **30 days** of
-  termination, with a deletion certificate on request.
-- **Data categories** — identification data, connection data, business data entered by the
-  customer, well-being data (*strictly confidential and anonymized*), billing data
-  (Stripe; no card numbers stored).
-- **Data subjects** — the customer's employees, and the professional contacts of the
-  customer's own end clients.
-- **Sub-processor changes** — 30 days' notice to the customer.
-- **Breach notification** — Scalyo notifies the controller within **48 hours**; the
-  controller notifies the CNIL within 72 hours.
-- **Audit right** — the controller may audit with 30 days' notice, at its own cost.
-- **Security measures declared** — TLS 1.3 in transit and at rest, ES256 JWTs, Row Level
-  Security on every table, role- and plan-based access control, DOMPurify sanitization,
-  HMAC webhook verification, access logging.
-
-### Declared sub-processors
-
-| Sub-processor | Role | Location |
+| # | Where | What the code says |
 |---|---|---|
-| Supabase Inc. | Database hosting — user and business data | EU (Frankfurt) |
-| Cloudflare Inc. | CDN, front end and serverless back end | EU network |
-| Stripe Inc. | Payments (PCI-DSS Level 1) | US, EU-US DPF / SCC |
-| Resend Inc. | Transactional email | US, EU-US DPF / SCC |
-| Mistral AI | AI inference only, no data stored, anonymized context | see note below |
+| 1 | `src/config/plans.config.js:6` vs `functions/api/_config/plans.config.js:5` | The two copies of the "single source" have **already drifted**: `oxygen_team` is in the front-end `MODULES_GROWTH` and absent from the back-end one. Currently harmless (only `ManagerView` reads it, client-side), but the manual-sync invariant is broken. |
+| 2 | `functions/api/ai.js:14`, `functions/api/email.js:22`, `functions/api/usage.js:14` vs `src/stores/auth.js` and `check_client_limit()` | **Three enforcement points, two different plan sources.** The front end and the SQL trigger read `organizations.plan` with a profile fallback; `/api/ai`, `/api/email` and `/api/usage` read `profiles.plan` only, defaulting to `'starter'`. A member of a paying Elite org whose own `profiles.plan` is null sees every module unlocked in the UI, can create clients past the Starter cap, and is **403'd by the AI and email endpoints**. This is the exact bug class that migration `20260711210000` fixed for the client limit and that `PAYWALL-MEMBER` fixed for the paywall — the API endpoints were never brought in line. |
+| 3 | `src/stores/notifications.js:191` vs `src/stores/team.js:77` | The burnout rule is `if (member.wellbeingScore < 55 \|\| member.workload > 85)`. `team.members` always carries `wellbeingScore: null, workload: null` (B-09: no real source exists). `null < 55` coerces to `0 < 55` → **true**, so a burnout alert is generated for **every team member**, with the body rendering `bien-être null/100`. This directly violates the `R21` "never invent a value" doctrine the rest of the code enforces. |
+| 4 | `functions/api/_config/plans.js` `QUOTAS` vs `_services/quota.service.js` `QUOTA_MODULES` | Eight of the ten quota entries per plan are never read (see §7). |
+| 5 | `src/components/email-studio/emailTemplates.js:5-6` | Two exported pricing constants with zero importers (see §7). |
+| 6 | `functions/api/invite.js:56` vs the `invitations` table default | `ORG_SETTINGS.invitationExpiryDays = 180`, but the column default is 7 days. The two only agree because the Function writes `expires_at` explicitly; any other insert path expires in a week. |
+| 7 | `handleSubscriptionUpdated` in `stripe-webhook.js` | On cancellation the profile is set to `plan: null, seats_paid: 0` while the organization is set to `plan: 'starter', seats_paid: 1`. The same account then reports different plans depending on which record is read — and `auth.js currentPlan` prefers the organization, so the user lands on Starter, not on nothing. Intentional, but the two records are permanently inconsistent after a cancellation. |
+| 8 | `src/i18n/legal.js`, `fr` object | `cgu_s11`–`cgu_s14` and `priv_s11`–`priv_s13` are each declared **three times**. Last-one-wins makes the rendered output correct; the first two copies are unreachable, and editing one has no effect. |
 
-### AI policy
+---
 
-- **Mistral is the nominal provider** and the code comments place it in Paris, in the EU.
-- **DeepSeek is an emergency fallback only.** It is called solely on a *total* Mistral
-  outage (timeout, network error, 5xx — never on a 429 or any other 4xx), and only after
-  `_services/anonymize.js` has stripped the portfolio context block and scrubbed emails,
-  amounts, dates and phone numbers from what remains, including the user's own question.
-  DeepSeek is never named in the front end.
-- The AI context is built server-side with the **user's own JWT**, so the model can never
-  be shown more than the user can see, and it applies GDPR minimization: an explicit
-  column list, never notes, never emails or phone numbers, and capped list lengths.
-- The Privacy policy states that AI consent is required before processing.
+## 9. Summary
 
-### Well-being confidentiality — a product promise with teeth
+Reading only the executable parts, Scalyo is:
 
-The pricing page carries the commitment explicitly:
+- a **multi-tenant B2B SaaS**, sold to a company (`organizations`), not to an individual;
+- a **post-sale revenue-retention system** whose root object is a signed account and
+  whose every aggregate measures that account's survival;
+- **billed per reserved non-viewer seat, per month**, in one of three currencies attached
+  to the account, through Stripe Payment Links, with capacity charged at invitation and
+  released at renewal;
+- **gated by a per-plan module list** with a 14-day trial, an org-level promo window, an
+  alpha bypass, and a cancellation path that lands on Starter rather than on lockout;
+- **operated by a CS team** of owner / admin / member roles with a free read-only viewer
+  seat for stakeholders;
+- and distinguished, in schema and in RLS rather than in prose, by **measuring the
+  operator alongside the account** — with the operator's data made structurally
+  unreadable by their own management.
 
-> Well-being & chat: strictly personal data, secured and not transmitted to management.
+The revenue equation the code implements, in full:
 
-This is enforced in the database, not just in the UI:
+```
+MRR = Σ organizations [ PRICES[account_currency][organizations.plan]
+                        × (non-viewer members + pending non-viewer invitations) ]
+```
 
-- The Oxygen tables are **self-only** under RLS. No manager and no owner can read another
-  user's rows.
-- The single aggregation path is the `oxygen_team_aggregate` function: `SECURITY DEFINER`,
-  **owner-only**, with a **literal `n ≥ 5`** threshold that is deliberately not
-  parameterizable, fail-closed behind an organization flag that defaults to `false` and
-  can only be enabled by an SQL update after a legal (DPIA) review.
-- It returns team averages over a 14-day window plus a trend — **no individual data, no
-  ranking, no time-spent metric**.
-- The manager panel displays the privacy contract on screen in every state.
-
-Any change to this area is a legal change, not a product change.
-
-## Discrepancies to resolve
-
-These are inconsistencies between the shipped code and the shipped copy. None is a bug in
-the running software; each is a commitment that does not match its implementation, so each
-needs a decision from the business rather than a patch from an engineer.
-
-| # | Where | Issue |
-|---|---|---|
-| 1 | `legal.js` `cgu_s6_founders` vs `founding-status.js` / `alpha/activate.js` | The Terms promise **3 lifetime-free + 20 at 50 %**. The code implements a single `is_founding` flag capped at **10** organizations, with no distinction between the two tiers and no discount logic. |
-| 2 | `legal.js` `cgu_s8` vs `cgu_s11` | Liability is capped at **3 months** of fees in clause 8 and at **12 months** in clause 11. Both ship. |
-| 3 | `legal.js` — the `fr` object | `cgu_s11`–`cgu_s14` and `priv_s11`–`priv_s13` are each **declared three times** (Korean, English, then French). Last-one-wins means the French text is the one rendered, so the visible behaviour is correct, but the Korean and English copies inside the `fr` object are dead weight and a trap for the next editor. The `en` and `ko` objects have no duplicates. |
-| 4 | `privacy` §14 vs the code | The Privacy policy lists **Mistral AI as US-based**, covered by the EU-US Data Privacy Framework. The code and `SECURITY.md` describe Mistral as **Paris, EU** and state that "data never leaves the EU". One of the two statements needs correcting. |
-| 5 | DPA §7 and Privacy §14 vs `_providers/deepseek.js` | **DeepSeek is not listed as a sub-processor** in either document, even though the emergency fallback can send an anonymized prompt to it. Either list it, or document the fallback as disabled in production (`DEEPSEEK_API_KEY` empty disables it). |
-| 6 | `landing.js` `faq_a1` vs `plans.config.js` | The FAQ says Growth covers "up to 10 CSMs" and describes teams of 1–50. The configuration sets Growth at **7 seats** and Elite at **24**. |
-| 7 | `landing.js` `plan_1csm` / `plan_10csm` / `plan_unlim_csm` vs `plans.config.js` | The pricing cards describe seats as "1 Manager + 2 CSMs", "3 Managers + unlimited CSMs", "5 Managers + unlimited CSMs". The product has no manager/CSM seat distinction — it has one flat non-viewer seat count (3 / 7 / 24) and four roles (owner, admin, member, viewer). |
-| 8 | `ORG_SETTINGS.invitationExpiryDays` = 180 vs the database default | `functions/api/invite.js` sets `expires_at` explicitly because the database default was 7 days. The two only agree because the Function writes the value — a direct insert would expire in 7 days. |
-| 9 | Terms §5 vs the landing CTA | The Terms say the trial requires a prior Stripe sign-up; the landing end-CTA says "secure Stripe payment, **without a bank card**". |
-| 10 | `landing.js` `demo_updated` / mock dates | The demo mockups are dated "March 2025" / "February 2025" while the rest of the copy is dated 2026. Cosmetic, but visible on the landing page. |
-
-## Where the copy lives
-
-| Surface | File |
-|---|---|
-| Landing page, pricing cards, FAQ, SEO metadata | `src/i18n/landing.js` (`fr` / `en` / `kr`) |
-| Terms of Service and Privacy policy | `src/i18n/legal.js` → `views/legal/CguView.vue`, `views/legal/PrivacyView.vue` |
-| DPA | `src/i18n/dpa.js` → `views/DpaView.vue` |
-| Support page | `src/views/SupportView.vue` (keys in `src/i18n/{fr,en,ko}.js`) |
-| Press kit | `public/presse/` (FR), `public/press/` (EN), `public/press-ko/` (KO) |
-| Blog articles | `src/blog/articles/*.md`, rendered by `scripts/build-blog.js` |
-
-All of this is **product content in the user's language** and must not be translated into
-English — see the language policy in [CODE_STYLE.md](CODE_STYLE.md).
+Everything else in the repository exists to make that sum stop shrinking.

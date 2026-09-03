@@ -51,7 +51,7 @@ back end, and the database migrations — no `node_modules`, no build output, no
 | [docs/DATABASE.md](docs/DATABASE.md) | Tables, RLS model, RPCs, Storage, migration history |
 | [docs/MODULES.md](docs/MODULES.md) | Product modules, feature by feature |
 | [docs/BILLING_AND_PLANS.md](docs/BILLING_AND_PLANS.md) | Plans, seats, roles, gating, Stripe flows |
-| [docs/BUSINESS.md](docs/BUSINESS.md) | What the product sells, pricing, commercial and legal policies |
+| [docs/BUSINESS.md](docs/BUSINESS.md) | The business model derived from code: data model, revenue equation, entitlements |
 | [docs/SECURITY_AND_PRIVACY.md](docs/SECURITY_AND_PRIVACY.md) | Secret custody, GDPR, AI data residency |
 | [docs/CODE_STYLE.md](docs/CODE_STYLE.md) | Engineering doctrine and the code-language policy |
 | [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | Local setup, scripts, environment variables, deployment |
