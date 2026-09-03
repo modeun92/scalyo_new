@@ -16,8 +16,8 @@
           ({{ pred.riskScore }}/100)
         </span>
       </div>
-      <!-- STATS-N1 (29/08) : < 3 tâches terminées → état « pas assez de données » à la place
-           des prédictions (le store sort null, R21). Complétion, retards et blocages restent réels. -->
+      <!-- STATS-N1 (29/08): < 3 completed tasks → "not enough data" state instead
+           of the predictions (the store returns null, R21). Completion, delays and blockers stay real. -->
       <div v-if="pred.insufficientData" class="ai-insufficient">
         📉 {{ t('sm_pred_insufficient', { n: pred.doneCount }) }}
       </div>

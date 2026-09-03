@@ -121,8 +121,8 @@ const planDisplay = computed(() => {
   return p.charAt(0).toUpperCase() + p.slice(1)
 })
 
-// BILLING-SEAT (27/08) : le montant vient de /api/billing (total réel × sièges, devise du compte) —
-// plus jamais un prix par langue. Member/viewer (D1) : sièges seulement, aucun montant.
+// BILLING-SEAT (27/08): the amount comes from /api/billing (real total × seats, account currency) —
+// never again a price per language. Member/viewer (D1): seats only, no amount.
 function money(v) {
   if (v == null) return '—'
   return fmtCurrency(v, { currency: billing.currency, decimals: Number.isInteger(v) ? 0 : 2 })
@@ -155,7 +155,7 @@ const planFeatures = computed(() => {
   const p = auth.currentPlan
   if (p === 'elite' || p === 'enterprise') return ['plan_feat_24users', 'plan_feat_all_growth', 'plan_feat_playbooks_ia', 'plan_feat_email_studio_resend', 'plan_feat_okr', 'plan_feat_roadmap']
   if (p === 'growth') return ['plan_feat_7users', 'plan_feat_unlimited_clients', 'plan_feat_all_starter_resources', 'plan_feat_import', 'plan_feat_playbooks_manual', 'plan_feat_dashboard_advanced']
-  return ['plan_feat_3users', 'plan_feat_50clients', 'plan_feat_dashboard_tasks_matrice', 'plan_feat_coach_chat', 'plan_feat_templates_copil', 'plan_feat_wellbeing_private']
+  return ['plan_feat_3users', 'plan_feat_50clients', 'plan_feat_dashboard_tasks_matrix', 'plan_feat_coach_chat', 'plan_feat_templates_copil', 'plan_feat_wellbeing_private']
 })
 
 const memberSince = computed(() => {

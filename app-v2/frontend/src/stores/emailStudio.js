@@ -37,8 +37,8 @@ export const useEmailStudioStore = defineStore('emailStudio', () => {
     return [...defaults, ...custom]
   })
 
-  // Load org email config status — CR-8 (C-04) : booléen seulement, la clé ne
-  // descend jamais au client (RPC get_org_email_status, owner OU membre de l'org)
+  // Load org email config status — CR-8 (C-04): boolean only, the key never
+  // travels down to the client (RPC get_org_email_status, owner OR org member)
   async function loadEmailConfig() {
     try {
       const { data, error } = await supabase.rpc('get_org_email_status')
@@ -64,7 +64,7 @@ export const useEmailStudioStore = defineStore('emailStudio', () => {
       if (error) throw error
       customTemplates.value = data || []
     } catch (err) {
-      lastError.value = 'load_failed' // CR-D : code i18n, plus jamais un message brut muet
+      lastError.value = 'load_failed' // CR-D: i18n code, never again a mute raw message
       console.error('[emailStudio] Load templates failed:', err.message)
       if (Sentry?.captureException) Sentry.captureException(err)
     } finally {
@@ -172,14 +172,14 @@ export const useEmailStudioStore = defineStore('emailStudio', () => {
       .replace(/\[Entreprise\]/gi, client.name || '')
       .replace(/\[ENTREPRISE\]/gi, (client.name || '').toUpperCase())
       .replace(/\[Secteur\]/gi, client.industry || '')
-      // CURRENCY-FORMAT / HEALTH-SCALE : formateurs uniques (devise du compte, \u00ab 7/10 \u00bb), plus de \u00ab \u20ac \u00bb ni de score nu
+      // CURRENCY-FORMAT / HEALTH-SCALE: single formatters (account currency, "7/10"), no more "€" nor a bare score
       .replace(/\[ARR\]/gi, client.arr ? fmtCurrency(client.arr) : '')
       .replace(/\[MRR\]/gi, client.mrr ? fmtCurrency(client.mrr) : '')
       .replace(/\[NPS\]/gi, client.nps?.toString() || '')
       .replace(/\[Sant\u00e9\]/gi, client.health != null ? fmtHealth(client.health) : '')
       .replace(/\[CSM\]/gi, client.csm || '')
       .replace(/\[Statut\]/gi, client.status || '')
-      // Jetons EN/KO des templates i18n - memes substitutions que les jetons FR.
+      // EN/KO tokens of the i18n templates - same substitutions as the FR tokens.
       // 회사 = "hoesa" (Company), 이름 = "ireum" (Name) - ASCII only (CR-7).
       .replace(/\[Company\]/gi, client.name || '')
       .replace(/\[First Name\]/gi, client.name?.split(' ')[0] || '')

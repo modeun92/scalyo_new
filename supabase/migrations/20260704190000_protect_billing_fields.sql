@@ -1,11 +1,11 @@
--- CR-3 (E-01) — 4 juillet 2026
--- Étend public.protect_org_fields() : le rôle authenticated ne peut plus
--- modifier directement les colonnes billing de profiles. Le provisioning
--- passe exclusivement par le webhook Stripe (service_role, non affecté).
--- NB : trial_used / trial_started_at restent modifiables côté client —
--- écrits légitimement par auth.js (startTrial, fetchProfile). L'abus
--- d'extension de trial est un constat séparé (session dédiée).
--- Appliqué : PRÉPROD (wxbape…) le 4 juillet 2026. PROD : au merge validé (R8).
+-- CR-3 (E-01) — 4 July 2026
+-- Extends public.protect_org_fields(): the authenticated role can no longer
+-- modify the billing columns of profiles directly. Provisioning goes
+-- exclusively through the Stripe webhook (service_role, unaffected).
+-- NB: trial_used / trial_started_at stay client-writable —
+-- legitimately written by auth.js (startTrial, fetchProfile). Trial-extension
+-- abuse is a separate finding (dedicated session).
+-- Applied: PRE-PROD (wxbape…) on 4 July 2026. PROD: on approved merge (R8).
 
 create or replace function public.protect_org_fields() returns trigger
 language plpgsql as $$

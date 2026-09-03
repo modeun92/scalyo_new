@@ -31,7 +31,7 @@
       </div>
     </div>
 
-    <!-- Plans Grid — D1 : owner / admin seulement, prix servis par /api/billing dans la devise du compte -->
+    <!-- Plans Grid — D1: owner / admin only, prices served by /api/billing in the account currency -->
     <div v-if="billing.canViewAmounts" class="sv-section">
       <h3>{{ t('stg_plan_title') }}</h3>
       <p class="sv-desc">{{ t('stg_plan_desc') }}</p>
@@ -81,8 +81,8 @@ const portalError = ref(false)
 
 onMounted(() => billing.load())
 
-// BILLING-SEAT (27/08) : plus aucun prix côté front — montants (unité majeure) et devise viennent de
-// /api/billing, formatés par le seul formateur du produit. 397,5 → 2 décimales, 795 → aucune.
+// BILLING-SEAT (27/08): no price on the front end any more — amounts (major unit) and currency come from
+// /api/billing, formatted by the product's single formatter. 397.5 → 2 decimals, 795 → none.
 function money(v) {
   if (v == null) return '—'
   return fmtCurrency(v, { currency: billing.currency, decimals: Number.isInteger(v) ? 0 : 2 })
@@ -96,14 +96,14 @@ const headline = computed(() => {
   return d.unit_amount == null ? '—' : t('stg_billing_unit', { amount: money(d.unit_amount) })
 })
 
-// « 5 sièges · 795 €/mois » — owner/admin seulement
+// "5 seats · €795/month" — owner/admin only
 const summaryLine = computed(() => {
   const d = billing.data
   if (!d?.can_view_amounts || d.total == null) return ''
   return t('stg_billing_seats', d.seats) + ' · ' + t('stg_billing_total', { amount: money(d.total) })
 })
 
-// « Prochain prélèvement : 397,50 € le 21 sept. 2026 · dont remise 397,50 € » — Stripe réel seulement
+// "Next charge: €397.50 on 21 Sep 2026 · including a €397.50 discount" — real Stripe data only
 const upcomingLine = computed(() => {
   const u = billing.data?.upcoming
   if (!billing.canViewAmounts || !u || u.total == null) return ''
@@ -112,7 +112,7 @@ const upcomingLine = computed(() => {
   return line
 })
 
-// Statut : celui de Stripe quand il existe, sinon les états profil/org existants
+// Status: Stripe's when it exists, otherwise the existing profile/org states
 const statusLabel = computed(() => {
   const s = billing.data?.status
   if (s === 'past_due' || s === 'unpaid') return t('stg_billing_past_due')
@@ -137,8 +137,8 @@ function gridPrice(planKey) {
   return money(billing.data?.prices?.[planKey] ?? null)
 }
 
-// CR-3 : liens via source unique par environnement + client_reference_id
-// (seule clé de mapping utilisateur côté webhook Stripe)
+// CR-3: links via a single source per environment + client_reference_id
+// (the only user-mapping key on the Stripe webhook side)
 const starterUrl = computed(() => stripeCheckoutUrl('billing', 'starter', { email: email.value, userId: auth.user?.id }))
 const growthUrl = computed(() => stripeCheckoutUrl('billing', 'growth', { email: email.value, userId: auth.user?.id }))
 const eliteUrl = computed(() => stripeCheckoutUrl('billing', 'elite', { email: email.value, userId: auth.user?.id }))
@@ -147,7 +147,7 @@ const plans = computed(() => [
   { key: 'starter', name: 'Starter', featured: false, url: starterUrl.value, features: ['stg_plan_starter_f1', 'stg_plan_starter_f2', 'stg_plan_starter_f3'] },
   { key: 'growth', name: 'Growth', featured: true, url: growthUrl.value, features: ['stg_plan_growth_f1', 'stg_plan_growth_f2', 'stg_plan_growth_f3'] },
   { key: 'elite', name: 'Elite', featured: false, url: eliteUrl.value, features: ['stg_plan_elite_f1', 'stg_plan_elite_f2', 'stg_plan_elite_f3'] },
-  // PLANS-ENTERPRISE (2.3, D2 27/08) : même offre que la landing — sur devis, contact direct
+  // PLANS-ENTERPRISE (2.3, D2 27/08): same offer as the landing page — quote-based, direct contact
   { key: 'enterprise', name: 'Enterprise', featured: false, url: 'mailto:contact@scalyo.app', features: ['stg_plan_enterprise_f1', 'stg_plan_enterprise_f2', 'stg_plan_enterprise_f3'] },
 ])
 

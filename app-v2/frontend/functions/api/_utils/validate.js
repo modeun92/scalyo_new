@@ -1,5 +1,5 @@
 const VALID_MODULES = [
-  'coach', 'nova', 'import', 'matrice', 'copil',
+  'coach', 'nova', 'import', 'matrix', 'copil',
   'playbook', 'email', 'dashboard', 'notif', 'wellbeing',
 ]
 

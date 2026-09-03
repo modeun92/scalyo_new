@@ -1,8 +1,8 @@
-/* Wellbeing → volet NOVA + urgences (OXYGEN Lot 3a) — Scalyo */
-/* Classes des composants MORTS au Lot 3a (mood picker, sliders %, trends,
-   micro-actions, breathing) PURGÉES — zéro CSS mort. Restent : Nova chat +
-   bloc urgences, conservés tels quels jusqu'à Lyo (Lot 5). Le rouge du bloc
-   urgences est volontaire (sécurité) — la palette apaisée Oxygen vit dans
+/* Wellbeing → NOVA panel + urgent items (OXYGEN Lot 3a) — Scalyo */
+/* The classes of the components that DIED in Lot 3a (mood picker, % sliders, trends,
+   micro-actions, breathing) have been PURGED — zero dead CSS. What remains: Nova chat +
+   the urgent-items block, kept as-is until Lyo (Lot 5). The red of the urgent-items
+   block is deliberate (safety) — the calm Oxygen palette lives in
    oxygen.css. All colors via CSS variables — dark mode inherited from main.css */
 
 /* Nova Chat */

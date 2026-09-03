@@ -1,11 +1,11 @@
-// A-11 / MIN-C7 — Formateurs localisés CENTRAUX (arbitrage Lidia 18/07) :
-// la DEVISE est une propriété du COMPTE (user_profiles.currency, défaut EUR),
-// jamais de la langue d'affichage — seul le FORMATAGE (séparateurs, position du
-// symbole) suit la locale. Zéro conversion : le symbole ne change pas avec la
-// langue. Avant ce module, trois conventions divergentes coexistaient
-// (KpiCard EUR forcé · Dashboard ko→KRW · satisfactionHelpers en→USD/ko→KRW).
+// A-11 / MIN-C7 — CENTRAL localized formatters (decision by Lidia 18/07):
+// the CURRENCY is a property of the ACCOUNT (user_profiles.currency, default EUR),
+// never of the display language — only the FORMATTING (separators, symbol position)
+// follows the locale. Zero conversion: the symbol does not change with the
+// language. Before this module, three divergent conventions coexisted
+// (KpiCard forced EUR · Dashboard ko→KRW · satisfactionHelpers en→USD/ko→KRW).
 //
-// Pattern d'accès i18n hors composant : i18n.global (cf. lib/supabaseWrite.js).
+// i18n access pattern outside a component: i18n.global (see lib/supabaseWrite.js).
 import { i18n } from '@/i18n'
 import { useProfileStore } from '@/stores/profile'
 import { HEALTH_MAX, toHealthNumber } from '@/lib/health'
@@ -16,9 +16,9 @@ export function localeTag() {
   return LOCALE_TAGS[i18n.global.locale.value] || 'fr-FR'
 }
 
-// DATE-KEY-UTC — clé de jour LOCALE 'YYYY-MM-DD' (jamais toISOString().slice(0,10),
-// qui rend le jour UTC : J-1 entre 00:00 et 02:00 Paris). Une seule source pour
-// toute date calendaire écrite par le front (copils.date en premier consommateur).
+// DATE-KEY-UTC — LOCAL day key 'YYYY-MM-DD' (never toISOString().slice(0,10),
+// which yields the UTC day: D-1 between 00:00 and 02:00 Paris time). A single source for
+// every calendar date written by the front end (copils.date being the first consumer).
 export function localDateKey(d = new Date()) {
   const date = d instanceof Date ? d : new Date(d)
   if (Number.isNaN(date.getTime())) return null
@@ -30,14 +30,14 @@ export function accountCurrency() {
   try {
     const c = useProfileStore().profile?.currency
     if (typeof c === 'string' && /^[A-Za-z]{3}$/.test(c.trim())) return c.trim().toUpperCase()
-  } catch (_) { /* store indisponible (route publique / boot précoce) → défaut */ }
+  } catch (_) { /* store unavailable (public route / early boot) → default */ }
   return 'EUR'
 }
 
-// NAV-SLOW (29/08) : construire un Intl.NumberFormat coûte ~0,1 ms — et ces formateurs sont
-// appelés PAR LIGNE de liste (1 097 clients × plusieurs formats par rendu constatés en préprod).
-// Cache module par locale+options : mêmes objets, même rendu, zéro construction répétée.
-// Une devise invalide jette À LA CONSTRUCTION → jamais mise en cache, le fallback EUR joue comme avant.
+// NAV-SLOW (29/08): building an Intl.NumberFormat costs ~0.1 ms — and these formatters are
+// called PER LIST ROW (1,097 clients × several formats per render, measured in pre-prod).
+// Module-level cache per locale+options: same objects, same output, zero repeated construction.
+// An invalid currency throws AT CONSTRUCTION → never cached, the EUR fallback behaves as before.
 const NF_CACHE = new Map()
 function numberFormat(loc, opts) {
   const key = loc + '|' + JSON.stringify(opts)
@@ -46,26 +46,26 @@ function numberFormat(loc, opts) {
   return f
 }
 
-// CURRENCY-FORMAT (25/08) : SEUL formateur monétaire du produit. `currency` (code ISO) ne se
-// passe que lorsque le montant a sa propre devise — un devis suit le pays de facturation —
-// sinon c'est la devise du COMPTE. `compact` = « 118 k€ » / « 144 M€ » pour les tableaux serrés.
+// CURRENCY-FORMAT (25/08): the ONLY monetary formatter in the product. `currency` (ISO code) is
+// only passed when the amount has its own currency — a quote follows the billing country —
+// otherwise it is the ACCOUNT currency. `compact` = "118 k€" / "144 M€" for tight tables.
 export function fmtCurrency(v, { compact = false, currency = null, decimals = 0 } = {}) {
   const n = Number(v)
   if (v == null || v === '' || Number.isNaN(n)) return '—'
-  // compact : 3 chiffres significatifs, sinon le coréen (unités 만/억 = 10⁴/10⁸) arrondit 82 000 en « 8만 »
-  // et 144 M en « 1억 » — preuve prod 26/08. « 1,5 k € » plutôt que « 2 k € » en FR par la même règle.
+  // compact: 3 significant digits, otherwise Korean (units 만/억 = 10⁴/10⁸) rounds 82,000 to "8만"
+  // and 144 M to "1억" — production evidence 26/08. "1.5 k€" rather than "2 k€" in FR by the same rule.
   const opts = compact
     ? { style: 'currency', notation: 'compact', maximumSignificantDigits: 3 }
     : { style: 'currency', notation: 'standard', maximumFractionDigits: decimals }
   try {
     return numberFormat(localeTag(), { ...opts, currency: currency || accountCurrency() }).format(n)
   } catch (_) {
-    // devise invalide (base ou paramètre) → rendu EUR, jamais de crash
+    // invalid currency (database or parameter) → EUR rendering, never a crash
     return numberFormat(localeTag(), { ...opts, currency: 'EUR' }).format(n)
   }
 }
 
-// Symbole seul (« € », « $ », « ₩ ») pour les libellés de saisie « ARR (€) » — même source que fmtCurrency.
+// Symbol alone ("€", "$", "₩") for input labels like "ARR (€)" — same source as fmtCurrency.
 export function currencySymbol(currency = null) {
   const code = currency || accountCurrency()
   try {
@@ -81,9 +81,9 @@ export function fmtNumber(v, opts = {}) {
   return numberFormat(localeTag(), opts).format(n)
 }
 
-// Lot client_metrics (22/07) : formateur KPI CENTRAL — extrait de DashboardView
-// (source unique, R25 §3) pour être partagé avec la fiche client et le wizard copil.
-// Suffixes jours/heures localisés sans clé i18n (même famille que LOCALE_TAGS).
+// client_metrics batch (22/07): CENTRAL KPI formatter — extracted from DashboardView
+// (single source, R25 §3) so it can be shared with the client record and the copil wizard.
+// Localized day/hour suffixes without an i18n key (same family as LOCALE_TAGS).
 const DAY_SUFFIX = { fr: 'j', en: 'd', ko: '일' }
 const HOUR_SUFFIX = { fr: 'h', en: 'h', ko: '시간' }
 
@@ -92,7 +92,7 @@ export function fmtKpiValue(v, format) {
   const n = Number(v)
   const loc = localeTag()
   const lang = i18n.global.locale.value
-  if (format === 'currency') return fmtCurrency(n) // devise du COMPTE (A-11)
+  if (format === 'currency') return fmtCurrency(n) // ACCOUNT currency (A-11)
   if (format === 'percentage' || format === 'percent') return numberFormat(loc, { maximumFractionDigits: 1 }).format(n) + '%'
   if (format === 'score' || format === 'decimal') return numberFormat(loc, { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(n)
   if (format === 'ratio') return numberFormat(loc, { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(n) + 'x'
@@ -102,10 +102,10 @@ export function fmtKpiValue(v, format) {
   return String(v)
 }
 
-// HEALTH-SCALE (25/08) : health score /10 localisé — « 7/10 », « 7,5/10 » (FR) / « 7.5/10 » (EN, KO).
-// Score d'un client : au plus 1 décimale, jamais de « 7.0 ». Moyenne (average: true) : toujours
-// 1 décimale (« 7,0/10 »), même convention que la tuile KPI du Dashboard (fmtKpiValue 'score').
-// Absent → « — ». Le suffixe « /10 » est l'échelle canonique (lib/health.HEALTH_MAX).
+// HEALTH-SCALE (25/08): localized health score out of 10 — "7/10", "7,5/10" (FR) / "7.5/10" (EN, KO).
+// A client's score: at most 1 decimal, never "7.0". Average (average: true): always
+// 1 decimal ("7,0/10"), same convention as the Dashboard KPI tile (fmtKpiValue 'score').
+// Missing → "—". The "/10" suffix is the canonical scale (lib/health.HEALTH_MAX).
 export function fmtHealth(v, { suffix = true, average = false } = {}) {
   const n = toHealthNumber(v)
   if (n === null) return '—'
@@ -113,7 +113,7 @@ export function fmtHealth(v, { suffix = true, average = false } = {}) {
   return suffix ? `${num}/${HEALTH_MAX}` : num
 }
 
-// 'YYYY-MM-01' → libellé mensuel localisé court (« juil. 2026 » / “Jul 2026” / « 2026년 7월 »)
+// 'YYYY-MM-01' → short localized month label ("juil. 2026" / “Jul 2026” / "2026년 7월")
 export function fmtMonth(period) {
   if (!period) return '—'
   const date = new Date(String(period).slice(0, 10))

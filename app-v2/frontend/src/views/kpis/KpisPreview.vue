@@ -191,7 +191,7 @@ const copil = computed(() => store.getCopil(route.params.id) || {})
 const visibleBlocks = computed(() =>
   (copil.value.blocks || []).filter(b => b.visible !== false)
 )
-// COPIL-I18N : nombres et guillemets dans la langue du DECK (copils.lang)
+// COPIL-I18N: numbers and quotation marks in the DECK's language (copils.lang)
 function num(v) { return deckNumber(v, copil.value.lang) }
 function axisNum(v) { return deckNumber(v, copil.value.lang) }
 function imageSrc(block) {

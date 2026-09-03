@@ -1,13 +1,13 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
-// Increment B (feedback Lidia « créer devis / événement / playbook liés au client
-// depuis la fiche »). Petit relais d'intention entre la fiche client (ClientModal)
-// et les modules cibles (Quotes / Planning / Playbooks) : la fiche pose le client,
-// navigue vers le module, et le module CONSOMME une seule fois au montage pour
-// pré-sélectionner le client + ouvrir son formulaire de création.
-// Pattern « consume once » : lire vide toute la valeur → un prefill ne se rejoue
-// jamais sur une visite ultérieure du même module. Pas de persistance.
+// Increment B (feedback from Lidia: "create a quote / event / playbook linked to the client
+// from the record"). A small intent relay between the client record (ClientModal)
+// and the target modules (Quotes / Planning / Playbooks): the record sets the client,
+// navigates to the module, and the module CONSUMES it once on mount to
+// pre-select the client + open its creation form.
+// "Consume once" pattern: reading empties the value → a prefill is never replayed
+// on a later visit to the same module. No persistence.
 export const useCreatePrefillStore = defineStore('createPrefill', () => {
   const clientId = ref('')
   const clientName = ref('')
@@ -17,7 +17,7 @@ export const useCreatePrefillStore = defineStore('createPrefill', () => {
     clientName.value = name || ''
   }
 
-  // Retourne l'intention en attente ET la vide (once). { clientId:'' } = rien à faire.
+  // Returns the pending intent AND clears it (once). { clientId:'' } = nothing to do.
   function consume() {
     const v = { clientId: clientId.value, clientName: clientName.value }
     clientId.value = ''

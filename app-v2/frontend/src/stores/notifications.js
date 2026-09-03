@@ -17,9 +17,9 @@ export const useNotificationStore = defineStore('notifications', () => {
 
   async function loadNotifications() {
     try {
-      // HOTFIX CAP-1000 (NOTIF-1000) : pagination complète — même fix que
-      // clients.loadClients. Tri STABLE (created_at desc, id desc : une vague
-      // générée au boot partage le même created_at — vécu Lot 3b).
+      // HOTFIX CAP-1000 (NOTIF-1000): full pagination — same fix as
+      // clients.loadClients. STABLE sort (created_at desc, id desc: a batch
+      // generated at boot shares the same created_at — seen in Lot 3b).
       const { rows, total, truncated: cut } = await fetchAllRows(() =>
         supabase.from('notifications').select('*', { count: 'exact' })
           .order('created_at', { ascending: false }).order('id', { ascending: false })
@@ -40,10 +40,10 @@ export const useNotificationStore = defineStore('notifications', () => {
       if (error) console.error('markRead:', error)
     } catch (e) { console.error('markRead:', e) }
   }
-  // MARK-1000 (hotfix CAP-1000) : plus JAMAIS de liste .in('id', …) non bornée —
-  // à 1000+ ids l'URL PostgREST explose (échec silencieux). Écritures par FILTRE
-  // serveur : même périmètre que les ids chargés (RLS identique, pagination
-  // complète ⇒ chargé = tout le visible).
+  // MARK-1000 (hotfix CAP-1000): NEVER again an unbounded .in('id', …) list —
+  // at 1000+ ids the PostgREST URL blows up (silent failure). Writes by SERVER-side
+  // FILTER: same scope as the loaded ids (identical RLS, full
+  // pagination ⇒ loaded = everything visible).
   async function markAllRead() {
     try {
       if (!notifications.value.some(n => !n.read)) return
@@ -58,7 +58,7 @@ export const useNotificationStore = defineStore('notifications', () => {
       if (!targets.length) return
       targets.forEach(n => { n.read = true })
       if (type === 'other') {
-        // groupe 'other' = type null/vide : pas de filtre serveur exact → ids par lots bornés (cas rare)
+        // 'other' group = null/empty type: no exact server filter → ids in bounded batches (rare case)
         const ids = targets.map(n => n.id)
         for (let i = 0; i < ids.length; i += 200) {
           const chunk = ids.slice(i, i + 200)
@@ -80,17 +80,17 @@ export const useNotificationStore = defineStore('notifications', () => {
     } catch (e) { console.error('clearAll:', e) }
   }
   async function generateFromData(clients, tasks, teamMembers) {
-    // GEN-1000 (hotfix CAP-1000) : la lecture dédup était capée à 1000 par
-    // PostgREST → au-delà, addIfNew devenait aveugle et régénérait des doublons.
-    // Pagination complète + FAIL-CLOSED : échec OU troncature de cette lecture
-    // → on ne génère RIEN (l'ancien code, sur erreur silencieuse, repartait
-    // d'un existant vide et dupliquait en masse).
+    // GEN-1000 (hotfix CAP-1000): the dedup read was capped at 1000 by
+    // PostgREST → beyond that, addIfNew went blind and regenerated duplicates.
+    // Full pagination + FAIL-CLOSED: a failure OR truncation of this read
+    // → we generate NOTHING (the old code, on a silent error, started from
+    // an empty existing set and duplicated en masse).
     let existing = []
     try {
       const res = await fetchAllRows(() =>
         supabase.from('notifications').select('id, type, target_id', { count: 'exact' }).order('id', { ascending: true })
       )
-      if (res.truncated) { console.warn(`[notif] generateFromData: dédup tronquée (${res.rows.length}/${res.total}) — génération sautée`); return }
+      if (res.truncated) { console.warn(`[notif] generateFromData: dedup read truncated (${res.rows.length}/${res.total}) — generation skipped`); return }
       existing = res.rows
     } catch (e) { console.error('generateFromData (existing):', e); return }
 
@@ -99,14 +99,14 @@ export const useNotificationStore = defineStore('notifications', () => {
 
     const toInsert = []
     const today = new Date()
-    // dédup par clé type|target (Set — l'ancien double .find était O(n²) au boot)
+    // dedup by type|target key (Set — the old double .find was O(n²) at boot)
     const keyOf = n => `${n.type}|${n.target_id ?? ''}`
     const existingKeys = new Set(existing.map(keyOf))
 
     function addIfNew(notif) {
       const k = keyOf(notif)
       if (existingKeys.has(k)) return
-      existingKeys.add(k) // couvre aussi le doublon intra-batch (ex-inBatch)
+      existingKeys.add(k) // also covers the intra-batch duplicate (formerly inBatch)
       toInsert.push({
         user_id: user.id,
         type: notif.type,
@@ -123,12 +123,12 @@ export const useNotificationStore = defineStore('notifications', () => {
     }
 
     for (const client of (clients || [])) {
-      // NOTIF-PROSPECT (constat 29/07) : un prospect ne déclenche JAMAIS
-      // d'alerte client — churn/nps/renouvellement sans sens avant signature.
+      // NOTIF-PROSPECT (observed 29/07): a prospect NEVER triggers
+      // a client alert — churn/nps/renewal make no sense before signing.
       if (client.lifecycle === 'prospect') continue
-      // HEALTH-SCALE (25/08) : « risque churn » = score Critique sur l'échelle /10 (≤ 3, seuil
-      // de lib/health) — même seuil que Dashboard / Portefeuille / Satisfaction, plus de `< 4` local.
-      // Score seul (statut null) : l'alerte parle du score, un statut saisi à la main n'en est pas un.
+      // HEALTH-SCALE (25/08): "churn risk" = Critical score on the /10 scale (≤ 3, the threshold
+      // from lib/health) — same threshold as Dashboard / Portfolio / Satisfaction, no more local `< 4`.
+      // Score alone (status null): the alert talks about the score; a manually entered status is not one.
       if (typeof client.health === 'number' && healthStatus(client.health, null) === 'critical') {
         addIfNew({
           type: 'churn_risk',

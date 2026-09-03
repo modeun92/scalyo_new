@@ -43,7 +43,7 @@
             @click.stop="$emit('toggleStep', pb.id, step.id)"
           >{{ step.done ? '✅' : '⬜' }}</span>
           <span class="step-title">{{ t(step.title) }}</span>
-          <!-- Échéance réelle du step (posée à l'activation) ; rouge si dépassée et non faite -->
+          <!-- Real due date of the step (set at activation); red if overdue and not done -->
           <span
             v-if="step.due"
             class="step-due"
@@ -51,7 +51,7 @@
           >{{ dueLabel(step.due) }}</span>
           <span v-if="hasGuide(step)" class="step-chev">{{ openGuides.has(step.id) ? '▾' : '▸' }}</span>
         </div>
-        <!-- Guide du step : Objectif / Méthode / Piège / Sortie (clic sur la ligne) -->
+        <!-- Step guide: Goal / Method / Pitfall / Exit (click on the row) -->
         <div v-if="hasGuide(step) && openGuides.has(step.id)" class="step-guide" @click.stop>
           {{ t(step.title + '_g') }}
         </div>
@@ -107,7 +107,7 @@ const formattedDate = computed(() => {
   })
 })
 
-// Échéances par step (refonte 21/07) — legacy sans `due` : rien d'affiché
+// Due dates per step (rework 21/07) — legacy without `due`: nothing displayed
 const todayIso = new Date().toISOString().slice(0, 10)
 function dueLabel(d) {
   const loc = locale.value === 'ko' ? 'ko-KR'
@@ -115,8 +115,8 @@ function dueLabel(d) {
   return new Date(d).toLocaleDateString(loc, { day: 'numeric', month: 'short' })
 }
 
-// Guides par step (clé `<step>_g`) : dépliage au clic sur la ligne.
-// te() = la clé existe dans la locale courante (legacy/custom : pas de chevron).
+// Guides per step (key `<step>_g`): expanded by clicking the row.
+// te() = the key exists in the current locale (legacy/custom: no chevron).
 const openGuides = reactive(new Set())
 function hasGuide(step) { return te(step.title + '_g') }
 function toggleGuide(step) {

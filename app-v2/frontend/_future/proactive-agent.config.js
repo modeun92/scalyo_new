@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// SCALYO — Proactive AI Agent (Niveau 4)
+// SCALYO — Proactive AI Agent (Level 4)
 // ═══════════════════════════════════════════════════════════════════════════
 // This file is NOT wired into the app. It is ready to plug in when needed.
 // To activate: import into a Cloudflare Worker cron trigger.

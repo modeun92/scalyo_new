@@ -22,7 +22,7 @@ export async function onRequestPost(context) {
     const planConfig = getPlan(promo.plan)
     const now = new Date()
     const expiresAt = new Date(now.getTime() + promo.valid_days * 24 * 60 * 60 * 1000)
-    // Founding : les 10 premières entreprises sont marquées is_founding
+    // Founding: the first 10 companies are flagged is_founding
     const foundingOrgs = await db.select('organizations', 'is_founding=eq.true')
     const isFounding = foundingOrgs.length < 10
 

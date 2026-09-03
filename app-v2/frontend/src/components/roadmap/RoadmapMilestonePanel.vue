@@ -80,7 +80,7 @@ watch(() => props.open, (val) => {
   }
 })
 
-// D-15 : fermeture uniquement si l'écriture a réussi (échec → toast, panneau ouvert)
+// D-15: closes only if the write succeeded (failure → toast, panel stays open)
 async function doSave() {
   if (!form.title) return
   const res = props.milestone

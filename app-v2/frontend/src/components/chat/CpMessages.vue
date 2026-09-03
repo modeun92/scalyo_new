@@ -145,7 +145,7 @@ function replyPreview(replyToId) {
   return store.authorLabel(msg) + ': ' + msg.content.slice(0, 60)
 }
 
-// C7 : heure formatée avec la locale de l'app (fuseau = device)
+// C7: time formatted with the app locale (time zone = device)
 function formatMsgTime(ts) {
   if (!ts) return ''
   try {

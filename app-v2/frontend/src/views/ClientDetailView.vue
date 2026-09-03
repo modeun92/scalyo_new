@@ -1,6 +1,6 @@
 <template>
-  <!-- Deep-link /app/clients/:id : ouvre la fiche en pop-up par-dessus le portfolio.
-       On garde l'URL partageable (réunion, Slack) tout en respectant le choix pop-up. -->
+  <!-- Deep link /app/clients/:id: opens the record as a pop-up on top of the portfolio.
+       We keep the URL shareable (meeting, Slack) while honoring the pop-up choice. -->
   <div class="cd-redirect">{{ t('cd_opening') }}</div>
 </template>
 

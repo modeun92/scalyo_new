@@ -1,8 +1,8 @@
--- D-08 / FB (feedback Lidia 20/07 « migrer les devis en base ») : les devis vivaient
--- en localStorage (device-local) → invisibles pour les autres CSM. On les passe en base
--- avec RLS org-wide (partagés comme les notes : toute l'équipe lit/édite).
--- Modèle RLS calqué sur clients (sous-requête profiles), aucune fonction helper.
--- À appliquer PRÉPROD (wxbape…) PUIS PROD (hcqnin…), GO par marche.
+-- D-08 / FB (feedback from Lidia 20/07 "move the quotes into the database"): quotes lived
+-- in localStorage (device-local) → invisible to the other CSMs. We move them into the database
+-- with org-wide RLS (shared like the notes: the whole team reads/edits).
+-- RLS model modeled on clients (profiles subquery), no helper function.
+-- To be applied on PRE-PROD (wxbape…) THEN PROD (hcqnin…), GO per step.
 
 CREATE TABLE IF NOT EXISTS public.quotes (
   id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -25,7 +25,7 @@ CREATE INDEX IF NOT EXISTS idx_quotes_client ON public.quotes (client_id);
 
 ALTER TABLE public.quotes ENABLE ROW LEVEL SECURITY;
 
--- Lecture : tous les devis de MON org (partage cross-CSM)
+-- Read: all the quotes of MY org (cross-CSM sharing)
 DROP POLICY IF EXISTS quotes_select_org ON public.quotes;
 CREATE POLICY quotes_select_org ON public.quotes FOR SELECT
   USING (
@@ -33,7 +33,7 @@ CREATE POLICY quotes_select_org ON public.quotes FOR SELECT
     AND organization_id = (SELECT organization_id FROM public.profiles WHERE id = auth.uid())
   );
 
--- Création : en tant que soi, dans son org
+-- Create: as oneself, within one's org
 DROP POLICY IF EXISTS quotes_insert_org ON public.quotes;
 CREATE POLICY quotes_insert_org ON public.quotes FOR INSERT
   WITH CHECK (
@@ -41,7 +41,7 @@ CREATE POLICY quotes_insert_org ON public.quotes FOR INSERT
     AND organization_id = (SELECT organization_id FROM public.profiles WHERE id = auth.uid())
   );
 
--- Modification : tout membre de l'org (compléter / changer le statut d'un devis)
+-- Update: any member of the org (complete / change the status of a quote)
 DROP POLICY IF EXISTS quotes_update_org ON public.quotes;
 CREATE POLICY quotes_update_org ON public.quotes FOR UPDATE
   USING (
@@ -53,7 +53,7 @@ CREATE POLICY quotes_update_org ON public.quotes FOR UPDATE
     AND organization_id = (SELECT organization_id FROM public.profiles WHERE id = auth.uid())
   );
 
--- Suppression : le créateur, ou l'owner de l'org
+-- Delete: the creator, or the org owner
 DROP POLICY IF EXISTS quotes_delete_own ON public.quotes;
 CREATE POLICY quotes_delete_own ON public.quotes FOR DELETE
   USING (
@@ -61,5 +61,5 @@ CREATE POLICY quotes_delete_own ON public.quotes FOR DELETE
     OR (SELECT org_role FROM public.profiles WHERE id = auth.uid()) = 'owner'
   );
 
--- Contrôle : SELECT policyname, cmd FROM pg_policies WHERE tablename='quotes' ORDER BY policyname;
---   -- attendu : quotes_delete_own(DELETE), quotes_insert_org(INSERT), quotes_select_org(SELECT), quotes_update_org(UPDATE)
+-- Check: SELECT policyname, cmd FROM pg_policies WHERE tablename='quotes' ORDER BY policyname;
+--   -- expected: quotes_delete_own(DELETE), quotes_insert_org(INSERT), quotes_select_org(SELECT), quotes_update_org(UPDATE)

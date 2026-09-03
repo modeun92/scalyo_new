@@ -25,7 +25,7 @@
           </div>
           <div class="fg calc-ttc">
             <span>{{ t('qt_ttc') }}:</span>
-            <!-- CURRENCY-FORMAT : formateur unique, devise ISO du pays de facturation -->
+            <!-- CURRENCY-FORMAT: single formatter, ISO currency of the billing country -->
             <strong>{{ fmtCurrency(Math.round(form.amount * (1 + form.tax / 100)), { currency }) }}</strong>
           </div>
           <div class="fg"><label>{{ t('qt_field_status') }}</label>

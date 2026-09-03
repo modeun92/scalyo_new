@@ -31,7 +31,7 @@ export function notifBody(n, t) {
   if (!hasPayload(n)) return (n && n.body) || ''
   const p = n.payload
   switch (n.type) {
-    // DATE-RAW / HEALTH-SCALE : la date et le score sont formatés à la locale du LECTEUR (le payload reste brut)
+    // DATE-RAW / HEALTH-SCALE: the date and the score are formatted in the READER's locale (the payload stays raw)
     case 'churn_risk':   return t('notif_churn_risk_body', { health: fmtHealth(p.health, { suffix: false }) })
     case 'renewal':      return t('notif_renewal_body', { date: fmtDate(p.date) })
     case 'nps_drop':     return t('notif_nps_drop_body', { nps: p.nps })

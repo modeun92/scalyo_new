@@ -126,8 +126,8 @@ const pendingDeleteId = ref(null)
 const filterPeriod = ref('all')
 const filterOwner = ref('all')
 const filterStatus = ref('all')
-// OKR-QUARTER (29/08) : périodes DYNAMIQUES (année courante) et défaut = trimestre COURANT.
-// L'ancienne liste était figée « Q1..Q4 2026 » (E4) avec « Q2 2026 » en défaut, faux dès Q3.
+// OKR-QUARTER (29/08): DYNAMIC periods (current year) and default = the CURRENT quarter.
+// The old list was hard-coded "Q1..Q4 2026" (E4) with "Q2 2026" as the default, wrong from Q3 on.
 function currentQuarter() {
   const d = new Date()
   return 'Q' + (Math.floor(d.getMonth() / 3) + 1) + ' ' + d.getFullYear()

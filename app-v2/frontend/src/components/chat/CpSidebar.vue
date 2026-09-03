@@ -20,8 +20,8 @@
       </div>
     </div>
 
-    <!-- Contrat DM 13/07 (remplace la décision D2/G9-19) : DM 1-à-1 réels,
-         canaux type='dm' + RLS participants. Liste = membres de l'org (RPC get_org_member_names). -->
+    <!-- DM contract 13/07 (replaces the D2/G9-19 decision): real 1-to-1 DMs,
+         type='dm' channels + participant RLS. List = members of the org (RPC get_org_member_names). -->
     <div v-if="dmMembers.length" class="cp-sidebar-section">{{ t('chat_direct') }}</div>
     <div v-if="dmMembers.length" class="cp-sidebar-list cp-dm-list">
       <div
@@ -65,7 +65,7 @@ const canCreateChannel = computed(() => {
   return role === 'owner' || role === 'admin'
 })
 
-// Contrat DM 13/07 : membres de l'org (hors soi), triés par prénom
+// DM contract 13/07: members of the org (excluding oneself), sorted by first name
 const dmMembers = computed(() => {
   const me = authStore.user?.id
   return Object.entries(store.memberNames)

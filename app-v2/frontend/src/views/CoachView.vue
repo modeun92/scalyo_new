@@ -38,7 +38,7 @@
       </div>
       <div v-if="quotaExceeded" class="quota-warning">{{ t('coach_quota_exceeded') }}</div>
     </div>
-    <!-- NO-CONFIRM : modale du produit (ConfirmDialog), jamais confirm() natif -->
+    <!-- NO-CONFIRM: product modal (ConfirmDialog), never a native confirm() -->
     <ConfirmDialog v-if="clearAsked" :title="t('coach_clear_title')" :body="t('coach_clear_confirm')" :cta="t('coach_clear_cta')" :busy="clearing" @confirm="doClearHistory" @cancel="clearAsked = false" />
   </div>
 </template>
@@ -91,7 +91,7 @@ async function loadMessages() {
   if (data) {
     messages.value = data.map(m => ({
       id: m.id, role: m.role, content: m.content,
-      time: fmtTime(m.created_at), // MIN-C7 : heure a la locale app
+      time: fmtTime(m.created_at), // MIN-C7: time in the app locale
     }))
   }
 }
@@ -106,10 +106,10 @@ async function saveMessage(role, content) {
 
 onMounted(() => { loadMessages(); loadUsage() })
 
-// LYO-CONTEXT (D2) : buildContext() supprimé — le contexte portefeuille est construit
-// côté serveur (context.service.buildRichContext, RLS org-wide, données fraîches).
-// L'ancien envoi front était mort : askScalyoAI spread le contexte à la racine du
-// body, coach.module lisait body.context qui n'existait jamais.
+// LYO-CONTEXT (D2): buildContext() removed — the portfolio context is built
+// server-side (context.service.buildRichContext, org-wide RLS, fresh data).
+// The old front-end send was dead code: askScalyoAI spread the context at the root of the
+// body, while coach.module read body.context, which never existed.
 
 async function sendMessage(text) {
   if (!text?.trim() || thinking.value || quotaExceeded.value) return
@@ -153,9 +153,9 @@ function scrollBottom() {
   if (chatRef.value) chatRef.value.scrollTop = chatRef.value.scrollHeight
 }
 
-// NO-CONFIRM : la confirmation passe par ConfirmDialog. L'erreur Supabase est lue
-// ({ error } destructuré, MIN-T10) : l'historique ne disparaît de l'écran que si la
-// suppression a réellement eu lieu.
+// NO-CONFIRM: the confirmation goes through ConfirmDialog. The Supabase error is read
+// ({ error } destructured, MIN-T10): the history only disappears from the screen if the
+// deletion actually happened.
 const clearAsked = ref(false)
 const clearing = ref(false)
 function clearHistory() { clearAsked.value = true }
@@ -187,7 +187,7 @@ async function doClearHistory() {
 .chat-msg.user { align-self: flex-end; flex-direction: row-reverse; }
 .msg-avatar { font-size: 1.4rem; flex-shrink: 0; margin-top: 2px; }
 .msg-text { padding: 12px 16px; border-radius: 16px; font-size: 0.88rem; line-height: 1.6; }
-/* LYO-MARKDOWN (29/08) : styles sobres pour le markdown rendu (titres, listes, séparateurs) */
+/* LYO-MARKDOWN (29/08): understated styles for the rendered markdown (headings, lists, separators) */
 .msg-text :deep(h2) { font-size: 1rem; font-weight: 700; margin: 10px 0 4px; }
 .msg-text :deep(h3) { font-size: 0.95rem; font-weight: 700; margin: 8px 0 4px; }
 .msg-text :deep(h4) { font-size: 0.9rem; font-weight: 600; margin: 8px 0 2px; }

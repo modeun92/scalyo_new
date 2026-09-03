@@ -18,8 +18,8 @@ export const useIntegrationStore = defineStore('integrations', () => {
     return connections.value.find(c => c.integration_id === integrationId) || null
   }
 
-  // CR-8 (E-09) : colonnes sûres uniquement — access_token/refresh_token/config
-  // ne redescendent jamais au client (REVOKE colonne en base, migration CR-8)
+  // CR-8 (E-09): safe columns only — access_token/refresh_token/config
+  // never travel back down to the client (column REVOKE in the database, migration CR-8)
   async function loadConnections() {
     loading.value = true
     lastError.value = null
@@ -38,7 +38,7 @@ export const useIntegrationStore = defineStore('integrations', () => {
     }
   }
 
-  // CR-8 (E-09) : écriture via le backend, qui chiffre les champs secrets
+  // CR-8 (E-09): write through the back end, which encrypts the secret fields
   async function pushConfig(integrationId, config) {
     const token = (await supabase.auth.getSession()).data.session?.access_token
     const r = await fetch('/api/integrations/config', {

@@ -3,7 +3,7 @@
  */
 
 export const EMAIL_FREE_QUOTA = 3000
-export const EMAIL_OVERAGE_RATE = 1.5 // €/1000 au-delà
+export const EMAIL_OVERAGE_RATE = 1.5 // €/1000 beyond the quota
 
 export const templates = [
   { id: 1, nameKey: 'es_tpl1_name', categoryKey: 'onboarding', type: 'csm', subjectKey: 'es_tpl1_subject', bodyKey: 'es_tpl1_body' },
@@ -40,12 +40,12 @@ export function catClass(key) {
   return catClassMap[key] || 'cat-gray'
 }
 
-// EMAIL-NEWLINES (29/08) : les bodies des templates par défaut sont du HTML
-// (fr/en/ko-content.js — <p>, <ul><li>, <br/>). L'ancien strip `<[^>]*>` retirait
-// les balises SANS les convertir en sauts de ligne → textarea, copie et email
-// partaient en bloc collé (« étapes :Session de kick-off (30 min)Configuration… »).
-// Conversion structurelle AVANT strip — source UNIQUE (R25 §3), partagée par
-// EmailStudioView et EmailPreview.
+// EMAIL-NEWLINES (29/08): the bodies of the default templates are HTML
+// (fr/en/ko-content.js — <p>, <ul><li>, <br/>). The old `<[^>]*>` strip removed
+// the tags WITHOUT converting them to line breaks → textarea, copy and email
+// came out as one glued block ("steps:Kick-off session (30 min)Setup…").
+// Structural conversion BEFORE the strip — a SINGLE source (R25 §3), shared by
+// EmailStudioView and EmailPreview.
 export function htmlToPlainText(html) {
   if (!html) return ''
   return String(html)

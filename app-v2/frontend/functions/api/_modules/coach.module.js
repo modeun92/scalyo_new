@@ -6,10 +6,10 @@ import { extractAuth } from '../_services/auth.service.js'
 export async function handle(env, body, request) {
   const { token } = extractAuth(request)
   const userId = getUserIdFromJwt(token)
-  // LYO-CONTEXT (D2) : source unique = le serveur. L'ancien `|| body.context` était
-  // mort (askScalyoAI spread le contexte à la racine du body — body.context n'a
-  // jamais existé) et ctx.summary n'était jamais vide. body.message est passé pour
-  // le bloc COMPTE CITÉ (données réelles du compte nommé dans la question).
+  // LYO-CONTEXT (D2): the single source is the server. The old `|| body.context` was
+  // dead code (askScalyoAI spread the context at the root of the body — body.context
+  // never existed) and ctx.summary was never empty. body.message is passed for
+  // the CITED ACCOUNT block (real data of the account named in the question).
   const ctx = await buildRichContext(env, userId, token, body.message)
   const systemPrompt = getCoachPrompt(body.lang, ctx.summary)
 

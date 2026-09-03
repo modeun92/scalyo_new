@@ -49,8 +49,8 @@ export const TEMPLATES = [
     ],
   },
   {
-    // D-12 : les clés ×3 langues existent sous rm_ms_renewal_* / rm_ms_quarterly_* —
-    // les templates référençaient rm_ms_renew_* / rm_ms_quarter_* → clés brutes au rendu
+    // D-12: the keys × 3 languages exist under rm_ms_renewal_* / rm_ms_quarterly_* —
+    // the templates referenced rm_ms_renew_* / rm_ms_quarter_* → raw keys at render time
     id: 'tpl_renewal', key: 'renewal', icon: '\u{1F504}', color: '#ec4899',
     milestones: [
       { titleKey: 'rm_ms_renewal_1', duration: 14 },
@@ -74,9 +74,9 @@ export const TEMPLATES = [
   },
 ]
 
-// D-12 : normalise les titleKey des roadmaps déjà persistées avec les anciens noms
-// (rm_ms_renew_* / rm_ms_quarter_*) — self-heal au prochain save, zéro migration.
-// Les clés déjà correctes ne matchent pas (renewal/quarterly ≠ renew_/quarter_).
+// D-12: normalizes the titleKey of roadmaps already persisted with the old names
+// (rm_ms_renew_* / rm_ms_quarter_*) — self-healing on the next save, zero migration.
+// Already-correct keys do not match (renewal/quarterly ≠ renew_/quarter_).
 function fixLegacyKey(k) {
   if (typeof k !== 'string') return k
   return k.replace(/^rm_ms_renew_/, 'rm_ms_renewal_').replace(/^rm_ms_quarter_/, 'rm_ms_quarterly_')
@@ -100,7 +100,7 @@ export const useRoadmapStore = defineStore('roadmap', () => {
         .from('roadmaps')
         .select('*')
         .order('created_at', { ascending: false })
-      // D-15 : plus d'erreur avalée en silence
+      // D-15: no more silently swallowed errors
       if (error) { console.error('roadmap.loadRoadmaps failed:', error.message); return }
       if (data) roadmaps.value = data.map(r => ({
         ...r,
@@ -182,8 +182,8 @@ export const useRoadmapStore = defineStore('roadmap', () => {
     }
   }
 
-  // D-15 : mutations optimistes TOUJOURS revertées si l'écriture échoue
-  // (withWrite = timeout G9-13 + toast d'erreur visible), retour {success}/{error}.
+  // D-15: optimistic mutations are ALWAYS reverted if the write fails
+  // (withWrite = G9-13 timeout + visible error toast), returns {success}/{error}.
   async function addMilestone(roadmapId, milestone) {
     const rm = roadmaps.value.find(r => r.id === roadmapId)
     if (!rm) return { error: 'not_found' }

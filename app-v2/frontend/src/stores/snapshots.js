@@ -10,7 +10,7 @@ export const useSnapshotStore = defineStore('snapshots', () => {
   async function loadSnapshots() {
     try {
       const { data, error } = await supabase.from('snapshots').select('*').order('date', { ascending: false }).limit(91)
-      // D-15 : plus d'erreur avalée en silence
+      // D-15: no more silently swallowed errors
       if (error) { console.error('snapshots.loadSnapshots failed:', error.message); return }
       if (data) snapshots.value = data
     } catch (e) { console.error('snapshots.loadSnapshots failed:', e.message || e) }
@@ -18,13 +18,13 @@ export const useSnapshotStore = defineStore('snapshots', () => {
 
   async function saveSnapshot(kpiValues) {
     try {
-      // B-10b : payload normalisé comme le fera le REST (JSON.stringify droppe les undefined)
-      // et loggé à CHAQUE appel (donc au boot) — le kpis={} intermittent devient observable.
+      // B-10b: payload normalized the way REST will do it (JSON.stringify drops undefined values)
+      // and logged on EVERY call (so at boot too) — the intermittent kpis={} becomes observable.
       const payload = JSON.parse(JSON.stringify(kpiValues ?? {}))
       console.log('[snapshots] saveSnapshot payload:', JSON.stringify(payload))
       if (!Object.keys(payload).length) {
-        // Garde B-10b : jamais écraser un snapshot sain par {} — on trace et on sort.
-        console.warn('[snapshots] saveSnapshot SKIP: payload vide (valeurs undefined à la source)')
+        // B-10b guard: never overwrite a healthy snapshot with {} — we trace and return.
+        console.warn('[snapshots] saveSnapshot SKIP: empty payload (undefined values at the source)')
         return
       }
       const today = new Date().toISOString().slice(0, 10)
@@ -34,7 +34,7 @@ export const useSnapshotStore = defineStore('snapshots', () => {
       if (existing) {
         const { error } = await withWrite(() => supabase.from('snapshots').update({ kpis: payload }).eq('id', existing.id), { label: 'snapshots.saveSnapshot(update)' })
         if (error) { console.error('snapshots.saveSnapshot update failed:', error.message || error); return }
-        existing.kpis = { ...payload } // état local mis à jour APRÈS écriture confirmée (véridique, pattern D-14/D-15)
+        existing.kpis = { ...payload } // local state updated AFTER a confirmed write (truthful, D-14/D-15 pattern)
       } else {
         const { data, error } = await withWrite(() => supabase.from('snapshots').insert([{ user_id: user.id, date: today, kpis: payload }]).select(), { label: 'snapshots.saveSnapshot(insert)' })
         if (error) { console.error('snapshots.saveSnapshot insert failed:', error.message || error); return }

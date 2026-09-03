@@ -4,19 +4,19 @@ import { supabase } from '@/lib/supabase'
 import { withWrite } from '@/lib/supabaseWrite'
 import { useTaskStore } from '@/stores/tasks'
 
-// Refonte 21/07 (feedback Lidia : « les actions doivent donner de vrais résultats ») :
-// 1) Chaque step = action concrète + timing embarqué dans le libellé + critère de sortie.
-//    `day` = échéance en jours après activation ; u/i = urgence/importance (Smart Matrice)
-//    de la tâche générée.
-// 2) À l'activation, chaque step devient une VRAIE tâche datée liée au client — visible
-//    dans Kanban / Planning / Priorités, là où le travail se fait. Cocher un step
-//    synchronise la tâche liée (sens playbook → tâche uniquement, v1 assumée).
-// 3) dbToPb : mapping snake_case → camelCase. Corrige le bug existant : PbCard lisait
-//    templateKey/startedAt/clientId sur des lignes Supabase BRUTES → toutes les cartes
-//    affichaient « Playbook personnalisé » (pb_template_undefined), date « — », pas de
-//    client, recherche cassée.
-// Règle C2/C6 respectée : les libellés localisés des tâches viennent de la VUE
-// (stepTitles), jamais de t() dans un store.
+// Rework 21/07 (feedback from Lidia: "actions must produce real results"):
+// 1) Each step = a concrete action + timing embedded in the label + an exit criterion.
+//    `day` = due date in days after activation; u/i = urgency/importance (Smart Matrix)
+//    of the generated task.
+// 2) On activation, each step becomes a REAL dated task linked to the client — visible
+//    in Kanban / Planning / Priorities, where the work actually happens. Checking a step
+//    syncs the linked task (playbook → task direction only, deliberate for v1).
+// 3) dbToPb: snake_case → camelCase mapping. Fixes the existing bug: PbCard read
+//    templateKey/startedAt/clientId from RAW Supabase rows → every card
+//    displayed "Custom playbook" (pb_template_undefined), date "—", no
+//    client, broken search.
+// Rule C2/C6 respected: the localized task labels come from the VIEW
+// (stepTitles), never from t() inside a store.
 
 const TEMPLATES = [
   {
@@ -101,8 +101,8 @@ export const usePlaybookStore = defineStore('playbooks', () => {
   const playbooks = ref([])
   const templates = TEMPLATES
 
-  // App-shape camelCase (aligné sur PbCard/PlaybooksView/ClientModal) ;
-  // steps = jsonb tel quel ({id, title(clé i18n), done, due?, task_id?}).
+  // camelCase app shape (aligned with PbCard/PlaybooksView/ClientModal);
+  // steps = jsonb as-is ({id, title(i18n key), done, due?, task_id?}).
   function dbToPb(r) {
     return {
       id: r.id,
@@ -161,7 +161,7 @@ export const usePlaybookStore = defineStore('playbooks', () => {
         .from('playbooks')
         .select('*')
         .order('created_at', { ascending: false })
-      // D-15 : plus d'erreur avalée en silence
+      // D-15: no more silently swallowed errors
       if (error) { console.error('playbooks.loadPlaybooks failed:', error.message); return }
       if (data) playbooks.value = data.map(dbToPb)
     } catch (e) {
@@ -169,10 +169,10 @@ export const usePlaybookStore = defineStore('playbooks', () => {
     }
   }
 
-  // stepTitles / stepGuides = { clé i18n → texte localisé } fournis par la vue.
-  // Chaque step génère une tâche réelle datée (due = activation + day), liée au client ;
-  // le GUIDE du step (Objectif/Méthode/Piège/Sortie) part dans la description de la
-  // tâche — le CSM a le mode d'emploi là où il travaille.
+  // stepTitles / stepGuides = { i18n key → localized text } supplied by the view.
+  // Each step generates a real dated task (due = activation + day), linked to the client;
+  // the step's GUIDE (Goal/Method/Pitfall/Exit) goes into the task's description —
+  // the CSM has the instructions right where they work.
   async function activateTemplate(templateId, clientId, csmId, currentPlan, stepTitles, stepGuides) {
     try {
       const tpl = templates.find(t => t.id === templateId)
@@ -185,8 +185,8 @@ export const usePlaybookStore = defineStore('playbooks', () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return { error: 'not_authenticated' }
 
-      // 1) Les tâches d'abord ; si l'insert du playbook échoue ensuite, rollback
-      //    des tâches créées (pas d'orphelines silencieuses).
+      // 1) Tasks first; if the playbook insert then fails, roll back
+      //    the created tasks (no silent orphans).
       const tasksStore = useTaskStore()
       const createdTaskIds = []
       const steps = []
@@ -240,8 +240,8 @@ export const usePlaybookStore = defineStore('playbooks', () => {
     }
   }
 
-  // D-15 : mutations optimistes TOUJOURS revertées si l'écriture échoue
-  // (withWrite = timeout G9-13 + toast d'erreur visible), retour {success}/{error}.
+  // D-15: optimistic mutations are ALWAYS reverted if the write fails
+  // (withWrite = G9-13 timeout + visible error toast), returns {success}/{error}.
   async function toggleStep(playbookId, stepId) {
     const pb = playbooks.value.find(p => p.id === playbookId)
     if (!pb) return { error: 'not_found' }
@@ -250,7 +250,7 @@ export const usePlaybookStore = defineStore('playbooks', () => {
     step.done = !step.done
     const { error } = await withWrite(() => supabase.from('playbooks').update({ steps: pb.steps }).eq('id', playbookId), { label: 'playbooks.toggleStep' })
     if (error) { step.done = !step.done; return { error: error.message } }
-    // Sync playbook → tâche liée (échec non bloquant : withWrite de tasks toaste déjà)
+    // Sync playbook → linked task (failure is non-blocking: the tasks store's withWrite already toasts)
     if (step.task_id) {
       const tasksStore = useTaskStore()
       await tasksStore.updateTask(step.task_id, { status: step.done ? 'done' : 'todo', finished: step.done })
@@ -265,14 +265,14 @@ export const usePlaybookStore = defineStore('playbooks', () => {
     pb.status = 'done'
     pb.completedAt = new Date().toISOString().slice(0, 10)
     pb.steps.forEach(s => s.done = true)
-    // D-15 : updErr était destructuré mais JAMAIS testé — faux « terminé » silencieux
+    // D-15: updErr was destructured but NEVER tested — silent false "completed"
     const { error } = await withWrite(() => supabase.from('playbooks').update({
       status: 'done',
       completed_at: pb.completedAt,
       steps: pb.steps,
     }).eq('id', playbookId), { label: 'playbooks.completePlaybook' })
     if (error) { pb.status = prev.status; pb.completedAt = prev.completedAt; pb.steps = prev.steps; return { error: error.message } }
-    // Les tâches liées suivent (terminées avec le playbook)
+    // Linked tasks follow (completed along with the playbook)
     const tasksStore = useTaskStore()
     for (const s of pb.steps) {
       if (s.task_id) await tasksStore.updateTask(s.task_id, { status: 'done', finished: true })
@@ -286,7 +286,7 @@ export const usePlaybookStore = defineStore('playbooks', () => {
     playbooks.value = playbooks.value.filter(p => p.id !== playbookId)
     const { error } = await withWrite(() => supabase.from('playbooks').delete().eq('id', playbookId), { label: 'playbooks.deletePlaybook' })
     if (error) { playbooks.value = prev; return { error: error.message } }
-    // Plan abandonné → ses tâches NON faites partent aussi ; les faites restent (historique réel)
+    // Abandoned plan → its UNDONE tasks go too; the done ones stay (real history)
     if (pb) {
       const tasksStore = useTaskStore()
       for (const s of pb.steps) {

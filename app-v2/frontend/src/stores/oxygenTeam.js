@@ -3,13 +3,13 @@ import { ref } from 'vue'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from './auth'
 
-// ─── OXYGEN Lot 4 — boucle équipe (contrat R23 validé 29/07/2026) ────────────
-// UNE seule source : la fonction SQL oxygen_team_aggregate (SECURITY DEFINER,
-// seuil n ≥ 5 littéral dans le corps, owner-only, flag org fail-closed — E14).
-// Le front ne lit JAMAIS les tables oxygen d'autrui et ne connaît pas le flag :
-// il affiche l'état que la fonction retourne (forbidden/disabled/insufficient/ok).
-// Aucune donnée individuelle ne transite — le payload ne contient que des
-// moyennes d'équipe. AUCUN texte ici (t() interdit en store — la vue rend tout).
+// ─── OXYGEN Lot 4 — team loop (contract R23 approved 29/07/2026) ────────────
+// A SINGLE source: the SQL function oxygen_team_aggregate (SECURITY DEFINER,
+// threshold n ≥ 5 literal in the body, owner-only, fail-closed org flag — E14).
+// The front end NEVER reads other people's oxygen tables and does not know the flag:
+// it displays the state the function returns (forbidden/disabled/insufficient/ok).
+// No individual data travels — the payload only contains team
+// averages. NO text here (t() forbidden in a store — the view renders everything).
 
 export const useOxygenTeamStore = defineStore('oxygenTeam', () => {
   const status = ref('idle') // idle | loading | ok | insufficient | disabled | forbidden | error

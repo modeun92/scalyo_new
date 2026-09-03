@@ -18,12 +18,12 @@ export async function onRequestGet(context) {
     const members = await db.select('organization_members', 'organization_id=eq.' + orgId)
     const invitations = await db.select('invitations', 'organization_id=eq.' + orgId + '&status=eq.pending&order=created_at.desc')
 
-    // Modèle GitHub : un siège est engagé dès l'invitation → membres + invitations pending (non-viewer)
+    // GitHub model: a seat is committed as soon as the invitation is sent → members + pending invitations (non-viewer)
     const seatsUsed = members.filter(m => m.role !== 'viewer').length
       + invitations.filter(i => i.role !== 'viewer').length
 
-    // P4 : les tokens d'invitation ne sont exposés qu'aux rôles habilités à inviter (owner/admin) —
-    // un member ne doit pas pouvoir copier un lien d'invitation pending (détournement de siège).
+    // P4: invitation tokens are only exposed to the roles allowed to invite (owner/admin) —
+    // a member must not be able to copy a pending invitation link (seat hijacking).
     const safeInvitations = canPerform(membership.role, 'canInvite')
       ? invitations
       : invitations.map(({ token, ...inv }) => inv)

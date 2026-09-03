@@ -1,9 +1,9 @@
--- Realtime chat — publier chat_messages dans supabase_realtime.
--- Constat 6/07/2026 : publication vide en préprod => aucun événement
--- postgres_changes ne circulait pour le chat (souscription refusée :
--- « check Realtime is enabled »). Appliqué à la main en préprod le 6/07
--- (sonde JOIN => « Subscribed to PostgreSQL ») ; cette migration formalise.
--- Idempotente : ne fait rien si la table est déjà publiée (cas prod).
+-- Realtime chat — publish chat_messages into supabase_realtime.
+-- Observed 6/07/2026: empty publication on pre-prod => no postgres_changes
+-- event circulated for the chat (subscription refused:
+-- "check Realtime is enabled"). Applied manually on pre-prod on 6/07
+-- (JOIN probe => "Subscribed to PostgreSQL"); this migration formalizes it.
+-- Idempotent: does nothing if the table is already published (production case).
 DO $$
 BEGIN
   IF NOT EXISTS (

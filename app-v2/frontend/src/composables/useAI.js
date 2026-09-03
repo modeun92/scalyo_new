@@ -1,13 +1,13 @@
-// === SCALYO — Composable IA reutilisable ===
-// Gere l'etat reactif (loading, erreur, reponse) pour tous les modules IA
+// === SCALYO — Reusable AI composable ===
+// Manages the reactive state (loading, error, response) for every AI module
 
 import { ref, readonly } from 'vue'
 import { askScalyoAI } from '@/utils/askScalyoAI'
 
 /**
- * Composable Vue 3 pour interactions IA
- * @param {string} moduleName - Nom du module IA (coach, nova, copil, etc.)
- * @returns {Object} Etat reactif + methodes
+ * Vue 3 composable for AI interactions
+ * @param {string} moduleName - Name of the AI module (coach, nova, copil, etc.)
+ * @returns {Object} Reactive state + methods
  */
 export function useAI(moduleName) {
   const loading = ref(false)
@@ -18,13 +18,13 @@ export function useAI(moduleName) {
   let abortController = null
 
   /**
-   * Envoie un message au module IA
-   * @param {string} message - Message utilisateur
+   * Sends a message to the AI module
+   * @param {string} message - User message
    * @param {Object} [options]
-   * @param {Object} [options.context] - Donnees contextuelles (client, KPIs, etc.)
-   * @param {string} [options.lang] - Langue forcee
-   * @param {boolean} [options.keepHistory] - Garder l'historique (defaut: true pour coach, false sinon)
-   * @returns {Promise<Object>} Reponse IA
+   * @param {Object} [options.context] - Contextual data (client, KPIs, etc.)
+   * @param {string} [options.lang] - Forced language
+   * @param {boolean} [options.keepHistory] - Keep the history (default: true for coach, false otherwise)
+   * @returns {Promise<Object>} AI response
    */
   async function send(message, options = {}) {
     if (abortController) {

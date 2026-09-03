@@ -14,7 +14,7 @@
           </span>
         </div>
 
-        <!-- Wellbeing bar (B-09 : '—' sans donnée, jamais un chiffre inventé) -->
+        <!-- Wellbeing bar (B-09: '—' without data, never an invented figure) -->
         <div class="mc-metric">
           <div class="metric-row">
             <span class="metric-label">{{ t('mgr_wellbeing') }}</span>
@@ -49,10 +49,10 @@
         </div>
 
         <!-- Burnout -->
-        <!-- B-16 (soldé Lot 3a) : le bloc « humeur de la semaine » lisait
-             m.weekMoods, champ INEXISTANT au store team → jamais rendu. Retiré
-             sans remplacement : l'humeur individuelle est self-only (Oxygen) ;
-             l'agrégat équipe = Lot 4 (SECURITY DEFINER, n ≥ 5). -->
+        <!-- B-16 (settled in Lot 3a): the "mood of the week" block read
+             m.weekMoods, a field that does NOT EXIST on the team store → never rendered. Removed
+             without a replacement: individual mood is self-only (Oxygen);
+             the team aggregate = Lot 4 (SECURITY DEFINER, n ≥ 5). -->
         <div class="mc-row">
           <span class="metric-label">{{ t('mgr_burnout_risk') }}</span>
           <span class="burnout-badge" :class="m.burnoutRisk || ''">
@@ -74,7 +74,7 @@ defineProps({
   members: { type: Array, required: true }
 })
 
-// B-09 : statut dérivé de statusLabel honnête (null = pas de donnée → neutre)
+// B-09: status derived from an honest statusLabel (null = no data → neutral)
 function statusClass(m) { return m.statusLabel === 'overloaded' ? 'overloaded' : m.statusLabel ? 'healthy' : '' }
 function statusText(m) { if (!m.statusLabel) return '—'; return m.statusLabel === 'overloaded' ? t('kpi_overloaded') : t('status_healthy') }
 </script>

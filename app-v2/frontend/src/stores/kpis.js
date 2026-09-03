@@ -7,17 +7,17 @@ import { localDateKey } from '@/lib/formatters'
 
 function uid() { return 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6) }
 
-// COPIL-RACE (audit 03/09/2026) : le builder écrit à chaque frappe ; sans file,
-// les PATCH concurrents arrivent dans le désordre et la DERNIÈRE RÉPONSE ARRIVÉE
-// gagne (titre tronqué en base sous un « ✓ Enregistré »). Doctrine :
-//   • une seule écriture en vol par COPIL ;
-//   • pendant qu'elle est en vol, les payloads suivants FUSIONNENT dans un
-//     unique payload en attente (coalescence) ;
-//   • le store local est la vérité de ce que le CSM voit : mis à jour AVANT
-//     l'écriture, jamais réécrit par la réponse ;
-//   • un échec est retenté UNE fois, immédiatement, puis abandonné — withWrite a
-//     déjà toasté, la saisie reste à l'écran et la prochaine frappe renvoie tout.
-const _inFlight = new Map()   // copilId → Promise de l'écriture en cours
+// COPIL-RACE (audit 03/09/2026): the builder writes on every keystroke; without a queue,
+// concurrent PATCHes arrive out of order and the LAST RESPONSE TO ARRIVE
+// wins (truncated title in the database under a "✓ Saved"). Doctrine:
+//   • a single in-flight write per COPIL;
+//   • while one is in flight, subsequent payloads MERGE into a
+//     single pending payload (coalescing);
+//   • the local store is the truth of what the CSM sees: updated BEFORE
+//     the write, never overwritten by the response;
+//   • a failure is retried ONCE, immediately, then abandoned — withWrite has
+//     already toasted, the input stays on screen and the next keystroke resends everything.
+const _inFlight = new Map()   // copilId → Promise of the write in progress
 const _pending = new Map()    // copilId → { row, label, waiters, retried }
 
 function enqueueWrite(copilId, row, label) {
@@ -40,7 +40,7 @@ function drainWrites(copilId) {
     if (res && res.error) {
       const out = { error: res.error.message || String(res.error) }
       if (!p.retried && !_pending.has(copilId)) {
-        // repose le payload pour UN seul nouvel essai (drainWrites ci-dessous l'envoie)
+        // re-arm the payload for ONE single retry (drainWrites below sends it)
         _pending.set(copilId, { row: p.row, label: p.label, waiters: [], retried: true })
       }
       p.waiters.forEach(w => w(out))
@@ -52,8 +52,8 @@ function drainWrites(copilId) {
   _inFlight.set(copilId, run)
 }
 
-// Vide la file d'un COPIL (départ de page). Borné par le timeout de withWrite (8 s)
-// et par la règle « un seul nouvel essai » : ne peut pas boucler.
+// Flushes a COPIL's queue (leaving the page). Bounded by the withWrite timeout (8 s)
+// and by the "one single retry" rule: it cannot loop.
 async function flushWrites(copilId) {
   for (let i = 0; i < 4 && (_inFlight.has(copilId) || _pending.has(copilId)); i++) {
     if (!_inFlight.has(copilId)) drainWrites(copilId)
@@ -66,26 +66,26 @@ function hasPendingWrite(copilId) { return _inFlight.has(copilId) || _pending.ha
 const BLOCK_DEFAULTS = {
   kpi_grid: { kpis: [{ label: '', value: '', unit: '', trend: 'up', color: '#10b981' }] },
   kpi_single: { label: '', value: '', unit: '', trend: 'up', previous: '', color: '#7c3aed' },
-  // COPIL-SEED-DATA (D2①) : un graphique neuf ne porte AUCUN chiffre — un COPIL ne
-  // présente jamais une valeur que personne n'a saisie. Les libellés restent des
-  // exemples localisés (localizedSeed), les valeurs sont vides (null).
+  // COPIL-SEED-DATA (D2①): a brand-new chart carries NO figures — a COPIL never
+  // presents a value nobody entered. Labels stay localized
+  // examples (localizedSeed), values are empty (null).
   chart_bar: { labels: ['Jan', 'Fév', 'Mar'], datasets: [{ label: 'Série 1', data: [null, null, null], color: '#7c3aed' }] },
   chart_line: { labels: ['Jan', 'Fév', 'Mar', 'Avr'], datasets: [{ label: 'Série 1', data: [null, null, null, null], color: '#3b82f6' }] },
   chart_donut: { labels: ['Sain', 'Vigilance', 'Critique'], data: [null, null, null], colors: ['#10b981', '#f59e0b', '#ef4444'] },
   text: { content: '', size: 'normal' },
   table: { headers: ['Col 1', 'Col 2', 'Col 3'], rows: [['', '', '']] },
   divider: { style: 'line' },
-  image: { url: '', path: '', caption: '' },   // path = objet Storage (téléversé) ; url = lien externe
+  image: { url: '', path: '', caption: '' },   // path = Storage object (uploaded); url = external link
   checklist: { items: [{ text: '', done: false }] },
   timeline: { events: [{ date: '', title: '', desc: '', status: 'done' }] },
   quote: { text: '', author: '', role: '' },
   action_plan: { actions: [{ what: '', who: '', when: '', status: 'todo' }] },
 }
 
-// MIN-i18n : les exemples pre-remplis d'un NOUVEAU bloc suivent la langue de
-// l'utilisateur (mois via Intl, series/segments via cles, donut via status_*).
-// BLOCK_DEFAULTS reste la structure neutre de normalisation (G9-14) — les
-// fallbacks FR n'apparaissent que sur une ligne corrompue, jamais a la creation.
+// MIN-i18n: the pre-filled examples of a NEW block follow the user's
+// language (months via Intl, series/segments via keys, donut via status_*).
+// BLOCK_DEFAULTS remains the neutral normalization structure (G9-14) — the
+// FR fallbacks only show up on a corrupted row, never at creation time.
 function localizedSeed(type) {
   const base = JSON.parse(JSON.stringify(BLOCK_DEFAULTS[type] || {}))
   const t = i18n.global.t
@@ -102,12 +102,12 @@ async function getCurrentUserId() {
   return user?.id
 }
 
-// G9-14 : un bloc jsonb mal formé en base ne doit JAMAIS planter le rendu
-// (builder / preview / present / export PPTX lisent tous copil.blocks).
-// Normalisation au chargement : data reconstruit clé par clé depuis
-// BLOCK_DEFAULTS[type] — un array attendu reste un array (items objets filtrés),
-// un objet reste un objet. Type inconnu → data vide, rendu neutre sans crash.
-// Aucune écriture en base : la version saine ne persiste qu'au prochain save utilisateur.
+// G9-14: a malformed jsonb block in the database must NEVER break rendering
+// (builder / preview / present / PPTX export all read copil.blocks).
+// Normalization at load time: data is rebuilt key by key from
+// BLOCK_DEFAULTS[type] — an expected array stays an array (object items filtered),
+// an object stays an object. Unknown type → empty data, neutral render without a crash.
+// No database write: the sane version is only persisted on the user's next save.
 function normalizeBlockData(type, data) {
   const defaults = BLOCK_DEFAULTS[type]
   if (!defaults) return {}
@@ -117,7 +117,7 @@ function normalizeBlockData(type, data) {
     const v = src[k]
     if (Array.isArray(dv)) {
       let arr = Array.isArray(v) ? v : JSON.parse(JSON.stringify(dv))
-      // arrays d'objets (kpis, datasets, rows, events…) : purge les items non-objets (null, string…)
+      // arrays of objects (kpis, datasets, rows, events…): purge non-object items (null, string…)
       if (dv.length && typeof dv[0] === 'object') arr = arr.filter(x => x && typeof x === 'object')
       out[k] = arr
     } else if (dv && typeof dv === 'object') {
@@ -126,7 +126,7 @@ function normalizeBlockData(type, data) {
       out[k] = v !== undefined ? v : dv
     }
   }
-  // conserve les clés posées par l'app hors defaults (jamais bloquantes au rendu)
+  // keeps keys set by the app outside the defaults (never blocking at render time)
   for (const k of Object.keys(src)) if (!(k in out)) out[k] = src[k]
   return out
 }
@@ -218,10 +218,10 @@ export const useKpiStore = defineStore('kpis', () => {
       client_name: partial.clientName || '',
       client_logo: null,
       period: partial.period || '',
-      date: localDateKey(),   // DATE-KEY-UTC : jour local, pas jour UTC
+      date: localDateKey(),   // DATE-KEY-UTC: local day, not UTC day
       color: partial.color || '#7c3aed',
       presenter: partial.presenter || '',
-      lang: partial.lang || i18n.global.locale.value || 'fr',   // COPIL-I18N : langue du deck = langue de l'utilisateur
+      lang: partial.lang || i18n.global.locale.value || 'fr',   // COPIL-I18N: deck language = user's language
       blocks: [],
       share_token: uid(),
       created_at: now,
@@ -234,10 +234,10 @@ export const useKpiStore = defineStore('kpis', () => {
     return copil.id
   }
 
-  // D-14 : toute mutation rend {success}/{error} — un « ✓ » à l'écran n'a le droit
-  // d'exister qu'après une réponse Supabase OK (withWrite = timeout G9-13 + toast).
-  // COPIL-RACE : le store est mis à jour AVANT l'écriture (ce que le CSM voit fait
-  // foi), l'écriture passe par la file séquencée du COPIL.
+  // D-14: every mutation returns {success}/{error} — a "✓" on screen is only allowed
+  // to exist after an OK Supabase response (withWrite = G9-13 timeout + toast).
+  // COPIL-RACE: the store is updated BEFORE the write (what the CSM sees is
+  // authoritative), the write goes through the COPIL's sequenced queue.
   async function updateCopil(id, changes) {
     const c = copils.value.find(c => c.id === id)
     if (!c) return { error: 'not_found' }
@@ -263,9 +263,9 @@ export const useKpiStore = defineStore('kpis', () => {
     const now = new Date().toISOString()
     const row = {
       user_id: userId,
-      title: orig.title + ' ' + i18n.global.t('copil_copy_suffix'),   // COPIL-I18N : plus de « (copie) » en dur
+      title: orig.title + ' ' + i18n.global.t('copil_copy_suffix'),   // COPIL-I18N: no more hard-coded "(copy)"
       subtitle: orig.subtitle,
-      client_id: orig.clientId || null,                              // conservé (audit 03/09)
+      client_id: orig.clientId || null,                              // preserved (audit 03/09)
       client_name: orig.clientName,
       client_logo: orig.clientLogo,
       period: orig.period,
@@ -287,11 +287,11 @@ export const useKpiStore = defineStore('kpis', () => {
 
   function getCopil(id) { return copils.value.find(c => c.id === id) }
 
-  // D-14 : écriture optimiste assumée (l'UI reste fluide) et revertée si Supabase
-  // refuse sur les gestes de STRUCTURE (ajout, suppression, réordonnancement) —
-  // plus aucun throw non rattrapé. Les ÉDITIONS de champ (updateBlock) ne sont
-  // pas revertées : la saisie du CSM reste à l'écran, withWrite a toasté (COPIL-SAVE
-  // état 5). Toutes passent par la file séquencée du COPIL (COPIL-RACE).
+  // D-14: deliberate optimistic write (the UI stays responsive), reverted if Supabase
+  // refuses, for STRUCTURE gestures (add, delete, reorder) —
+  // no more uncaught throws. Field EDITS (updateBlock) are not
+  // reverted: the CSM's input stays on screen, withWrite has toasted (COPIL-SAVE
+  // state 5). All of them go through the COPIL's sequenced queue (COPIL-RACE).
   async function persistBlocks(c, label) {
     c.updatedAt = new Date().toISOString()
     const res = await enqueueWrite(c.id, { blocks: c.blocks, updated_at: c.updatedAt }, label)
@@ -347,10 +347,10 @@ export const useKpiStore = defineStore('kpis', () => {
     return { success: true }
   }
 
-  // ── Images téléversées (COPIL-IMAGE-EXPORT, D1①) ──────────────────────────
-  // Bucket privé `copil-media`, objet `<user_id>/<copil_id>/<block_id>.<ext>`,
-  // RLS par préfixe utilisateur (migration 20260903100000). Le bloc stocke le
-  // CHEMIN ; l'URL signée (1 h) est résolue à la lecture et mise en cache ici.
+  // ── Uploaded images (COPIL-IMAGE-EXPORT, D1①) ─────────────────────────
+  // Private bucket `copil-media`, object `<user_id>/<copil_id>/<block_id>.<ext>`,
+  // RLS by user prefix (migration 20260903100000). The block stores the
+  // PATH; the signed URL (1 h) is resolved at read time and cached here.
   const MEDIA_BUCKET = 'copil-media'
   const MEDIA_TYPES = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp' }
   const MEDIA_MAX_BYTES = 5 * 1024 * 1024
@@ -367,7 +367,7 @@ export const useKpiStore = defineStore('kpis', () => {
     })
   }
 
-  // Rend {success, path} ou {error: code} — codes traduits par la vue (copil_image_*)
+  // Returns {success, path} or {error: code} — codes translated by the view (copil_image_*)
   async function uploadImage(copilId, blockId, file) {
     const ext = MEDIA_TYPES[file?.type]
     if (!ext) return { error: 'copil_image_type' }
@@ -380,7 +380,7 @@ export const useKpiStore = defineStore('kpis', () => {
     const path = `${userId}/${copilId}/${blockId}.${ext}`
     const { error } = await withWrite(() => supabase.storage.from(MEDIA_BUCKET).upload(path, file, { upsert: true, contentType: file.type }), { label: 'kpis.uploadImage' })
     if (error) return { error: error.message || String(error) }
-    // l'ancien objet (autre extension) est retiré ; l'échec n'est pas bloquant
+    // the old object (different extension) is removed; failure here is not blocking
     if (b.data.path && b.data.path !== path) supabase.storage.from(MEDIA_BUCKET).remove([b.data.path]).catch(() => {})
     delete mediaUrls.value[path]
     mediaUrls.value = { ...mediaUrls.value }
@@ -398,7 +398,7 @@ export const useKpiStore = defineStore('kpis', () => {
     return { success: true }
   }
 
-  // Objet Storage → data URL (export PPTX). Rend null en cas d'échec (CORS, expiré).
+  // Storage object → data URL (PPTX export). Returns null on failure (CORS, expired).
   async function mediaDataUrl(pathOrUrl, isPath) {
     try {
       let url = pathOrUrl

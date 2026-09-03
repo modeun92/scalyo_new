@@ -46,7 +46,7 @@
           <span class="acc-industry">{{ c.industry }}</span>
         </div>
         <div class="acc-health">
-          <!-- HEALTH-SCALE : valeur /10 localisée + couleur du statut EFFECTIF (lib/health), plus jamais c.status brut -->
+          <!-- HEALTH-SCALE: localized value out of 10 + color of the EFFECTIVE status (lib/health), never again a raw c.status -->
           <span class="health-score" :style="{ color: colorOf(c) }">{{ fmtHealth(c.health) }}</span>
           <div class="health-bar-bg">
             <div class="health-bar-fill" :style="{ width: healthPct(c.health) + '%', background: colorOf(c) }" />

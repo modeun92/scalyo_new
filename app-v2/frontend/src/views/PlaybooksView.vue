@@ -106,8 +106,8 @@ const slideActivate = ref(false)
 const activatingTpl = ref(null)
 const prefillClientId = ref('')
 
-// Prefill depuis la fiche client (bouton « Playbook ») : ouvre le sélecteur de
-// template ; le client est pré-sélectionné dans le slide d'activation (initialClientId).
+// Prefill from the client record ("Playbook" button): opens the template
+// picker; the client is pre-selected in the activation slide-over (initialClientId).
 onMounted(() => {
   const p = prefill.consume()
   if (p.clientId) { prefillClientId.value = p.clientId; slideTemplate.value = true }
@@ -146,17 +146,17 @@ function selectTemplate(tpl) {
   slideActivate.value = true
 }
 
-// D-15 : le slide ne se ferme que si l'activation a VRAIMENT réussi
-// (échec → toast withWrite, panneau resté ouvert pour réessayer)
-// Refonte 21/07 : la vue fournit les libellés localisés des steps (stepTitles) —
-// le store génère une tâche datée par step SANS jamais appeler t() (règle C2/C6).
+// D-15: the slide-over only closes if the activation REALLY succeeded
+// (failure → withWrite toast, panel left open to retry)
+// Rework 21/07: the view supplies the localized step labels (stepTitles) —
+// the store generates a dated task per step WITHOUT ever calling t() (rule C2/C6).
 async function doActivate({ templateId, clientId, csmId }) {
   const tpl = store.templates.find(x => x.id === templateId)
   const stepTitles = {}
   const stepGuides = {}
   if (tpl) tpl.steps.forEach(s => {
     stepTitles[s.key] = t(s.key)
-    // Guide du step (clé `<step>_g`) → description de la tâche générée
+    // Step guide (key `<step>_g`) → description of the generated task
     stepGuides[s.key] = te(s.key + '_g') ? t(s.key + '_g') : ''
   })
   const res = await store.activateTemplate(templateId, clientId, csmId, auth.currentPlan, stepTitles, stepGuides)

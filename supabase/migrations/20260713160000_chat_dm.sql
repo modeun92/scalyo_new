@@ -1,10 +1,10 @@
--- SCALYO — DM (contrat 13/07, décision Lidia : socle extensible groupes)
--- + channel « general » automatique à la création d'org (fix chat vide).
--- PRÉPROD (wxbape…) d'abord — PROD uniquement avant le deploy prod correspondant (R8).
--- Idempotente.
+-- SCALYO — DM (contract 13/07, decision by Lidia: extensible foundation for groups)
+-- + automatic "general" channel at org creation (fixes empty chat).
+-- PRE-PROD (wxbape…) first — PROD only before the matching prod deploy (R8).
+-- Idempotent.
 
 -- ============================================================
--- §1 — Participants : table dédiée (socle groupes, décision « cas 2 » 13/07)
+-- §1 — Participants: dedicated table (foundation for groups, "case 2" decision 13/07)
 -- ============================================================
 create table if not exists public.chat_channel_members (
   channel_id uuid not null references public.chat_channels(id) on delete cascade,
@@ -15,14 +15,14 @@ create table if not exists public.chat_channel_members (
 create index if not exists chat_channel_members_user_idx on public.chat_channel_members(user_id);
 alter table public.chat_channel_members enable row level security;
 
--- Clé déterministe de paire (uuids triés) : unicité du DM 1-à-1 par org.
--- Les futurs groupes poseront dm_key NULL (pas de dédup).
+-- Deterministic pair key (sorted uuids): uniqueness of the 1-to-1 DM per org.
+-- Future groups will set dm_key to NULL (no dedup).
 alter table public.chat_channels add column if not exists dm_key text;
 create unique index if not exists chat_channels_dm_key_idx
   on public.chat_channels(organization_id, dm_key) where dm_key is not null;
 
 -- ============================================================
--- §2 — Helper d'appartenance (SECURITY DEFINER : évite la récursion RLS)
+-- §2 — Membership helper (SECURITY DEFINER: avoids RLS recursion)
 -- ============================================================
 create or replace function public.is_chat_member(ch uuid)
 returns boolean
@@ -40,13 +40,13 @@ grant execute on function public.is_chat_member(uuid) to authenticated;
 -- ============================================================
 -- §3 — RLS
 -- ============================================================
--- Participants : lecture réservée aux membres du canal. Aucune policy
--- INSERT/UPDATE/DELETE : les écritures passent par la RPC open_dm (definer).
+-- Participants: read restricted to the channel's members. No INSERT/UPDATE/DELETE
+-- policy: writes go through the open_dm RPC (definer).
 drop policy if exists chat_channel_members_select on public.chat_channel_members;
 create policy chat_channel_members_select on public.chat_channel_members
   for select using (public.is_chat_member(channel_id));
 
--- Canaux : comportement channels inchangé ; type='dm' réservé aux participants.
+-- Channels: classic channel behaviour unchanged; type='dm' reserved for participants.
 drop policy if exists chat_channels_select on public.chat_channels;
 create policy chat_channels_select on public.chat_channels for select using (
   (
@@ -56,7 +56,7 @@ create policy chat_channels_select on public.chat_channels for select using (
   and (type <> 'dm' or public.is_chat_member(id))
 );
 
--- Création directe : channels classiques seulement — les DM naissent via open_dm.
+-- Direct creation: classic channels only — DMs are born via open_dm.
 drop policy if exists chat_channels_insert on public.chat_channels;
 create policy chat_channels_insert on public.chat_channels for insert with check (
   created_by = auth.uid()
@@ -64,7 +64,7 @@ create policy chat_channels_insert on public.chat_channels for insert with check
   and type <> 'dm'
 );
 
--- Messages : la visibilité suit le canal (un DM ne fuit jamais hors participants).
+-- Messages: visibility follows the channel (a DM never leaks outside its participants).
 drop policy if exists chat_messages_select on public.chat_messages;
 create policy chat_messages_select on public.chat_messages for select using (
   (
@@ -88,10 +88,10 @@ create policy chat_messages_insert on public.chat_messages for insert with check
       and (c.type <> 'dm' or public.is_chat_member(c.id))
   )
 );
--- update/delete : inchangés (propres lignes uniquement).
+-- update/delete: unchanged (own rows only).
 
 -- ============================================================
--- §4 — RPC open_dm : find-or-create atomique du DM 1-à-1
+-- §4 — RPC open_dm: atomic find-or-create of the 1-to-1 DM
 -- ============================================================
 create or replace function public.open_dm(other_user uuid)
 returns uuid
@@ -106,7 +106,7 @@ begin
   if me is null or other_user is null or other_user = me then
     raise exception 'open_dm: invalid participants';
   end if;
-  -- L'autre participant doit être membre de la même org
+  -- The other participant must be a member of the same org
   if org is null or not exists (
     select 1 from public.organization_members om
     where om.user_id = other_user and om.organization_id = org
@@ -124,7 +124,7 @@ begin
       insert into public.chat_channel_members (channel_id, user_id)
       values (ch, me), (ch, other_user);
     exception when unique_violation then
-      -- Course : l'autre participant vient de le créer
+      -- Race: the other participant has just created it
       select id into ch from public.chat_channels
         where organization_id = org and dm_key = pair_key;
     end;
@@ -137,7 +137,7 @@ revoke all on function public.open_dm(uuid) from anon;
 grant execute on function public.open_dm(uuid) to authenticated;
 
 -- ============================================================
--- §5 — Channel « general » automatique (fix premier contact chat vide)
+-- §5 — Automatic "general" channel (fixes the empty-chat first contact)
 -- ============================================================
 create or replace function public.create_default_channel()
 returns trigger
@@ -154,7 +154,7 @@ drop trigger if exists org_default_channel on public.organizations;
 create trigger org_default_channel after insert on public.organizations
   for each row execute function public.create_default_channel();
 
--- Backfill : orgs existantes sans aucun channel classique
+-- Backfill: existing orgs without any classic channel
 insert into public.chat_channels (name, description, type, created_by, organization_id)
 select 'general', '', 'channel', null, o.id
 from public.organizations o
@@ -164,7 +164,7 @@ where not exists (
 );
 
 -- ============================================================
--- §6 — Realtime : publication des participants (découverte côté client)
+-- §6 — Realtime: publication of the participants (client-side discovery)
 -- ============================================================
 do $do$
 begin

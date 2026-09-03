@@ -1,10 +1,10 @@
--- CR-C/CR-D (contrat gating 8 juillet 2026) : email_templates org-scopee.
--- V1 (SQL preprod 8/07) : RLS enabled, policies insert/update/delete presentes,
--- AUCUNE policy SELECT -> tout SELECT authenticated retournait 0 ligne, y compris
--- pour le createur. La feature templates custom etait morte de bout en bout.
--- Matrice §2 : lecture org entiere ; creation member+ (viewer exclu) ;
--- update/delete createur OU owner/admin. Pattern get_my_org_id (E14-safe).
--- Appliquee PREPROD le 8/07. PROD : avant merge main (piege 22).
+-- CR-C/CR-D (gating contract 8 July 2026): email_templates scoped to the org.
+-- V1 (pre-prod SQL 8/07): RLS enabled, insert/update/delete policies present,
+-- NO SELECT policy at all -> every authenticated SELECT returned 0 rows, including
+-- for the creator. The custom-templates feature was dead end to end.
+-- Matrix §2: read across the whole org; create member+ (viewer excluded);
+-- update/delete creator OR owner/admin. get_my_org_id pattern (E14-safe).
+-- Applied on PRE-PROD on 8/07. PROD: before merging main (pitfall 22).
 
 alter table public.email_templates add column if not exists organization_id uuid;
 

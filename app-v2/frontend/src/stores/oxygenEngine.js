@@ -10,26 +10,26 @@ import { useClientStore } from './clients'
 import { useQuoteStore } from './quotes'
 import { useNotificationStore } from './notifications'
 
-// ─── OXYGEN Lot 2 — engine : computed PURS (contrat R23 validé 28/07/2026) ───
-// Formules figées (R21) :
-//   ressenti_jour = moyenne(energy, mood, 6 − felt_load)            → 1..5
-//   indice        = 0,6 × (ressenti × 20) + 0,4 × (100 − load_score) → 1 décimale
-//   sans check-in du jour → indice = null, JAMAIS inventé.
-// Divergence (self-facing) : les 5 derniers jours TRAVAILLÉS ont TOUS check-in +
-// ligne oxygen_daily, avec ressenti ≥ 4 ET load ≥ 70 — un jour sans donnée
-// suffit à l'éteindre (jamais inventé).
-// Série avec pardon : 1 jour manqué / 7 jours glissants ne casse pas la série.
-// Lot 3a : « jour travaillé » = prédicat UNIQUE oxygenPrefs.isWorkingDay
-// (jours off perso ; défaut sam+dim = comportement Lot 2 inchangé).
-// AUCUN texte ici (t() interdit en store — la vue rend les libellés).
+// ─── OXYGEN Lot 2 — engine: PURE computeds (contract R23 approved 28/07/2026) ───
+// Frozen formulas (R21):
+//   daily_feeling = average(energy, mood, 6 − felt_load)            → 1..5
+//   index         = 0.6 × (feeling × 20) + 0.4 × (100 − load_score) → 1 decimal
+//   no check-in for the day → index = null, NEVER invented.
+// Divergence (self-facing): the last 5 WORKED days ALL have a check-in +
+// an oxygen_daily row, with feeling ≥ 4 AND load ≥ 70 — a single day without data
+// is enough to switch it off (never invented).
+// Streak with forgiveness: 1 missed day / 7 rolling days does not break the streak.
+// Lot 3a: "worked day" = the SINGLE predicate oxygenPrefs.isWorkingDay
+// (personal days off; default Sat+Sun = Lot 2 behaviour unchanged).
+// NO text here (t() forbidden in a store — the view renders the labels).
 
-export const OXY_EVENING_HOUR = 18   // acté Lidia 28/07 (contrat Lot 2) — heure LOCALE
+export const OXY_EVENING_HOUR = 18   // agreed with Lidia 28/07 (Lot 2 contract) — LOCAL hour
 export const OXY_DIV_FEEL_MIN = 4
 export const OXY_DIV_LOAD_MIN = 70
 export const OXY_DIV_DAYS = 5
 export const OXY_PARDON_WINDOW = 7
-export const OXY_HISTORY_DAYS = 30   // fenêtre chargée — la série affichée cape à « 30+ »
-// Lot 3b (contrat R23 29/07) — micro-bulle : déclencheurs actés Lot 1
+export const OXY_HISTORY_DAYS = 30   // loaded window — the displayed streak caps at "30+"
+// Lot 3b (contract R23 29/07) — micro-bubble: triggers agreed in Lot 1
 export const OXY_MICRO_MAX_PER_DAY = 2
 export const OXY_MICRO_ALERT_HOURS = 24
 export const OXY_MICRO_CRITICAL_MIN = 3
@@ -44,21 +44,21 @@ export function feltComposite(c) {
 }
 
 export function isEvening(now = new Date()) {
-  return now.getHours() >= OXY_EVENING_HOUR                    // heure locale (état visuel)
+  return now.getHours() >= OXY_EVENING_HOUR                    // local hour (visual state)
 }
 
 export const useOxygenEngineStore = defineStore('oxygenEngine', () => {
-  // Indice du jour — null sans check-in (R21)
+  // Index of the day — null without a check-in (R21)
   const indexToday = computed(() => {
     const checkins = useOxygenCheckinsStore()
     const load = useOxygenLoadStore()
     const r = feltComposite(checkins.todayCheckin)
     if (r == null) return null
     const v = 0.6 * (r * 20) + 0.4 * (100 - load.loadScore)
-    return Math.round(v * 10) / 10                             // 1 décimale (stockage)
+    return Math.round(v * 10) / 10                             // 1 decimal (storage)
   })
 
-  // Divergence : OXY_DIV_DAYS jours travaillés consécutifs (les plus récents) complets
+  // Divergence: OXY_DIV_DAYS consecutive worked days (the most recent ones) complete
   const divergenceActive = computed(() => {
     const checkins = useOxygenCheckinsStore()
     const daily = useOxygenDailyStore()
@@ -72,18 +72,18 @@ export const useOxygenEngineStore = defineStore('oxygenEngine', () => {
       if (!prefs.isWorkingDay(d)) continue
       const c = byDateC.get(dstr(d))
       const r = byDateD.get(dstr(d))
-      if (!c || !r || typeof r.load_score !== 'number') return false  // donnée absente → éteinte
+      if (!c || !r || typeof r.load_score !== 'number') return false  // missing data → off
       if (feltComposite(c) < OXY_DIV_FEEL_MIN || r.load_score < OXY_DIV_LOAD_MIN) return false
       checked++
     }
     return checked >= OXY_DIV_DAYS
   })
 
-  // Série avec pardon — JOURS TRAVAILLÉS uniquement (acté Lidia 28/07 ; jours
-  // off/fériés personnalisés actés au contrat Lot 3a — prédicat oxygenPrefs).
-  // Départ aujourd'hui (ou la veille si pas encore de check-in ce jour) ; un jour
-  // travaillé manqué est pardonné si aucun autre pardon dans les 7 jours plus
-  // récents ; un 2e manqué dans la fenêtre = fin de série. null tant que non chargé.
+  // Streak with forgiveness — WORKED DAYS only (agreed with Lidia 28/07; personal
+  // days off/holidays agreed in the Lot 3a contract — oxygenPrefs predicate).
+  // Starts today (or yesterday if there is no check-in yet today); a missed worked
+  // day is forgiven if no other forgiveness happened in the 7 more recent
+  // days; a 2nd miss inside the window = end of streak. null until loaded.
   const streak = computed(() => {
     const checkins = useOxygenCheckinsStore()
     const prefs = useOxygenPrefsStore()
@@ -95,24 +95,24 @@ export const useOxygenEngineStore = defineStore('oxygenEngine', () => {
     let lastPardonTs = null
     for (let i = 0; i < OXY_HISTORY_DAYS; i++) {
       const d = new Date(start.getTime() - i * DAY)
-      if (!prefs.isWorkingDay(d)) continue                     // jour off : ni compté, ni cassant
+      if (!prefs.isWorkingDay(d)) continue                     // day off: neither counted nor breaking
       if (dates.has(dstr(d))) { count++; continue }
       if (lastPardonTs === null || (lastPardonTs - d.getTime()) >= OXY_PARDON_WINDOW * DAY) {
-        lastPardonTs = d.getTime()                             // pardonné — la série continue
+        lastPardonTs = d.getTime()                             // forgiven — the streak continues
         continue
       }
-      break                                                    // 2e manqué dans la fenêtre
+      break                                                    // 2nd miss inside the window
     }
     return count
   })
 
   const streakCapped = computed(() => (streak.value ?? 0) >= OXY_HISTORY_DAYS)
 
-  // ─── Lot 3b — Fermeture : progrès du jour (lecture PURE, R21) ───────────────
-  // tasksDone = proxy honnête faute de finished_at : tâche finie ET touchée
-  // aujourd'hui (updatedAt du jour) — approximation DÉCLARÉE au CR.
-  // quotesCreated = devis créés aujourd'hui (le « gagné aujourd'hui » n'existe
-  // pas en base — jamais inventé). clientsAdded = clients assignés créés ce jour.
+  // ─── Lot 3b — Closing: progress of the day (PURE read, R21) ───────────────
+  // tasksDone = honest proxy for the missing finished_at: task done AND touched
+  // today (updatedAt of the day) — approximation DECLARED in the report.
+  // quotesCreated = quotes created today ("won today" does not exist
+  // in the database — never invented). clientsAdded = assigned clients created today.
   const dayProgress = computed(() => {
     const tasks = useTaskStore()
     const quotes = useQuoteStore()
@@ -130,9 +130,9 @@ export const useOxygenEngineStore = defineStore('oxygenEngine', () => {
     return { tasksDone, quotesCreated, clientsAdded }
   })
 
-  // ─── Lot 3b — micro-bulle : déclencheurs actés Lot 1 ────────────────────────
-  // churn_risk/nps_drop < 24 h sur un client ASSIGNÉ, OU ≥ 3 critiques assignés.
-  // Le rendu (halo pastille) reste NEUTRE : aucun détail hors clic volontaire.
+  // ─── Lot 3b — micro-bubble: triggers agreed in Lot 1 ───────────────────────
+  // churn_risk/nps_drop < 24 h on an ASSIGNED client, OR ≥ 3 assigned critical ones.
+  // The rendering (dot halo) stays NEUTRAL: no detail outside a deliberate click.
   const microTriggerSource = computed(() => {
     const load = useOxygenLoadStore()
     const notifs = useNotificationStore()
@@ -147,8 +147,8 @@ export const useOxygenEngineStore = defineStore('oxygenEngine', () => {
   })
   const microTriggerActive = computed(() => microTriggerSource.value != null)
 
-  // ─── Lot 3b — « Demain est prêt » : top 3 réels, clés i18n + params (D-11) ──
-  // Ordre spec §5 : renouvellements proches → tâches dues → comptes critiques.
+  // ─── Lot 3b — "Tomorrow is ready": real top 3, i18n keys + params (D-11) ──
+  // Spec order §5: upcoming renewals → due tasks → critical accounts.
   const tomorrowTop3 = computed(() => {
     const load = useOxygenLoadStore()
     const tasks = useTaskStore()

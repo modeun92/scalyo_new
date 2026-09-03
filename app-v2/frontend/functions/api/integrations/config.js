@@ -1,7 +1,7 @@
-// === SCALYO — Connexion/màj d'intégration manuelle — custody serveur (CR-8 : E-09) ===
+// === SCALYO — Manual integration connect/update — server-side custody (CR-8: E-09) ===
 // POST /api/integrations/config → { provider, fields: { ... } }
-// Les champs secrets (api_key, webhook_url) sont chiffrés AES-256-GCM avant stockage.
-// Le client ne peut plus écrire org_integrations.config (REVOKE colonne, migration CR-8).
+// The secret fields (api_key, webhook_url) are encrypted with AES-256-GCM before storage.
+// The client can no longer write org_integrations.config (column REVOKE, migration CR-8).
 
 import { extractLang, extractAuth, verifyJwt } from '../_services/auth.service.js'
 import { getConfig } from '../_config/index.js'
@@ -32,7 +32,7 @@ export async function onRequestPost(context) {
       return jsonError('invalid_request', 400, lang)
     }
 
-    // Ne garder que les champs du catalogue, chiffrer les secrets
+    // Keep only the catalog's fields, encrypt the secrets
     const cfg = {}
     for (const key of allowedKeys) {
       const value = (fields[key] || '').toString().trim()
@@ -75,7 +75,7 @@ export async function onRequestPost(context) {
       row = rows[0]
     }
 
-    // Réponse : colonnes sûres uniquement — jamais config/tokens
+    // Response: safe columns only — never config/tokens
     return jsonOk({
       id: row.id,
       integration_id: row.integration_id,

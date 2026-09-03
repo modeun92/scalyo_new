@@ -3,14 +3,14 @@ import { callMistral } from '../_providers/mistral.js'
 import { callDeepSeek } from '../_providers/deepseek.js'
 import { anonymizeForFallback } from './anonymize.js'
 
-// Bascule DeepSeek UNIQUEMENT sur panne totale de Mistral :
-// timeout, erreur réseau, ou 5xx serveur. PAS sur 429 (quota) ni autre 4xx.
+// Switches to DeepSeek ONLY on a total Mistral outage:
+// timeout, network error, or server 5xx. NOT on 429 (quota) nor any other 4xx.
 function isMistralOutage(err) {
   const msg = err?.message || ''
   if (msg === 'MISTRAL_TIMEOUT') return true
   const m = msg.match(/^MISTRAL_ERROR:\s*(\d+)$/)
   if (m) return parseInt(m[1], 10) >= 500
-  // Erreur réseau brute (fetch rejeté sans status)
+  // Raw network error (fetch rejected without a status)
   if (!msg.startsWith('MISTRAL_ERROR')) return true
   return false
 }
@@ -29,10 +29,10 @@ export async function callAI(env, { systemPrompt, messages, maxTokens }) {
       messages,
     })
   } catch (err) {
-    // Fallback DeepSeek : seulement si Mistral est en panne totale ET clé configurée.
+    // DeepSeek fallback: only if Mistral is fully down AND a key is configured.
     if (!config.deepseekApiKey || !isMistralOutage(err)) throw err
-    console.warn('[ai] Mistral outage → DeepSeek fallback (prompt anonymisé):', err.message)
-    // RGPD : anonymisation obligatoire avant tout envoi hors UE.
+    console.warn('[ai] Mistral outage → DeepSeek fallback (anonymized prompt):', err.message)
+    // GDPR: anonymization is mandatory before any send outside the EU.
     const safe = anonymizeForFallback({ systemPrompt, messages })
     return callDeepSeek({
       apiKey: config.deepseekApiKey,

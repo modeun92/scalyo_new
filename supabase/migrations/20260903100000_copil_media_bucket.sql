@@ -1,16 +1,16 @@
--- COPIL-IMAGE-EXPORT (contrat COPIL-RENDER-EXPORT, D1① — GO Lidia 03/09/2026).
--- Bucket PRIVÉ `copil-media` : images des blocs COPIL, exportées ensuite dans le
--- PowerPoint. Objet = `<user_id>/<copil_id>/<block_id>.<ext>`. Les policies
--- n'autorisent chaque utilisateur QUE sur son propre préfixe (même doctrine que
--- la RLS `copils` : user_id = auth.uid()). Lecture par URL signée (1 h) côté front.
--- À appliquer PRÉPROD (wxbapegyivoolzsckovs) PUIS PROD (hcqninmpmzpqjtedyjyj),
--- GO par marche, AVANT le déploiement du front qui téléverse. Idempotente.
+-- COPIL-IMAGE-EXPORT (contract COPIL-RENDER-EXPORT, D1① — GO from Lidia 03/09/2026).
+-- PRIVATE bucket `copil-media`: images of the COPIL blocks, then exported into the
+-- PowerPoint. Object = `<user_id>/<copil_id>/<block_id>.<ext>`. The policies
+-- only allow each user on their OWN prefix (same doctrine as
+-- the `copils` RLS: user_id = auth.uid()). Read via a signed URL (1 h) on the front end.
+-- To be applied on PRE-PROD (wxbapegyivoolzsckovs) THEN PROD (hcqninmpmzpqjtedyjyj),
+-- GO per step, BEFORE deploying the front end that uploads. Idempotent.
 --
--- Contrôle après application :
+-- Check after application:
 --   select id, public, file_size_limit, allowed_mime_types from storage.buckets where id = 'copil-media';
---   -- attendu : 1 ligne, public = false, 5242880, {image/png,image/jpeg,image/webp}
+--   -- expected: 1 row, public = false, 5242880, {image/png,image/jpeg,image/webp}
 --   select policyname from pg_policies where schemaname = 'storage' and tablename = 'objects' and policyname like 'copil_media_%';
---   -- attendu : 4 lignes
+--   -- expected: 4 rows
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values ('copil-media', 'copil-media', false, 5242880, array['image/png', 'image/jpeg', 'image/webp'])

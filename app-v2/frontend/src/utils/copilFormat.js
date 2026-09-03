@@ -1,15 +1,15 @@
-// COPIL — source UNIQUE du rendu localisé d'un deck (présentation + export PPTX).
-// La langue du DECK (copils.lang, choisie en couverture) pilote : séparateurs de
-// nombres, guillemets, police et attribut lang du PowerPoint. Elle est distincte
-// de la langue de l'interface (i18n) : un CSM francophone peut préparer un COPIL
-// coréen. Fonctions pures, sans dépendance Vue → testables sous node.
+// COPIL — the SINGLE source for a deck's localized rendering (presentation + PPTX export).
+// The DECK language (copils.lang, chosen on the cover) drives: number
+// separators, quotation marks, font and the PowerPoint lang attribute. It is distinct
+// from the interface language (i18n): a French-speaking CSM may prepare a Korean
+// COPIL. Pure functions, no Vue dependency → testable under node.
 
 export const DECK_LANGS = ['fr', 'en', 'ko']
 
 const LOCALE_TAGS = { fr: 'fr-FR', en: 'en-US', ko: 'ko-KR' }
-// Police PowerPoint par langue : Calibri sinon ; en coréen, Malgun Gothic (Windows,
-// remplacée par Apple SD Gothic Neo sur Mac par PowerPoint lui-même) — sans police
-// est-asiatique déclarée, le hangul tombe sur le repli du thème (audit 03/09).
+// PowerPoint font per language: Calibri otherwise; in Korean, Malgun Gothic (Windows,
+// replaced by Apple SD Gothic Neo on Mac by PowerPoint itself) — without a declared
+// East Asian font, Hangul falls back to the theme default (audit 03/09).
 const FONTS = { fr: 'Calibri', en: 'Calibri', ko: 'Malgun Gothic' }
 const QUOTES = { fr: ['« ', ' »'], en: ['“', '”'], ko: ['“', '”'] }
 
@@ -27,9 +27,9 @@ export function deckQuote(text, lang) {
   return o + (text || '') + c
 }
 
-// Nombre localisé. Une valeur non numérique (texte saisi tel quel) est rendue
-// telle quelle ; vide → « — ». Jamais de suffixe M/K inventé : le CSM choisit son
-// unité (k€, M€…) dans le libellé.
+// Localized number. A non-numeric value (text entered as-is) is rendered
+// as-is; empty → "—". Never an invented M/K suffix: the CSM chooses their
+// unit (k€, M€…) in the label.
 export function parseDeckNumber(v) {
   if (typeof v === 'number') return v
   if (v == null) return NaN
@@ -38,11 +38,11 @@ export function parseDeckNumber(v) {
   const commas = (s.match(/,/g) || []).length
   const dots = (s.match(/\./g) || []).length
   if (commas && dots) {
-    // les deux présents : le dernier séparateur est la décimale (1.250,5 ou 1,250.5)
+    // both present: the last separator is the decimal one (1.250,5 or 1,250.5)
     if (s.lastIndexOf(',') > s.lastIndexOf('.')) s = s.replace(/\./g, '').replace(',', '.')
     else s = s.replace(/,/g, '')
   } else if (commas === 1 && /,\d{1,2}$/.test(s)) {
-    s = s.replace(',', '.')               // 3,2 → décimale
+    s = s.replace(',', '.')               // 3,2 → decimal point
   } else if (commas) {
     s = s.replace(/,/g, '')                // 1,250,000 → milliers
   } else if (dots > 1) {
@@ -58,8 +58,8 @@ export function deckNumber(v, lang, opts = {}) {
   return new Intl.NumberFormat(deckLocaleTag(lang), { maximumFractionDigits: 2, ...opts }).format(n)
 }
 
-// Valeur + unité : espace fine insécable avant un symbole (€, %, ₩…), rien avant
-// une unité alphabétique déjà espacée par le CSM.
+// Value + unit: narrow non-breaking space before a symbol (€, %, ₩…), nothing before
+// an alphabetic unit already spaced by the CSM.
 export function deckValueUnit(v, unit, lang) {
   const val = deckNumber(v, lang)
   const u = (unit || '').trim()
@@ -67,15 +67,15 @@ export function deckValueUnit(v, unit, lang) {
   return val + ' ' + u
 }
 
-// Un graphique sans aucune valeur saisie (seeds vides, D2①) n'est ni présenté ni exporté.
+// A chart without a single entered value (empty seeds, D2①) is neither presented nor exported.
 export function chartHasData(block) {
   const d = block?.data || {}
   const vals = block.type === 'chart_donut' ? (d.data || []) : (d.datasets || []).flatMap(s => s.data || [])
   return vals.some(v => v !== null && v !== undefined && v !== '' && !Number.isNaN(Number(v)))
 }
 
-// Blocs rendus en présentation et exportés : visibles, ni séparateur ni type mort,
-// et pour un graphique : au moins une valeur.
+// Blocks rendered in the presentation and exported: visible, neither a separator nor a dead type,
+// and for a chart: at least one value.
 export function presentableBlocks(blocks) {
   return (blocks || []).filter(b => b.visible !== false && b.type !== 'divider' && b.type !== 'kpi_tracker'
     && (!b.type.startsWith('chart_') || chartHasData(b)))

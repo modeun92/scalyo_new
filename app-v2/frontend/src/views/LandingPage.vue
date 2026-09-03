@@ -1,7 +1,7 @@
 <template>
   <div ref="rootEl" class="landing">
-    <!-- SEO-I18N : suggestion, pas redirection. Le libelle est dans la langue
-         proposee, lu depuis landing.js — aucun texte en dur. -->
+    <!-- SEO-I18N: a suggestion, not a redirect. The label is in the proposed
+         language, read from landing.js — no hard-coded text. -->
     <div v-if="suggestedLang" class="lang-hint">
       <button type="button" class="lang-hint-go" @click="acceptSuggestion">{{ suggestionText }}</button>
       <button type="button" class="lang-hint-x" :aria-label="suggestionDismiss" :title="suggestionDismiss" @click="dismissSuggestion">&times;</button>
@@ -82,18 +82,18 @@ import LandingFooter from '@/components/landing/LandingFooter.vue'
 
 const appUrl = ''
 
-// SEO-I18N — la langue de la landing vient du PREFIXE D'URL, plus de localStorage.
-// Le corps rendu doit dire la meme chose que le <head> statique produit au build :
-// toute divergence ferait mentir le canonical et les hreflang.
-// Codes : l'URL et le hreflang portent 'ko' (ISO 639-1) ; landing.js indexe ses
-// libelles sous 'kr'. route.meta.landingLocale porte deja la cle landing.js.
+// SEO-I18N — the landing page language comes from the URL PREFIX, no longer from localStorage.
+// The rendered body must say the same thing as the static <head> produced at build time:
+// any divergence would make the canonical and the hreflang tags lie.
+// Codes: the URL and the hreflang carry 'ko' (ISO 639-1); landing.js indexes its
+// labels under 'kr'. route.meta.landingLocale already carries the landing.js key.
 const route = useRoute()
 const router = useRouter()
 const { locale: globalLocale } = useI18n({ useScope: 'global' })
 const KR2KO = (c) => (c === 'kr' ? 'ko' : c)
 
-// Source unique du couple cle-landing / chemin. Une nouvelle langue s'ajoute ici
-// et dans les routes ; nulle part ailleurs.
+// Single source for the landing-key / path pair. A new language is added here
+// and in the routes; nowhere else.
 const LANG_PATHS = { fr: '/', en: '/en/', kr: '/ko/' }
 
 const locale = ref(route.meta?.landingLocale || 'fr')
@@ -106,9 +106,9 @@ const langs = [
   { code: 'kr', label: '한국어' },
 ]
 
-// Le choix de langue change l'URL : c'est ce qui rend la version partageable par
-// lien et indexable. localStorage reste ecrit pour que CGU (locale i18n globale)
-// et DPA (localStorage.scalyo_locale) suivent le choix.
+// The language choice changes the URL: that is what makes the version shareable by
+// link and indexable. localStorage is still written so that the ToS (global i18n locale)
+// and the DPA (localStorage.scalyo_locale) follow the choice.
 function onLocaleChange(code) {
   const mapped = KR2KO(code)
   globalLocale.value = mapped
@@ -118,9 +118,9 @@ function onLocaleChange(code) {
   else locale.value = code
 }
 
-// Suggestion de langue — jamais de redirection automatique : elle piegerait les
-// crawlers, qui arrivent le plus souvent des Etats-Unis. On propose, on ne decide
-// pas. Uniquement sur la racine, dont le head statique est francais.
+// Language suggestion — never an automatic redirect: it would trap the
+// crawlers, which most often come from the United States. We propose, we do not decide.
+// Only on the root URL, whose static head is French.
 const suggestedLang = ref(null)
 const suggestionText = computed(() => suggestedLang.value ? (L[suggestedLang.value]?.lang_switch_hint || '') : '')
 const suggestionDismiss = computed(() => suggestedLang.value ? (L[suggestedLang.value]?.lang_switch_dismiss || '') : '')
@@ -171,7 +171,7 @@ const mockAccounts = [
   { name: 'Leroy Finance', health: 4.2, color: '#ef4444' },
 ]
 
-// Les valeurs sont localisees (30j / 30d / 30일) : jamais de litteral dans le composant.
+// The values are localized (30j / 30d / 30일): never a literal in the component.
 const statsData = computed(() => [
   { n: t('stat1v'), l: t('stat1'), s: t('stat1n'), icon: '📉' },
   { n: t('stat2v'), l: t('stat2'), s: t('stat2n'), icon: '📈' },

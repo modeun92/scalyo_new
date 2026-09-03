@@ -6,12 +6,12 @@
       <button type="button" @click="quotaNotice = ''" style="margin-left:auto;background:none;border:none;cursor:pointer;color:#8a5a00;font-size:1rem;">✕</button>
     </div>
 
-    <!-- HOTFIX CAP-1000 : garde-fou MAX_ROWS dépassé → la liste est partielle et on le DIT (jamais silencieux, R21) -->
+    <!-- HOTFIX CAP-1000: MAX_ROWS safeguard exceeded → the list is partial and we SAY SO (never silent, R21) -->
     <div v-if="clients.truncated" class="quota-notice" style="display:flex;align-items:center;gap:12px;padding:10px 14px;margin-bottom:12px;background:#fff4e5;border:1px solid #ffcc80;border-radius:8px;color:#8a5a00;font-size:0.9rem;">
       <span>{{ t('port_partial_list', { loaded: clients.clients.length, total: clients.totalRows }) }}</span>
     </div>
 
-    <!-- TEAM-METRICS (D3) : CSM inconnus à l'import → lignes importées NON assignées + remontée visible -->
+    <!-- TEAM-METRICS (D3): CSMs unknown at import time → imported rows left UNASSIGNED + visible reporting -->
     <div v-if="csmNotice" class="quota-notice" style="display:flex;align-items:center;gap:12px;padding:10px 14px;margin-bottom:12px;background:#fff4e5;border:1px solid #ffcc80;border-radius:8px;color:#8a5a00;font-size:0.9rem;">
       <span>{{ csmNotice }}</span>
       <button type="button" @click="csmNotice = ''" style="margin-left:auto;background:none;border:none;cursor:pointer;color:#8a5a00;font-size:1rem;">✕</button>
@@ -130,7 +130,7 @@ const auth = useAuthStore()
 const route = useRoute()
 const quoteStore = useQuoteStore()
 
-// B-12 / GATE-01 : gating quota clients + import CSV (plan effectif jamais nul)
+// B-12 / GATE-01: client quota gating + CSV import (effective plan is never null)
 const canImport = computed(() => isModuleAllowed(auth.effectivePlan, 'import'))
 const clientLimit = computed(() => getMaxClients(auth.effectivePlan))
 const atClientLimit = computed(() => clientLimit.value !== null && clients.clientsCount >= clientLimit.value)
@@ -150,11 +150,11 @@ function toggleImport() {
   if (showImport.value) importLifecycle.value = activeLifecycle.value === 'prospects' ? 'prospect' : 'client'
 }
 
-// Bug import (21/07) : le quick-action « Import » du dashboard route ici avec ?import=1.
-// L'ancien /app/import était redirigé vers le dashboard (lien mort). On ouvre le panneau
-// d'import directement — si le plan l'autorise (canImport), sinon on reste sur le portfolio.
+// Import bug (21/07): the dashboard's "Import" quick action routes here with ?import=1.
+// The old /app/import was redirected to the dashboard (dead link). We open the import
+// panel directly — if the plan allows it (canImport), otherwise we stay on the portfolio.
 onMounted(() => {
-  // CA signée (계약 금액) : charge les devis pour la somme des gagnés par client (PortfolioTable)
+  // Signed revenue (계약 금액): loads the quotes for the sum of won quotes per client (PortfolioTable)
   quoteStore.loadQuotes()
   if (route.query.import && canImport.value) {
     showImport.value = true
@@ -162,9 +162,9 @@ onMounted(() => {
   }
 })
 
-// Import contacts (bug import 21/07) : les colonnes contactName/email/phone d'une ligne
-// deviennent l'interlocuteur principal du client (le modèle stocke un tableau contacts[]).
-// name || email || phone garantit un `name` non vide → survit à normalizeContacts.
+// Contact import (import bug 21/07): the contactName/email/phone columns of a row
+// become the client's main contact (the model stores a contacts[] array).
+// name || email || phone guarantees a non-empty `name` → survives normalizeContacts.
 var rowContacts = function (row) {
   var name = (row.contactName || '').trim()
   var email = (row.email || '').trim()
@@ -173,10 +173,10 @@ var rowContacts = function (row) {
   return [{ name: name || email || phone, role: '', email: email, phone: phone, is_primary: true }]
 }
 
-// TEAM-METRICS (D3, 29/08) : résolution nom CSM → csm_id à l'import — l'affectation clé
-// sur l'id partout (Manager, Satisfaction, fiche) ; le texte seul rendait « — »/« Non assigné ».
-// Match EXACT insensible casse/espaces sur les membres assignables (self inclus, G9-10) ;
-// homonymes → JAMAIS de résolution au hasard ; inconnu → importé NON assigné + remontée (encart).
+// TEAM-METRICS (D3, 29/08): CSM name → csm_id resolution at import time — the assignment keys
+// on the id everywhere (Manager, Satisfaction, client record); text alone rendered "—"/"Unassigned".
+// EXACT match, case/whitespace insensitive, on assignable members (self included, G9-10);
+// homonyms → NEVER a random resolution; unknown → imported UNASSIGNED + reported (callout).
 function normName(s) { return String(s || '').trim().toLowerCase().replace(/\s+/g, ' ') }
 function buildCsmIndex(list) {
   const idx = {}
@@ -195,12 +195,12 @@ var handleBulkImport = async function (rows) {
   var stage = lc === 'prospect' ? 'new' : null
   var count = 0
   var errors = 0
-  // Défensif : membres chargés au boot (auth L14) — recharge si le store est vide
-  if (!team.members.length) { try { await team.loadMembers() } catch (e) { /* résolution best-effort */ } }
+  // Defensive: members loaded at boot (auth L14) — reload if the store is empty
+  if (!team.members.length) { try { await team.loadMembers() } catch (e) { /* best-effort resolution */ } }
   var csmIndex = buildCsmIndex(team.assignableMembers)
   var unresolved = {}
   for (var i = 0; i < rows.length; i++) {
-    // B-12 : stop si quota clients atteint (défensif — plans actuels : starter sans import, growth+ illimité)
+    // B-12: stop if the client quota is reached (defensive — current plans: starter without import, growth+ unlimited)
     if (lc === 'client' && clientLimit.value !== null && clients.clientsCount >= clientLimit.value) {
       quotaNotice.value = t('gate_client_limit', { max: clientLimit.value, plan: auth.currentPlanLabel })
       break
@@ -274,7 +274,7 @@ function switchLifecycle(key) {
 }
 
 function openCreate() {
-  // B-12 : quota clients (prospects non limités)
+  // B-12: client quota (prospects not limited)
   if (activeLifecycle.value !== 'prospects' && atClientLimit.value) {
     quotaNotice.value = t('gate_client_limit', { max: clientLimit.value, plan: auth.currentPlanLabel })
     return
@@ -314,7 +314,7 @@ function save() {
 
 function doDelete(c) { clients.deleteClient(c.id) }
 
-// FB-02 : clic ligne → fiche client (le crayon garde le slide-over d'édition)
+// FB-02: row click → client record (the pencil keeps the edit slide-over)
 function openDetail(c) { clientModal.open(c.id) }
 
 function exportCsv() {

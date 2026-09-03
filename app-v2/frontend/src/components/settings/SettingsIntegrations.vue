@@ -14,8 +14,8 @@
         </span>
       </div>
 
-      <!-- RESEND-STATE (27/08) : un membre voit le vrai statut de l'org (même source que
-           Email Studio) mais pas la configuration — le serveur la refuse déjà (403 not_org_owner) -->
+      <!-- RESEND-STATE (27/08): a member sees the org's real status (same source as
+           Email Studio) but not the configuration — the server already refuses it (403 not_org_owner) -->
       <p v-if="!canManage" class="ei-desc">{{ L('managed_by_owner') }}</p>
 
       <!-- Setup Guide (shown when not configured) -->
@@ -97,7 +97,7 @@ import { supabase } from '@/lib/supabase'
 
 const team = useTeamStore()
 const auth = useAuthStore()
-// Miroir de assertCanManage côté serveur (contrat CR-8 D2) : owner de l'org, ou compte sans org
+// Mirror of the server-side assertCanManage (contract CR-8 D2): org owner, or account without an org
 const canManage = computed(() => auth.isOrgOwner || !auth.profile?.organization_id)
 
 // ─── i18n inline (no useI18n dependency) ──────────────────────
@@ -221,8 +221,8 @@ const teamMembers = computed(() => team.members.map(m => ({
   canSendEmail: m.canSendEmail || false,
 })))
 
-// ─── API helper — CR-8 (E-08) : la clé ne transite que vers /api/*, jamais
-// vers Supabase ni api.resend.com depuis le navigateur. Elle n'est jamais relue.
+// ─── API helper — CR-8 (E-08): the key only travels to /api/*, never
+// to Supabase nor to api.resend.com from the browser. It is never read back.
 async function apiFetch(path, options = {}) {
   const token = (await supabase.auth.getSession()).data.session?.access_token
   return fetch(path, {
@@ -238,10 +238,10 @@ async function apiFetch(path, options = {}) {
 // ─── Load existing config (statut + champs non sensibles uniquement) ──────────
 onMounted(async () => {
   await team.loadMembers()
-  // RESEND-STATE (27/08) : UNE source de statut pour tous les rôles — la même RPC
-  // que le bandeau d'Email Studio (get_org_email_status, org-wide, booléen + champs
-  // non sensibles). L'ancien GET /api/email/config répondait 403 à un membre et le
-  // composant affichait « Non configuré » alors que l'org était connectée.
+  // RESEND-STATE (27/08): ONE status source for every role — the same RPC
+  // as the Email Studio banner (get_org_email_status, org-wide, boolean + non-sensitive
+  // fields). The old GET /api/email/config answered 403 to a member and the
+  // component displayed "Not configured" even though the org was connected.
   try {
     const { data, error } = await supabase.rpc('get_org_email_status')
     if (error) throw error
@@ -249,7 +249,7 @@ onMounted(async () => {
     isConfigured.value = !!row?.configured
     form.value.domain = row?.sender_domain || ''
     form.value.sender = row?.sender_name || ''
-  } catch { /* statut indisponible → non configuré, jamais un état inventé */ }
+  } catch { /* status unavailable → not configured, never an invented state */ }
 })
 
 // ─── Save ─────────────────────────────────────────────────────
@@ -283,7 +283,7 @@ async function saveConfig() {
   finally { saving.value = false }
 }
 
-// ─── Test connection (côté serveur — la clé ne sort jamais vers un tiers) ─────
+// ─── Test connection (server-side — the key never leaves towards a third party) ─────
 async function testConnection() {
   testing.value = true
   error.value = ''

@@ -1,9 +1,9 @@
--- D1/D2 (contrat gating 8 juillet 2026) : organizations.plan = source unique du plan effectif.
--- V3 : organizations n'avait AUCUN trigger de protection ; org_manage (UPDATE owner,
--- toutes colonnes) permettait un self-grant org.plan cote client (E-01-bis).
--- Pattern protect_billing_fields (CR-3) : blocage des colonnes billing pour authenticated.
--- name reste ecrivable (OnboardingView etape 1, G9-5).
--- Appliquee PREPROD le 8/07 (apres validation contrat R8). PROD : avant merge main (piege 22).
+-- D1/D2 (gating contract 8 July 2026): organizations.plan = the single source of the effective plan.
+-- V3: organizations had NO protection trigger at all; org_manage (owner UPDATE,
+-- all columns) allowed a client-side self-grant of org.plan (E-01-bis).
+-- protect_billing_fields pattern (CR-3): billing columns blocked for authenticated.
+-- name stays writable (OnboardingView step 1, G9-5).
+-- Applied on PRE-PROD on 8/07 (after contract approval R8). PROD: before merging main (pitfall 22).
 
 create or replace function public.protect_org_billing_fields() returns trigger
 language plpgsql as $$
@@ -29,8 +29,8 @@ create trigger trg_protect_org_billing_fields
   before update on public.organizations
   for each row execute function public.protect_org_billing_fields();
 
--- Backfill D2 : reconcilier organizations.plan avec le plan paye de l'owner
--- (le webhook n'ecrivait que profiles -> ex. preprod : profiles=elite / org=starter).
+-- D2 backfill: reconcile organizations.plan with the owner's paid plan
+-- (the webhook only wrote profiles -> e.g. pre-prod: profiles=elite / org=starter).
 update public.organizations o
    set plan = p.plan,
        seats_paid = greatest(o.seats_paid, coalesce(p.seats_paid, 1)),

@@ -25,7 +25,7 @@
       <div class="fr">
         <div class="fg">
           <label>{{ t('port_field_industry') }}</label>
-          <!-- FICHE-SECTEUR (29/08) : même correctif que ClientModal — valeur hors liste affichée -->
+          <!-- FICHE-SECTEUR (29/08): same fix as ClientModal — value outside the list is displayed -->
           <select v-model="form.industry" class="fi">
             <option v-if="form.industry && !industries.includes(form.industry)" :value="form.industry">{{ form.industry }}</option>
             <option v-for="i in industries" :key="i" :value="i">{{ i }}</option>

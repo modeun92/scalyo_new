@@ -24,10 +24,10 @@
         </div>
       </div>
       <span class="c-ind hide-sm">{{ c.industry }}</span>
-      <!-- CURRENCY-FORMAT : devise du compte, format de la locale (« 118 k€ » / « €118K »), plus de « € » en dur -->
+      <!-- CURRENCY-FORMAT: account currency, locale formatting ("118 k€" / "€118K"), no more hard-coded "€" -->
       <span class="c-arr fw">{{ fmtCurrency(c.arr, { compact: true }) }}<small v-if="wonAmount(c.id) > 0" class="c-signed">{{ t('port_ca_signed') }} {{ fmtCurrency(wonAmount(c.id), { compact: true }) }}</small></span>
-      <!-- HEALTH-SCALE : score /10 localisé, pill/badge/avatar colorés par le statut EFFECTIF
-           (même fonction que les compteurs et filtres) — plus jamais c.status brut -->
+      <!-- HEALTH-SCALE: localized score out of 10, pill/badge/avatar colored by the EFFECTIVE status
+           (the same function as the counters and filters) — never again a raw c.status -->
       <span class="c-h">
         <span class="pill" :class="healthTone(statusOf(c))">{{ fmtHealth(c.health) }}</span>
       </span>
@@ -68,7 +68,7 @@ defineEmits(['edit', 'delete', 'open'])
 const deleteId = ref(null)
 const quoteStore = useQuoteStore()
 
-// CA signée (계약 금액) : somme des devis gagnés du client, affichée sous l'ARR
+// Signed revenue (계약 금액): sum of the client's won quotes, displayed under the ARR
 function wonAmount(id) { return quoteStore.wonAmountForClient(id) }
 
 function mainContact(c) {

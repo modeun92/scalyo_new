@@ -4,16 +4,16 @@ import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/auth'
 import { askScalyoAI } from '@/utils/askScalyoAI'
 
-// ─── Wellbeing → volet NOVA uniquement (OXYGEN Lot 3a, contrat 28/07/2026) ───
-// Le volet check-in/entries (mood, score, charge, weekEntries, saveEntry,
-// micro-actions) est MORT au Lot 3a : remplacé par le check-in Oxygen
-// (stores/oxygenCheckins — un seul système, zéro doublon). La table
-// wellbeing_entries n'est PLUS JAMAIS écrite ; son sort (historique,
-// dépréciation) = contrat Lot 5 (Lyo).
-// R21 : le contexte envoyé à Nova ne porte plus AUCUNE valeur inventée —
-// les anciens défauts (mood 'normal', score 70, charge 70) auraient menti à
-// Nova dès lors que plus rien ne les alimente. Lyo recevra le vrai contexte
-// Oxygen au Lot 5 (lecture seule).
+// ─── Wellbeing → NOVA panel only (OXYGEN Lot 3a, contract 28/07/2026) ───
+// The check-in/entries panel (mood, score, load, weekEntries, saveEntry,
+// micro-actions) is DEAD as of Lot 3a: replaced by the Oxygen check-in
+// (stores/oxygenCheckins — a single system, zero duplication). The
+// wellbeing_entries table is NEVER written to again; its fate (history,
+// deprecation) = Lot 5 contract (Lyo).
+// R21: the context sent to Nova no longer carries ANY invented value —
+// the old defaults (mood 'normal', score 70, load 70) would have lied to
+// Nova as soon as nothing fed them any more. Lyo will receive the real Oxygen
+// context in Lot 5 (read-only).
 
 export const useWellbeingStore = defineStore('wellbeing', () => {
   const authStore = useAuthStore()
@@ -68,8 +68,8 @@ export const useWellbeingStore = defineStore('wellbeing', () => {
       const result = await askScalyoAI({
         module: 'wellbeing',
         message: userMsg.content,
-        // R21 (Lot 3a) : plus de mood/score/charge inventés — contexte vide
-        // jusqu'à l'injection du vrai contexte Oxygen (Lot 5).
+        // R21 (Lot 3a): no more invented mood/score/load — empty context
+        // until the real Oxygen context is injected (Lot 5).
         context: {},
         history: novaMessages.value.slice(-10).map(m => ({
           role: m.role === 'user' ? 'user' : 'assistant', content: m.content

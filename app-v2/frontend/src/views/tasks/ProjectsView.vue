@@ -213,7 +213,7 @@ import { useTaskStore } from '@/stores/tasks'
 import SlideOver from '@/components/SlideOver.vue'
 import StandardImport from '@/components/import/StandardImport.vue'
 import { taskFields } from '@/config/importFields.js'
-import { fmtDate } from '@/lib/formatters' // DATE-RAW : cellules en lecture formatées, l'input date reste ISO
+import { fmtDate } from '@/lib/formatters' // DATE-RAW: read-mode cells are formatted, the date input stays ISO
 
 const { t } = useI18n({ useScope: 'global' })
 const taskStore = useTaskStore()

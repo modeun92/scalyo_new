@@ -18,7 +18,7 @@ export async function onRequestPost(context) {
     const safeLocale = validLocales.includes(locale) ? locale : 'fr'
 
     const supabaseUrl = env.SUPABASE_URL
-    // ENV-FALLBACK-PROD (lot 6) : plus de repli en dur vers la base de PRODUCTION.
+    // ENV-FALLBACK-PROD (Lot 6): no more hard-coded fallback to the PRODUCTION database.
     if (!supabaseUrl) throw new Error('Missing required environment variable: SUPABASE_URL')
     const serviceKey = env.SUPABASE_SERVICE_ROLE_KEY
     if (!serviceKey) {

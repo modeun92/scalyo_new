@@ -1,6 +1,6 @@
-// Génération intuitive de visuels COPIL (étape 3 du chantier client-centric).
-// Le CSM saisit une métrique (nom, valeurs) ; on propose le BON bloc, pré-rempli,
-// qu'il reste libre de modifier. Fonction pure → testable en node.
+// Intuitive generation of COPIL visuals (step 3 of the client-centric workstream).
+// The CSM enters a metric (name, values); we propose the RIGHT block, pre-filled,
+// which they remain free to change. Pure function → testable under node.
 
 const TEMPORAL_RE = /^(jan|f[ée]v|mar|avr|apr|mai|may|juin|jun|juil|jul|ao[uû]|aug|sep|oct|nov|d[ée]c|q[1-4]|s[12]\b|[0-9]{4}|[0-9]{1,2}[/\-][0-9]{1,4}|w[0-9]{1,2})/i
 
@@ -15,9 +15,9 @@ export function isTemporalLabels(labels) {
   return hits.length >= Math.ceil(filled.length * 0.6)
 }
 
-// rows : [{ label, value }] (value numérique) ; opts : { unit, target, hint }
-// hint : 'auto' | 'kpi' | 'line' | 'bar' | 'donut' | 'table'
-// Retourne { type, data } prêt pour un bloc copil, ou null si invalide.
+// rows: [{ label, value }] (numeric value); opts: { unit, target, hint }
+// hint: 'auto' | 'kpi' | 'line' | 'bar' | 'donut' | 'table'
+// Returns { type, data } ready for a copil block, or null if invalid.
 export function suggestBlock(name, rows, opts = {}) {
   const unit = opts.unit || ''
   const target = opts.target === '' || opts.target == null ? null : Number(opts.target)
@@ -54,7 +54,7 @@ export function suggestBlock(name, rows, opts = {}) {
   return { type: 'table', data: { headers: ['', name + (unit ? ' (' + unit + ')' : '')], rows: clean.map(r => [r.label, String(r.value)]) } }
 }
 
-// Construit le bloc complet insérable dans copils.blocks
+// Builds the complete block, insertable into copils.blocks
 export function buildMetricBlock(name, rows, opts = {}) {
   const s = suggestBlock(name, rows, opts)
   if (!s) return null

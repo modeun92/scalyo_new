@@ -65,7 +65,7 @@ watch(() => props.open, (val) => {
   }
 })
 
-// D-15 : fermeture uniquement si la création a réussi (échec → toast, panneau ouvert)
+// D-15: closes only if the creation succeeded (failure → toast, panel stays open)
 async function doCreate() {
   if (!form.name) return
   const res = selectedTpl.value

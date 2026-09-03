@@ -6,7 +6,7 @@
       </div>
       <h1>{{ t('reset_title') }}</h1>
 
-      <!-- État succès -->
+      <!-- Success state -->
       <div v-if="sent" class="reset-success">
         <div class="success-icon">✉️</div>
         <p class="success-msg">{{ t('reset_success') }}</p>
@@ -68,7 +68,7 @@ async function handleReset() {
   loading.value  = false
   if (result.error) {
     const err = result.error
-    // Messages véridiques par cause réelle (contrat 16/07) — motif brut en console
+    // Truthful messages by real cause (contract 16/07) — raw reason in the console
     console.warn('[reset] resetPasswordForEmail failed:', err.code || err.status, err.message)
     if (err.code === 'over_email_send_rate_limit' || err.status === 429) {
       errorMsg.value = t('reset_err_rate_limit')

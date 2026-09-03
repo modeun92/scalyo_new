@@ -86,8 +86,8 @@ const messages = {
     en: 'You are invited to Scalyo',
     ko: 'Scalyo에 초대되었습니다',
   },
-  // Invite email (lot 6 — D4① : email d'invitation localisé FR/EN/KO,
-  // durée d'expiration dérivée de ORG_SETTINGS.invitationExpiryDays)
+  // Invite email (Lot 6 — D4①: invitation email localized FR/EN/KO,
+  // expiry duration derived from ORG_SETTINGS.invitationExpiryDays)
   invite_mail_subject: {
     fr: '{org} vous invite sur Scalyo',
     en: '{org} invites you to Scalyo',
@@ -119,8 +119,8 @@ const messages = {
   invite_role_viewer: { fr: 'lecteur', en: 'viewer', ko: '열람자' },
 }
 
-// Lot 6 : interpolation {var}. Les appels existants t('key') / t('key', lang)
-// sont inchangés.
+// Lot 6: {var} interpolation. The existing t('key') / t('key', lang) calls
+// are unchanged.
 export function t(key, lang = 'fr', vars = null) {
   const msg = messages[key]
   if (!msg) return key

@@ -14,7 +14,7 @@
       </div>
 
       <div class="tpl-steps-preview">
-        <!-- Refonte 21/07 : steps = objets { key, day } (le libellé porte le timing J+N) -->
+        <!-- Rework 21/07: steps = objects { key, day } (the label carries the D+N timing) -->
         <div
           v-for="(s, i) in template.steps"
           :key="i"
@@ -81,8 +81,8 @@ const form = reactive({ clientId: '', csmId: '' })
 
 watch(() => props.template, (tpl) => {
   if (tpl) {
-    // Increment B : client pré-sélectionné quand on vient de la fiche (initialClientId),
-    // sinon vide comme avant.
+    // Increment B: client pre-selected when coming from the record (initialClientId),
+    // otherwise empty as before.
     form.clientId = props.initialClientId || ''
     form.csmId = props.teamMembers[0]?.id || ''
   }

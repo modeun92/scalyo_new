@@ -1,17 +1,17 @@
--- Increment C (feedback Lidia 21/07 : « le propriétaire d'un client doit être
--- prévenu quand un collègue ajoute une note/info sur SON client »).
+-- Increment C (feedback from Lidia 21/07: "the owner of a client must be
+-- notified when a colleague adds a note/piece of info on THEIR client").
 --
--- Contexte RLS (vérifié) : notifications impose INSERT `user_id = auth.uid()` →
--- l'app ne peut PAS créer une notif POUR un autre utilisateur (le propriétaire).
--- Solution : trigger SECURITY DEFINER (s'exécute avec les droits du définisseur,
--- contourne proprement ce RLS côté serveur) — SANS élargir aucune policy.
+-- RLS context (verified): notifications enforce INSERT `user_id = auth.uid()` →
+-- the app CANNOT create a notification FOR another user (the owner).
+-- Solution: a SECURITY DEFINER trigger (runs with the definer's rights,
+-- cleanly bypassing that RLS server-side) — WITHOUT widening any policy.
 --
--- Comportement : à chaque INSERT dans client_notes, si l'auteur ≠ le propriétaire
--- du client (COALESCE(csm_id, user_id) ; user_id est NOT NULL → jamais null), on
--- crée une notification in-app POUR le propriétaire, ciblée sur la fiche client.
--- Pas d'email (v1). `SET search_path = public` = durcissement SECURITY DEFINER.
+-- Behaviour: on every INSERT into client_notes, if the author ≠ the owner
+-- of the client (COALESCE(csm_id, user_id); user_id is NOT NULL → never null), we
+-- create an in-app notification FOR the owner, targeted at the client record.
+-- No email (v1). `SET search_path = public` = SECURITY DEFINER hardening.
 --
--- À appliquer PRÉPROD (wxbape…) PUIS PROD (hcqninmpmzpqjtedyjyj), GO par marche.
+-- To be applied on PRE-PROD (wxbape…) THEN PROD (hcqninmpmzpqjtedyjyj), GO per step.
 
 CREATE OR REPLACE FUNCTION public.notify_client_note()
 RETURNS trigger
@@ -23,13 +23,13 @@ DECLARE
   v_owner       uuid;
   v_client_name text;
 BEGIN
-  -- Propriétaire = CSM assigné, sinon le créateur de la fiche
+  -- Owner = assigned CSM, otherwise the creator of the record
   SELECT COALESCE(csm_id, user_id), name
     INTO v_owner, v_client_name
     FROM public.clients
     WHERE id = NEW.client_id;
 
-  -- Rien si : pas de propriétaire, auteur inconnu, ou auteur = propriétaire (self)
+  -- Nothing if: no owner, unknown author, or author = owner (self)
   IF v_owner IS NULL OR NEW.author_id IS NULL OR v_owner = NEW.author_id THEN
     RETURN NEW;
   END IF;
@@ -61,9 +61,9 @@ CREATE TRIGGER trg_notify_client_note
   AFTER INSERT ON public.client_notes
   FOR EACH ROW EXECUTE FUNCTION public.notify_client_note();
 
--- Contrôles post-application :
+-- Post-application checks:
 --   SELECT tgname FROM pg_trigger
 --     WHERE tgrelid = 'public.client_notes'::regclass AND NOT tgisinternal;
---     -- attendu : trg_notify_client_note
+--     -- expected: trg_notify_client_note
 --   SELECT proname, prosecdef FROM pg_proc WHERE proname = 'notify_client_note';
---     -- attendu : notify_client_note | t  (prosecdef = SECURITY DEFINER)
+--     -- expected: notify_client_note | t  (prosecdef = SECURITY DEFINER)

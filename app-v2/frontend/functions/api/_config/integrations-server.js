@@ -2,9 +2,9 @@
  * Server-side integration config — OAuth URLs for backend endpoints
  * GDPR: tokens stored encrypted, deleted on user disconnect, no PII in logs
  */
-// CR-8 (E-09) : intégrations à configuration manuelle — champs autorisés par provider.
-// Les champs SECRET_FIELD_KEYS sont chiffrés AES-256-GCM avant stockage (jamais en clair).
-// D4 (contrat validé) : une URL de webhook est une capacité d'écriture = credential.
+// CR-8 (E-09): manually configured integrations — allowed fields per provider.
+// The SECRET_FIELD_KEYS fields are encrypted with AES-256-GCM before storage (never in clear text).
+// D4 (approved contract): a webhook URL is a write capability = a credential.
 export const MANUAL_FIELDS = {
   slack: ['webhook_url'],
   hubspot: ['api_key'],

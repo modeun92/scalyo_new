@@ -14,15 +14,15 @@ import { useOxygenPrefsStore } from '@/stores/oxygenPrefs'
 import { useOxygenEngineStore, isEvening, OXY_MICRO_MAX_PER_DAY } from '@/stores/oxygenEngine'
 import { useOxygenRecoveriesStore } from '@/stores/oxygenRecoveries'
 import OxygenCheckinForm from '@/components/oxygen/OxygenCheckinForm.vue'
-import OxygenFermeture from '@/components/oxygen/OxygenFermeture.vue'
+import OxygenClosing from '@/components/oxygen/OxygenClosing.vue'
 
-// ─── OXYGEN Lot 2+3a — Pulse : pastille topbar + check-in 10 s ───────────────
-// Absorbe le montage renderless du Lot 1 (OxygenDaily.vue supprimé) : garantir
-// les sources chargées → upsert oxygen_daily du jour → charger les histories.
-// Lot 3a : le formulaire est le composant PARTAGÉ OxygenCheckinForm (même
-// chemin d'écriture que la page Oxygen — une seule ligne base par jour).
-// P10 : 1 clic → focus auto 1er curseur → Entrée valide. R21 : sans check-in,
-// l'indice est null et rend « — »/CTA — jamais un chiffre inventé.
+// ─── OXYGEN Lot 2+3a — Pulse: topbar dot + 10 s check-in ───────────────────
+// Absorbs the renderless mount from Lot 1 (OxygenDaily.vue deleted): guarantee
+// the sources are loaded → upsert the day's oxygen_daily → load the histories.
+// Lot 3a: the form is the SHARED OxygenCheckinForm component (same
+// write path as the Oxygen page — a single database row per day).
+// P10: 1 click → auto focus on the 1st slider → Enter submits. R21: without a check-in,
+// the index is null and renders "—"/CTA — never an invented figure.
 
 const { t } = useI18n({ useScope: 'global' })
 const auth = useAuthStore()
@@ -37,7 +37,7 @@ const prefs = useOxygenPrefsStore()
 const engine = useOxygenEngineStore()
 const recoveries = useOxygenRecoveriesStore()
 
-// ── Boot absorbé du renderless Lot 1 (lectures idempotentes) ──
+// ── Boot absorbed from the Lot 1 renderless component (idempotent reads) ──
 async function ensureSourcesLoaded() {
   const loads = []
   if (!clientStore.clients.length && !clientStore.loading) loads.push(clientStore.loadClients())
@@ -52,23 +52,23 @@ onMounted(async () => {
     if (!auth.user?.id) return
     prefs.loadFor(auth.user.id) // jours off perso (localStorage, synchrone)
     await ensureSourcesLoaded()
-    // ORDRE CRITIQUE (bug OXY-IDX-NULL, preuve ② 28/07) : les histories AVANT
-    // l'upsert du jour — sinon engine.indexToday est null au moment de l'écriture
-    // et le boot écrase l'indice déjà persisté (classe B-10b).
+    // CRITICAL ORDER (bug OXY-IDX-NULL, evidence ② 28/07): the histories BEFORE
+    // the day's upsert — otherwise engine.indexToday is null at write time
+    // and the boot overwrites the already persisted index (class B-10b).
     await Promise.all([checkins.loadHistory30(), oxygenDaily.loadHistory30()])
     await oxygenDaily.upsertToday()
-    await recoveries.loadToday() // Lot 3b : clôture/micro du jour (GET léger)
+    await recoveries.loadToday() // Lot 3b: the day's closing/micro (light GET)
   } catch (e) {
     console.error('[oxygen] OxygenPulse mount failed:', e.message || e)
   }
 })
 
-// ── Horloge locale (état soir — OXY_EVENING_HOUR, constante engine) ──
+// ── Local clock (evening state — OXY_EVENING_HOUR, engine constant) ──
 const now = ref(new Date())
 const clock = setInterval(() => { now.value = new Date() }, 60000)
 onUnmounted(() => clearInterval(clock))
 
-// ── États dérivés (3 états contrat : sans check-in / avec indice / prêt à fermer) ──
+// ── Derived states (3 contract states: no check-in / with index / ready to close) ──
 const hasIndex = computed(() => engine.indexToday != null)
 const displayIndex = computed(() => (hasIndex.value ? Math.round(engine.indexToday) : '—'))
 const eveningReady = computed(() => hasIndex.value && isEvening(now.value))
@@ -77,15 +77,15 @@ const streakText = computed(() => {
   return t('oxy_streak', { n: engine.streakCapped ? '30+' : engine.streak })
 })
 
-// ── Lot 3b — Fermeture + micro-bulle (signal pastille SEUL, contrat 29/07) ──
-const clotureDone = computed(() => !!recoveries.todayCloture)
+// ── Lot 3b — Closing + micro-bubble (dot signal ONLY, contract 29/07) ──
+const closingDone = computed(() => !!recoveries.todayClosing)
 const microHalo = computed(() =>
   engine.microTriggerActive &&
   recoveries.microCountToday < OXY_MICRO_MAX_PER_DAY &&
   !recoveries.microDismissedToday
 )
-function startCloture() { open.value = false; recoveries.openFermeture('cloture') }
-function startMicro() { open.value = false; recoveries.openFermeture('micro') }
+function startClosing() { open.value = false; recoveries.openClosing('cloture') }
+function startMicro() { open.value = false; recoveries.openClosing('micro') }
 
 // ── Popover check-in ──
 const rootRef = ref(null)
@@ -96,7 +96,7 @@ onClickOutside(rootRef, () => { open.value = false })
 function toggle() {
   open.value = !open.value
   if (open.value) showHow.value = false
-  // Le formulaire partagé (v-if) se monte à l'ouverture : prefill + focus auto.
+  // The shared form (v-if) mounts on open: prefill + auto focus.
 }
 
 function onSaved() {
@@ -106,9 +106,9 @@ function onSaved() {
 
 <template>
   <div ref="rootRef" class="oxy-pulse">
-    <!-- Pastille NEUTRE (décision Lidia 28/07) : AUCUNE donnée santé visible en
-         topbar — ni indice, ni état, rendu identique pour tous toute la journée.
-         L'indice n'apparaît que sur clic volontaire, dans le popover. -->
+    <!-- NEUTRAL dot (decision by Lidia 28/07): NO health data visible in the
+         topbar — neither index nor state, identical rendering for everyone all day long.
+         The index only appears on a deliberate click, inside the popover. -->
     <button class="oxy-pill" :class="{ 'oxy-halo': microHalo }" title="Oxygen" :aria-label="t('oxy_pulse_cta')" @click="toggle">
       <span class="oxy-icon" aria-hidden="true">🫧</span>
     </button>
@@ -137,8 +137,8 @@ function onSaved() {
           </div>
         </div>
 
-        <p v-if="clotureDone" class="oxy-evening-note">✓ {{ t('oxy_ferm_done_badge') }}</p>
-        <button v-else-if="eveningReady" class="oxy-evening-btn" @click="startCloture">
+        <p v-if="closingDone" class="oxy-evening-note">✓ {{ t('oxy_ferm_done_badge') }}</p>
+        <button v-else-if="eveningReady" class="oxy-evening-btn" @click="startClosing">
           🌙 {{ t('oxy_pulse_ready') }}
         </button>
 
@@ -147,7 +147,7 @@ function onSaved() {
       </div>
     </transition>
 
-    <OxygenFermeture v-if="recoveries.fermetureOpen" />
+    <OxygenClosing v-if="recoveries.closingOpen" />
   </div>
 </template>
 
@@ -181,7 +181,7 @@ function onSaved() {
 @media (max-width: 768px) {
   .oxy-popover { position: fixed; left: 16px; right: 16px; top: calc(var(--topbar-height) + 8px); width: auto; }
 }
-/* Lot 3b — halo micro : accent constant, AUCUNE donnée santé (neutralité) */
+/* Lot 3b — micro halo: constant accent, NO health data (neutrality) */
 .oxy-pill.oxy-halo { box-shadow: 0 0 0 3px var(--purple-bg), 0 0 10px 2px rgba(124, 58, 237, 0.3); }
 
 .oxy-micro-card { background: var(--purple-bg); border-radius: var(--radius-sm); padding: 10px 12px; margin-top: 10px; }

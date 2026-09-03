@@ -1,6 +1,6 @@
-// GET /api/billing — BILLING-SEAT (contrat 2.1, 27/08/2026) : le prix affiché est le prix facturé.
-// Le serveur décide de tout : rôle (D1), source (Stripe réel si abonnement, sinon table × sièges),
-// devise, montants en unité MAJEURE. Le front ne porte aucun prix et n'affiche que ce qu'il reçoit.
+// GET /api/billing — BILLING-SEAT (contract 2.1, 27/08/2026): the displayed price is the billed price.
+// The server decides everything: role (D1), source (real Stripe data if subscribed, otherwise table × seats),
+// currency, amounts in MAJOR units. The front end carries no price and only displays what it receives.
 import { jsonResponse, errorResponse } from './_utils/response.js'
 import { createSupabaseClient, getAuthUser, getUserMembership } from './_utils/supabase.js'
 import { stripeRequest } from './_utils/stripe.js'
@@ -12,7 +12,7 @@ function isoFromUnix(seconds) {
   return seconds ? new Date(seconds * 1000).toISOString() : null
 }
 
-// Devise du COMPTE (user_profiles.currency, arbitrage 18/07) — absente/invalide → null (→ défaut EUR).
+// ACCOUNT currency (user_profiles.currency, decision 18/07) — missing/invalid → null (→ EUR default).
 async function accountCurrency(db, userId) {
   try {
     const row = await db.selectOne('user_profiles', 'id=eq.' + userId)
@@ -22,8 +22,8 @@ async function accountCurrency(db, userId) {
   }
 }
 
-// Prochain prélèvement réel (prorata + remise inclus). Indépendant de la version d'API du compte :
-// create_preview (≥ 2025-03-31.basil) puis repli invoices/upcoming (versions antérieures).
+// Real next charge (proration + discount included). Independent of the account's API version:
+// create_preview (≥ 2025-03-31.basil) then fallback to invoices/upcoming (earlier versions).
 async function upcomingInvoice(secretKey, subscriptionId, currency, request) {
   const q = 'subscription=' + encodeURIComponent(subscriptionId)
   let inv = await request(secretKey, 'POST', '/invoices/create_preview', q)
@@ -37,7 +37,7 @@ async function upcomingInvoice(secretKey, subscriptionId, currency, request) {
   }
 }
 
-// Lecture de l'abonnement réel. Retour null = Stripe injoignable ou abonnement inexploitable → table.
+// Read of the real subscription. Returning null = Stripe unreachable or subscription unusable → table.
 export async function readStripeSubscription(secretKey, subscriptionId, request = stripeRequest) {
   const sub = await request(secretKey, 'GET', '/subscriptions/' + encodeURIComponent(subscriptionId))
   const item = sub.ok ? sub.data.items?.data?.[0] : null
@@ -46,7 +46,7 @@ export async function readStripeSubscription(secretKey, subscriptionId, request 
   if (!currency) return null
   const quantity = item.quantity || 1
   const unitAmount = toMajor(item.price.unit_amount, currency)
-  // current_period_end : sur l'abonnement avant basil, sur l'item depuis (2025-03-31).
+  // current_period_end: on the subscription before basil, on the item since (2025-03-31).
   const periodEnd = sub.data.current_period_end ?? item.current_period_end ?? null
   return {
     currency,
@@ -62,7 +62,7 @@ export async function readStripeSubscription(secretKey, subscriptionId, request 
   }
 }
 
-// Montants hors abonnement Stripe : table unique × sièges, dans la devise du compte. Enterprise → sur devis.
+// Amounts outside a Stripe subscription: single table × seats, in the account currency. Enterprise → quote-based.
 export function tableBilling(plan, seats, currency) {
   const grid = pricesFor(currency)
   const unit = grid.prices[plan] ?? null
@@ -89,7 +89,7 @@ export async function onRequestGet(context) {
     const db = createSupabaseClient(env)
     const membership = await getUserMembership(db, user.id)
 
-    // Compte sans org (historique) : son propre abonnement, il en est le titulaire.
+    // Account without an org (legacy): their own subscription, they are the holder.
     let role = 'owner'
     let account = null
     if (membership) {
@@ -112,7 +112,7 @@ export async function onRequestGet(context) {
       interval: BILLING_INTERVAL,
       has_subscription: !!account.stripe_subscription_id,
     }
-    // D1 : member / viewer — plan et sièges, jamais un montant.
+    // D1: member / viewer — plan and seats, never an amount.
     if (!canViewAmounts) return jsonResponse({ ...base, source: 'none' })
 
     let stripe = null

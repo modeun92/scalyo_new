@@ -1,6 +1,6 @@
-// Stripe REST helper — synchronisation du nombre de sièges (facturation per-seat, modèle GitHub)
-// Inviter = accorder le rôle + facturer un siège immédiatement (create_prorations).
-// Retirer  = décrémenter la quantité sans crédit (proration_behavior: 'none' → effet fin de mois).
+// Stripe REST helper — synchronization of the seat count (per-seat billing, GitHub model)
+// Invite = grant the role + bill a seat immediately (create_prorations).
+// Remove = decrement the quantity without a credit (proration_behavior: 'none' → effect at end of month).
 
 export async function stripeRequest(secretKey, method, path, body) {
   const res = await fetch('https://api.stripe.com/v1' + path, {
@@ -14,10 +14,10 @@ export async function stripeRequest(secretKey, method, path, body) {
   return { ok: res.ok, status: res.status, data: await res.json().catch(() => ({})) }
 }
 
-// Ajuste la quantité de sièges de l'abonnement à `quantity`.
-// prorationBehavior : 'create_prorations' (ajout, facturé au prorata immédiatement)
-//                   | 'none' (retrait, pas de crédit, nouvelle quantité appliquée à la prochaine échéance)
-// Retour : { ok: true, quantity } | { ok: false, error }
+// Adjusts the subscription's seat quantity to `quantity`.
+// prorationBehavior: 'create_prorations' (addition, billed pro rata immediately)
+//                  | 'none' (removal, no credit, the new quantity applies at the next renewal)
+// Returns: { ok: true, quantity } | { ok: false, error }
 export async function setSubscriptionQuantity(secretKey, subscriptionId, quantity, prorationBehavior) {
   if (!secretKey) return { ok: false, error: 'stripe_not_configured' }
   if (!subscriptionId) return { ok: false, error: 'no_subscription' }

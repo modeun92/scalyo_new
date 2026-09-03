@@ -21,9 +21,9 @@ const editingMessage = ref(null)
 const replyingTo = ref(null)
 const unreadCounts = ref({})
 const connected = ref(false)
-// G9-20 : la surface chat (panneau ou page) est-elle visible ? Distinct du canal actif.
+// G9-20: is the chat surface (panel or page) visible? Distinct from the active channel.
 const surfaceVisible = ref(false)
-// G9-21 : map user_id → prénom, résolue via RPC get_org_member_names (RLS profiles = self-only)
+// G9-21: map user_id → first name, resolved via RPC get_org_member_names (profiles RLS = self-only)
 const memberNames = ref({})
 
 const channelsLoading = ref(false)
@@ -41,8 +41,8 @@ let pollDelay = POLL_BASE_MS
 let pollBusy = false
 let lastSendTime = 0
 let realtimeGaveUpListener = null
-// Garde anti-storm : une fois l'abandon acté, les événements CLOSED résiduels
-// (y compris celui déclenché par notre propre unsubscribe) ne re-loggent plus.
+// Anti-storm guard: once the abandon is recorded, residual CLOSED events
+// (including the one triggered by our own unsubscribe) are no longer logged.
 let realtimeGaveUp = false
 
 const activeMessages = computed(() => activeChannel.value ? (messages.value[activeChannel.value] || []) : [])
@@ -137,7 +137,7 @@ function mapMsg(m) {
   }
 }
 
-// G9-21 : résolution des noms au rendu (fallback = author_name stocké, jamais de crash)
+// G9-21: name resolution at render time (fallback = stored author_name, never a crash)
 async function loadMemberNames() {
   try {
     const { data, error } = await supabase.rpc('get_org_member_names')
@@ -164,8 +164,8 @@ function authorLabel(msg) {
 async function subscribeRealtime() {
   realtimeGaveUp = false
   if (realtimeRetryTimer) { clearTimeout(realtimeRetryTimer); realtimeRetryTimer = null }
-  // Retry propre : retirer l'ancien canal du client (await) avant d'en recréer un
-  // sur le même topic — sinon joins dupliqués possibles pendant les retries.
+  // Clean retry: remove the old channel from the client (await) before recreating one
+  // on the same topic — otherwise duplicate joins are possible during retries.
   if (realtimeSub) {
     const old = realtimeSub
     realtimeSub = null
@@ -182,12 +182,12 @@ async function subscribeRealtime() {
           const exists = messages.value[msg.channelId].some(m => m.id === msg.id)
           if (!exists) {
             messages.value[msg.channelId].push(msg)
-            // G9-20 : non-lu si la surface chat est fermée OU si le canal n'est pas celui affiché
+            // G9-20: unread if the chat surface is closed OR if the channel is not the displayed one
             if (!surfaceVisible.value || msg.channelId !== activeChannel.value) {
               unreadCounts.value[msg.channelId] = (unreadCounts.value[msg.channelId] || 0) + 1
             }
-            // G9-22 : canal créé après le boot → inconnu de la liste (pas de realtime sur
-            // chat_channels) → on recharge les canaux à la découverte d'un channel_id inconnu
+            // G9-22: channel created after boot → unknown to the list (no realtime on
+            // chat_channels) → we reload the channels when an unknown channel_id is discovered
             if (!channels.value.some(c => c.id === msg.channelId)) loadChannels()
           }
         } catch (e) { console.error('Realtime INSERT handler failed:', e.message || e) }
@@ -211,7 +211,7 @@ async function subscribeRealtime() {
         } catch (e) { console.error('Realtime DELETE handler failed:', e.message || e) }
       })
       .subscribe((status, err) => {
-        if (realtimeSub !== ch) return // canal remplacé — événements résiduels ignorés (anti-storm)
+        if (realtimeSub !== ch) return // channel replaced — residual events ignored (anti-storm)
         if (status === 'SUBSCRIBED') {
           realtimeRetryCount = 0
           connected.value = true
@@ -254,7 +254,7 @@ function scheduleRealtimeReconnect() {
       document.addEventListener('visibilitychange', realtimeGaveUpListener)
     }
     if (!realtimeFailsafeTimer) {
-      // Rattrapage périodique : visibilitychange ne se déclenche pas si l'onglet reste visible.
+      // Periodic catch-up: visibilitychange does not fire if the tab stays visible.
       realtimeFailsafeTimer = setInterval(() => {
         if (realtimeGaveUp) { realtimeRetryCount = 0; subscribeRealtime() }
       }, REALTIME_FAILSAFE_MS)
@@ -270,11 +270,11 @@ function scheduleRealtimeReconnect() {
   }, delay)
 }
 
-// ─── Fallback polling (panne realtime) ──────────────────────────────────────
-// Actif uniquement si le realtime est indisponible ET la surface chat visible.
-// Incrémental (created_at > dernier message du canal) : réponse vide ~99 % du
-// temps → egress négligeable. Backoff 6→30 s sur canal inactif. S'éteint seul
-// au retour du realtime (SUBSCRIBED) ou au destroy.
+// ─── Fallback polling (realtime outage) ────────────────────────────────
+// Only active if realtime is unavailable AND the chat surface is visible.
+// Incremental (created_at > the channel's last message): empty response ~99 % of the
+// time → negligible egress. Backoff 6→30 s on an inactive channel. Switches itself off
+// when realtime comes back (SUBSCRIBED) or on destroy.
 function startPolling() {
   if (pollTimer) return
   pollDelay = POLL_BASE_MS
@@ -304,7 +304,7 @@ async function pollCycle() {
   if (!connected.value) pollTimer = setTimeout(pollCycle, pollDelay)
 }
 
-// Récupère les messages plus récents que le dernier connu du canal. true si nouveautés.
+// Fetches messages newer than the last known one of the channel. true if there are new ones.
 async function pollOnce(channelId) {
   const arr = messages.value[channelId]
   if (!arr || arr.length === 0) {
@@ -358,10 +358,10 @@ async function sendMessage(channelId, content, author, authorId, attachments = [
   try {
     const auth = useAuthStore()
     const userId = authorId || auth.user?.id
-    // G9-21 : jamais de « user_default » — prénom, sinon préfixe email
+    // G9-21: never a "user_default" — first name, otherwise the email prefix
     const name = author || auth.profile?.first_name || (auth.user?.email || '').split('@')[0] || ''
-    // CR-9 (C-06) : organization_id posé à l'insert — la RLS n'accepte que
-    // la valeur de l'org du caller (IS NOT DISTINCT FROM get_my_org_id())
+    // CR-9 (C-06): organization_id set at insert time — RLS only accepts
+    // the caller's org value (IS NOT DISTINCT FROM get_my_org_id())
     const { error } = await withWrite(() => supabase.from('chat_messages').insert({
       channel_id: channelId, user_id: userId, author_name: name,
       content: trimmed, attachments: attachments.length ? attachments : [],
@@ -374,7 +374,7 @@ async function sendMessage(channelId, content, author, authorId, attachments = [
       return
     }
     replyingTo.value = null
-    // Panne realtime : refléter immédiatement le message envoyé via le poll
+    // Realtime outage: immediately reflect the sent message through the poll
     if (!connected.value) pollOnce(channelId).catch(() => {})
   } catch (e) {
     console.error('sendMessage — unexpected failure:', e.message || e)
@@ -477,16 +477,16 @@ async function setActive(id) {
       console.error('setActive — loadMessages failed:', e.message || e)
     }
   } else if (!connected.value) {
-    // Panne realtime : rattraper ce qui a été raté sur ce canal
+    // Realtime outage: catch up on what was missed on this channel
     pollOnce(id).catch(() => {})
   }
 }
 
-// ─── DM (contrat DM 13/07, socle extensible groupes) ───────────────────────
-// Table chat_channel_members = participants ; RPC open_dm = find-or-create atomique.
-// Un canal type='dm' n'est visible (RLS) que par ses participants — realtime compris.
+// ─── DM (DM contract 13/07, extensible foundation for groups) ───────────────
+// Table chat_channel_members = participants; RPC open_dm = atomic find-or-create.
+// A type='dm' channel is only visible (RLS) to its participants — realtime included.
 const dmChannels = computed(() => channels.value.filter(c => c.type === 'dm'))
-// channel_id → [user_id des participants]
+// channel_id → [user_id of the participants]
 const dmMembersMap = ref({})
 
 async function loadDmMembers() {
@@ -553,7 +553,7 @@ async function createChannel(name, description = '') {
   if (!trimmed) return
   try {
     const auth = useAuthStore()
-    // CR-9 (C-06) : canal rattaché à l'organisation du créateur
+    // CR-9 (C-06): channel attached to the creator's organization
     const { error } = await withWrite(() => supabase.from('chat_channels').insert({
       name: trimmed, description: description.trim(), type: 'channel',
       created_by: auth.user?.id,
@@ -604,7 +604,7 @@ async function deleteChannel(id) {
 
 function clearError() { lastError.value = null }
 
-// G9-20 : appelé par la surface (panneau/page) au mount/unmount — pas de destroy au close
+// G9-20: called by the surface (panel/page) on mount/unmount — no destroy on close
 function setSurfaceVisible(v) {
   surfaceVisible.value = !!v
   if (v && activeChannel.value) unreadCounts.value[activeChannel.value] = 0
@@ -614,7 +614,7 @@ function setSurfaceVisible(v) {
   }
 }
 
-// ─── RGPD Art. 17 — Droit à l'effacement ─────────────────────────────────
+// ─── GDPR Art. 17 — Right to erasure ─────────────────────────────
 async function deleteUserChatData(userId) {
   if (!userId) return
   try {

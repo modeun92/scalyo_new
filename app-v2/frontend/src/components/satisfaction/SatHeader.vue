@@ -8,7 +8,7 @@
       <button class="btn-outline" @click="$emit('reset')">{{ t('sat_reset') }}</button>
       <div class="sat-score-badge">
         <span class="ssb-label">{{ t('sat_avg_score') }}</span>
-        <!-- HEALTH-SCALE : « 6,4/10 » coloré par le statut effectif de la moyenne -->
+        <!-- HEALTH-SCALE: "6,4/10" colored by the effective status of the average -->
         <span class="ssb-value" :class="healthTone(healthStatus(globalScore, null))">{{ fmtHealth(globalScore, { average: true }) }}</span>
       </div>
     </div>

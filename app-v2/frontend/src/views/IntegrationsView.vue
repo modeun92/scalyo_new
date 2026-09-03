@@ -75,7 +75,7 @@
         </div>
       </div>
     </div>
-    <!-- NO-CONFIRM : modale du produit (ConfirmDialog), jamais confirm() natif -->
+    <!-- NO-CONFIRM: product modal (ConfirmDialog), never a native confirm() -->
     <ConfirmDialog v-if="toDisconnect" :title="t('integ_disconnect_title')" :body="t('integ_disconnect_confirm', { name: toDisconnect.name })" :cta="t('integ_disconnect')" :busy="disconnecting" @confirm="doDisconnect" @cancel="toDisconnect = null" />
   </div>
 </template>
@@ -125,8 +125,8 @@ function openSetup(integ) {
   setupModal.value = integ
   saveError.value = false
   saveSuccess.value = false
-  // CR-8 (E-09, D6 validé) : les secrets ne redescendent plus au client —
-  // aucun préremplissage, resaisie complète à la modification (badge « Connecté » visible)
+  // CR-8 (E-09, D6 approved): the secrets no longer travel back down to the client —
+  // no prefill, full re-entry on modification ("Connected" badge still visible)
   const vals = {}
   for (const f of integ.fields) {
     vals[f.key] = ''
@@ -162,7 +162,7 @@ async function handleSave() {
   }
 }
 
-// NO-CONFIRM : la confirmation passe par ConfirmDialog.
+// NO-CONFIRM: the confirmation goes through ConfirmDialog.
 const toDisconnect = ref(null)
 const disconnecting = ref(false)
 function handleDisconnect(integ) { toDisconnect.value = integ }

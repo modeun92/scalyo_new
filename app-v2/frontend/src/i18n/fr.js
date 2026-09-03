@@ -17,7 +17,7 @@ export default {
   sidebar_okr: 'OKR Tracker',
   sidebar_roadmap: 'Roadmap',
   sidebar_projects_section: 'PROJETS',
-  sidebar_smart_matrice: 'Smart Matrice',
+  sidebar_smart_matrix: 'Smart Matrice',
   sidebar_stats: 'Statistiques',
   sidebar_planning: 'Planning',
   sidebar_projects: 'Projets',
@@ -337,7 +337,7 @@ export default {
   plan_feat_24users: "Jusqu'\u00e0 24 utilisateurs",
   plan_feat_50clients: "50 comptes clients",
   plan_feat_unlimited_clients: "Comptes clients illimit\u00e9s",
-  plan_feat_dashboard_tasks_matrice: "Dashboard, Tasks & Smart Matrice",
+  plan_feat_dashboard_tasks_matrix: "Dashboard, Tasks & Smart Matrice",
   plan_feat_coach_chat: "Coach IA CS & Chat Sant\u00e9",
   plan_feat_templates_copil: "Templates Email & COPIL",
   plan_feat_wellbeing_private: "Bien-\u00eatre : donn\u00e9es priv\u00e9es & anonymis\u00e9es",
@@ -498,7 +498,7 @@ export default {
   rt_support: 'Support — Scalyo',
   rt_blog: 'Blog — Scalyo',
   rt_privacy: 'Politique de confidentialité — Scalyo',
-  // HEADER-PILL (29/08) : titres d'onglet des ~30 routes qui tombaient sur rt_default
+  // HEADER-PILL (29/08): tab titles for the ~30 routes that fell back to rt_default
   rt_onboarding: 'Bienvenue — Scalyo',
   rt_manager: 'Santé de l\'équipe — Scalyo',
   rt_satisfaction: 'Satisfaction client — Scalyo',
@@ -961,7 +961,7 @@ export default {
 
   // KPI Customizer
   kpi_cust_title: 'Personnaliser mes KPIs',
-  // ── Métriques mensuelles client (lot client_metrics 22/07) ──
+  // ── Monthly client metrics (client_metrics batch 22/07) ──
   cmet_title: 'Métriques mensuelles',
   cmet_add: 'Suivre une métrique',
   cmet_pick: 'Choisir un KPI…',
@@ -2014,12 +2014,12 @@ export default {
   ai_email_title: 'R\u00e9daction IA',
   ai_email_btn: 'R\u00e9diger avec l\'IA',
   ai_email_prompt: 'Aide-moi \u00e0 r\u00e9diger un email professionnel adapt\u00e9 au contexte client.',
-  ai_matrice_title: 'Priorisation IA',
-  ai_matrice_btn: 'Prioriser mes t\u00e2ches',
-  ai_matrice_prompt: 'Analyse mes t\u00e2ches et propose une priorisation Eisenhower avec impact business.',
+  ai_matrix_title: 'Priorisation IA',
+  ai_matrix_btn: 'Prioriser mes t\u00e2ches',
+  ai_matrix_prompt: 'Analyse mes t\u00e2ches et propose une priorisation Eisenhower avec impact business.',
   ai_default_prompt_dashboard: 'Analyse mon portfolio',
   ai_default_prompt_email: 'R\u00e9dige un email',
-  ai_default_prompt_matrice: 'Priorise mes t\u00e2ches',
+  ai_default_prompt_matrix: 'Priorise mes t\u00e2ches',
 
   ai_copil_title: 'Rapport COPIL IA',
   ai_copil_btn: 'G\u00e9n\u00e9rer un rapport',
@@ -2197,7 +2197,7 @@ export default {
   team_col_expires: 'Expire',
   team_remove: 'Retirer',
   team_remove_confirm: 'Êtes-vous sûr de vouloir retirer ce membre ?',
-  // SEAT-RM (02/09/2026) — confirmation dans le produit + erreurs typées du serveur
+  // SEAT-RM (02/09/2026) — in-product confirmation + typed server errors
   team_cancel: 'Annuler',
   team_remove_confirm_title: 'Retirer ce membre ?',
   team_revoke_confirm_title: 'Révoquer cette invitation ?',
@@ -2370,15 +2370,15 @@ export default {
   oxy_ferm_done_title: 'Journée fermée.',
   oxy_ferm_done_hint: 'Ta bulle rejoint ton Ciel. À demain.',
   oxy_ferm_already: 'Ta journée est déjà fermée — la prochaine bulle arrive demain.',
-  oxy_ciel_title: 'Ton Ciel',
-  oxy_ciel_hint: "Une bulle par journée fermée. Personne d'autre ne le voit.",
-  oxy_ciel_empty: 'Ton Ciel commence à ta première Fermeture.',
+  oxy_sky_title: 'Ton Ciel',
+  oxy_sky_hint: "Une bulle par journée fermée. Personne d'autre ne le voit.",
+  oxy_sky_empty: 'Ton Ciel commence à ta première Fermeture.',
   oxy_micro_prompt: '90 secondes pour souffler ?',
   oxy_micro_go: 'Je respire',
   oxy_micro_dismiss: 'Pas maintenant',
   oxy_micro_done: 'Bien joué. Retour en douceur.',
 
-  // ─── OXYGEN Lot 4 — boucle équipe (onglet Manager) ───
+  // ─── OXYGEN Lot 4 — team loop (Manager tab) ───
   mgr_tab_team: 'Équipe',
   mgr_tab_oxygen: 'Oxygen',
   oxy_team_privacy: 'Aucune réponse individuelle n\'est jamais visible. Moyennes d\'équipe uniquement, à partir de 5 contributeurs sur 14 jours.',
@@ -2411,7 +2411,7 @@ export default {
   coach_clear_title: 'Effacer l\'historique ?',
   coach_clear_cta: 'Effacer',
   integ_disconnect_title: 'Déconnecter cette intégration ?',
-  // Lot COPIL-RENDER-EXPORT (03/09/2026) — langue du deck, image, export
+  // COPIL-RENDER-EXPORT batch (03/09/2026) — deck language, image, export
   copil_cover_lang: 'Langue du deck',
   copil_lang_fr: 'Français',
   copil_lang_en: 'Anglais',

@@ -31,7 +31,7 @@ import { askScalyoAI } from '@/utils/askScalyoAI'
 import { sanitizeHtml } from '@/utils/sanitize'
 import { isModuleAllowed } from '@/utils/planGating'
 
-// CR-2 : gating dérivé de la source unique (plans.config via planGating), enterprise inclus
+// CR-2: gating derived from the single source (plans.config via planGating), enterprise included
 const props = defineProps({
   module: { type: String, required: true },
   title: { type: String, default: '' },

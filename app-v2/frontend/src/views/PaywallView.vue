@@ -15,13 +15,13 @@
         <div class="pw-plan" :class="{ 'pw-plan--featured': isHighlighted('starter') }">
           <div class="pw-plan-icon">⭐</div>
           <div class="pw-plan-name">Starter</div>
-          <!-- PRICE-BY-LANG (contrat D1, 29/08) : prix du COMPTE via /api/billing — plus jamais
-               un prix choisi par la langue de l'interface. API muette / member → pas de montant. -->
+          <!-- PRICE-BY-LANG (contract D1, 29/08): ACCOUNT price via /api/billing — never again
+               a price chosen by the interface language. Silent API / member → no amount. -->
           <div class="pw-plan-price"><template v-if="priceFor('starter')">{{ priceFor('starter') }}<span>/{{ t('paywall_per_user_month') }}</span></template><template v-else>—</template></div>
           <ul>
             <li>✓ {{ t('plan_feat_3users') }}</li>
             <li>✓ {{ t('plan_feat_50clients') }}</li>
-            <li>✓ {{ t('plan_feat_dashboard_tasks_matrice') }}</li>
+            <li>✓ {{ t('plan_feat_dashboard_tasks_matrix') }}</li>
             <li>✓ {{ t('plan_feat_coach_chat') }}</li>
             <li>✓ {{ t('plan_feat_templates_copil') }}</li>
             <li>✓ {{ t('plan_feat_wellbeing_private') }}</li>
@@ -68,9 +68,9 @@
         </div>
       </div>
 
-      <!-- PRICE-BY-LANG D2 : member → pas de montants, pas de CTA, message explicite -->
+      <!-- PRICE-BY-LANG D2: member → no amounts, no CTA, explicit message -->
       <p v-if="isMember" class="pw-note">{{ t('paywall_owner_only') }}</p>
-      <!-- D1 : les Payment Links décident du prix final — dit explicitement -->
+      <!-- D1: the Payment Links decide the final price — stated explicitly -->
       <p v-else-if="hasAmounts" class="pw-note">{{ t('paywall_stripe_final') }}</p>
 
       <button class="btn-logout" @click="handleLogout">{{ t('paywall_logout') }}</button>
@@ -93,9 +93,9 @@ const router = useRouter()
 const route = useRoute()
 const auth = useAuthStore()
 
-// PRICE-BY-LANG (contrat validé 29/08, D1/D2/D3) : le prix vient de /api/billing
-// (grille dans la devise du COMPTE, Stripe si abonné) — plus aucun prix côté front.
-// API muette → pas de montant, CTA actifs (le prix réel est sur la page Stripe).
+// PRICE-BY-LANG (contract approved 29/08, D1/D2/D3): the price comes from /api/billing
+// (grid in the ACCOUNT currency, Stripe data if subscribed) — no price on the front end any more.
+// Silent API → no amount, CTAs still active (the real price is on the Stripe page).
 const billing = ref(null)
 onMounted(async () => {
   try {
@@ -103,9 +103,9 @@ onMounted(async () => {
     if (!token) return
     const resp = await fetch('/api/billing', { headers: { Authorization: 'Bearer ' + token } })
     if (resp.ok) billing.value = await resp.json()
-  } catch (_) { /* défensif : montants absents, jamais bloquant */ }
+  } catch (_) { /* defensive: amounts missing, never blocking */ }
 })
-// D2 : member/viewer — l'API ne rend pas de montants (can_view_amounts:false)
+// D2: member/viewer — the API returns no amounts (can_view_amounts:false)
 const isMember = computed(() => billing.value?.can_view_amounts === false)
 const hasAmounts = computed(() => !!(billing.value?.prices && billing.value?.currency))
 function priceFor(plan) {
@@ -115,16 +115,16 @@ function priceFor(plan) {
   return fmtCurrency(v, { currency: billing.value.currency })
 }
 
-// Chantier A — mode « upgrade » (module gaté) vs « essai expiré »
+// Workstream A — "upgrade" mode (gated module) vs "expired trial"
 const isUpgrade = computed(() => route.query.reason === 'upgrade')
-// Plan qui débloque le module demandé (source unique CR-2 : resources=Growth ; okr/roadmap/email/notif=Elite)
+// Plan that unlocks the requested module (single source CR-2: resources=Growth; okr/roadmap/email/notif=Elite)
 const MODULE_PLAN = { resources: 'growth', import: 'growth', playbook: 'growth', email: 'elite', notif: 'elite', okr: 'elite', roadmap: 'elite' }
 const requiredPlan = computed(() => MODULE_PLAN[route.query.module] || 'growth')
 const requiredPlanLabel = computed(() => requiredPlan.value.charAt(0).toUpperCase() + requiredPlan.value.slice(1))
 function isHighlighted(plan) { return isUpgrade.value ? plan === requiredPlan.value : plan === 'growth' }
 
 const email = computed(() => auth.user?.email || '')
-// CR-3 : liens via source unique par environnement (client_reference_id conservé)
+// CR-3: links via a single source per environment (client_reference_id preserved)
 const starterUrl = computed(() => stripeCheckoutUrl('checkout', 'starter', { email: email.value, userId: auth.user?.id }))
 const growthUrl = computed(() => stripeCheckoutUrl('checkout', 'growth', { email: email.value, userId: auth.user?.id }))
 const eliteUrl = computed(() => stripeCheckoutUrl('checkout', 'elite', { email: email.value, userId: auth.user?.id }))

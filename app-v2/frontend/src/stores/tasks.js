@@ -27,8 +27,8 @@ export const useTaskStore = defineStore('tasks', () => {
     done: tasks.value.filter(t => t.status === 'done'),
   }))
 
-  // Lot KPIs auto (contrat 22/07, R21) : % de tâches terminées (done|finished) sur
-  // l'ensemble des tâches chargées. 0 tâche → null (« — » au dashboard).
+  // Auto KPIs batch (contract 22/07, R21): % of completed tasks (done|finished) over
+  // all loaded tasks. 0 tasks → null ("—" on the dashboard).
   const completionRate = computed(() => {
     const total = tasks.value.length
     if (!total) return null
@@ -52,11 +52,11 @@ export const useTaskStore = defineStore('tasks', () => {
     const totalTasks = allTasks.length
     const doneCount = doneTasks.length
 
-    // STATS-N1 (29/08) : < 3 tâches terminées = aucune base de prédiction. L'ancien code
-    // inventait 0,5 tâche/sem à partir de RIEN et extrapolait une date de fin dès 1 tâche —
-    // vélocité, semaines restantes et date sortent null (R21 : null = pas de donnée, la vue
-    // affiche l'état « pas assez de données »). Les composantes RÉELLES (bloquées, en retard,
-    // % complétion) restent calculées et affichées.
+    // STATS-N1 (29/08): < 3 completed tasks = no basis for prediction. The old code
+    // invented 0.5 tasks/week out of NOTHING and extrapolated an end date from a single task —
+    // velocity, remaining weeks and date now return null (R21: null = no data, the view
+    // displays the "not enough data" state). The REAL components (blocked, overdue,
+    // % completion) are still computed and displayed.
     const insufficientData = doneCount < 3
 
     // Velocity: tasks done per week (based on last 30 days)
@@ -90,15 +90,15 @@ export const useTaskStore = defineStore('tasks', () => {
     riskScore += Math.min(overdueCount * 10, 30)
     riskScore += Math.min(highUrgency * 5, 20)
     if (hoursAccuracy && hoursAccuracy > 120) riskScore += 10
-    // STATS-N1 : la composante vélocité du risque ne s'applique que sur vélocité réelle
+    // STATS-N1: the velocity component of the risk only applies to a real velocity
     if (!insufficientData && velocityPerWeek < 1 && remaining > 5) riskScore += 10
     riskScore = Math.min(riskScore, 100)
 
     // Risk label
     const riskLabel = riskScore >= 70 ? 'critical' : riskScore >= 40 ? 'warning' : 'healthy'
 
-    // D-11 : recommandations = clés i18n + params — le RENDU traduit (t(key, params)),
-    // jamais de chaîne localisée fabriquée dans un store (C2/C6)
+    // D-11: recommendations = i18n keys + params — the RENDER translates (t(key, params)),
+    // never a localized string built inside a store (C2/C6)
     const recommendations = []
     if (blockedCount > 0) recommendations.push({ type: 'danger', key: 'sm_rec_blocked', params: { n: blockedCount } })
     if (overdueCount > 0) recommendations.push({ type: 'warning', key: 'sm_rec_overdue', params: { n: overdueCount } })
@@ -107,7 +107,7 @@ export const useTaskStore = defineStore('tasks', () => {
     if (doneCount > 0 && riskScore < 30) recommendations.push({ type: 'success', key: 'sm_rec_ontrack', params: { done: doneCount, total: totalTasks } })
 
     return {
-      // STATS-N1 : sous 3 tâches terminées, les prédictions sortent null — jamais un chiffre inventé
+      // STATS-N1: below 3 completed tasks, predictions return null — never an invented figure
       insufficientData,
       doneCount,
       velocityPerWeek: insufficientData ? null : Math.round(velocityPerWeek * 10) / 10,
@@ -152,7 +152,7 @@ export const useTaskStore = defineStore('tasks', () => {
   async function addProject(project) {
     lastError.value = null
     try {
-      // TASK-WIPE : mêmes défauts d'INSERT ici, projectToDb est partiel-sûr
+      // TASK-WIPE: the same INSERT defaults live here, projectToDb is partial-safe
       const _row = await projectToDb({ color: '#7c3aed', status: 'active', ...project })
       const { data, error } = await withWrite(() => supabase.from('projects').insert([_row]).select().single(), { label: 'tasks.addProject' })
       if (error) throw error
@@ -206,8 +206,8 @@ export const useTaskStore = defineStore('tasks', () => {
   async function addTask(task) {
     lastError.value = null
     try {
-      // TASK-WIPE : les défauts d'INSERT vivent ICI (taskToDb est devenu partiel-sûr
-      // et ne fabrique plus de valeurs pour les champs absents)
+      // TASK-WIPE: the INSERT defaults live HERE (taskToDb has become partial-safe
+      // and no longer fabricates values for missing fields)
       const _row = await taskToDb({
         title: '', description: '', status: 'todo', priority: 'important',
         assignee: '', tags: [], subtasks: [],
@@ -329,12 +329,12 @@ export const useTaskStore = defineStore('tasks', () => {
       user_id,
       updated_at: new Date().toISOString(),
     }
-    // TASK-WIPE : un update PARTIEL ne doit JAMAIS écraser les colonnes absentes de
-    // l'input. L'ancien code envoyait title/description/status/priority/assignee/
-    // tags/subtasks avec des défauts vides à CHAQUE écriture (drag Kanban {status},
-    // drop Matrice {priority}, saveCell Projets, toggle playbook) → corruption en
-    // base, masquée localement jusqu'au reload. Chaque champ n'est mappé que s'il
-    // est fourni ; les défauts d'INSERT vivent dans addTask/addProject.
+    // TASK-WIPE: a PARTIAL update must NEVER overwrite columns absent from the
+    // input. The old code sent title/description/status/priority/assignee/
+    // tags/subtasks with empty defaults on EVERY write (Kanban drag {status},
+    // Matrix drop {priority}, Projects saveCell, playbook toggle) → corruption in the
+    // database, hidden locally until reload. Each field is only mapped if it
+    // is supplied; the INSERT defaults live in addTask/addProject.
     if (t.title !== undefined) obj.title = t.title || ''
     if (t.description !== undefined) obj.description = t.description || ''
     if (t.status !== undefined) obj.status = t.status || 'todo'
@@ -370,7 +370,7 @@ export const useTaskStore = defineStore('tasks', () => {
   async function projectToDb(p) {
     const user_id = await getCurrentUserId()
     if (!user_id) throw new Error('User not authenticated')
-    // TASK-WIPE : partiel-sûr — un champ absent de l'input n'est pas envoyé
+    // TASK-WIPE: partial-safe — a field absent from the input is not sent
     const obj = { user_id }
     if (p.name !== undefined || p.title !== undefined) obj.name = p.name || p.title
     if (p.color !== undefined) obj.color = p.color || '#7c3aed'

@@ -8,7 +8,7 @@
         </select>
       </div>
       <div class="qt-law-info">
-        <!-- QUOTE-VAT (27/08) : champs réels du store — taxRate et currency (code ISO) -->
+        <!-- QUOTE-VAT (27/08): the store's real fields — taxRate and currency (ISO code) -->
         <div class="qli-row"><span>{{ t('cl_tva') }}</span><strong>{{ laws.taxRate }}% ({{ laws.taxName }})</strong></div>
         <div class="qli-row"><span>{{ t('cl_currency') }}</span><strong>{{ laws.currencySymbol }} ({{ laws.currency }})</strong></div>
         <div class="qli-row"><span>{{ t('cl_legal_number') }}</span><strong>{{ legalLabel }}</strong></div>

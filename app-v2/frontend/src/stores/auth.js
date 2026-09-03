@@ -47,31 +47,31 @@ const hasActiveSubscription = computed(() => { const sub = profile.value?.stripe
 const trialStartedAt = computed(() => { const d = profile.value?.trial_started_at; return d ? new Date(d) : null })
 const trialUsed = computed(() => !!profile.value?.trial_used)
 const trialDaysLeft = computed(() => { if (!trialStartedAt.value) return 0; const elapsed = (Date.now() - trialStartedAt.value.getTime()) / (1000 * 60 * 60 * 24); return Math.max(0, TRIAL_DAYS - Math.floor(elapsed)) })
-// D1 (contrat gating 8/07) : acces beta = etat de l'ORG (promo), pas du profil
+// D1 (gating contract 8/07): beta access = state of the ORG (promo), not of the profile
 const orgTrialDaysLeft = computed(() => { const e = org.value?.trial_ends_at; if (!e) return 0; return Math.max(0, Math.ceil((new Date(e).getTime() - Date.now()) / 86400000)) })
 const isOnBetaAccess = computed(() => { if (!org.value) return false; if (org.value.stripe_subscription_id) return false; return !!org.value.trial_ends_at && orgTrialDaysLeft.value > 0 })
-// PAYWALL-MEMBER (04/08/2026) : le droit d'acces est une propriete de l'ORGANISATION
-// (facturation per-seat), pas du profil. Une org qui paie OU qui est en acces beta
-// couvre TOUS ses membres, y compris ceux dont l'essai personnel est consomme.
+// PAYWALL-MEMBER (04/08/2026): the access right is a property of the ORGANIZATION
+// (per-seat billing), not of the profile. An org that pays OR has beta access
+// covers ALL its members, including those whose personal trial is used up.
 const orgGrantsAccess = computed(() => { const s = org.value?.stripe_subscription_id; return (!!s && s !== '' && s !== 'none') || isOnBetaAccess.value })
 const isOnTrial = computed(() => { if (hasActiveSubscription.value) return false; if (isOnBetaAccess.value) return false; if (org.value?.stripe_subscription_id) return false; if (!trialStartedAt.value) return false; if (trialUsed.value) return false; return trialDaysLeft.value > 0 })
-// PAYWALL-MEMBER : garde ORG manquante ici — isOnTrial (L au-dessus) la portait deja,
-// trialExpired ne l'avait pas, d'ou le membre d'une org abonnee renvoye au paywall.
-// hasActiveSubscription N'EST PAS touche a dessein : SettingsBilling/PaymentSuccessView
-// s'en servent pour afficher le statut d'abonnement PERSONNEL (un membre ne gere pas
-// l'abonnement de son org) — l'elargir ferait apparaitre un bloc de gestion mensonger.
+// PAYWALL-MEMBER: the ORG guard was missing here — isOnTrial (line above) already had it,
+// trialExpired did not, hence a member of a subscribed org being sent back to the paywall.
+// hasActiveSubscription is deliberately NOT touched: SettingsBilling/PaymentSuccessView
+// use it to display the PERSONAL subscription status (a member does not manage their
+// org's subscription) — widening it would surface a misleading management block.
 const trialExpired = computed(() => { if (hasActiveSubscription.value) return false; if (orgGrantsAccess.value) return false; if (isOnTrial.value) return false; if (!trialStartedAt.value && !trialUsed.value) return false; if (trialStartedAt.value && trialDaysLeft.value === 0) return true; if (trialUsed.value) return true; return false })
 const isAlphaTester = computed(() => !!profile.value?.is_alpha_tester)
 const needsPayment = computed(() => trialExpired.value && !hasActiveSubscription.value && !isAlphaTester.value)
-// D1 : source unique = organizations.plan quand l'org existe ; chaine profil = fallback comptes sans org
+// D1: single source = organizations.plan when the org exists; profile string = fallback for account without an org
 const currentPlan = computed(() => { if (org.value?.plan) return org.value.plan; const sub = profile.value?.stripe_subscription_id; if (!sub || sub === '' || sub === 'none') { if ((isOnTrial.value || isAlphaTester.value) && profile.value?.plan) return profile.value.plan; return null }; if (sub.startsWith('stripe_') || sub.startsWith('plan_')) return sub.split('_').pop(); return profile.value?.plan || 'active' })
-// D6 (A-02/E-03) : label du plan pour l'UI — jamais vide
+// D6 (A-02/E-03): plan label for the UI — never empty
 const currentPlanLabel = computed(() => { const p = currentPlan.value; if (!p) return 'Starter'; return p.charAt(0).toUpperCase() + p.slice(1) })
-// V1 gating : plan effectif jamais nul → starter (le plus restrictif). Évite getMaxClients(null)=0 qui bloquerait toute création.
+// V1 gating: effective plan is never null → starter (the most restrictive). Avoids getMaxClients(null)=0, which would block any creation.
 const effectivePlan = computed(() => currentPlan.value || 'starter')
 const userLocale = computed(() => profile.value?.locale || localStorage.getItem('scalyo_locale') || 'fr')
-// SEATS-MISMATCH (25/08) : sièges payés = organizations.seats_paid (quantité Stripe), le profil
-// n'est qu'un repli comptes sans org — lu sur le profil d'un Member, ça donnait 1.
+// SEATS-MISMATCH (25/08): paid seats = organizations.seats_paid (Stripe quantity); the profile
+// is only a fallback for accounts without an org — read from a Member's profile it returned 1.
 const seatsPaid = computed(() => org.value?.seats_paid ?? profile.value?.seats_paid ?? 1)
 const onboardingCompleted = computed(() => profile.value?.onboarding_completed === true)
 const isOrgOwner = computed(() => orgRole.value === 'owner')
@@ -115,15 +115,15 @@ if (sess && sess.user) {
 user.value = sess.user
 session.value = sess
 await fetchProfile(sess.user.id)
-// Lot 6 / INV-CONFIRM-TOKEN : une session peut s'ouvrir SANS passer par login() —
-// c'est le cas du lien « Confirm email address » de Supabase, qui connecte
-// directement. acceptPendingInvite n'etait branche que sur login() L230 : un
-// invite qui s'inscrivait puis confirmait son email arrivait dans une org vide,
-// alors que l'ecran join_confirm_email lui promettait l'activation automatique.
-// Place ICI et pas dans le callback onAuthStateChange : G9-13 / R22 interdisent
-// tout appel awaite dans ce callback (deadlock GoTrue). acceptPendingInvite ne
-// fait que des fetch() vers /api, sort immediatement si aucun jeton n'est en
-// attente (cout nul au boot nominal), et verifie l'email vise avant de rejouer.
+// Lot 6 / INV-CONFIRM-TOKEN: a session can open WITHOUT going through login() —
+// that is the case for Supabase's "Confirm email address" link, which logs the user
+// in directly. acceptPendingInvite was only wired to login() L230: an
+// invitee who signed up then confirmed their email landed in an empty org,
+// even though the join_confirm_email screen promised automatic activation.
+// Placed HERE and not in the onAuthStateChange callback: G9-13 / R22 forbid
+// any awaited call inside that callback (GoTrue deadlock). acceptPendingInvite only
+// issues fetch() calls to /api, returns immediately when no token is
+// pending (zero cost on a nominal boot), and checks the targeted email before replaying.
 try { await acceptPendingInvite(sess.access_token) } catch (e) { console.error('init — acceptPendingInvite:', e?.message || e) }
 await loadAllStores()
 }
@@ -135,11 +135,11 @@ await resetGoTrueClient()
 } finally {
 loading.value = false
 }
-// G9-13 : callback SYNCHRONE — jamais d'appel Supabase awaité dans un callback
-// onAuthStateChange (doc officielle). Le client attend les callbacks pendant le
-// refresh (_notifyAllSubscribers) : un appel Supabase ici re-entre dans le client
-// et formait le cycle du gel. fetchProfile est différé hors du cycle de
-// notification (setTimeout 0), fire-and-forget, erreurs logguées.
+// G9-13: SYNCHRONOUS callback — never await a Supabase call inside an
+// onAuthStateChange callback (official docs). The client waits for callbacks during a
+// refresh (_notifyAllSubscribers): a Supabase call here re-enters the client
+// and formed the freeze cycle. fetchProfile is deferred outside the notification
+// cycle (setTimeout 0), fire-and-forget, errors logged.
 supabase.auth.onAuthStateChange((_event, sess) => {
 if (sess && sess.user) {
 user.value = sess.user
@@ -154,7 +154,7 @@ async function fetchOrgRole() {
       orgRole.value = profile.value?.org_role || 'member'
     } catch (e) { console.error('fetchOrgRole:', e) }
   }
-// D1 : lecture de l'org via la policy org_view (SELECT membre, verifiee SQL 8/07) — echec = fallback profil, zero crash (contrat §5)
+// D1: read the org through the org_view policy (member SELECT, verified in SQL 8/07) — failure = profile fallback, zero crash (contract §5)
 async function fetchOrg() {
 const orgId = profile.value?.organization_id
 if (!orgId) { org.value = null; return }
@@ -183,8 +183,8 @@ profile.value = { ...profile.value, trial_used: true }
 } catch (e) { console.error('fetchProfile error:', e.message || e) }
 }
 const PENDING_INVITE_KEY = 'scalyo_pending_invite'
-// Lot 6 — resultat de la derniere tentative d'acceptation differee, pour que
-// l'interface l'AFFICHE au lieu de l'avaler (contrat INVITATIONS §4d).
+// Lot 6 — result of the last deferred acceptance attempt, so the
+// interface DISPLAYS it instead of swallowing it (INVITATIONS contract §4d).
 const pendingInviteResult = ref(null)
 function clearPendingInviteResult() { pendingInviteResult.value = null }
 function dropPendingInvite() { try { localStorage.removeItem(PENDING_INVITE_KEY) } catch (_) {} }
@@ -192,10 +192,10 @@ async function acceptPendingInvite(accessToken) {
 let token = null
 try { token = localStorage.getItem(PENDING_INVITE_KEY) } catch (_) {}
 if (!token || !accessToken) return
-// Lot 6 / INVITE-ANY-USER : on ne rejoue le jeton QUE si l'invitation vise
-// bien le compte qui vient de se connecter. Sans ce controle, un jeton laisse
-// dans le navigateur par une inscription echouee changeait l'organisation de
-// l'utilisateur suivant, en silence, sans ecran ni confirmation.
+// Lot 6 / INVITE-ANY-USER: we only replay the token IF the invitation actually
+// targets the account that just logged in. Without this check, a token left
+// in the browser by a failed sign-up silently switched the next user's
+// organization, with no screen and no confirmation.
 try {
 const v = await fetch('/api/invite/verify?token=' + encodeURIComponent(token))
 const info = await v.json().catch(() => null)
@@ -207,7 +207,7 @@ dropPendingInvite()
 pendingInviteResult.value = { ok: false, code: 'email_mismatch', invited_email: info.email || null, current_email: (user.value && user.value.email) || null }
 return
 }
-} catch (_) { return } // erreur reseau : jeton conserve pour un retry ulterieur
+} catch (_) { return } // network error: token kept for a later retry
 try {
 const res = await fetch('/api/invite/accept', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + accessToken }, body: JSON.stringify({ token }) })
 const data = await res.json().catch(() => null)
@@ -219,7 +219,7 @@ if (user.value) await fetchProfile(user.value.id)
 if (res.status !== 401) dropPendingInvite()
 pendingInviteResult.value = Object.assign({ ok: false, code: (data && data.code) || 'join_error' }, data || {})
 }
-} catch (_) { /* erreur reseau : token conserve pour retry au prochain login (contrat CR-1 §5) */ }
+} catch (_) { /* network error: token kept for a retry at the next login (CR-1 contract §5) */ }
 }
 async function login(email, password) {
 loading.value = true
@@ -238,7 +238,7 @@ user.value = data.user
 session.value = data.session || null
 await fetchProfile(data.user.id)
 await acceptPendingInvite(data.session?.access_token)
-if (profile.value && !profile.value.trial_started_at && !profile.value.trial_used && !profile.value.is_alpha_tester) { await startTrial(data.user.id) } // D3 : jamais d'essai profil pour un alpha (l'org porte l'acces promo)
+if (profile.value && !profile.value.trial_started_at && !profile.value.trial_used && !profile.value.is_alpha_tester) { await startTrial(data.user.id) } // D3: never a profile trial for an alpha (the org carries the promo access)
 await loadAllStores()
 return { success: true }
 } catch (e) {
@@ -265,12 +265,12 @@ try {
 const { error: err } = await supabase.from('profiles').update({ locale }).eq('id', user.value.id)
 if (err) { console.error('saveLocale — update failed:', err.message); return { error: err.message } }
 if (profile.value) profile.value = { ...profile.value, locale }
-// Cohérence pages publiques (landing/login) : même langue que l'app
+// Public-page consistency (landing/login): same language as the app
 try { localStorage.setItem('scalyo_locale', locale) } catch (_) {}
 return { success: true }
 } catch (e) { console.error('saveLocale — unexpected failure:', e.message || e); return { error: e.message || String(e) } }
 }
-// E-04 : sauvegarde profil réelle — même contrat de retour que saveLocale ({success}/{error})
+// E-04: real profile save — same return contract as saveLocale ({success}/{error})
 async function saveProfile(fields) {
 if (!user.value) return { error: 'no_user' }
 const payload = {
@@ -285,9 +285,9 @@ if (profile.value) profile.value = { ...profile.value, ...payload }
 return { success: true }
 } catch (e) { console.error('saveProfile — unexpected failure:', e.message || e); return { error: e.message || String(e) } }
 }
-// E-04 : changement de mot de passe in-app — vérification VÉRIDIQUE du mdp actuel
-// (signInWithPassword du même user : GoTrue v2 n'expose pas de reauth dédiée),
-// puis updateUser. Erreurs mappées par cause réelle (pattern reset 17/07).
+// E-04: in-app password change — TRUTHFUL verification of the current password
+// (signInWithPassword for the same user: GoTrue v2 exposes no dedicated reauth),
+// then updateUser. Errors mapped by their real cause (reset pattern 17/07).
 async function changePassword(currentPwd, newPwd) {
 if (!user.value?.email) return { error: 'no_user' }
 try {

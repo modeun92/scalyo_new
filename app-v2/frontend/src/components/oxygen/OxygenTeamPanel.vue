@@ -1,6 +1,6 @@
 <template>
   <div class="oxyteam">
-    <!-- Contrat de confidentialité — TOUJOURS affiché, quel que soit l'état -->
+    <!-- Privacy contract — ALWAYS displayed, whatever the state -->
     <div class="oxy-privacy">🛡️ <span>{{ t('oxy_team_privacy') }}</span></div>
 
     <div v-if="team.status === 'loading' || team.status === 'idle'" class="oxy-card oxyteam-state">
@@ -39,10 +39,10 @@
 </template>
 
 <script setup>
-// OXYGEN Lot 4 — vue MANAGER de la boucle équipe (growth+, onglet ManagerView).
-// Anti-compulsion by design : 3 moyennes d'équipe + tendance, jamais de
-// classement, jamais d'individuel, jamais de time-spent. Zéro rouge (palette
-// oxygen). La confidentialité est un CONTRAT affiché, pas une note de bas de page.
+// OXYGEN Lot 4 — MANAGER view of the team loop (growth+, ManagerView tab).
+// Anti-compulsion by design: 3 team averages + a trend, never a
+// ranking, never anything individual, never time-spent. Zero red (oxygen
+// palette). Privacy is a DISPLAYED CONTRACT, not a footnote.
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useOxygenTeamStore } from '@/stores/oxygenTeam'
@@ -55,12 +55,12 @@ const how = ref(false)
 
 onMounted(() => { team.load() })
 
-// v = nombre ou null (avg SQL sur zéro ligne) → jamais un chiffre inventé (R21)
+// v = a number or null (SQL avg over zero rows) → never an invented figure (R21)
 function show(v, pct = false) {
   if (typeof v !== 'number') return '—'
   return pct ? `${fmtNumber(v)} %` : fmtNumber(v)
 }
-// Tendance : delta courant − précédent, null si l'une des deux valeurs manque
+// Trend: current − previous delta, null if either value is missing
 function trend(cur, prev, pct = false) {
   if (typeof cur !== 'number' || typeof prev !== 'number') return null
   const d = Math.round((cur - prev) * 10) / 10

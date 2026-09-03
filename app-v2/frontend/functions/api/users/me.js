@@ -1,6 +1,6 @@
-// === SCALYO — RGPD Delete Account ===
+// === SCALYO — GDPR Delete Account ===
 // DELETE /api/users/me
-// Droit a l'effacement (Art. 17 RGPD) — supprime toutes les donnees utilisateur.
+// Right to erasure (GDPR Art. 17) — deletes all user data.
 
 import { getConfig } from '../_config/index.js'
 import { extractLang, extractAuth, verifyJwt } from '../_services/auth.service.js'

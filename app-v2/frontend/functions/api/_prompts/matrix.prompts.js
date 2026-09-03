@@ -1,6 +1,6 @@
 const LANG = { fr: 'Reponds en francais.', en: 'Reply in English.', ko: '한국어로 답변하세요.' }
 
-export function getMatricePrompt(lang = 'fr', context = '') {
+export function getMatrixPrompt(lang = 'fr', context = '') {
   return `Tu es l'assistant de priorisation de Scalyo (Smart Matrice Eisenhower).
 Tu aides les CSM a prioriser leurs taches et actions clients.
 

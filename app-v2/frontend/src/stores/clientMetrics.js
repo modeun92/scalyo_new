@@ -5,17 +5,17 @@ import { withWrite } from '@/lib/supabaseWrite'
 import { useAuthStore } from '@/stores/auth'
 import { KPI_CATALOG } from '@/data/kpiCatalog'
 
-// Lot KPIs manuels (contrat validé 22/07) : mesures MENSUELLES saisies par client
-// pour les KPIs du catalogue sans source automatique (source:'manual').
-// 1 point / (client, kpi, mois) — re-saisir le même mois = corriger (upsert base).
-// Table client_metrics, RLS org-wide modèle quotes (FB-05 : toute l'équipe lit/écrit).
-// Consommé par : ClientModal (saisie + historique), DashboardView (agrégat org),
-// MetricWizard (courbes copil). Zéro t() ici (règle C2/C6) — les vues localisent.
+// Manual KPIs batch (contract approved 22/07): MONTHLY measurements entered per client
+// for the catalog KPIs without an automatic source (source:'manual').
+// 1 data point per (client, kpi, month) — re-entering the same month = correcting it (database upsert).
+// Table client_metrics, org-wide RLS following the quotes model (FB-05: the whole team reads/writes).
+// Consumed by: ClientModal (entry + history), DashboardView (org aggregate),
+// MetricWizard (copil curves). Zero t() here (rule C2/C6) — the views localize.
 
 const MANUAL_IDS = new Set(KPI_CATALOG.filter(k => k.source === 'manual').map(k => k.id))
 const AGG = Object.fromEntries(KPI_CATALOG.filter(k => k.source === 'manual').map(k => [k.id, k.agg || 'avg']))
 
-// 'YYYY-MM' (input type=month) → 'YYYY-MM-01' (colonne period, 1er du mois)
+// 'YYYY-MM' (input type=month) → 'YYYY-MM-01' (period column, 1st of the month)
 export function monthToPeriod(month) {
   return /^\d{4}-\d{2}$/.test(month || '') ? month + '-01' : null
 }
@@ -24,7 +24,7 @@ export function currentMonth() {
 }
 
 export const useClientMetricsStore = defineStore('clientMetrics', () => {
-  const rows = ref([])          // toutes les mesures de l'org (RLS select_org)
+  const rows = ref([])          // all the org's measurements (RLS select_org)
   const loaded = ref(false)
   const loading = ref(false)
   const lastError = ref(null)
@@ -48,14 +48,14 @@ export const useClientMetricsStore = defineStore('clientMetrics', () => {
     }
   }
 
-  // Série d'un KPI pour un client, triée par mois croissant (courbes copil / historique fiche)
+  // Series of a KPI for a client, sorted by ascending month (copil curves / record history)
   function seriesFor(clientId, kpiId) {
     return rows.value
       .filter(r => r.client_id === clientId && r.kpi_id === kpiId)
       .sort((a, b) => String(a.period).localeCompare(String(b.period)))
   }
 
-  // KPIs suivis d'un client : [{ kpiId, points[], last }] — points croissants, last = plus récent
+  // KPIs tracked for a client: [{ kpiId, points[], last }] — points ascending, last = most recent
   function trackedFor(clientId) {
     const byKpi = {}
     for (const r of rows.value) {
@@ -68,9 +68,9 @@ export const useClientMetricsStore = defineStore('clientMetrics', () => {
     }).sort((a, b) => a.kpiId.localeCompare(b.kpiId))
   }
 
-  // Agrégat org par KPI manuel : dernière valeur connue (period <= mois courant) par
-  // client, puis sum ou avg selon le catalogue. Aucun client renseigné → pas de clé
-  // (le dashboard rend « — »). Jamais de clé 'auto' ici (garde double-source).
+  // Org aggregate per manual KPI: last known value (period <= current month) per
+  // client, then sum or avg according to the catalog. No client filled in → no key
+  // (the dashboard renders "—"). Never an 'auto' key here (double-source guard).
   const orgAggregates = computed(() => {
     const cur = currentMonth() + '-01'
     const byKpi = {}
@@ -90,13 +90,13 @@ export const useClientMetricsStore = defineStore('clientMetrics', () => {
     return out
   })
 
-  // Saisie / correction : upsert sur (client, kpi, mois). month = 'YYYY-MM'.
+  // Entry / correction: upsert on (client, kpi, month). month = 'YYYY-MM'.
   async function upsertMetric({ clientId, kpiId, month, value }) {
     lastError.value = null
     const auth = useAuthStore()
     const period = monthToPeriod(month)
     const num = Number(value)
-    if (!clientId || !MANUAL_IDS.has(kpiId)) return { error: 'invalid_kpi' }   // les 'auto' ne se saisissent JAMAIS
+    if (!clientId || !MANUAL_IDS.has(kpiId)) return { error: 'invalid_kpi' }   // 'auto' ones are NEVER entered by hand
     if (!period || period > currentMonth() + '-01') return { error: 'invalid_month' }
     if (Number.isNaN(num)) return { error: 'invalid_value' }
     if (!auth.user?.id) return { error: 'not_authenticated' }

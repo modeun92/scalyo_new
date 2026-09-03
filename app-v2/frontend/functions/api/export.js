@@ -1,6 +1,6 @@
-// === SCALYO — RGPD Data Export ===
+// === SCALYO — GDPR Data Export ===
 // GET /api/export
-// Droit a la portabilite (Art. 20 RGPD) — exporte toutes les donnees utilisateur en JSON.
+// Right to data portability (GDPR Art. 20) — exports all user data as JSON.
 
 import { getConfig } from './_config/index.js'
 import { extractLang, extractAuth, verifyJwt } from './_services/auth.service.js'

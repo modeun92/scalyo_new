@@ -1,31 +1,34 @@
-# Scalyo — Configuration de securite
+# Scalyo — Security configuration
 
-## Provider IA
+## AI provider
 
-Mistral (Paris, EU) — RGPD conforme.
-Aucun autre provider n'est configure. Les donnees ne quittent jamais l'UE.
+Mistral (Paris, EU) — GDPR compliant.
+No other provider is configured. Data never leaves the EU.
 
-### Env vars requises (Cloudflare Dashboard)
+### Required env vars (Cloudflare Dashboard)
 
 | Variable | Source | Usage |
 |---|---|---|
-| MISTRAL_API_KEY | console.mistral.ai | Provider IA |
-| AI_MODEL | (optionnel) | Override le modele (defaut: mistral-medium-latest) |
-| SUPABASE_JWT_SECRET | Supabase Dashboard | Verification auth |
-| STRIPE_WEBHOOK_SECRET | Stripe Dashboard | Verification webhooks |
-| SUPABASE_SERVICE_ROLE_KEY | Supabase Dashboard | Operations admin |
+| MISTRAL_API_KEY | console.mistral.ai | AI provider |
+| AI_MODEL | (optional) | Overrides the model (default: mistral-medium-latest) |
+| SUPABASE_JWT_SECRET | Supabase Dashboard | Auth verification |
+| STRIPE_WEBHOOK_SECRET | Stripe Dashboard | Webhook verification |
+| SUPABASE_SERVICE_ROLE_KEY | Supabase Dashboard | Admin operations |
 
-### Cles PUBLIQUES (constantes dans le code)
+### PUBLIC keys
 
-- SUPABASE_URL : URL publique du projet Supabase
-- SUPABASE_ANON_KEY : cle publique Supabase (acces limite par RLS)
+- SUPABASE_URL: public URL of the Supabase project
+- SUPABASE_ANON_KEY: public Supabase key (access restricted by RLS)
 
-## Regles
+Both are read from the environment (`_config/index.js` throws when they are missing —
+there is no hard-coded fallback to the production project; see ENV-FALLBACK-PROD).
 
-1. Jamais de cle secrete dans le code source
-2. Jamais de cle secrete dans les logs ou messages d'erreur
-3. RLS actif sur toutes les tables utilisateur
-4. Auth ES256 (jamais HMAC)
-5. Consentement IA obligatoire avant traitement des donnees
-6. HTTPS force via Cloudflare
-7. Donnees IA hebergees exclusivement en UE (Mistral, Paris)
+## Rules
+
+1. Never a secret key in the source code
+2. Never a secret key in logs or error messages
+3. RLS enabled on every user table
+4. ES256 auth (never HMAC)
+5. AI consent required before any data processing
+6. HTTPS enforced through Cloudflare
+7. AI data hosted exclusively in the EU (Mistral, Paris)

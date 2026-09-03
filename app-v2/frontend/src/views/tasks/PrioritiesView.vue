@@ -3,10 +3,10 @@
     <h1>🎯 {{ t('sm_priorities_title') }}</h1>
 
     <AiInsightPanel
-      module="matrice"
-      :title="t('ai_matrice_title')"
-      :button-label="t('ai_matrice_btn')"
-      :message="t('ai_matrice_prompt')"
+      module="matrix"
+      :title="t('ai_matrix_title')"
+      :button-label="t('ai_matrix_btn')"
+      :message="t('ai_matrix_prompt')"
       :context="{ tasks: tasks.tasks?.map(t => ({ title: t.title, priority: t.priority, status: t.status, dueDate: t.dueDate })) || [] }"
     />
 

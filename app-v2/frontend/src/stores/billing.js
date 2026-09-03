@@ -1,6 +1,6 @@
-// BILLING-SEAT (27/08/2026) : SOURCE UNIQUE des montants d'abonnement = GET /api/billing.
-// Le serveur décide du rôle (D1), de la source (Stripe réel ou table × sièges) et de la devise ;
-// ce store ne calcule rien et ne porte aucun prix. Consommé par SettingsBilling et ProfileView.
+// BILLING-SEAT (27/08/2026): the SINGLE SOURCE for subscription amounts = GET /api/billing.
+// The server decides the role (D1), the source (real Stripe data or table × seats) and the currency;
+// this store computes nothing and carries no price. Consumed by SettingsBilling and ProfileView.
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { supabase } from '@/lib/supabase'
@@ -28,7 +28,7 @@ export const useBillingStore = defineStore('billing', () => {
       if (!resp.ok) { error.value = 'http_' + resp.status; data.value = null; return }
       data.value = await resp.json()
       loadedAt.value = Date.now()
-      // Stripe et l'org en désaccord sur le plan : Stripe fait foi à l'écran, on trace (contrat §5).
+      // Stripe and the org disagree on the plan: Stripe is authoritative on screen, we trace it (contract §5).
       if (data.value.plan_mismatch && window.Sentry) {
         window.Sentry.captureMessage('billing: plan Stripe != plan org', { level: 'warning', extra: { stripe: data.value.plan, org: data.value.org_plan } })
       }

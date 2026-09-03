@@ -16,10 +16,10 @@
           <button v-for="v in views" :key="v.key" :class="{ active: activeView === v.key }" @click="switchView(v.key)">{{ t(v.label) }}</button>
         </div>
         <div class="pl-actions">
-          <!-- D-10 : bouton « Synchroniser » retiré — la synchro calendrier n'existe pas
-               (le flux posait un faux badge ✓ sans OAuth). Précédent : Integrations 10/07. -->
+          <!-- D-10: "Synchronize" button removed — calendar sync does not exist
+               (the flow showed a fake ✓ badge without OAuth). Precedent: Integrations 10/07. -->
           <button class="create-btn" @click="openCreate">{{ t('pl_create') }}</button>
-          <!-- PLAN-BTN : libellé au survol — ⚙ = réglages du calendrier, distinct de « Créer » -->
+          <!-- PLAN-BTN: hover label — ⚙ = calendar settings, distinct from "Create" -->
           <button class="settings-btn" @click="settingsOpen = true" :title="t('pl_settings')" :aria-label="t('pl_settings')">⚙</button>
         </div>
       </div>
@@ -45,7 +45,7 @@
             <option value="priority">{{ t('pl_color_priority') }}</option>
           </select>
         </div>
-        <!-- GANTT-READ : tâches non plaçables comptées honnêtement, jamais masquées en silence -->
+        <!-- GANTT-READ: unplaceable tasks counted honestly, never silently hidden -->
         <div class="gz-group" v-if="noDateCount">
           <span class="gz-label">{{ t('pl_gantt_nodates') }}: {{ noDateCount }}</span>
         </div>
@@ -71,8 +71,8 @@
             <div class="g-label g-task-label"><span class="gt-dot" :class="task.status" />{{ task.title }}</div>
             <div class="g-cells">
               <div v-for="d in ganttDates" :key="d.key" class="g-cell" :class="{ today: d.isToday, weekend: d.isWeekend }" />
-              <!-- GANTT-READ : vraie barre start→end positionnée sur la rangée (l'ancienne
-                   barre à largeur FIXE était posée sur la seule cellule dueDate) -->
+              <!-- GANTT-READ: real start→end bar positioned on the row (the old
+                   FIXED-width bar was placed on the dueDate cell only) -->
               <div v-if="ganttBarStyle(task, proj)" class="g-bar" :style="ganttBarStyle(task, proj)" :title="task.title">
                 <span class="gb-text">{{ task.title }}</span>
                 <div class="gb-prog" :style="{ width: taskProg(task) + '%' }" />
@@ -80,8 +80,8 @@
             </div>
           </div>
         </div>
-        <!-- GANTT-READ : tâches sans projet — invisibles avant (la boucle ne parcourait que
-             tasks.projects) ; groupe « non classées », clé i18n existante réutilisée -->
+        <!-- GANTT-READ: tasks without a project — previously invisible (the loop only walked
+             tasks.projects); "unclassified" group, existing i18n key reused -->
         <div v-if="unassignedTasks.length" class="g-project">
           <div class="g-row g-project-row">
             <div class="g-label"><span class="gp-dot" style="background: #9ca3af" /><strong>{{ t('sm_not_classified') }}</strong></div>
@@ -124,8 +124,8 @@
             <select v-model="eventForm.projectId" class="fi"><option value="">—</option><option v-for="p in tasks.projects" :key="p.id" :value="p.id">{{ p.name }}</option></select>
           </div>
         </div>
-        <!-- PLAN-RECUR : « Rappel » RETIRÉ (champ fantôme — jamais persisté, aucune infra de
-             notification planning) ; récurrence masquée en ÉDITION (v1 = occurrence seule) -->
+        <!-- PLAN-RECUR: "Reminder" REMOVED (phantom field — never persisted, no planning
+             notification infrastructure); recurrence hidden in EDIT mode (v1 = single occurrence) -->
         <div class="fr" v-if="!editingEvent">
           <div class="fg"><label>{{ t('pl_event_recurrence') }}</label>
             <select v-model="eventForm.recurrence" class="fi">
@@ -142,7 +142,7 @@
           </div>
         </div>
         <div class="fa">
-          <!-- PLAN-RECUR : occurrence d'une série → choix occurrence seule / série entière -->
+          <!-- PLAN-RECUR: occurrence of a series → choose single occurrence / whole series -->
           <template v-if="editingEvent && editingSeriesId">
             <button type="button" class="btn-danger" @click="deleteEvent('one')">{{ t('pl_recur_del_one') }}</button>
             <button type="button" class="btn-danger" @click="deleteEvent('series')">{{ t('pl_recur_del_series') }}</button>
@@ -210,7 +210,7 @@ const activeView = ref('week')
 const currentTitle = ref('')
 const eventSlideOpen = ref(false)
 const editingEvent = ref(null)
-const editingSeriesId = ref(null) // PLAN-RECUR : série de l'occurrence en édition
+const editingSeriesId = ref(null) // PLAN-RECUR: series of the occurrence being edited
 const settingsOpen = ref(false)
 const ganttZoom = ref('day')
 const ganttColorBy = ref('project')
@@ -240,8 +240,8 @@ const planningSettings = reactive({
   density: 'normal',
   timeFormat: '24h',
 })
-// D-16 (même famille) : préférences d'affichage persistées PAR utilisateur
-// (clé user-scopée — jamais la fuite cross-comptes de D-07)
+// D-16 (same family): display preferences persisted PER user
+// (user-scoped key — never the cross-account leak of D-07)
 const PLAN_SETTINGS_KEY = 'scalyo_planning_settings_' + (auth.user?.id || 'anon')
 try { Object.assign(planningSettings, JSON.parse(localStorage.getItem(PLAN_SETTINGS_KEY) || '{}')) } catch (_) {}
 watch(planningSettings, (v) => { try { localStorage.setItem(PLAN_SETTINGS_KEY, JSON.stringify(v)) } catch (_) {} }, { deep: true })
@@ -320,7 +320,7 @@ function handleSelect(info) {
 
 function handleEventClick(info) {
   editingEvent.value = info.event.id
-  // PLAN-RECUR : mémoriser la série pour proposer « supprimer toute la série »
+  // PLAN-RECUR: remember the series so we can offer "delete the whole series"
   editingSeriesId.value = info.event.extendedProps?.seriesId || null
   Object.assign(eventForm, {
     title: info.event.title,
@@ -334,8 +334,8 @@ function handleEventClick(info) {
   eventSlideOpen.value = true
 }
 
-// D-10 (même famille) : déplacer/redimensionner DOIT persister — l'ancien code ne
-// modifiait que la mémoire. Échec → revert local + revert visuel FullCalendar + toast.
+// D-10 (same family): move/resize MUST persist — the old code only mutated
+// memory. Failure → local revert + FullCalendar visual revert + toast.
 async function persistEventTimes(info) {
   const ev = events.value.find(e => e.id === info.event.id)
   if (!ev) { info.revert?.(); return }
@@ -350,29 +350,29 @@ function handleEventDrop(info) { persistEventTimes(info) }
 
 function handleEventResize(info) { persistEventTimes(info) }
 
-// TZ-PLANNING : un événement est un INSTANT (doctrine GANTT-TZ : instant vs date calendaire).
-// La chaîne d'un champ datetime-local ('YYYY-MM-DDTHH:mm') est une heure LOCALE :
-// - à l'ÉCRITURE, elle se convertit en instant ISO UTC (new Date la parse en local,
-//   toISOString donne l'instant exact) — l'envoyer brute faisait interpréter l'heure
-//   locale comme de l'UTC par Postgres → +2 h au rendu (Europe/Paris été) ;
-// - une chaîne date-only (all-day, sans 'T') est une DATE CALENDAIRE : jamais convertie ;
-// - le drag/resize (persistEventTimes) écrit startStr AVEC offset : déjà juste, non touché.
-// null = chaîne invalide → on n'écrit PAS (pattern D-04 : pas de faux succès).
+// TZ-PLANNING: an event is an INSTANT (GANTT-TZ doctrine: instant vs calendar date).
+// The string of a datetime-local field ('YYYY-MM-DDTHH:mm') is a LOCAL time:
+// - on WRITE, it is converted to a UTC ISO instant (new Date parses it as local,
+//   toISOString gives the exact instant) — sending it raw made Postgres interpret the
+//   local time as UTC → +2 h when rendered (Europe/Paris, summer time);
+// - a date-only string (all-day, no 'T') is a CALENDAR DATE: never converted;
+// - drag/resize (persistEventTimes) writes startStr WITH offset: already correct, untouched.
+// null = invalid string → we do NOT write (D-04 pattern: no false success).
 function localInputToIso(dt) {
   if (!dt || !dt.includes('T')) return dt || ''
   const d = new Date(dt)
   if (Number.isNaN(d.getTime())) return null
   return d.toISOString()
 }
-// TZ-PLANNING : pré-remplissage du datetime-local en heure LOCALE (composants padés) —
-// l'ancien now.toISOString().slice(0,16) injectait l'heure UTC (−2 h affichées à Paris).
+// TZ-PLANNING: prefill the datetime-local in LOCAL time (padded components) —
+// the old now.toISOString().slice(0,16) injected UTC time (−2 h displayed in Paris).
 function localInputValue(d) {
   const pad = n => String(n).padStart(2, '0')
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
-// PLAN-RECUR : décale une datetime-local 'YYYY-MM-DDTHH:mm' de i pas (jour/semaine/mois),
-// heure conservée, mensuel clampé au dernier jour du mois (31 janv + 1 mois → 28/29 févr)
+// PLAN-RECUR: shifts a 'YYYY-MM-DDTHH:mm' datetime-local by i steps (day/week/month),
+// time preserved, monthly clamped to the last day of the month (31 Jan + 1 month → 28/29 Feb)
 function shiftOccurrence(dt, kind, i) {
   if (!dt || !i) return dt
   const [datePart, timePart] = dt.split('T')
@@ -394,15 +394,15 @@ async function saveEvent() {
   if (editingEvent.value) {
     const ev = events.value.find(e => e.id === editingEvent.value)
     if (ev) {
-      // TZ-PLANNING : l'heure LOCALE du formulaire devient un instant ISO — l'édition
-      // corrompait la base exactement comme la création (chaîne naïve relue en UTC)
+      // TZ-PLANNING: the form's LOCAL time becomes an ISO instant — editing
+      // corrupted the database exactly like creation did (naive string read back as UTC)
       const startIso = localInputToIso(eventForm.start)
       const endIso = localInputToIso(eventForm.end || eventForm.start)
       if (startIso === null || endIso === null) { console.error('[planning] saveEvent: invalid datetime'); return }
       const { error: updErr } = await withWrite(() => supabase.from('planning_events').update({
         title: eventForm.title, start_at: startIso, end_at: endIso, color: eventForm.color
       }).eq('id', editingEvent.value), { label: 'planning.saveEvent.update' })
-      // D-04 : pas de faux succès — échec = slide-over ouvert, état local intact
+      // D-04: no false success — on failure the slide-over stays open, local state intact
       if (updErr) { console.error('[planning] saveEvent update error:', updErr); return }
       Object.assign(ev, { title: eventForm.title, start: startIso, end: endIso, color: eventForm.color })
     }
@@ -421,16 +421,16 @@ async function saveEvent() {
     const rec = eventForm.recurrence || 'none'
     let rows
     if (rec === 'none') {
-      // défensif : recurrence/series_id inclus SEULEMENT pour une série — le create simple
-      // reste fonctionnel même si la migration n'est pas encore appliquée
-      // TZ-PLANNING : conversion heure locale → instant ISO à l'écriture
+      // defensive: recurrence/series_id included ONLY for a series — the simple create
+      // keeps working even if the migration has not been applied yet
+      // TZ-PLANNING: local time → ISO instant conversion on write
       rows = [{ ...base, start_at: localInputToIso(startStr), end_at: localInputToIso(endStr) }]
     } else {
-      // PLAN-RECUR : occurrences MATÉRIALISÉES, liées par series_id
-      // (contrat 01/08 : quotidien 60 j · hebdo 26 sem · mensuel 12 mois)
-      // TZ-PLANNING : shiftOccurrence opère sur la chaîne LOCALE (heure conservée par
-      // occurrence), la conversion en instant vient APRÈS — une série hebdo 09:00 reste
-      // à 09:00 locale à travers un changement d'heure été/hiver
+      // PLAN-RECUR: MATERIALIZED occurrences, linked by series_id
+      // (01/08 contract: daily 60 d · weekly 26 wk · monthly 12 mo)
+      // TZ-PLANNING: shiftOccurrence works on the LOCAL string (time preserved per
+      // occurrence), the instant conversion comes AFTER — a weekly 09:00 series stays
+      // at 09:00 local across a summer/winter time change
       const counts = { daily: 60, weekly: 26, monthly: 12 }
       const seriesId = crypto.randomUUID()
       rows = Array.from({ length: counts[rec] }, (_, i) => ({
@@ -441,7 +441,7 @@ async function saveEvent() {
         series_id: seriesId,
       }))
     }
-    // TZ-PLANNING : une chaîne invalide n'écrit RIEN (pattern D-04, jamais de faux succès)
+    // TZ-PLANNING: an invalid string writes NOTHING (D-04 pattern, never a false success)
     if (rows.some(r => r.start_at === null || r.end_at === null)) { console.error('[planning] saveEvent: invalid datetime'); return }
     const { data, error: insErr } = await withWrite(() => supabase.from('planning_events').insert(rows).select(), { label: 'planning.saveEvent.insert' })
     if (insErr) { console.error('[planning] saveEvent insert error:', insErr); return }
@@ -453,21 +453,21 @@ async function saveEvent() {
   eventSlideOpen.value = false; editingEvent.value = null; editingSeriesId.value = null
 }
 
-// D-10 : suppression RÉELLE en base — l'ancien code filtrait la mémoire seulement
-// (l'événement revenait au reload) alors que le vrai delete existait sans être appelé.
-// PLAN-RECUR : scope 'one' = cette occurrence · 'series' = toutes les lignes du series_id
-// (RLS self-only : le delete par series_id ne peut toucher que les lignes de l'utilisateur)
+// D-10: REAL delete in the database — the old code only filtered memory
+// (the event came back on reload) even though the real delete existed but was never called.
+// PLAN-RECUR: scope 'one' = this occurrence · 'series' = every row of the series_id
+// (self-only RLS: deleting by series_id can only touch the user's own rows)
 async function deleteEvent(scope) {
   const id = editingEvent.value
   if (!id) { eventSlideOpen.value = false; return }
   if (scope === 'series' && editingSeriesId.value) {
     const sid = editingSeriesId.value
     const { error } = await withWrite(() => supabase.from('planning_events').delete().eq('series_id', sid), { label: 'planning.deleteSeries' })
-    if (error) return // toast withWrite — slide-over reste ouvert, état local intact
+    if (error) return // withWrite toast — slide-over stays open, local state intact
     events.value = events.value.filter(e => e.extendedProps?.seriesId !== sid)
   } else {
     const { error } = await withWrite(() => supabase.from('planning_events').delete().eq('id', id), { label: 'planning.deleteEvent' })
-    if (error) return // toast withWrite — slide-over reste ouvert, état local intact
+    if (error) return // withWrite toast — slide-over stays open, local state intact
     events.value = events.value.filter(e => e.id !== id)
   }
   eventSlideOpen.value = false
@@ -479,8 +479,8 @@ function openCreate() {
   Object.assign(eventForm, defaultEvent())
   const now = new Date()
   now.setMinutes(0, 0, 0)
-  // TZ-PLANNING : heure LOCALE dans le champ (l'ancien toISOString pré-remplissait l'UTC,
-  // −2 h à Paris — et le corriger seul aurait AGGRAVÉ le bug, piège consigné le 03/08)
+  // TZ-PLANNING: LOCAL time in the field (the old toISOString prefilled UTC,
+  // −2 h in Paris — and fixing it alone would have MADE the bug worse, trap logged on 03/08)
   eventForm.start = localInputValue(now)
   now.setHours(now.getHours() + 1)
   eventForm.end = localInputValue(now)
@@ -489,15 +489,15 @@ function openCreate() {
   eventSlideOpen.value = true
 }
 
-// GANTT — GANTT-READ : barres réelles start→end (largeur = durée × cellule)
-const GANTT_CELL_W = 36 // = largeur CSS de .g-cell / .g-date-col
+// GANTT — GANTT-READ: real start→end bars (width = duration × cell)
+const GANTT_CELL_W = 36 // = CSS width of .g-cell / .g-date-col
 const ganttDays = computed(() => ganttZoom.value === 'month' ? 60 : ganttZoom.value === 'week' ? 28 : 14)
-// GANTT-TZ : date calendaire LOCALE 'YYYY-MM-DD'. toISOString() convertit en UTC —
-// minuit local = 22 h UTC la veille en été → la CLÉ de la colonne reculait d'un jour
-// pendant que son LIBELLÉ (getDate(), local) restait juste : tout le Gantt était
-// décalé d'une colonne, et « Aujourd'hui » pointait le mauvais jour.
-// Les dates de tâches (start_date/end_date) sont des dates calendaires, jamais des
-// instants : elles se comparent en local, pas en UTC.
+// GANTT-TZ: LOCAL calendar date 'YYYY-MM-DD'. toISOString() converts to UTC —
+// local midnight = 22:00 UTC the previous day in summer → the column KEY moved back a day
+// while its LABEL (getDate(), local) stayed correct: the whole Gantt was
+// shifted by one column, and "Today" pointed at the wrong day.
+// Task dates (start_date/end_date) are calendar dates, never
+// instants: they are compared in local time, not UTC.
 function localDate(d) {
   const pad = n => String(n).padStart(2, '0')
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
@@ -508,7 +508,7 @@ const ganttDates = computed(() => {
   const loc = locale.value === 'ko' ? 'ko-KR' : locale.value === 'en' ? 'en-US' : 'fr-FR'
   return Array.from({ length: ganttDays.value }, (_, i) => {
     const d = new Date(ganttStart.value); d.setDate(d.getDate() + i)
-    const date = localDate(d) // GANTT-TZ : même référentiel que le libellé affiché
+    const date = localDate(d) // GANTT-TZ: same frame of reference as the displayed label
     return { key: date, date, num: d.getDate(), dayName: d.toLocaleDateString(loc, { weekday: 'narrow' }), isToday: date === today, isWeekend: d.getDay() === 0 || d.getDay() === 6 }
   })
 })
@@ -518,17 +518,17 @@ const todayLineX = computed(() => {
 })
 
 function projectTasks(pid) { return tasks.tasks.filter(t => t.projectId === pid) }
-// GANTT-READ : tâches sans projet — rendues dans le groupe « non classées » (avant : invisibles)
+// GANTT-READ: tasks without a project — rendered in the "unclassified" group (before: invisible)
 const unassignedTasks = computed(() => tasks.tasks.filter(t => !t.projectId))
-// GANTT-READ : tâches sans aucune date — implaçables, comptées honnêtement au bandeau
+// GANTT-READ: tasks with no date at all — unplaceable, counted honestly in the banner
 const noDateCount = computed(() => tasks.tasks.filter(t => !t.startDate && !t.dueDate && !t.endDate).length)
 function ganttBarColor(task, proj) {
   if (ganttColorBy.value === 'status') return { todo: '#9ca3af', in_progress: '#3b82f6', blocked: '#ef4444', done: '#10b981' }[task.status] || '#7c3aed'
   if (ganttColorBy.value === 'priority') return { urgent_important: '#ef4444', important: '#3b82f6', urgent: '#f59e0b', not_urgent: '#9ca3af' }[task.priority] || '#7c3aed'
   return proj?.color || '#9ca3af'
 }
-// GANTT-READ : style de barre = intersection [start,end] × fenêtre visible, clip aux bords
-// (coins carrés du côté tronqué). null = hors fenêtre ou sans date → pas de barre.
+// GANTT-READ: bar style = intersection [start,end] × visible window, clipped at the edges
+// (square corners on the truncated side). null = outside the window or dateless → no bar.
 function ganttBarStyle(task, proj) {
   const dates = ganttDates.value
   const s = task.startDate || task.dueDate
@@ -561,7 +561,7 @@ function taskProg(task) {
 onMounted(() => { setTimeout(() => { currentTitle.value = getApi()?.view?.title || '' }, 100) })
 
 // ─── Supabase sync ────────────────────────────────────────────
-// PLAN-RECUR : mapper unique ligne DB → événement FullCalendar (load ET insert)
+// PLAN-RECUR: maps a single DB row → FullCalendar event (both load AND insert)
 function dbEventToFc(r) {
   return {
     id: r.id, title: r.title,
@@ -582,8 +582,8 @@ async function loadEvents() {
 
 onMounted(() => { loadEvents() })
 
-// Prefill depuis la fiche client (bouton « Événement ») : ouvre le slide de
-// création avec le client pré-sélectionné (un rdv = un événement planning).
+// Prefill from the client record ("Event" button): opens the create slide-over
+// with the client pre-selected (one appointment = one planning event).
 onMounted(() => {
   const p = prefill.consume()
   if (p.clientId) { openCreate(); eventForm.clientId = p.clientId }

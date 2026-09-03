@@ -13,7 +13,7 @@
         <div class="st-footer">Scalyo</div>
       </div>
 
-      <!-- Slides 1..n : un bloc du copil par slide -->
+      <!-- Slides 1..n: one copil block per slide -->
       <div v-else-if="slide >= 1 && slide <= slideBlocks.length" :key="'b' + slide" class="kp-slide slide-block">
         <ErrorBoundary><SlideBlock :block="slideBlocks[slide - 1]" :lang="copil?.lang" /></ErrorBoundary>
       </div>
@@ -54,8 +54,8 @@ const store = useKpiStore()
 
 const rootEl = ref(null)
 const slide = ref(0)
-// Un slide par bloc visible (les blocs techniques/decoratifs sont exclus)
-// + slide titre + slide de fin. Déclaré plus bas (dépend de copil).
+// One slide per visible block (technical/decorative blocks are excluded)
+// + title slide + closing slide. Declared below (depends on copil).
 const darkMode = ref(true)
 const autoPlay = ref(false)
 const controlsHidden = ref(false)
@@ -111,7 +111,7 @@ onUnmounted(() => {
 
 <style scoped>
 .kp { position: fixed; inset: 0; z-index: 9999; background: #0a0a0f; color: #fff; overflow: hidden; outline: none; display: flex; flex-direction: column;
-  /* COPIL-LIGHT-BLANK : les slides (SlideBlock) ne lisent QUE ces variables — jamais de blanc en dur */
+  /* COPIL-LIGHT-BLANK: the slides (SlideBlock) read ONLY these variables — never a hard-coded white */
   --sb-text: #fff; --sb-muted: rgba(255,255,255,0.62); --sb-faint: rgba(255,255,255,0.42);
   --sb-card: rgba(255,255,255,0.06); --sb-line: rgba(255,255,255,0.1); --sb-line-strong: rgba(255,255,255,0.22);
   --sb-accent: #a78bfa; --sb-ok: #34d399; --sb-doing: #60a5fa; }

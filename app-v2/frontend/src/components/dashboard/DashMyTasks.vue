@@ -66,7 +66,7 @@ function clientName(id) {
   return props.clientsMap[id] || id
 }
 
-// DATE-RAW : formateur central (variante courte jour + mois, langue = i18n.global)
+// DATE-RAW: central formatter (short day + month variant, language = i18n.global)
 function formatDate(d) {
   return d ? fmtDate(d, { day: 'numeric', month: 'short' }) : ''
 }

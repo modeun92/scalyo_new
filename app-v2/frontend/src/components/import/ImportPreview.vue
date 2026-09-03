@@ -2,7 +2,7 @@
   <template v-if="currentStep === 2">
     <!-- Module reconnu -->
     <div v-if="analysisResult && analysisResult.module !== 'unknown'" class="imp-preview-wrap">
-      <!-- Module détecté -->
+      <!-- Detected module -->
       <div class="imp-module-card">
         <div class="imc-icon">{{ moduleIcons[analysisResult.module] || '📦' }}</div>
         <div class="imc-info">

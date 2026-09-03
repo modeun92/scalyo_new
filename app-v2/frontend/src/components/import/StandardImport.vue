@@ -107,7 +107,7 @@ var parsed = ref(null)
 var mapping = ref({})
 var mapped = ref([])
 var mappingError = ref('')
-var importIssues = ref([])   // IMPORT-NUM : valeurs refusees, jamais silencieuses
+var importIssues = ref([])   // IMPORT-NUM: rejected values, never silent
 var importing = ref(false)
 var importedCount = ref(0)
 
@@ -185,9 +185,9 @@ var buildMapped = function () {
       if (col && row[col] !== undefined && row[col] !== '') {
         var v = castValue(row[col], field.type)
         if (v === UNPARSED) {
-          // IMPORT-NUM : valeur inintelligible. On ne l'invente pas, on ne
-          // l'importe pas, on la remonte a l'utilisateur. idx + 2 = numero de
-          // ligne dans le tableur (la ligne 1 porte les en-tetes).
+          // IMPORT-NUM: unintelligible value. We do not invent it, we do not
+          // import it, we report it to the user. idx + 2 = the row
+          // number in the spreadsheet (row 1 carries the headers).
           issues.push({ row: idx + 2, field: t(field.label), value: String(row[col]).slice(0, 40) })
           return
         }
@@ -233,13 +233,13 @@ var cleanText = function (s) {
   return String(s).replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\u{FE00}-\u{FEFF}]/gu, '').trim()
 }
 
-// IMPORT-NUM : Number('124 500,00') et Number('7,5') valent NaN, et l'ancien code
-// retombait sur 0 EN SILENCE. Un ARR de 124 500 EUR etait importe a 0 puis se
-// propageait dans l'ARR portefeuille, les KPI et le health score sans alerte.
-// Cas reels et frequents : export de CRM francais, Google Sheets, colonne copiee-collee
-// — toutes produisent des cellules TEXTE avec virgule decimale et espace insecable.
-// Regle desormais : on normalise, et si la valeur reste inintelligible on ne
-// l'importe PAS et on la signale. Jamais de valeur inventee.
+// IMPORT-NUM: Number('124 500,00') and Number('7,5') evaluate to NaN, and the old code
+// SILENTLY fell back to 0. An ARR of EUR 124,500 was imported as 0 and then
+// propagated into the portfolio ARR, the KPIs and the health score with no warning.
+// Real and frequent cases: French CRM exports, Google Sheets, a copy-pasted column
+// — all produce TEXT cells with a decimal comma and a non-breaking space.
+// The rule from now on: we normalize, and if the value remains unintelligible we do
+// NOT import it and we report it. Never an invented value.
 var UNPARSED = Symbol('unparsed')
 
 var parseNumeric = function (val) {
@@ -249,8 +249,8 @@ var parseNumeric = function (val) {
   // Parentheses comptables = negatif : (1 500) -> -1500
   var negParen = /^\(.*\)$/.test(s)
   if (negParen) s = s.replace(/^\(|\)$/g, '')
-  // Symboles monetaires, pourcentage, toutes les formes d'espace (dont U+00A0
-  // insecable et U+202F fine), apostrophe suisse de milliers.
+  // Currency symbols, percent sign, every form of space (including U+00A0
+  // non-breaking and U+202F narrow), Swiss thousands apostrophe.
   s = s.replace(/[\u20ac$\u00a3\u00a5\u20a9%\s\u00a0\u202f\u2009'\u2019]/g, '')
   if (!s) return UNPARSED
   var neg = negParen || /^-/.test(s)
@@ -258,14 +258,14 @@ var parseNumeric = function (val) {
   var hasComma = s.indexOf(',') !== -1
   var hasDot = s.indexOf('.') !== -1
   if (hasComma && hasDot) {
-    // Le dernier separateur rencontre est le decimal, l'autre groupe les milliers.
+    // The last separator encountered is the decimal one, the other groups thousands.
     if (s.lastIndexOf(',') > s.lastIndexOf('.')) s = s.replace(/\./g, '').replace(',', '.')
     else s = s.replace(/,/g, '')
   } else if (hasComma) {
-    // ',' en separateur de milliers seulement si le groupage est VALIDE :
-    // premier groupe de 1 a 3 chiffres, tous les suivants exactement 3 (1,500 /
-    // 1,234,567). Sinon virgule decimale francaise (7,5 / 12,50 / 1234,567).
-    // '12,3,4' n'est ni l'un ni l'autre : refuse plutot que devine.
+    // ',' as a thousands separator only if the grouping is VALID:
+    // first group of 1 to 3 digits, all following ones exactly 3 (1,500 /
+    // 1,234,567). Otherwise a French decimal comma (7,5 / 12,50 / 1234,567).
+    // '12,3,4' is neither: rejected rather than guessed.
     var groups = s.split(',')
     var thousands = groups.length > 1 && /^\d{1,3}$/.test(groups[0]) &&
       groups.slice(1).every(function (g) { return /^\d{3}$/.test(g) })
@@ -292,8 +292,8 @@ var parseDate = function (val) {
   var parts = s.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})$/)
   if (parts) {
     var iso = parts[3] + '-' + parts[2].padStart(2, '0') + '-' + parts[1].padStart(2, '0')
-    // IMPORT-NUM : '31/02/2026' produisait '2026-02-31', une date qui n'existe pas.
-    // Postgres la rejette et l'import entier echouait avec une erreur opaque.
+    // IMPORT-NUM: '31/02/2026' produced '2026-02-31', a date that does not exist.
+    // Postgres rejects it and the whole import failed with an opaque error.
     var chk = new Date(iso + 'T00:00:00Z')
     return (!isNaN(chk.getTime()) && chk.toISOString().slice(0, 10) === iso) ? iso : ''
   }
@@ -371,9 +371,9 @@ var reset = function () {
 .mapping-req { color: var(--red); }
 .mapping-select { flex: 1; padding: 7px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 0.85rem; background-color: var(--bg-card); }
 .mapping-error { color: var(--red); font-size: 0.82rem; margin-top: 12px; }
-/* IMPORT-NUM : avertissement non bloquant — l'import reste possible, mais
-   l'utilisateur voit exactement ce qui n'a pas ete repris. */
-/* Variables du theme (main.css) : --amber #ffb020, --amber-bg, --amber-border. */
+/* IMPORT-NUM: non-blocking warning — the import is still possible, but
+   the user sees exactly what was not taken in. */
+/* Theme variables (main.css): --amber #ffb020, --amber-bg, --amber-border. */
 .import-issues { margin-top: 14px; padding: 12px 14px; border-radius: 10px;
   background: var(--amber-bg); border: 1px solid var(--amber-border); }
 /* Titre en <div> et non en <p> : main.css L272 impose

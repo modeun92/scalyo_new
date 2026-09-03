@@ -44,7 +44,7 @@ function formatVal(v) {
   if (v == null) return '—'
   const loc = locale.value === 'ko' ? 'ko-KR' : locale.value === 'en' ? 'en-US' : 'fr-FR'
   const f = meta.value?.format
-  // A-11 : devise du COMPTE (formateur central), plus jamais EUR force
+  // A-11: ACCOUNT currency (central formatter), never again a forced EUR
   if (f === 'currency') return fmtCurrency(v, { compact: v >= 1e6 })
   if (f === 'percentage') return v + '%'
   if (f === 'ratio') return v + 'x'

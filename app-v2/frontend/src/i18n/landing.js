@@ -177,7 +177,7 @@ blog_email_placeholder:"votre@email.com",
 blog_cta:"S'inscrire",
 blog_back:"← Retour à scalyo.app",
 footer_markets:"🇫🇷 France · 🇧🇪 Belgique · 🇨🇭 Suisse · 🇨🇦 Québec",
-    // Clés additionnelles
+    // Additional keys
     roi_lbl1_suffix: "", roi_lbl2_suffix: "",
     roi_arr_avg: "ARR moyen par compte", roi_churn_rate: "Taux de churn actuel",
     roi_plan_label: "Plan recommandé",
@@ -243,8 +243,8 @@ footer_markets:"🇫🇷 France · 🇧🇪 Belgique · 🇨🇭 Suisse · 🇨�
     demo_pb_new: "Nouveau : Playbook Expansion",
     demo_pb_sub: "Stratégies upsell · Fév. 2025",
     page_title: 'Scalyo — Le Customer Success, réinventé.',
-    // SEO-I18N — metadonnees de la landing, source unique du <head> genere au build.
-    // Ne jamais recopier ces chaines dans scripts/build-blog.js.
+    // SEO-I18N — landing page metadata, single source of the <head> generated at build time.
+    // Never copy these strings into scripts/build-blog.js.
     seo_title: "Scalyo — La plateforme Customer Success qui réduit le churn",
     seo_desc: "Scalyo aide les équipes Customer Success B2B à réduire le churn, piloter leurs KPIs et anticiper les risques clients. Nativement multilingue FR / EN / KO.",
     seo_og_desc: "Réduisez le churn, pilotez vos KPIs et anticipez les risques clients. Plateforme Customer Success B2B, multilingue FR / EN / KO.",
@@ -383,7 +383,7 @@ footer_markets:"🇫🇷 France · 🇧🇪 Belgique · 🇨🇭 Suisse · 🇨�
     fl_c8: "Ressources",
     fl_s1s: "En 90 jours d’utilisation",
     fl_s4l: "d’avance sur le churn",
-    // Différenciateurs (3 piliers) — remplacent la section Intégrations
+    // Differentiators (3 pillars) — replace the Integrations section
     diff_tag: "Ce qui nous distingue",
     diff_h2: "Trois choses que les autres <span class=\"accent\">n'ont pas.</span>",
     diff_sub: "Là où les autres outils Customer Success s'arrêtent, Scalyo continue.",
@@ -405,7 +405,7 @@ footer_markets:"🇫🇷 France · 🇧🇪 Belgique · 🇨🇭 Suisse · 🇨�
     pillar3_p1: "Interface, contenu et coach IA nativement dans les trois langues",
     pillar3_p2: "Là où les outils CS sont anglo-saxons et traduits en surface, Scalyo est natif",
     pillar3_p3: "Pensé pour vendre en Europe et lever en Corée",
-    // Socle de réassurance (4 items)
+    // Reassurance foundation (4 items)
     sell_title: "Ce sur quoi vous pouvez compter.",
     sell_subtitle: "Les fondations de chaque équipe qui réussit avec Scalyo.",
     sell_1_label: "Churn détecté 30 jours avant",
@@ -659,8 +659,8 @@ blog_back:"← Back to scalyo.app",
     d_m6_ret:'📞 Retention',
   
     page_title: 'Scalyo — Customer Success, Reinvented.',
-    // SEO-I18N — metadonnees de la landing, source unique du <head> genere au build.
-    // Ne jamais recopier ces chaines dans scripts/build-blog.js.
+    // SEO-I18N — landing page metadata, single source of the <head> generated at build time.
+    // Never copy these strings into scripts/build-blog.js.
     seo_title: "Scalyo — The Customer Success platform that cuts churn",
     seo_desc: "Scalyo helps B2B Customer Success teams cut churn, track their KPIs and anticipate account risk. Natively multilingual FR / EN / KO.",
     seo_og_desc: "Cut churn, track your KPIs and anticipate account risk. B2B Customer Success platform, multilingual FR / EN / KO.",
@@ -1083,8 +1083,8 @@ footer_blog:"블로그", footer_guides:"가이드 & 템플릿",
     d_m6_ret:'📞 리텐션',
   
     page_title: 'Scalyo — 고객 성공을 재발명하다.',
-    // SEO-I18N — metadonnees de la landing, source unique du <head> genere au build.
-    // Ne jamais recopier ces chaines dans scripts/build-blog.js.
+    // SEO-I18N — landing page metadata, single source of the <head> generated at build time.
+    // Never copy these strings into scripts/build-blog.js.
     seo_title: "Scalyo — 고객 성공 관리 플랫폼 | CS팀을 위한 올인원 솔루션",
     seo_desc: "Scalyo는 CS팀이 고객 계정과 팀을 함께 관리할 수 있도록 지원하는 B2B 고객 성공 관리 플랫폼입니다. 헬스 스코어, KPI, 리텐션 플레이북, AI 에이전트를 하나의 플랫폼에서.",
     seo_og_desc: "이탈을 줄이고 KPI를 관리하며 고객 리스크를 예측하세요. B2B 고객 성공 관리 플랫폼, FR / EN / KO 지원.",

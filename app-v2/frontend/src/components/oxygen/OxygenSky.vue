@@ -4,15 +4,15 @@ import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import { useOxygenRecoveriesStore } from '@/stores/oxygenRecoveries'
 import { fmtDate } from '@/lib/formatters'
-import { bubbleParams } from './cielBubble'
+import { bubbleParams } from './skyBubble'
 
-// ─── OXYGEN Lot 3b — LE CIEL (contrat R23 29/07/2026) ────────────────────────
-// Constellation du mois : UNE bulle par journée FERMÉE. Chaque bulle est
-// régénérée depuis seed(user_id:date) + valeurs PERSISTÉES du mois (energy,
-// load_score, progress_count — chargées par recoveries.loadMonth, jamais la
-// fenêtre 30 j glissante : le déterminisme ne dépend d'aucune fenêtre).
-// Jour sans Fermeture (manqué OU off) = même espace neutre — le Ciel ne juge
-// pas. Title = date localisée SEULE : aucune donnée brute lisible dans le SVG.
+// ─── OXYGEN Lot 3b — THE SKY (contract R23 29/07/2026) ────────────────────────
+// Constellation of the month: ONE bubble per CLOSED day. Each bubble is
+// regenerated from seed(user_id:date) + the month's PERSISTED values (energy,
+// load_score, progress_count — loaded by recoveries.loadMonth, never the
+// rolling 30 d window: determinism does not depend on any window).
+// A day without a Closing (missed OR off) = the same neutral space — the Sky does not
+// judge. Title = the localized date ONLY: no raw data readable in the SVG.
 
 const { t } = useI18n({ useScope: 'global' })
 const auth = useAuthStore()
@@ -57,18 +57,18 @@ onMounted(() => {
   if (!recoveries.monthLoaded) recoveries.loadMonth()
 })
 
-// BUG OXY-CIEL-REFRESH (tué 29/07, vu au rendu run 1) : closeToday invalide
-// monthLoaded mais rien ne rechargeait — la bulle du jour n'apparaissait qu'au
-// reload. Le Ciel recharge dès que ses données sont invalidées.
+// BUG OXY-CIEL-REFRESH (killed 29/07, seen while rendering run 1): closeToday invalidates
+// monthLoaded but nothing reloaded — the bubble of the day only appeared after a
+// reload. The Sky now reloads as soon as its data is invalidated.
 watch(() => recoveries.monthLoaded, (v) => { if (!v) recoveries.loadMonth() })
 </script>
 
 <template>
-  <div class="oxy-ciel">
+  <div class="oxy-sky">
     <svg
-      class="oxy-ciel-svg"
+      class="oxy-sky-svg"
       :viewBox="`0 0 ${COLS * CELL} ${rows * CELL}`"
-      role="img" :aria-label="t('oxy_ciel_title')"
+      role="img" :aria-label="t('oxy_sky_title')"
     >
       <g v-for="d in days" :key="d.date">
         <template v-if="d.b">
@@ -95,17 +95,17 @@ watch(() => recoveries.monthLoaded, (v) => { if (!v) recoveries.loadMonth() })
           v-else
           :cx="d.cx" :cy="d.cy" r="1.6"
           fill="currentColor" :fill-opacity="d.future ? 0.08 : 0.18"
-          class="oxy-ciel-dot"
+          class="oxy-sky-dot"
         >
           <title>{{ fmtDate(d.date) }}</title>
         </circle>
       </g>
     </svg>
-    <p v-if="!hasBubbles" class="oxy-ciel-empty">{{ t('oxy_ciel_empty') }}</p>
+    <p v-if="!hasBubbles" class="oxy-sky-empty">{{ t('oxy_sky_empty') }}</p>
   </div>
 </template>
 
 <style scoped>
-.oxy-ciel-svg { width: 100%; max-width: 340px; display: block; margin: 0 auto; color: var(--text-muted); }
-.oxy-ciel-empty { text-align: center; font-size: 0.8rem; color: var(--text-muted); margin: 10px 0 0; }
+.oxy-sky-svg { width: 100%; max-width: 340px; display: block; margin: 0 auto; color: var(--text-muted); }
+.oxy-sky-empty { text-align: center; font-size: 0.8rem; color: var(--text-muted); margin: 10px 0 0; }
 </style>

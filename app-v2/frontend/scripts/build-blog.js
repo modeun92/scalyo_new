@@ -142,11 +142,11 @@ const BRAND_IMAGES = [
   '/scalyo-agent-ia.webp',
   '/scalyo-oxygen-bien-etre.webp',
 ]
-const BLOG_THUMBS = []  // rempli plus bas, une fois les articles lus
+const BLOG_THUMBS = []  // filled in further down, once the articles have been read
 const PRESS_ALTERNATES = { fr: '/presse/', en: '/press/', ko: '/press-ko/', 'x-default': '/presse/' }
-// SEO-I18N : la landing existe a trois URLs. 'ko' est le code ISO 639-1 de la
-// langue ; 'kr' (code pays) reste une cle interne de landing.js et ne sort
-// jamais dans une URL, un hreflang ou un sitemap.
+// SEO-I18N: the landing page exists at three URLs. 'ko' is the ISO 639-1 code of the
+// language; 'kr' (country code) stays an internal key of landing.js and never
+// appears in a URL, an hreflang or a sitemap.
 const LANDING_ALTERNATES = { fr: '/', en: '/en/', ko: '/ko/', 'x-default': '/' }
 const STATIC_PAGES = [
   { path: '/',         changefreq: 'weekly',  priority: '1.0', alternates: LANDING_ALTERNATES },
@@ -161,11 +161,11 @@ const STATIC_PAGES = [
   { path: '/privacy',  changefreq: 'yearly',  priority: '0.3' },
   { path: '/dpa',      changefreq: 'yearly',  priority: '0.3' },
 ]
-// Pas de <lastmod> sur les pages statiques : une date recalculee a chaque build
-// est un signal faux, Google deprecie les lastmod non fiables. Seuls les
-// articles, qui portent une vraie date de publication, en declarent un.
-// L'extension image du protocole sitemap donne a Google Images les visuels de
-// marque : la landing ne contient aucune balise <img>, le kit presse si.
+// No <lastmod> on static pages: a date recomputed on every build
+// is a false signal, and Google discounts unreliable lastmod values. Only the
+// articles, which carry a real publication date, declare one.
+// The image extension of the sitemap protocol gives Google Images the brand
+// visuals: the landing page contains no <img> tag, the press kit does.
 for (const a of articles) BLOG_THUMBS.push(`/scalyo-blog-${a.slug}.webp`)
 let sitemap = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n`
 for (const p of STATIC_PAGES) {
@@ -187,12 +187,12 @@ sitemap += `</urlset>`
 writeFileSync(join(DIST_DIR, 'sitemap.xml'), sitemap)
 console.log(`  ✓ sitemap.xml (${articles.length + STATIC_PAGES.length} URLs)`)
 
-// ── Index du blog : page statique ──
-// La route Vue /blog ne servait aux crawlers que le title statique d'index.html,
-// d'où le résultat n°2 mal titré sur la requête de marque « scalyo ». Cette page
-// porte son propre title, sa description, ses articles en HTML et son JSON-LD.
-// Les libellés d'interface basculent côté client selon navigator.language ;
-// le HTML servi reste français, c'est lui que Google indexe.
+// ── Blog index: static page ──
+// The Vue /blog route only served crawlers the static title from index.html,
+// hence the badly titled result #2 for the brand query "scalyo". This page
+// carries its own title, description, articles in HTML and JSON-LD.
+// Interface labels switch client-side based on navigator.language;
+// the served HTML stays French, and that is what Google indexes.
 const IDX = {
   fr: {
     title: 'Blog Customer Success — Scalyo',
@@ -291,11 +291,11 @@ mkdirSync(join(DIST_DIR, 'blog'), { recursive: true })
 writeFileSync(join(DIST_DIR, 'blog', 'articles.json'), JSON.stringify(indexData, null, 2))
 console.log(`  ✓ blog/articles.json`)
 
-// ── FAQPage : donnees structurees de la FAQ de la landing ──
-// Les onze questions vivent dans src/i18n/landing.js et ne sont rendues qu'apres
-// hydratation : invisibles pour un crawler qui n'execute pas de JS, et surtout
-// pour les moteurs de reponse. Le schema les expose en clair dans le HTML servi.
-// Source unique : landing.js. Ne jamais recopier une question ici.
+// ── FAQPage: structured data for the landing page FAQ ──
+// The eleven questions live in src/i18n/landing.js and are only rendered after
+// hydration: invisible to a crawler that does not run JS, and above all
+// to answer engines. The schema exposes them in plain text in the served HTML.
+// Single source: landing.js. Never copy a question here.
 const faqPairs = []
 for (let i = 1; ; i++) {
   const q = L.fr['faq_q' + i], a = L.fr['faq_a' + i]
@@ -318,34 +318,34 @@ if (faqPairs.length) {
   const indexPath = join(DIST_DIR, 'index.html')
   let html = readFileSync(indexPath, 'utf-8')
   if (html.includes('"@type": "FAQPage"')) {
-    console.log('  ! FAQPage deja present dans dist/index.html, injection ignoree')
+    console.log('  ! FAQPage already present in dist/index.html, injection skipped')
   } else {
     html = html.replace('</head>', `<script type="application/ld+json">\n${faqLd}\n</script>\n</head>`)
     writeFileSync(indexPath, html)
-    console.log(`  ✓ FAQPage injecte dans index.html (${faqPairs.length} questions)`)
+    console.log(`  ✓ FAQPage injected into index.html (${faqPairs.length} questions)`)
   }
 }
 
-// ── SEO-I18N : les trois landings ──
-// Une route SPA ne sert aux crawlers que le <head> statique d'index.html. Sans
-// ces variantes, /en/ et /ko/ porteraient le titre et le canonical francais :
-// Google verrait trois fois la meme page et n'en indexerait qu'une.
-// Le corps reste la SPA — le routeur lit la langue dans le prefixe d'URL.
-// Source unique des libelles : src/i18n/landing.js. Rien n'est recopie ici.
+// ── SEO-I18N: the three landing pages ──
+// An SPA route only serves crawlers the static <head> of index.html. Without
+// these variants, /en/ and /ko/ would carry the French title and canonical:
+// Google would see the same page three times and index only one.
+// The body stays the SPA — the router reads the language from the URL prefix.
+// Single source for the labels: src/i18n/landing.js. Nothing is copied here.
 const LANDINGS = [
   { dir: null,  key: 'fr', iso: 'fr', ogLocale: 'fr_FR', url: `${SITE_URL}/` },
   { dir: 'en',  key: 'en', iso: 'en', ogLocale: 'en_US', url: `${SITE_URL}/en/` },
   { dir: 'ko',  key: 'kr', iso: 'ko', ogLocale: 'ko_KR', url: `${SITE_URL}/ko/` },
 ]
 
-// hreflang reciproques, identiques sur les trois pages.
+// Reciprocal hreflang tags, identical on all three pages.
 const hreflangBlock = LANDINGS
   .map(l => `  <link rel="alternate" hreflang="${l.iso}" href="${l.url}" />`)
   .join('\n') + `\n  <link rel="alternate" hreflang="x-default" href="${SITE_URL}/" />`
 
-// Un remplacement qui ne trouve pas sa cible doit casser le build, jamais passer
-// en silence : une balise non substituee produirait un canonical francais sur la
-// page coreenne, invisible a la compilation et fatal au referencement.
+// A replacement that does not find its target must break the build, never pass
+// silently: an unsubstituted tag would produce a French canonical on the
+// Korean page — invisible at build time and fatal for SEO.
 function sub(html, re, replacement, label, file) {
   if (!re.test(html)) throw new Error(`[seo-i18n] ${file} : ${label} introuvable — build interrompu`)
   return html.replace(re, replacement)
@@ -384,7 +384,7 @@ for (const l of LANDINGS) {
   html = sub(html, /(<meta property="og:description" content=")[^"]*(")/, `$1${S.seo_og_desc}$2`, 'og:description', file)
   html = sub(html, /(<meta property="og:url" content=")[^"]*(")/, `$1${l.url}$2`, 'og:url', file)
   html = sub(html, /(<meta property="og:locale" content=")[^"]*(")/, `$1${l.ogLocale}$2`, 'og:locale', file)
-  // og:locale:alternate ne doit pas contenir la locale de la page elle-meme.
+  // og:locale:alternate must not contain the locale of the page itself.
   const alts = LANDINGS.filter(o => o.ogLocale !== l.ogLocale)
     .map(o => `  <meta property="og:locale:alternate" content="${o.ogLocale}" />`).join('\n')
   if (!/<meta property="og:locale:alternate"[^>]*>/.test(html)) throw new Error(`[seo-i18n] ${file} : og:locale:alternate introuvable — build interrompu`)
@@ -393,14 +393,14 @@ for (const l of LANDINGS) {
   html = sub(html, /(<meta name="twitter:title" content=")[^"]*(")/, `$1${S.seo_title}$2`, 'twitter:title', file)
   html = sub(html, /(<meta name="twitter:description" content=")[^"]*(")/, `$1${S.seo_og_desc}$2`, 'twitter:description', file)
 
-  // hreflang : absents du index.html source, ajoutes ici sur les trois pages.
-  // Purge d'abord : sans elle, relancer le script sur un dist deja traite
-  // empilerait les balises sans qu'aucune erreur ne le signale.
+  // hreflang: absent from the source index.html, added here on all three pages.
+  // Purge first: without it, re-running the script on an already processed dist
+  // would stack up the tags with no error to signal it.
   html = html.replace(/[ \t]*<link rel="alternate" hreflang="[^"]*"[^>]*>\n?/g, '')
   html = sub(html, /(<link rel="canonical"[^>]*>)/, `$1\n${hreflangBlock}`, 'ancrage hreflang', file)
 
-  // FAQPage dans la langue de la page. Sur dist/index.html le bloc francais a
-  // deja ete injecte plus haut ; sur les variantes on le remplace.
+  // FAQPage in the language of the page. On dist/index.html the French block has
+  // already been injected above; on the variants we replace it.
   const faq = faqLdFor(l.key, l.url, l.iso)
   if (faq && frFaq && l.dir) {
     if (!html.includes(frFaq)) throw new Error(`[seo-i18n] ${file} : bloc FAQPage francais introuvable — build interrompu`)

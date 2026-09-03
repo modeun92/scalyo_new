@@ -1,9 +1,9 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
-// FB-02 (arbitrage Lidia 20/07) : la fiche client est une POP-UP modale, ouverte
-// depuis n'importe où (Dashboard, Portfolio, Manager…). État global léger : un seul
-// point d'ouverture, la modale est montée une fois dans AppLayout.
+// FB-02 (decision by Lidia 20/07): the client record is a modal POP-UP, opened
+// from anywhere (Dashboard, Portfolio, Manager…). Light global state: a single
+// opening point, the modal is mounted once in AppLayout.
 export const useClientModalStore = defineStore('clientModal', () => {
   const isOpen = ref(false)
   const clientId = ref(null)

@@ -19,10 +19,10 @@ ul, ol { list-style: none; }
 img { max-width: 100%; display: block; }
 
 /* ═══ CSS VARIABLES ═══ */
-/* Design 3a « nuit en fond clair » — tokens de référence (6/07/2026) :
-   fond #FDFCFF légèrement violacé, cartes blanches bordées #F0EBFA, encre
-   #17112B, violet #8B5CF6 (accents #7C3AED), ombres violacées douces,
-   rayons généreux, gradient signature 4 couleurs. */
+/* Design 3a "night on a light background" — reference tokens (6/07/2026):
+   slightly violet #FDFCFF background, white cards bordered #F0EBFA, ink
+   #17112B, violet #8B5CF6 (accents #7C3AED), soft violet-tinted shadows,
+   generous radii, 4-color signature gradient. */
 :root {
   --purple: #8b5cf6;
   --purple-dark: #7c3aed;
@@ -108,18 +108,18 @@ img { max-width: 100%; display: block; }
 .slide-up-enter-from { transform: translateY(10px); opacity: 0; }
 .slide-up-leave-to { transform: translateY(-10px); opacity: 0; }
 
-/* ═══ DESIGN 3A — PEPS (surcharges globales par spécificité #app) ═══ */
+/* ═══ DESIGN 3A — PUNCH (global overrides by #app specificity) ═══ */
 #app .btn-primary {
   background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 45%, #c026d3 100%);
   box-shadow: 0 6px 20px rgba(124, 58, 237, 0.42);
 }
 #app .btn-primary:hover:not(:disabled) { box-shadow: 0 10px 30px rgba(192, 38, 211, 0.5); transform: translateY(-1px); }
 #app .nav-item.active { background: linear-gradient(90deg, rgba(139,92,246,0.2), rgba(255,77,141,0.1)); box-shadow: inset 3px 0 0 var(--purple); }
-/* Cartes : lueur violacée plus présente */
+/* Cards: a more present violet glow */
 #app .kpi-card, #app .copil-card, #app .plan-card { box-shadow: 0 4px 20px rgba(60,30,140,0.09); }
-/* Texte dégradé signature (titres, chiffres d'offre) */
+/* Signature gradient text (headings, offer figures) */
 .text-spectrum { background: var(--gradient-spectrum); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent; }
-/* Carte à bord dégradé signature */
+/* Card with a signature gradient border */
 .card-spectrum { border: 2px solid transparent; background: linear-gradient(var(--bg-card), var(--bg-card)) padding-box, var(--gradient-spectrum) border-box; }
 
 /* ═══ SKELETON LOADER ═══ */
@@ -267,11 +267,11 @@ img { max-width: 100%; display: block; }
 [data-theme="dark"] .sidebar h4, [data-theme="dark"] .sidebar .section-title { color: #64748b !important; text-transform: uppercase; }
 
 /* --- Text hierarchy --- */
-/* SEO-I18N / LANDING-DARK : la landing est une surface marketing autonome, en
-   fond clair permanent. Sans cette exclusion, ces regles globales y posaient du
-   texte quasi blanc sur fond quasi blanc (h1 mesure a 1.04:1).
-   `:not(:where(...))` a une specificite nulle : la specificite des regles est
-   inchangee, l'application n'est pas affectee. */
+/* SEO-I18N / LANDING-DARK: the landing page is a self-contained marketing surface, on a
+   permanently light background. Without this exclusion, these global rules put
+   near-white text on a near-white background there (h1 measured at 1.04:1).
+   `:not(:where(...))` has zero specificity: the specificity of the rules is
+   unchanged, and their application is not affected. */
 [data-theme="dark"] h1:not(:where(.landing *)), [data-theme="dark"] h2:not(:where(.landing *)), [data-theme="dark"] h3:not(:where(.landing *)),
 [data-theme="dark"] h4:not(:where(.landing *)), [data-theme="dark"] h5:not(:where(.landing *)), [data-theme="dark"] h6:not(:where(.landing *)) { color: #f1f5f9 !important; }
 [data-theme="dark"] p:not(:where(.landing *)) { color: #cbd5e1 !important; }

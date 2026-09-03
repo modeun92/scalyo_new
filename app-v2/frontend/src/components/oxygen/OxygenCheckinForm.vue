@@ -3,11 +3,11 @@ import { ref, reactive, nextTick, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useOxygenCheckinsStore } from '@/stores/oxygenCheckins'
 
-// ─── OXYGEN Lot 3a — formulaire de check-in PARTAGÉ (contrat R23 28/07) ──────
-// UN SEUL composant pour le popover de la pastille ET la page Oxygen : un seul
-// chemin d'écriture (checkins.upsertToday), zéro duplication, même ligne base.
-// P10 : focus auto 1er curseur (prop autofocus), Entrée valide. Échec : withWrite
-// affiche déjà le toast — la saisie reste intacte, jamais de faux succès.
+// ─── OXYGEN Lot 3a — SHARED check-in form (contract R23 28/07) ──────
+// A SINGLE component for both the dot's popover AND the Oxygen page: one single
+// write path (checkins.upsertToday), zero duplication, the same database row.
+// P10: auto focus on the 1st slider (autofocus prop), Enter submits. On failure: withWrite
+// already shows the toast — the input stays intact, never a false success.
 
 const props = defineProps({
   autofocus: { type: Boolean, default: false },
@@ -42,8 +42,8 @@ onMounted(async () => {
   if (props.autofocus) await focusFirst()
 })
 
-// La page peut monter avant la fin du chargement des histories (boot Pulse) :
-// quand le check-in du jour arrive, pré-remplir — jamais pendant une saisie active.
+// The page may mount before the histories finish loading (Pulse boot):
+// when the day's check-in arrives, prefill — never during an active edit.
 watch(() => checkins.todayCheckin, (c) => { if (c && !savedFlash.value) prefill() })
 
 async function save() {
@@ -56,7 +56,7 @@ async function save() {
     setTimeout(() => { savedFlash.value = false }, 1200)
     emit('saved')
   }
-  // échec : withWrite a déjà affiché le toast write_failed — saisie intacte
+  // failure: withWrite already showed the write_failed toast — input intact
 }
 
 defineExpose({ prefill, focusFirst })

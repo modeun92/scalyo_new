@@ -1,7 +1,7 @@
--- COPIL client-centric (étape 2) — lier un copil à un client du portefeuille.
--- client_id nullable : les copils pour des clients hors portefeuille restent
--- possibles via le champ texte client_name. ON DELETE SET NULL : supprimer un
--- client ne détruit pas ses decks. Idempotente.
+-- Client-centric COPIL (step 2) — link a copil to a portfolio client.
+-- client_id nullable: copils for clients outside the portfolio stay
+-- possible via the client_name text field. ON DELETE SET NULL: deleting a
+-- client does not destroy its decks. Idempotent.
 DO $$
 BEGIN
   IF NOT EXISTS (

@@ -1,9 +1,9 @@
--- Lot KPIs manuels (GO contrat Lidia 22/07) : mesures MENSUELLES saisies par client
--- pour les KPIs du catalogue sans source automatique (tickets, CSAT, panier moyen…).
--- 1 point / (client, kpi, mois) — re-saisir le même mois = corriger (upsert).
--- Alimente : fiche client (saisie + historique), dashboard (agrégat org), copils (courbes).
--- RLS org-wide modèle quotes : toute l'équipe lit/écrit, delete = auteur ou owner (FB-05).
--- À appliquer PRÉPROD (wxbape…) PUIS PROD (hcqnin…), GO par marche, AVANT le push front.
+-- Manual KPIs batch (GO on the contract from Lidia 22/07): MONTHLY measurements entered per client
+-- for the catalog KPIs without an automatic source (tickets, CSAT, average basket…).
+-- 1 data point per (client, kpi, month) — re-entering the same month = correcting it (upsert).
+-- Feeds: client record (entry + history), dashboard (org aggregate), copils (curves).
+-- Org-wide RLS on the quotes model: the whole team reads/writes, delete = author or owner (FB-05).
+-- To be applied on PRE-PROD (wxbape…) THEN PROD (hcqnin…), GO per step, BEFORE the front-end push.
 
 CREATE TABLE IF NOT EXISTS public.client_metrics (
   id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -24,7 +24,7 @@ CREATE INDEX IF NOT EXISTS idx_client_metrics_client ON public.client_metrics (c
 
 ALTER TABLE public.client_metrics ENABLE ROW LEVEL SECURITY;
 
--- Lecture : toutes les mesures de MON org (partage cross-CSM, FB-05)
+-- Read: all the measurements of MY org (cross-CSM sharing, FB-05)
 DROP POLICY IF EXISTS client_metrics_select_org ON public.client_metrics;
 CREATE POLICY client_metrics_select_org ON public.client_metrics FOR SELECT
   USING (
@@ -32,7 +32,7 @@ CREATE POLICY client_metrics_select_org ON public.client_metrics FOR SELECT
     AND organization_id = (SELECT organization_id FROM public.profiles WHERE id = auth.uid())
   );
 
--- Création : en tant que soi, dans son org
+-- Create: as oneself, within one's org
 DROP POLICY IF EXISTS client_metrics_insert_org ON public.client_metrics;
 CREATE POLICY client_metrics_insert_org ON public.client_metrics FOR INSERT
   WITH CHECK (
@@ -40,7 +40,7 @@ CREATE POLICY client_metrics_insert_org ON public.client_metrics FOR INSERT
     AND organization_id = (SELECT organization_id FROM public.profiles WHERE id = auth.uid())
   );
 
--- Correction : tout membre de l'org (upsert du même mois par un collègue)
+-- Update: any member of the org (upsert of the same month by a colleague)
 DROP POLICY IF EXISTS client_metrics_update_org ON public.client_metrics;
 CREATE POLICY client_metrics_update_org ON public.client_metrics FOR UPDATE
   USING (
@@ -52,7 +52,7 @@ CREATE POLICY client_metrics_update_org ON public.client_metrics FOR UPDATE
     AND organization_id = (SELECT organization_id FROM public.profiles WHERE id = auth.uid())
   );
 
--- Suppression : le dernier éditeur, ou l'owner de l'org
+-- Delete: the last editor, or the org owner
 DROP POLICY IF EXISTS client_metrics_delete_own ON public.client_metrics;
 CREATE POLICY client_metrics_delete_own ON public.client_metrics FOR DELETE
   USING (
@@ -60,9 +60,9 @@ CREATE POLICY client_metrics_delete_own ON public.client_metrics FOR DELETE
     OR (SELECT org_role FROM public.profiles WHERE id = auth.uid()) = 'owner'
   );
 
--- Contrôles post-apply :
+-- Post-apply checks:
 --   SELECT policyname, cmd FROM pg_policies WHERE tablename='client_metrics' ORDER BY policyname;
---     -- attendu : client_metrics_delete_own(DELETE), client_metrics_insert_org(INSERT),
+--     -- expected: client_metrics_delete_own(DELETE), client_metrics_insert_org(INSERT),
 --     --           client_metrics_select_org(SELECT), client_metrics_update_org(UPDATE)
 --   SELECT conname FROM pg_constraint WHERE conrelid='public.client_metrics'::regclass ORDER BY conname;
---     -- attendu : client_metrics_first_of_month, client_metrics_unique (+ PK/FK)
+--     -- expected: client_metrics_first_of_month, client_metrics_unique (+ PK/FK)

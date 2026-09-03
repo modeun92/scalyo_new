@@ -2,8 +2,8 @@
   <div class="sat-card">
     <h3>{{ t('sat_portfolio_health') }}</h3>
     <div class="health-list">
-      <!-- HEALTH-SCALE : score /10 localisé (plus de ×10 « 10 /100 »), avatar/teinte/badge par le
-           statut EFFECTIF — la même fonction que le Dashboard et le Portefeuille -->
+      <!-- HEALTH-SCALE: localized score out of 10 (no more ×10 "10 /100"), avatar/hue/badge by the
+           EFFECTIVE status — the same function as the Dashboard and the Portfolio -->
       <div v-for="c in sortedClients" :key="c.id" class="hl-row hl-clickable" @click="clientModal.open(c.id)">
         <div class="hl-left">
           <div class="hl-av" :class="statusOf(c)">{{ c.name[0] }}</div>
@@ -53,8 +53,8 @@ defineProps({
 <style scoped>
 .hl-clickable { cursor: pointer; transition: background .15s; border-radius: 8px; }
 .hl-clickable:hover { background: var(--bg-hover); }
-/* NAV-SLOW (29/08) : virtualisation navigateur — les lignes hors écran ne sont ni mises en
-   page ni peintes (1 097 clients constatés en préprod). Zéro dépendance, scroll natif ;
-   contain-intrinsic-size ≈ hauteur d'une ligne pour une barre de défilement stable. */
+/* NAV-SLOW (29/08): browser virtualization — off-screen rows are neither laid
+   out nor painted (1,097 clients observed on pre-prod). Zero dependency, native scrolling;
+   contain-intrinsic-size ≈ the height of one row for a stable scrollbar. */
 .hl-row { content-visibility: auto; contain-intrinsic-size: auto 56px; }
 </style>

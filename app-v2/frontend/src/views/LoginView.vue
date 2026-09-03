@@ -74,9 +74,9 @@ async function handleLogin() {
     )
     const result = await Promise.race([loginPromise, timeoutPromise])
     if (result.success) {
-      // Lot 6 : honorer ?redirect= (retour vers /join pour un clic EXPLICITE
-      // d'acceptation d'invitation). Chemin interne uniquement : un '//' ou une
-      // URL absolue serait une redirection ouverte.
+      // Lot 6: honor ?redirect= (return to /join for an EXPLICIT click
+      // to accept an invitation). Internal path only: a '//' or an
+      // absolute URL would be an open redirect.
       const target = typeof route.query.redirect === 'string' ? route.query.redirect : ''
       const safe = target.startsWith('/') && !target.startsWith('//') ? target : ''
       router.push(safe || '/app/dashboard')

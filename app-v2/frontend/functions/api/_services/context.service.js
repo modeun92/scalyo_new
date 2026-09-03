@@ -1,26 +1,26 @@
 import { getConfig } from '../_config/index.js'
 
-// === LYO-CONTEXT (3.1) — contexte portefeuille injecté aux 8 modules IA ===
-// Contrat R23 validé le 29/08/2026 (Notion > Référence technique > CONTRAT — LYO-CONTEXT).
-// D1 : périmètre = la RLS réelle de `clients` (SELECT org-wide depuis FB-05, migration
-//      20260720230000) — AUCUN filtre user_id ici, la RLS décide. Le contexte IA est
-//      exactement ce que l'écran Portefeuille montre à l'utilisateur.
-// D3 : minimisation RGPD — liste EXPLICITE de colonnes, jamais notes ni contacts
-//      (emails/téléphones) vers le provider IA ; listes capées.
+// === LYO-CONTEXT (3.1) — portfolio context injected into the 8 AI modules ===
+// Contract R23 approved on 29/08/2026 (Notion > Technical reference > CONTRACT — LYO-CONTEXT).
+// D1: scope = the real RLS of `clients` (org-wide SELECT since FB-05, migration
+//     20260720230000) — NO user_id filter here, RLS decides. The AI context is
+//     exactly what the Portfolio screen shows the user.
+// D3: GDPR minimization — EXPLICIT column list, never notes nor contacts
+//     (emails/phone numbers) sent to the AI provider; lists are capped.
 
-// Seuils MIROIR de src/lib/health.js (HEALTH_THRESHOLDS, HEALTH_MAX).
-// PARITÉ OBLIGATOIRE (pattern plans.config.js ×2) : toute modification se fait
-// dans les DEUX fichiers, front et backend.
+// Thresholds MIRRORING src/lib/health.js (HEALTH_THRESHOLDS, HEALTH_MAX).
+// PARITY IS MANDATORY (plans.config.js × 2 pattern): any change must be made
+// in BOTH files, front end and back end.
 const HEALTH_THRESHOLDS = { critical: 3, watch: 6 }
 const HEALTH_MAX = 10
 
-// Caps de listes (D3) : le prompt reste lisible sur un portefeuille de 350+ comptes.
+// List caps (D3): the prompt stays readable on a portfolio of 350+ accounts.
 const MAX_URGENT = 15
 const MAX_RENEWALS = 10
 const MAX_OVERDUE = 5
 const MAX_CITED = 3
 
-// Minimisation RGPD (D3) : colonnes explicites — PAS de select=*.
+// GDPR minimization (D3): explicit columns — NO select=*.
 const CLIENT_COLUMNS = 'id,name,arr,mrr,health,status,churn_risk,renewal_date,lifecycle,csm,csm_id'
 const TASK_COLUMNS = 'id,title,due_date,status'
 
@@ -31,9 +31,9 @@ export function getUserIdFromJwt(token) {
   } catch { return null }
 }
 
-// GET REST avec le JWT UTILISATEUR + clé anon : la RLS s'applique (jamais la
-// service role ici — le contexte IA ne doit rien voir de plus que l'utilisateur).
-// null = échec de lecture (réseau, !ok) — jamais confondu avec « 0 ligne ».
+// REST GET with the USER JWT + anon key: RLS applies (never the service role
+// here — the AI context must never see more than the user does).
+// null = read failure (network, !ok) — never conflated with "0 rows".
 async function restGet(env, path, userJwt) {
   const config = getConfig(env)
   if (!config.supabaseUrl || !config.supabaseAnonKey) return null
@@ -48,14 +48,14 @@ async function restGet(env, path, userJwt) {
   } catch { return null }
 }
 
-// Miroir de lib/health.js — un score 0 réel compte (jamais de `|| n` sur le health).
+// Mirror of lib/health.js — a real score of 0 counts (never `|| n` on the health score).
 function toHealthNumber(v) {
   if (v == null || v === '') return null
   const n = Number(v)
   return Number.isNaN(n) ? null : n
 }
 
-// Statut effectif « le pire des deux gagne » — même sémantique que lib/health.healthStatus.
+// Effective status "worst of the two wins" — same semantics as lib/health.healthStatus.
 function healthStatus(health, status) {
   const h = toHealthNumber(health)
   if (status === 'critical' || (h !== null && h <= HEALTH_THRESHOLDS.critical)) return 'critical'
@@ -76,8 +76,8 @@ function healthLabel(c) {
 
 function clientLine(c) {
   let line = '- ' + c.name + ': ' + healthLabel(c) + ', statut ' + STATUS_LABEL[healthStatus(c.health, c.status)] + ', ARR ' + clientArr(c)
-  // LYO-CONTEXT-2 : une date de renouvellement passée est dite DEPASSEE — les 4 réponses
-  // de preuve présentaient « 2026-05-04 » comme un renouvellement à venir (4 mois de retard).
+  // LYO-CONTEXT-2: a past renewal date is reported as OVERDUE — the 4 evidence
+  // answers presented "2026-05-04" as an upcoming renewal (4 months late).
   if (c.renewal_date) {
     const d = new Date(c.renewal_date)
     line += ', renouvellement ' + c.renewal_date + (!Number.isNaN(d.getTime()) && d < new Date() ? ' (DEPASSE)' : '')
@@ -94,13 +94,13 @@ export async function buildRichContext(env, userId, userJwt, message = '') {
     restGet(env, 'user_profiles?select=currency&id=eq.' + userId, userJwt),
   ])
 
-  // Échec de lecture du portefeuille → contexte VIDE : le prompt dira « pas de
-  // données chargées ». On n'affirme JAMAIS « 0 clients » sur une erreur.
+  // Failure to read the portfolio → EMPTY context: the prompt will say "no data
+  // loaded". We NEVER assert "0 clients" on an error.
   if (clients === null) return { summary: '' }
 
   const cl = clients
   const currency = (Array.isArray(profile) && profile[0] && profile[0].currency) || 'EUR'
-  // Leçon COUNT-353-352 : les stats portefeuille EXCLUENT les prospects (clientsOnly).
+  // Lesson COUNT-353-352: portfolio stats EXCLUDE prospects (clientsOnly).
   const portfolio = cl.filter(c => c.lifecycle !== 'prospect')
   const now = new Date()
 
@@ -115,7 +115,7 @@ export async function buildRichContext(env, userId, userJwt, message = '') {
     .filter(c => healthStatus(c.health, c.status) === 'critical')
     .sort((a, b) => clientArr(b) - clientArr(a))
 
-  // Fenêtre 0-30 j STRICTE : une date passée n'est pas « un renouvellement à venir ».
+  // STRICT 0-30 d window: a past date is not "an upcoming renewal".
   const renewSoon = portfolio
     .filter(c => {
       if (!c.renewal_date) return false
@@ -128,10 +128,10 @@ export async function buildRichContext(env, userId, userJwt, message = '') {
 
   const overdue = (tasks || []).filter(t => t.due_date && new Date(t.due_date) < now && t.status !== 'done')
 
-  // COMPTE CITÉ : si un nom du portefeuille (≥ 3 caractères) apparaît dans la
-  // question, ses données réelles sont injectées — elles font foi face aux
-  // chiffres avancés par l'utilisateur (critère OmniWare4). Prospects inclus :
-  // on peut poser une question sur un prospect, le bloc dit son lifecycle.
+  // CITED ACCOUNT: if a portfolio name (≥ 3 characters) appears in the
+  // question, its real data is injected — it is authoritative against the
+  // figures put forward by the user (OmniWare4 criterion). Prospects included:
+  // one may ask a question about a prospect, and the block states its lifecycle.
   const msg = (message || '').toLowerCase()
   const cited = msg
     ? cl.filter(c => c.name && c.name.trim().length >= 3 && msg.includes(c.name.trim().toLowerCase()))
@@ -139,8 +139,8 @@ export async function buildRichContext(env, userId, userJwt, message = '') {
         .slice(0, MAX_CITED)
     : []
 
-  // Première ligne = l'échelle : elle voyage dans ctx.summary, donc les 8 modules
-  // IA consommateurs la reçoivent sans modification de leurs prompts.
+  // First line = the scale: it travels inside ctx.summary, so the 8 consuming
+  // AI modules receive it without any change to their prompts.
   let summary = 'ECHELLE: health /' + HEALTH_MAX + ' — <=' + HEALTH_THRESHOLDS.critical + ' critique, ' +
     (HEALTH_THRESHOLDS.critical + 1) + '-' + HEALTH_THRESHOLDS.watch + ' vigilance, >' + HEALTH_THRESHOLDS.watch +
     ' sain. Statut effectif = le pire de (score, statut saisi). Ces donnees font foi.'

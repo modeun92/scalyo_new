@@ -4,11 +4,11 @@ import { supabase } from '@/lib/supabase'
 import { withWrite } from '@/lib/supabaseWrite'
 import { useAuthStore } from '@/stores/auth'
 
-// FB-03 v2 (feedback Lidia 20/07) : notes libres horodatées sur la fiche client
-// (call reçu, échange, info à retenir). Table client_notes, RLS org-wide :
-// tout CSM de l'équipe lit ET ajoute (continuité quand le CSM assigné est absent).
+// FB-03 v2 (feedback from Lidia 20/07): free-form timestamped notes on the client record
+// (call received, exchange, info to remember). Table client_notes, org-wide RLS:
+// every CSM on the team reads AND adds (continuity when the assigned CSM is away).
 export const useClientNotesStore = defineStore('clientNotes', () => {
-  // Cache par client : { [clientId]: Note[] }
+  // Cache per client: { [clientId]: Note[] }
   const byClient = ref({})
   const loading = ref(false)
 

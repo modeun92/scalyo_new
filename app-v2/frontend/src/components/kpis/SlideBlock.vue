@@ -21,7 +21,7 @@
     </div>
   </div>
 
-  <!-- Barres — toutes les séries (COPIL-SERIES-LOST), groupées par catégorie -->
+  <!-- Bars — all series (COPIL-SERIES-LOST), grouped by category -->
   <div v-else-if="block.type === 'chart_bar'" class="sb-chart-wrap">
     <svg class="sb-chart" viewBox="0 0 800 380">
       <g v-for="(cat, i) in categories" :key="i">
@@ -37,7 +37,7 @@
     </div>
   </div>
 
-  <!-- Courbe — toutes les séries -->
+  <!-- Line — all series -->
   <div v-else-if="block.type === 'chart_line'" class="sb-chart-wrap">
     <svg class="sb-chart" viewBox="0 0 800 380">
       <g v-for="(s, j) in series" :key="j">
@@ -95,7 +95,7 @@
     </div>
   </div>
 
-  <!-- Citation — guillemets de la langue du deck -->
+  <!-- Quote — quotation marks of the deck language -->
   <blockquote v-else-if="block.type === 'quote'" class="sb-quote">
     <p>{{ deckQuote(block.data.text, lang) }}</p>
     <footer>{{ block.data.author }}<span v-if="block.data.role"> — {{ block.data.role }}</span></footer>
@@ -104,7 +104,7 @@
   <!-- Texte -->
   <p v-else-if="block.type === 'text'" class="sb-text" :class="block.data.size">{{ block.data.content }}</p>
 
-  <!-- Image (téléversée : URL signée résolue par le store ; ou URL externe) -->
+  <!-- Image (uploaded: signed URL resolved by the store; or external URL) -->
   <figure v-else-if="block.type === 'image'" class="sb-image">
     <img v-if="imageSrc" :src="imageSrc" :alt="block.data.caption || ''" />
     <figcaption v-if="block.data.caption">{{ block.data.caption }}</figcaption>
@@ -130,7 +130,7 @@ const series = computed(() => (props.block.data?.datasets || []).slice(0, 6).map
 const categories = computed(() => props.block.data?.labels || [])
 const maxV = computed(() => Math.max(...series.value.flatMap(s => s.data.map(v => Math.abs(Number(v) || 0))), 1))
 
-// Barres groupées : une colonne par catégorie, une barre par série
+// Grouped bars: one column per category, one bar per series
 const nCat = computed(() => Math.max(categories.value.length, ...series.value.map(s => s.data.length), 1))
 const groupW = computed(() => 760 / nCat.value)
 function groupX(i) { return 20 + groupW.value * i }
@@ -155,7 +155,7 @@ const donutSegs = computed(() => {
   })
 })
 
-// Image : chemin Storage (téléversée) → URL signée via le store ; sinon URL externe
+// Image: Storage path (uploaded) → signed URL via the store; otherwise an external URL
 const imageSrc = computed(() => {
   const d = props.block.data || {}
   if (d.path) { store.resolveMedia(d.path); return store.mediaUrls[d.path] || '' }
@@ -167,8 +167,8 @@ function trunc(s) { s = String(s || ''); return s.length > 14 ? s.slice(0, 13) +
 </script>
 
 <style scoped>
-/* COPIL-LIGHT-BLANK : aucune couleur en dur — tout passe par les variables posées
-   par KpisPresent sur .kp (sombre) et .kp:not(.dark) (clair). */
+/* COPIL-LIGHT-BLANK: no hard-coded color — everything goes through the variables set
+   by KpisPresent on .kp (dark) and .kp:not(.dark) (light). */
 .sb { width: min(920px, 88vw); margin: 0 auto; animation: sbIn 0.5s ease both; color: var(--sb-text); }
 @keyframes sbIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
 .sb-title { font-size: 2rem; font-weight: 800; color: var(--sb-text); margin-bottom: 36px; text-align: center; letter-spacing: -0.01em; }

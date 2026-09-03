@@ -22,17 +22,17 @@ import VueApexCharts from 'vue3-apexcharts'
 import App from './App.vue'
 import './assets/main.css'
 
-// DARK-SIDEBAR (29/08) : le thème choisi (scalyo_theme, écrit par Paramètres > Apparence)
-// n'était appliqué QUE par SettingsPreferences — au boot, data-theme n'était jamais posé :
-// le mode sombre sautait à chaque rechargement (sidebar et app blanches) tant qu'on ne
-// repassait pas par Paramètres. Application AVANT le mount, même logique que le composant.
+// DARK-SIDEBAR (29/08): the chosen theme (scalyo_theme, written by Settings > Appearance)
+// was ONLY applied by SettingsPreferences — at boot, data-theme was never set:
+// dark mode dropped on every reload (white sidebar and app) until you went
+// back through Settings. Applied BEFORE the mount, same logic as the component.
 try {
   const savedTheme = localStorage.getItem('scalyo_theme')
   const root = document.documentElement
   if (savedTheme === 'dark') root.setAttribute('data-theme', 'dark')
   else if (savedTheme === 'light') root.setAttribute('data-theme', 'light')
-  // 'auto' / absent : aucun attribut — les media queries prefers-color-scheme décident
-} catch (e) { /* localStorage indisponible : thème clair par défaut */ }
+  // 'auto' / absent: no attribute — the prefers-color-scheme media queries decide
+} catch (e) { /* localStorage unavailable: light theme by default */ }
 import * as Sentry from '@sentry/vue'
 window.Sentry = Sentry
 

@@ -1,11 +1,11 @@
--- CR-2 / B-12 (serveur) : check_client_limit lisait profiles.plan (ancienne source)
--- et comptait par user_id. Depuis org_plan_source (8/07), la source unique = organizations.plan.
--- Bug avant-vente : un membre non-owner d'une org payante (son profiles.plan = starter/NULL)
--- etait bloque a 50 clients, et le quota n'etait pas org-scope.
--- Fix : source = organizations.plan (fallback profil pour comptes sans org),
--- comptage par organization_id, prospects non comptes (aligne PortfolioView : quota sur clients actifs).
--- Aligne 1:1 avec le front (getMaxClients(effectivePlan), clientsCount = clientsOnly).
--- Applique PREPROD d'abord (preuve REST x2), puis PROD (runbook R8), puis commit.
+-- CR-2 / B-12 (server): check_client_limit read profiles.plan (the old source)
+-- and counted by user_id. Since org_plan_source (8/07), the single source = organizations.plan.
+-- Pre-sales bug: a non-owner member of a paying org (whose profiles.plan = starter/NULL)
+-- was blocked at 50 clients, and the quota was not org-scoped.
+-- Fix: source = organizations.plan (profile fallback for accounts without an org),
+-- counting by organization_id, prospects not counted (aligned with PortfolioView: quota on active clients).
+-- Aligned 1:1 with the front end (getMaxClients(effectivePlan), clientsCount = clientsOnly).
+-- Applied on PRE-PROD first (REST evidence x2), then PROD (runbook R8), then commit.
 
 create or replace function public.check_client_limit() returns trigger
   language plpgsql
@@ -17,12 +17,12 @@ declare
   lim int;
   cnt int;
 begin
-  -- prospects non limites (aligne PortfolioView L206 : quota sur clients actifs uniquement)
+  -- prospects not limited (aligned with PortfolioView L206: quota on active clients only)
   if coalesce(new.lifecycle, 'client') = 'prospect' then
     return new;
   end if;
 
-  -- source unique = organizations.plan quand l'org existe (aligne auth.js currentPlan) ; fallback profil
+  -- single source = organizations.plan when the org exists (aligned with auth.js currentPlan); profile fallback
   if new.organization_id is not null then
     select plan into eff_plan from organizations where id = new.organization_id;
   end if;
@@ -52,4 +52,4 @@ begin
 end;
 $$;
 
--- Le trigger enforce_client_limit BEFORE INSERT ON clients existe deja et reste inchange.
+-- The enforce_client_limit BEFORE INSERT ON clients trigger already exists and stays unchanged.

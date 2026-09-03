@@ -1,19 +1,19 @@
--- CR-8/CR-9 (fix/secrets-backend) — 5 juillet 2026
--- C-04 : la RPC get_org_email_config renvoyait resend_api_key au navigateur (GRANT anon+authenticated).
--- C-05 : sa branche non-owner référençait team_members, table inexistante (42P01).
--- E-08 : org_email_config lisible/écrivable en clair par le client (colonne resend_api_key).
--- E-09 : org_integrations.access_token/refresh_token/config redescendaient au DOM.
--- C-06 : RLS chat mono-tenant (chat_messages_select = auth.uid() IS NOT NULL ;
---        chat_channels_all = created_by seul).
--- B-19 : clients.organization_id jamais posé — backfill des lignes legacy.
--- Mécanisme D1 : trigger SÉPARÉ protect_secret_fields (protect_org_fields, artefact CR-3,
--- n'est PAS touché — R25 §2). Un REVOKE(colonne) seul serait inopérant tant qu'un GRANT
--- table-level existe : on REVOKE table puis on re-GRANT les colonnes sûres.
--- Appliqué : PRÉPROD (wxbape…) d'abord. PROD : runbook dédié validé (R8) —
--- précédent : 20260704190000_protect_billing_fields.
+-- CR-8/CR-9 (fix/secrets-backend) — 5 July 2026
+-- C-04: the get_org_email_config RPC returned resend_api_key to the browser (GRANT anon+authenticated).
+-- C-05: its non-owner branch referenced team_members, a non-existent table (42P01).
+-- E-08: org_email_config readable/writable in clear text by the client (resend_api_key column).
+-- E-09: org_integrations.access_token/refresh_token/config were sent down to the DOM.
+-- C-06: single-tenant chat RLS (chat_messages_select = auth.uid() IS NOT NULL;
+--       chat_channels_all = created_by only).
+-- B-19: clients.organization_id never set — backfill of legacy rows.
+-- D1 mechanism: SEPARATE trigger protect_secret_fields (protect_org_fields, a CR-3 artifact,
+-- is NOT touched — R25 §2). A column-level REVOKE alone would be ineffective as long as a
+-- table-level GRANT exists: we REVOKE the table then re-GRANT the safe columns.
+-- Applied: PRE-PROD (wxbape…) first. PROD: dedicated runbook approved (R8) —
+-- precedent: 20260704190000_protect_billing_fields.
 
 -- ============================================================
--- §1 — RPC : suppression de la fuite (C-04) + réparation membre (C-05)
+-- §1 — RPC: leak removal (C-04) + member repair (C-05)
 -- ============================================================
 
 drop function if exists public.get_org_email_config(uuid);
@@ -26,11 +26,11 @@ as $$
 declare
   v_owner uuid;
 begin
-  -- Owner direct : sa propre config
+  -- Direct owner: their own config
   if exists (select 1 from org_email_config o where o.owner_id = auth.uid()) then
     v_owner := auth.uid();
   else
-    -- Membre : la config de l'owner de son organisation
+    -- Member: the config of their organization's owner
     select org.owner_id into v_owner
     from profiles p
     join organizations org on org.id = p.organization_id
@@ -55,30 +55,30 @@ grant execute on function public.get_org_email_status() to authenticated;
 grant execute on function public.get_org_email_status() to service_role;
 
 -- ============================================================
--- §2 — Custody serveur des colonnes secrètes (E-08, E-09)
+-- §2 — Server-side custody of secret columns (E-08, E-09)
 -- ============================================================
 
--- org_email_config : plus AUCUN accès client. Lecture statut = RPC ci-dessus ;
--- lecture/écriture de la config = backend service_role uniquement (/api/email/config).
+-- org_email_config: NO client access at all any more. Status read = the RPC above;
+-- reading/writing the config = service_role back end only (/api/email/config).
 revoke all on table public.org_email_config from anon, authenticated;
 
--- org_integrations : le client garde la liste (colonnes sûres) et la déconnexion
--- (DELETE, gaté par la RLS user_id existante). Secrets et config : service_role seul.
+-- org_integrations: the client keeps the list (safe columns) and disconnection
+-- (DELETE, gated by the existing user_id RLS). Secrets and config: service_role only.
 revoke all on table public.org_integrations from anon, authenticated;
 grant select (id, user_id, integration_id, status, connected_at, updated_at)
   on public.org_integrations to authenticated;
 grant delete on public.org_integrations to authenticated;
 
 -- ============================================================
--- §3 — Purge des secrets legacy en clair (D5 validé : rien à préserver, pré-beta)
+-- §3 — Purge of legacy clear-text secrets (D5 approved: nothing to preserve, pre-beta)
 -- ============================================================
 
 delete from public.org_email_config;
 update public.profiles set resend_api_key = null where resend_api_key is not null;
 
--- profiles.resend_api_key : colonne morte (plus lue ni écrite par le code).
--- auth.js fait select('*') sur profiles → pas de REVOKE colonne ici ; on bloque
--- la réécriture par trigger (pattern protect_billing_fields, fonction séparée).
+-- profiles.resend_api_key: dead column (no longer read or written by the code).
+-- auth.js does select('*') on profiles → no column REVOKE here; we block
+-- rewriting via a trigger (protect_billing_fields pattern, separate function).
 create or replace function public.protect_secret_fields() returns trigger
 language plpgsql as $$
 begin
@@ -97,8 +97,8 @@ create trigger trg_protect_secret_fields
   for each row execute function public.protect_secret_fields();
 
 -- ============================================================
--- §4 — Chat multi-tenant (C-06) — scoping par organisation via get_my_org_id()
---       (SECURITY DEFINER existant, baseline L148 — conforme E14, zéro self-référence)
+-- §4 — Multi-tenant chat (C-06) — scoping by organization via get_my_org_id()
+--       (existing SECURITY DEFINER, baseline L148 — compliant with E14, zero self-reference)
 -- ============================================================
 
 alter table public.chat_channels add column if not exists organization_id uuid;
@@ -120,7 +120,7 @@ drop policy if exists chat_messages_insert on public.chat_messages;
 drop policy if exists chat_messages_update on public.chat_messages;
 drop policy if exists chat_messages_delete on public.chat_messages;
 
--- D3 validé : user sans org = chat personnel (branche organization_id IS NULL).
+-- D3 approved: a user without an org = personal chat (organization_id IS NULL branch).
 create policy chat_channels_select on public.chat_channels for select using (
   (organization_id is not null and organization_id = public.get_my_org_id())
   or (organization_id is null and created_by = auth.uid())

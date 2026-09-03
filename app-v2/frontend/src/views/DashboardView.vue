@@ -10,7 +10,7 @@
 <AiInsightPanel module="dashboard" :title="t('ai_dashboard_title')" :button-label="t('ai_dashboard_btn')" :message="t('ai_dashboard_prompt')" />
 
 <div class="dash-columns">
-<!-- COUNT-353-352 : total affiché = clientsOnly, même base que healthy/watch/critical -->
+<!-- COUNT-353-352: displayed total = clientsOnly, same base as healthy/watch/critical -->
 <DashWatchAccounts :watch-accounts="watchAccounts" :healthy-arc="healthyArc" :watch-arc="watchArc" :critical-arc="criticalArc" :circumference="circumference" :total-clients="clients.clientsOnly.length" :healthy-count="clients.healthyCount" :watch-count="clients.watchCount" :critical-count="clients.criticalCount" />
 <DashMyTasks :filtered-tasks="filteredTasks" :task-tabs="taskTabs" :active-tab="activeTaskTab" :clients-map="clientsMap" @tab-change="activeTaskTab = $event" />
 </div>
@@ -49,10 +49,10 @@ const tasks = useTaskStore()
 const snapStore = useSnapshotStore()
 const quoteStore = useQuoteStore()
 const metricsStore = useClientMetricsStore()
-// KPIs auto dérivés des devis + agrégats manuels : chargés au montage (idempotent)
+// Auto KPIs derived from quotes + manual aggregates: loaded on mount (idempotent)
 if (!quoteStore.quotes.length) quoteStore.loadQuotes()
 metricsStore.loadAll()
-const canCustomizeKpis = computed(() => hasFeature(auth.effectivePlan, 'dashboardKPIsAvances'))
+const canCustomizeKpis = computed(() => hasFeature(auth.effectivePlan, 'advancedDashboardKpis'))
 
 const customizerOpen = ref(false)
 const defaultKpis = ['arr', 'health_score', 'churn_rate', 'nps', 'nrr', 'active_users']
@@ -87,26 +87,26 @@ const DATA_SOURCES = computed(() => ({
   nps: clients.avgNps,
   nrr: clients.getNrr(beginningArr.value, currentPeriodDays.value),
   active_users: clients.activeCount,
-  // Lot client_metrics (contrat 22/07) — 8 dérivés auto (formules R21, jamais saisis) :
+  // client_metrics batch (contract 22/07) — 8 auto-derived values (R21 formulas, never entered by hand):
   mrr: clients.totalMrr,
-  revenue_total: quoteStore.wonTotal,          // Σ devis gagnés org (= CA signée org-wide)
-  pipeline_value: quoteStore.pipelineTotal,    // Σ devis brouillon + envoyés
-  win_rate: quoteStore.winRate,                // gagnés/(gagnés+perdus) — null si 0 clos
+  revenue_total: quoteStore.wonTotal,          // Σ won quotes org-wide (= org-wide signed revenue)
+  pipeline_value: quoteStore.pipelineTotal,    // Σ draft + sent quotes
+  win_rate: quoteStore.winRate,                // won/(won+lost) — null if 0 closed
   new_clients: clients.getNewClients(currentPeriodDays.value),
   accounts_per_csm: clients.csmLoadStats.accountsPerCsm,
   arr_per_csm: clients.csmLoadStats.arrPerCsm,
   tasks_completion: tasks.completionRate,
-  // KPIs manuels : agrégat org des mesures mensuelles saisies sur les fiches client
-  // (le store ne produit QUE des ids source:'manual' — aucune collision possible)
+  // Manual KPIs: org-wide aggregate of the monthly measurements entered on client records
+  // (the store produces ONLY source:'manual' ids — no collision possible)
   ...metricsStore.orgAggregates,
 }))
 const WARN_RULES = { health_score: { below: 5 }, churn_rate: { above: 10 }, nps: { below: 30 }, nrr: { below: 85 } }
 
-// B-10 : le snapshot du jour doit partir MÊME quand les clients sont déjà chargés au
-// montage (loadAllStores au login = cas nominal) — l'ancien watch {once} sans immediate
-// ne se déclenchait jamais dans ce cas → aucun historique → variations toujours vides.
-// immediate:true + flag manuel (pas de stop() dans son propre callback, piège watch-once).
-// Placé APRÈS DATA_SOURCES : le callback immediate est synchrone au setup (TDZ sinon).
+// B-10: the day's snapshot must be sent EVEN when the clients are already loaded on
+// mount (loadAllStores at login = nominal case) — the old watch {once} without immediate
+// never fired in that case → no history → variations always empty.
+// immediate:true + manual flag (no stop() inside its own callback, the watch-once trap).
+// Placed AFTER DATA_SOURCES: the immediate callback is synchronous with setup (TDZ otherwise).
 let snapshotSaved = false
 watch(() => clients.clients.length, (len) => {
   if (snapshotSaved || !len) return
@@ -120,8 +120,8 @@ const cat = catalogMap[id]
 if (!cat) return null
 const catIcon = categoryMap[cat.cat]?.icon || '📊'
 const currentValue = DATA_SOURCES.value[id] ?? null
-// HEALTH-SCALE : un score porte son échelle au rendu (« 6,4/10 », « 4,2/7 ») — le catalogue
-// la déclarait (unit) mais la tuile ne l'affichait pas, d'où « 6,4 » sans repère.
+// HEALTH-SCALE: a score carries its scale at render time ("6,4/10", "4,2/7") — the catalog
+// declared it (unit) but the tile did not display it, hence "6,4" with no frame of reference.
 const unit = cat.format === 'score' && cat.unit && currentValue != null ? cat.unit : ''
 const display = fmtKpiValue(currentValue, cat.format) + unit
 const lowerIsBetter = !!cat.inverse
@@ -129,18 +129,18 @@ const change = currentValue != null ? snapStore.calcChange(id, currentValue, sna
 const rule = WARN_RULES[id]
 const warn = rule && currentValue != null ? (rule.above != null ? currentValue > rule.above : rule.below != null ? currentValue < rule.below : false) : false
 const label = locale.value === 'en' ? (cat.labelEN || cat.label) : locale.value === 'ko' ? (cat.labelKO || cat.label) : cat.label
-// B-06 : contrat calcChange = {value,type,hasData} — le badge affiche value (« +X% ») et se colore par type (l'ancien mapping lisait label/class inexistants → badge vide toujours neutre)
+// B-06: calcChange contract = {value,type,hasData} — the badge displays value ("+X%") and is colored by type (the old mapping read non-existent label/class → empty, always-neutral badge)
 return { id, icon: catIcon, label, display, warn, change: change?.value ?? null, changeLabel: change?.value ?? '', changeClass: change?.type ?? 'neutral' }
 }).filter(Boolean)
 })
 
-// formatKpiValue local extrait vers lib/formatters.fmtKpiValue (source unique,
-// partag\u00e9 fiche client + wizard copil \u2014 lot client_metrics 22/07, R25 \u00a73)
+// local formatKpiValue extracted into lib/formatters.fmtKpiValue (single source,
+// shared by the client record + copil wizard — client_metrics batch 22/07, R25 §3)
 
 const circumference = (2 * Math.PI * 52).toFixed(1)
-// COUNT-353-352 (29/08) : même base que les compteurs du store (healthy/watch/critical =
-// clientsOnly, prospects exclus) — le donut divisait 352 segments par un total de 353,
-// et la watchlist pouvait lister un prospect « critique » sans donnée de santé.
+// COUNT-353-352 (29/08): same base as the store counters (healthy/watch/critical =
+// clientsOnly, prospects excluded) — the donut divided 352 segments by a total of 353,
+// and the watchlist could list a "critical" prospect with no health data.
 const total = computed(() => clients.clientsOnly.length || 1)
 const healthyArc = computed(() => ((clients.healthyCount / total.value) * circumference).toFixed(1))
 const watchArc = computed(() => ((clients.watchCount / total.value) * circumference).toFixed(1))

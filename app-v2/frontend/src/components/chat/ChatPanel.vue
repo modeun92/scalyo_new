@@ -8,7 +8,7 @@
       @close="$emit('close')"
     />
     <div class="cp-main">
-      <!-- C-07 : les échecs du store sont affichés (le panneau était muet) -->
+      <!-- C-07: the store's failures are displayed (the panel used to be mute) -->
       <div v-if="store.lastError" class="cp-error-toast">
         <span>{{ t('chat_err_' + store.lastError) }}</span>
         <button class="cp-error-close" @click="store.clearError()">✕</button>
@@ -62,13 +62,13 @@ function handleRenameChannel(ch) {
 
 onMounted(() => {
   if (store.channels.length === 0) store.init()
-  // G9-20 : la surface devient visible — le canal affiché est lu
+  // G9-20: the surface becomes visible — the displayed channel is marked as read
   store.setSurfaceVisible(true)
 })
 
 onUnmounted(() => {
-  // G9-20 : NE PAS détruire le realtime ici (sinon plus de badge après fermeture).
-  // destroy() appartient au démontage d'AppLayout / logout.
+  // G9-20: do NOT destroy the realtime connection here (otherwise no badge after closing).
+  // destroy() belongs to AppLayout unmount / logout.
   store.setSurfaceVisible(false)
 })
 </script>

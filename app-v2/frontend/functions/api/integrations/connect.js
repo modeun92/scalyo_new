@@ -13,7 +13,7 @@ export async function onRequestGet(context) {
   const authHeader = request.headers.get('Authorization')
   if (!authHeader) return Response.redirect(appUrl + '?integration_error=unauthorized', 302)
   const supabaseUrl = env.SUPABASE_URL
-    // ENV-FALLBACK-PROD (lot 6) : plus de repli en dur vers la base de PRODUCTION.
+    // ENV-FALLBACK-PROD (Lot 6): no more hard-coded fallback to the PRODUCTION database.
     if (!supabaseUrl) throw new Error('Missing required environment variable: SUPABASE_URL')
   const userRes = await fetch(supabaseUrl + '/auth/v1/user', { headers: { 'Authorization': authHeader, 'apikey': env.SUPABASE_SERVICE_ROLE_KEY } })
   if (!userRes.ok) return Response.redirect(appUrl + '?integration_error=unauthorized', 302)

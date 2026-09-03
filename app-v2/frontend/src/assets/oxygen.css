@@ -1,8 +1,8 @@
-/* OXYGEN — page unique (Lot 3a) — Scalyo */
-/* Palette apaisée dédiée : violets/bleus doux via variables existantes,
-   ZÉRO rouge sur les surfaces Oxygen (règle produit). Le bloc urgences
-   conservé (WbEmergency) garde volontairement son rouge de sécurité.
-   Dark/light hérités de main.css par les variables. Motion lente. */
+/* OXYGEN — single page (Lot 3a) — Scalyo */
+/* Dedicated calm palette: soft violets/blues via the existing variables,
+   ZERO red on the Oxygen surfaces (product rule). The urgent-items block
+   that was kept (WbEmergency) deliberately keeps its safety red.
+   Dark/light inherited from main.css through the variables. Slow motion. */
 
 .oxy-view { max-width: 800px; margin: 0 auto; padding: 0 16px; }
 .oxy-view h1 { margin-bottom: 12px; }
@@ -12,7 +12,7 @@
 
 .oxy-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 20px; margin-bottom: 20px; }
 
-/* ── Indice du jour ── */
+/* ── Index of the day ── */
 .oxy-index-main { display: flex; align-items: baseline; gap: 14px; }
 .oxy-index-big { font-size: 2.6rem; font-weight: 800; color: var(--purple); line-height: 1; }
 .oxy-index-meta { display: flex; flex-direction: column; gap: 2px; }
@@ -20,7 +20,7 @@
 .oxy-index-hint { font-size: 0.78rem; color: var(--text-muted); }
 .oxy-div { font-size: 0.78rem; color: var(--text-secondary); background: var(--purple-bg); border-radius: var(--radius-sm); padding: 8px 10px; margin: 12px 0 0; line-height: 1.45; }
 
-/* ── Météo de charge ── */
+/* ── Load weather ── */
 .oxy-weather-line { display: flex; align-items: baseline; gap: 8px; margin-bottom: 12px; }
 .oxy-load-num { font-size: 1.6rem; font-weight: 800; color: var(--text); }
 .oxy-load-label { font-size: 0.78rem; color: var(--text-muted); }
@@ -30,7 +30,7 @@
 .oxy-chip-x { background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: 0.7rem; padding: 0 2px; }
 .oxy-chip-x:hover { color: var(--text); }
 
-/* ── Série + jours off ── */
+/* ── Streak + days off ── */
 .oxy-streak-line { font-size: 0.9rem; font-weight: 600; color: var(--text); margin: 0 0 4px; }
 .oxy-pardon-hint { font-size: 0.75rem; color: var(--text-muted); margin: 0 0 10px; }
 .oxy-offdays { margin-top: 10px; }
@@ -57,7 +57,7 @@
   .oxy-day-toggle { transition: none; }
 }
 
-/* ── Lot 3b : Fermeture (carte page) + le Ciel ── */
+/* ── Lot 3b: Closing (page card) + the Sky ── */
 .oxy-ferm-launch { padding: 10px 18px; border: none; border-radius: 999px; background: var(--purple); color: #fff; font-size: 0.85rem; font-weight: 600; cursor: pointer; }
 .oxy-ferm-launch:hover { opacity: 0.92; }
 .oxy-ferm-done-line { font-size: 0.85rem; color: var(--text-secondary); margin: 0; }

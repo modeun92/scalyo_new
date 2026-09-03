@@ -3,8 +3,8 @@
 // Verifies HMAC signature, updates user plan + seats in Supabase.
 
 import { getConfig } from './_config/index.js'
-// BILLING-SEAT (D3, 27/08/2026) : la table des prix vit dans _config/prices.js (source unique) ;
-// PRICE_TO_PLAN en est dérivé, mêmes 9 couples devise_montant → plan qu'avant.
+// BILLING-SEAT (D3, 27/08/2026): the price table lives in _config/prices.js (single source);
+// PRICE_TO_PLAN is derived from it, with the same 9 currency_amount → plan pairs as before.
 import { planFromPrice } from './_config/prices.js'
 
 // --- HMAC-SHA256 Stripe signature verification ---
@@ -53,10 +53,10 @@ async function updateProfile(config, userId, updates) {
   return response.ok
 }
 
-// D2 (contrat gating 8/07) : l'org est la source unique du plan effectif (D1) —
-// le webhook ecrit AUSSI organizations (ou owner_id = userId), sinon les membres
-// d'un owner payant restent gates starter. service_role : trigger
-// protect_org_billing_fields non bloquant (authenticated seulement).
+// D2 (gating contract 8/07): the org is the single source of the effective plan (D1) —
+// the webhook ALSO writes organizations (where owner_id = userId), otherwise the members
+// of a paying owner stay gated on starter. service_role: the
+// protect_org_billing_fields trigger is non-blocking (authenticated only).
 async function updateOrgForOwner(config, userId, updates) {
   const url = config.supabaseUrl + '/rest/v1/organizations?owner_id=eq.' + userId
   const response = await fetch(url, {
@@ -86,9 +86,9 @@ async function findUserByCustomerId(config, customerId) {
 }
 
 // --- Event handlers ---
-// CR-3 A1 : les payloads webhook n'incluent JAMAIS line_items (uniquement via
-// l'API avec expand). Sans re-fetch, un checkout avec essai (amount_total=0)
-// ne résout aucun plan → aucun provisioning.
+// CR-3 A1: webhook payloads NEVER include line_items (only via
+// the API with expand). Without a re-fetch, a checkout with a trial (amount_total=0)
+// resolves no plan → no provisioning.
 async function fetchSessionWithLineItems(config, sessionId) {
   if (!config.stripeSecretKey || !sessionId) return null
   const r = await fetch('https://api.stripe.com/v1/checkout/sessions/' + sessionId + '?expand[]=line_items', {
@@ -113,15 +113,15 @@ async function handleCheckoutCompleted(session, config) {
     plan = planFromPrice(item.price.currency, item.price.unit_amount)
     seatsPaid = item.quantity || 1
   }
-  // Fallback: session-level currency + amount_total / quantity (0 si essai → non résolu)
+  // Fallback: session-level currency + amount_total / quantity (0 on a trial → unresolved)
   if (!plan && session.currency && session.amount_total) {
     const qty = lineItems[0]?.quantity || 1
     const unitAmount = Math.round(session.amount_total / qty)
     plan = planFromPrice(session.currency, unitAmount)
     seatsPaid = qty
   }
-  // CR-3 A1 : toujours poser customer/subscription — même si le plan reste non
-  // résolu ici, customer.subscription.updated pourra rattraper via customer_id.
+  // CR-3 A1: always set customer/subscription — even if the plan stays
+  // unresolved here, customer.subscription.updated will be able to catch up via customer_id.
   const base = {
     stripe_subscription_id: session.subscription || null,
     stripe_customer_id: session.customer || null,
@@ -145,8 +145,8 @@ async function handleSubscriptionUpdated(subscription, config) {
       plan: null, seats_paid: 0, stripe_subscription_id: null,
       subscription_end_date: subscription.current_period_end ? new Date(subscription.current_period_end * 1000).toISOString() : null,
     })
-    // D2 : org.plan NOT NULL -> retour au plancher starter (un acces promo encore
-    // valide reste porte par trial_ends_at, non touche ici)
+    // D2: org.plan NOT NULL -> back to the starter floor (a still-valid promo
+    // access is carried by trial_ends_at, which is not touched here)
     await updateOrgForOwner(config, userId, { plan: 'starter', seats_paid: 1, stripe_subscription_id: null })
     return ok
   }

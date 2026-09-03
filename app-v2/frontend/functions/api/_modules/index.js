@@ -1,7 +1,7 @@
 import { handle as coach } from './coach.module.js'
 import { handle as nova } from './nova.module.js'
 import { handle as importMod } from './import.module.js'
-import { handle as matrice } from './matrice.module.js'
+import { handle as matrix } from './matrix.module.js'
 import { handle as copil } from './copil.module.js'
 import { handle as playbook } from './playbook.module.js'
 import { handle as email } from './email.module.js'
@@ -36,6 +36,6 @@ async function wellbeing(env, body) {
   return { response }
 }
 
-const modules = { coach, nova, wellbeing, import: importMod, matrice, copil, playbook, email, dashboard, notif }
+const modules = { coach, nova, wellbeing, import: importMod, matrix, copil, playbook, email, dashboard, notif }
 
 export function getModule(name) { return modules[name] || null }

@@ -1,5 +1,5 @@
--- SCALYO — Chat Tables (persistance + temps réel)
--- Exécuter dans Supabase SQL Editor
+-- SCALYO — Chat tables (persistence + realtime)
+-- Run in the Supabase SQL Editor
 
 -- 1. CHANNELS
 CREATE TABLE IF NOT EXISTS public.chat_channels (
@@ -36,11 +36,11 @@ ALTER TABLE public.chat_messages ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "chat_messages_all" ON public.chat_messages;
 CREATE POLICY "chat_messages_all" ON public.chat_messages FOR ALL USING (true) WITH CHECK (true);
 
--- 3. Activer Realtime sur les deux tables
+-- 3. Enable Realtime on both tables
 ALTER PUBLICATION supabase_realtime ADD TABLE public.chat_channels;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.chat_messages;
 
--- 4. Insérer les channels par défaut (si vides)
+-- 4. Insert the default channels (if empty)
 INSERT INTO public.chat_channels (id, name, description, type) VALUES
   ('00000000-0000-0000-0000-000000000001', 'general', 'Discussion generale', 'channel'),
   ('00000000-0000-0000-0000-000000000002', 'cs-team', 'Equipe Customer Success', 'channel'),

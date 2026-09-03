@@ -50,8 +50,8 @@ import ScalyoLogo from '@/components/ScalyoLogo.vue'
 defineProps({
   scrolled: { type: Boolean, default: false },
   locale:   { type: String, default: 'fr' },
-  // SEO-I18N : sans cette prop, le logo renverrait de /ko/ vers la version
-  // francaise — un lien interne qui contredit la langue de la page.
+  // SEO-I18N: without this prop, the logo would send the user from /ko/ to the
+  // French version — an internal link that contradicts the page's language.
   homePath: { type: String, default: '/' },
   langs:    { type: Array, required: true },
   appUrl:   { type: String, default: '' },

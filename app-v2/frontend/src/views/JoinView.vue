@@ -19,7 +19,7 @@
           <router-link v-else to="/login" class="btn-primary full" style="margin-top:20px;text-decoration:none">{{ t('login_submit') }}</router-link>
         </div>
 
-        <!-- Confirmation d'email apres inscription -->
+        <!-- Email confirmation after sign-up -->
         <div v-else-if="confirmationRequired" class="confirm-header">
           <div class="success-icon">📧</div>
           <h1>{{ t('join_confirm_title') }}</h1>
@@ -27,7 +27,7 @@
           <router-link to="/login" class="btn-primary full" style="margin-top:20px;text-decoration:none">{{ t('login_submit') }}</router-link>
         </div>
 
-        <!-- Refus typés (D1① / D2① / sièges / invitation morte) -->
+        <!-- Typed refusals (D1① / D2① / seats / dead invitation) -->
         <div v-else-if="blocked" class="blocked-header">
           <div class="success-icon">🚫</div>
           <h1>{{ blockedTitle }}</h1>
@@ -36,7 +36,7 @@
           <router-link v-else-if="isAuthenticated" to="/app/dashboard" class="btn-secondary full" style="text-decoration:none">{{ t('join_go_dashboard') }}</router-link>
         </div>
 
-        <!-- Etat (iii) : deja connecte → carte de confirmation, un clic explicite -->
+        <!-- State (iii): already logged in → confirmation card, one explicit click -->
         <template v-else-if="isAuthenticated">
           <h1>{{ t('join_title') }}</h1>
           <div class="join-info">
@@ -53,7 +53,7 @@
           <button class="btn-link full" @click="useAnotherAccount">{{ t('join_other_account') }}</button>
         </template>
 
-        <!-- Etats (i) et (ii) : deconnecte → inscription, ou connexion si compte existant -->
+        <!-- States (i) and (ii): logged out → sign-up, or log in if the account exists -->
         <template v-else>
           <h1>{{ t('join_title') }}</h1>
           <div class="join-info">
@@ -160,11 +160,11 @@ onMounted(async () => {
     const data = await resp.json()
     if (resp.ok && data.valid) {
       invitation.value = { ...data, token }
-      // Le jeton ne dort plus dans le navigateur : l'acceptation est un clic,
-      // jamais un effet de bord du prochain login (INVITE-ANY-USER).
+      // The token no longer sleeps in the browser: acceptance is a click,
+      // never a side effect of the next login (INVITE-ANY-USER).
       try { localStorage.removeItem(PENDING_INVITE_KEY) } catch (_) {}
-      // D1① — verification cote client, pour AFFICHER le refus avant tout appel.
-      // Le serveur refait la meme verification : c'est lui qui fait foi.
+      // D1① — client-side check, to DISPLAY the refusal before any call.
+      // The server performs the same check: it is the authority.
       if (authStore.isAuthenticated) {
         const invited = String(data.email || '').trim().toLowerCase()
         const current = String(currentEmail.value || '').trim().toLowerCase()
@@ -208,7 +208,7 @@ async function postAccept(accessToken) {
   return { res, data }
 }
 
-// Etat (iii) — deja connecte, email conforme : un clic, une acceptation.
+// State (iii) — already logged in, matching email: one click, one acceptance.
 async function acceptAsCurrentUser() {
   if (joining.value) return
   registerError.value = ''
@@ -230,35 +230,35 @@ async function acceptAsCurrentUser() {
   } finally { joining.value = false }
 }
 
-// Etat (ii) — deconnecte avec un compte existant : se connecter PUIS revenir
-// ici pour un clic explicite (LoginView honore ?redirect=).
+// State (ii) — logged out with an existing account: log in THEN come back
+// here for an explicit click (LoginView honors ?redirect=).
 function goLoginToAccept() {
   router.push('/login?redirect=' + encodeURIComponent(joinPath()))
 }
 
-// Sortie D1① — changer de compte sans perdre l'invitation.
+// D1① exit — switch account without losing the invitation.
 async function useAnotherAccount() {
   const target = joinPath()
   try { await authStore.logout() } catch (_) {}
   router.push('/login?redirect=' + encodeURIComponent(target))
 }
 
-// Etat (i) — inscription depuis l'invitation (chemin nominal, inchange).
+// State (i) — sign-up from the invitation (nominal path, unchanged).
 async function handleJoin() {
   if (joining.value || !cguAccepted.value) return
   registerError.value = ''
   joining.value = true
   try {
     const result = await authStore.register(invitation.value.email, password.value, firstName.value, lastName.value, locale.value)
-    // G9-6 : jamais d'objet brut à l'écran (« {} ») — message string ou fallback i18n
+    // G9-6: never a raw object on screen ("{}") — string message or i18n fallback
     if (!result.success) { registerError.value = (typeof result.error === 'string' && result.error) || t('join_error'); return }
-    // Chemin « confirmation d'email activee » : aucune session immediate. Le jeton est
-    // repose ici pour que acceptPendingInvite l'active au premier login — ce que
-    // l'ecran join_confirm_email promet a l'utilisateur.
-    // Sans danger depuis le lot 6 : auth.js appelle /api/invite/verify et ne rejoue le
-    // jeton QUE si l'email vise est celui du compte connecte (contrat §4d, voie sure).
-    // Le jeton n'est pose qu'apres une inscription REUSSIE sur l'email de l'invitation,
-    // jamais au montage de la vue : le chemin destructeur d'INVITE-ANY-USER reste ferme.
+    // "Email confirmation enabled" path: no immediate session. The token is
+    // put back here so acceptPendingInvite activates it at the first login — which is what
+    // the join_confirm_email screen promises the user.
+    // Safe since Lot 6: auth.js calls /api/invite/verify and only replays the
+    // token IF the targeted email is the one of the logged-in account (contract §4d, safe route).
+    // The token is only set after a SUCCESSFUL sign-up on the invitation's email,
+    // never on view mount: the destructive INVITE-ANY-USER path stays closed.
     if (result.needsConfirmation) { persistPendingInvite(); confirmationRequired.value = true; return }
     const { data: sessData } = await supabase.auth.getSession()
     const accessToken = sessData?.session?.access_token

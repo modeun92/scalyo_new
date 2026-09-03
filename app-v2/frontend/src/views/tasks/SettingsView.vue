@@ -118,8 +118,8 @@ const countryLaws = useCountryLawStore()
 const toast = ref('')
 
 const form = reactive({
-  // E-04 (même bug d'init) : auth.user?.firstName n'existe pas sur l'objet User GoTrue
-  // — le prénom réel vit dans auth.profile.first_name
+  // E-04 (same init bug): auth.user?.firstName does not exist on the GoTrue User object
+  // — the real first name lives in auth.profile.first_name
   firstName: auth.profile?.first_name || '',
   country: auth.company?.country || 'FR',
   company: auth.company?.name || '',
@@ -132,9 +132,9 @@ const form = reactive({
   dailyFixedHours: 1.5,
 })
 
-// D-16 : réglages persistés PAR UTILISATEUR — clé user-scopée (jamais la fuite
-// cross-comptes de D-07), préférence locale au device, zéro nouvelle colonne.
-// L'overlay est appliqué AVANT l'enregistrement du watch country (pas de re-fire).
+// D-16: settings persisted PER USER — user-scoped key (never the D-07
+// cross-account leak), a device-local preference, zero new column.
+// The overlay is applied BEFORE the country watch is registered (no re-fire).
 const SETTINGS_KEY = 'scalyo_tasks_settings_' + (auth.user?.id || 'anon')
 try { Object.assign(form, JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}')) } catch (_) {}
 watch(form, (v) => { try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(v)) } catch (_) {} }, { deep: true })

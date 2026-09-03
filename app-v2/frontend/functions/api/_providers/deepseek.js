@@ -1,8 +1,8 @@
-// === SCALYO — DeepSeek AI Provider (fallback de secours UNIQUEMENT) ===
-// ⚠️ NON hébergé UE. N'est appelé QUE si Mistral (principal, EU/RGPD) tombe en
-// panne totale, et UNIQUEMENT avec un prompt anonymisé (voir _services/anonymize.js).
-// Aucune donnée personnelle ne doit atteindre ce fournisseur. E5 : jamais nommé dans le front.
-// API OpenAI-compatible.
+// === SCALYO — DeepSeek AI provider (emergency fallback ONLY) ===
+// ⚠️ NOT hosted in the EU. Called ONLY if Mistral (primary, EU/GDPR) suffers a
+// total outage, and ONLY with an anonymized prompt (see _services/anonymize.js).
+// No personal data must reach this provider. E5: never named in the front end.
+// OpenAI-compatible API.
 
 const DEEPSEEK_API_URL = 'https://api.deepseek.com/chat/completions'
 

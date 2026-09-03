@@ -60,9 +60,9 @@ const props = defineProps({
   locale: { type: String, default: 'fr' }
 })
 
-// Devises alignees sur les prix Stripe reels (functions/api/stripe-webhook.js, PRICE_TO_PLAN) :
+// Currencies aligned with the real Stripe prices (functions/api/stripe-webhook.js, PRICE_TO_PLAN):
 // eur 79/119/159 - usd 89/139/189 - krw 139000/209000/279000.
-// LandingPage.vue propage les codes fr | en | kr (jamais 'ko').
+// LandingPage.vue propagates the codes fr | en | kr (never 'ko').
 const CURRENCIES = {
   fr: { symbol: '\u20ac', suffix: true,  tag: 'fr-FR', seat: [79, 119, 159],
         arr: { def: 15000, min: 1000, max: 100000, step: 1000 } },
@@ -79,8 +79,8 @@ const roiAcc = ref(30)
 const roiArr = ref((CURRENCIES[props.locale] || CURRENCIES.fr).arr.def)
 const roiChurn = ref(12)
 
-// Changer de langue change de devise : l'ARR est remis a l'echelle de la nouvelle devise,
-// sinon 15 000 EUR deviendrait 15 000 KRW (~10 EUR) et le calcul serait absurde.
+// Changing the language changes the currency: the ARR is rescaled to the new currency,
+// otherwise 15,000 EUR would become 15,000 KRW (~10 EUR) and the calculation would be absurd.
 watch(() => props.locale, () => { roiArr.value = cur.value.arr.def })
 
 function money(v) {

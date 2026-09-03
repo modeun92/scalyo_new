@@ -4,7 +4,7 @@
       <div>
         <h1>💚 {{ t('wl_title') }}</h1>
       </div>
-      <!-- B-02 : import CSV retiré — un membre d'équipe est un compte auth réel, créé par invitation (CONTRAT CR-6 D1) -->
+      <!-- B-02: CSV import removed — a team member is a real auth account, created by invitation (CONTRACT CR-6 D1) -->
       <RouterLink class="btn-outline" to="/app/team">{{ t('wl_invite_members') }}</RouterLink>
       <div class="wl-score-badge" :class="scoreClass">
         <span class="wlsb-label">{{ t('wl_team_score') }}</span>
@@ -42,7 +42,7 @@
           </div>
         </div>
         <div class="wlc-details">
-          <!-- TEAM-METRICS (29/08) : dérivés réels du store clients par csm_id (B-09 : team store = null) -->
+          <!-- TEAM-METRICS (29/08): real values derived from the clients store by csm_id (B-09: team store = null) -->
           <span>{{ t('mgr_clients_managed') }}: <strong>{{ clientCountFor(m.id) }}</strong></span>
           <span>{{ t('mgr_arr_managed') }}: <strong>{{ fmtCurrency(arrManagedFor(m.id), { compact: true }) }}</strong></span>
           <span>{{ t('mgr_burnout_risk') }}: <span class="burnout-tag" :class="m.burnoutRisk || ''">{{ m.burnoutRisk ? t('mgr_burnout_' + m.burnoutRisk) : '—' }}</span></span>
@@ -78,11 +78,11 @@ const filters = [
   { key: 'risk', label: 'wl_filter_risk' },
 ]
 
-// B-09 : pas de donnée → pas de couleur, pas de compteur inventé
+// B-09: no data → no color, no invented counter
 const scoreClass = computed(() => { const s = team.teamHealthScore; if (typeof s !== 'number') return ''; return s >= 70 ? 'green' : s >= 50 ? 'amber' : 'red' })
 
 const filtered = computed(() => {
-  // TEAM-METRICS (D2, 29/08) : statsMembers = self-inclusif (statusLabel/burnoutRisk honnêtes, E-16/B-09)
+  // TEAM-METRICS (D2, 29/08): statsMembers = self-inclusive (honest statusLabel/burnoutRisk, E-16/B-09)
   let list = team.statsMembers
   if (activeFilter.value === 'overloaded') list = list.filter(m => m.statusLabel === 'overloaded')
   else if (activeFilter.value === 'healthy') list = list.filter(m => m.statusLabel && m.statusLabel !== 'overloaded')
@@ -100,13 +100,13 @@ function statusText(m) { if (!m.statusLabel) return '—'; return m.statusLabel 
 function wellbeingClass(s) { if (typeof s !== 'number') return ''; return s >= 70 ? 'green' : s >= 50 ? 'amber' : 'red' }
 function workloadClass(l) { if (typeof l !== 'number') return ''; return l <= 60 ? 'green' : l <= 80 ? 'amber' : 'red' }
 
-// TEAM-METRICS (29/08) : dérivés réels par csm_id, clients actifs (R21 — 0 = donnée vraie)
+// TEAM-METRICS (29/08): real values derived by csm_id, active clients (R21 — 0 is a true value)
 function clientCountFor(csmId) { return clients.clientsOnly.filter(c => c.csmId === csmId).length }
 function arrManagedFor(csmId) { return clients.clientsOnly.filter(c => c.csmId === csmId).reduce((s, c) => s + (c.arr || 0), 0) }
 
-// TEAM-METRICS (29/08) : bloc « Member CRUD » retiré — code MORT (aucun bouton du template
-// ne l'appelait, B-02 avait retiré la création manuelle : un membre = un compte auth réel
-// par invitation) et il portait un confirm() natif (interdit, NO-CONFIRM). Mantra zéro code mort.
+// TEAM-METRICS (29/08): the "Member CRUD" block was removed — DEAD code (no button in the template
+// called it, and B-02 had removed manual creation: a member = a real auth account
+// created by invitation) and it carried a native confirm() (forbidden, NO-CONFIRM). Zero-dead-code mantra.
 </script>
 
 <style scoped>
@@ -140,7 +140,7 @@ a.btn-outline:hover { border-color: var(--purple); color: var(--purple); }
 .wl-card { background-color: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 20px; transition: all 0.2s; }
 .wl-card:hover { box-shadow: var(--shadow-sm); }
 .wlc-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
-.wlc-avatar { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 1rem; flex-shrink: 0; background: var(--text-muted, #9ca3af); /* B-09 : neutre sans donnée */ }
+.wlc-avatar { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 1rem; flex-shrink: 0; background: var(--text-muted, #9ca3af); /* B-09: neutral without data */ }
 .wlc-avatar.healthy { background: var(--green); } .wlc-avatar.overloaded { background: var(--red); }
 .wlc-info { flex: 1; }
 .wlc-info strong { font-size: 0.95rem; display: block; }

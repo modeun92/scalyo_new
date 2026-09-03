@@ -4,9 +4,9 @@ import { supabase } from '@/lib/supabase'
 import { withWrite } from '@/lib/supabaseWrite'
 import { useAuthStore } from '@/stores/auth'
 
-// D-08 (feedback Lidia 20/07) : devis en base + RLS org-wide (partagés cross-CSM).
-// Remplace le localStorage de QuotesView. Import unique des anciens devis locaux au
-// premier chargement (garde localStorage pour ne rien perdre au passage en base).
+// D-08 (feedback from Lidia 20/07): quotes in the database + org-wide RLS (shared cross-CSM).
+// Replaces QuotesView's localStorage. One-off import of the old local quotes at
+// first load (keeps the localStorage copy so nothing is lost in the move to the database).
 export const useQuoteStore = defineStore('quotes', () => {
   const quotes = ref([])
   const loading = ref(false)
@@ -74,22 +74,22 @@ export const useQuoteStore = defineStore('quotes', () => {
     return quotes.value.filter(q => q.clientId === clientId)
   }
 
-  // CA signée (계약 금액) : somme HT des devis GAGNÉS d'un client. Dérivée (jamais
-  // stockée) → toujours juste, s'auto-corrige si un statut change. Distincte de l'ARR.
+  // Signed revenue (계약 금액): sum of a client's WON quotes, excluding tax. Derived (never
+  // stored) → always correct, self-correcting if a status changes. Distinct from ARR.
   function wonAmountForClient(clientId) {
     return quotes.value
       .filter(q => q.clientId === clientId && q.status === 'won')
       .reduce((s, q) => s + (Number(q.amount) || 0), 0)
   }
 
-  // Lot KPIs auto (contrat 22/07, R21) : dérivés org-wide des devis en base.
-  // CA total = Σ HT des devis GAGNÉS (même définition que la CA signée par client).
+  // Auto KPIs batch (contract 22/07, R21): derived org-wide from the quotes in the database.
+  // Total revenue = Σ pre-tax of WON quotes (same definition as the signed revenue per client).
   const wonTotal = computed(() =>
     quotes.value.filter(q => q.status === 'won').reduce((s, q) => s + (Number(q.amount) || 0), 0))
-  // Pipeline = Σ HT des devis ouverts (brouillon + envoyés)
+  // Pipeline = Σ pre-tax of open quotes (draft + sent)
   const pipelineTotal = computed(() =>
     quotes.value.filter(q => q.status === 'draft' || q.status === 'sent').reduce((s, q) => s + (Number(q.amount) || 0), 0))
-  // Win rate = gagnés / (gagnés + perdus) ×100 — aucun devis clos → null (« — »)
+  // Win rate = won / (won + lost) × 100 — no closed quote → null ("—")
   const winRate = computed(() => {
     const won = quotes.value.filter(q => q.status === 'won').length
     const lost = quotes.value.filter(q => q.status === 'lost').length
@@ -97,7 +97,7 @@ export const useQuoteStore = defineStore('quotes', () => {
     return parseFloat(((won / (won + lost)) * 100).toFixed(1))
   })
 
-  // Import unique des devis localStorage hérités → base (une fois par device)
+  // One-off import of the inherited localStorage quotes → database (once per device)
   async function migrateLocalOnce() {
     try {
       if (localStorage.getItem('scalyo_quotes_migrated_v1')) return

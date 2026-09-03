@@ -1,11 +1,11 @@
--- fix/chat-polish (G9-21, G9-19) : RPC noms des membres de l'org (D3)
--- + hygiène search_path sur get_my_org_id (même famille qu'ENV-3)
--- + backfill author_name des messages 'user_default'.
--- Appliquée en PRÉPROD le 2026-07-07 (SQL editor). À appliquer en PROD AVANT le merge main (piège 22).
--- Idempotente.
+-- fix/chat-polish (G9-21, G9-19): RPC for the names of the org's members (D3)
+-- + search_path hygiene on get_my_org_id (same family as ENV-3)
+-- + backfill of author_name for 'user_default' messages.
+-- Applied on PRE-PROD on 2026-07-07 (SQL editor). To be applied on PROD BEFORE merging main (pitfall 22).
+-- Idempotent.
 
--- D3 : exposition minimale (id, prénom, nom) des membres de l'org du caller.
--- Une policy RLS org sur profiles est EXCLUE : la table porte resend_api_key / champs Stripe (CR-8).
+-- D3: minimal exposure (id, first name, last name) of the members of the caller's org.
+-- An org-wide RLS policy on profiles is EXCLUDED: the table carries resend_api_key / Stripe fields (CR-8).
 create or replace function public.get_org_member_names()
 returns table(user_id uuid, first_name text, last_name text)
 language sql
@@ -23,11 +23,11 @@ revoke all on function public.get_org_member_names() from public;
 revoke all on function public.get_org_member_names() from anon;
 grant execute on function public.get_org_member_names() to authenticated;
 
--- Hygiène ENV-3 : get_my_org_id est SECURITY DEFINER sans search_path (proconfig NULL constaté
--- en préprod le 7/07). Utilisée par toutes les policies RLS org (chat, email_config).
+-- ENV-3 hygiene: get_my_org_id is SECURITY DEFINER without a search_path (proconfig NULL observed
+-- on pre-prod on 7/07). Used by every org RLS policy (chat, email_config).
 alter function public.get_my_org_id() set search_path = public;
 
--- Backfill : plus aucun message « user_default » ; prénom sinon préfixe email.
+-- Backfill: no more "user_default" messages; first name, otherwise the email prefix.
 update public.chat_messages m
 set author_name = coalesce(nullif(p.first_name, ''), split_part(u.email, '@', 1))
 from public.profiles p

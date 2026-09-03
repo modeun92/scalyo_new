@@ -11,7 +11,7 @@
     <!-- Country banner -->
     <div v-if="billingCountry" class="qt-country-banner">
       <span>{{ laws.flag }} {{ laws.name }}</span>
-      <!-- QUOTE-VAT (27/08) : le champ s'appelle taxRate — « laws.tva » n'a jamais existé -->
+      <!-- QUOTE-VAT (27/08): the field is called taxRate — "laws.tva" never existed -->
       <span>{{ t('qt_field_tax') }}: {{ laws.taxRate }}% ({{ laws.taxName }})</span>
       <span>{{ t('cl_currency') }}: {{ laws.currencySymbol }}</span>
     </div>
@@ -20,7 +20,7 @@
     <div class="qt-kpis">
       <div class="qtk"><span class="qtk-val">{{ quotes.length }}</span><span class="qtk-lbl">{{ t('qt_total') }}</span></div>
       <div class="qtk"><span class="qtk-val">{{ conversionRate }}%</span><span class="qtk-lbl">{{ t('qt_conversion') }}</span></div>
-      <!-- CURRENCY-FORMAT : un devis suit la devise de SON pays de facturation (code ISO de countryLaws), formaté à la locale -->
+      <!-- CURRENCY-FORMAT: a quote follows the currency of ITS billing country (ISO code from countryLaws), formatted to the locale -->
       <div class="qtk"><span class="qtk-val green">{{ fmtCurrency(wonAmount, { currency: laws.currency }) }}</span><span class="qtk-lbl">{{ t('qt_won') }}</span></div>
     </div>
 
@@ -106,10 +106,10 @@ const clientModal = useClientModalStore()
 const quoteStore = useQuoteStore()
 const prefill = useCreatePrefillStore()
 const countryLaws = useCountryLawStore()
-// D-08 : devis en base (partagés cross-CSM). Le store importe une fois les devis localStorage hérités.
+// D-08: quotes in the database (shared cross-CSM). The store imports the inherited localStorage quotes once.
 const quotes = computed(() => quoteStore.quotes)
-// Prefill depuis la fiche client (bouton « Devis ») : pré-sélection du client +
-// ouverture directe du formulaire de création. consume() = once (pas de rejeu).
+// Prefill from the client record ("Quote" button): client pre-selected +
+// the creation form opened directly. consume() = once (no replay).
 onMounted(() => {
   quoteStore.loadQuotes()
   const p = prefill.consume()
@@ -141,7 +141,7 @@ const conversionRate = computed(() => { const total = quotes.value.length; retur
 const wonAmount = computed(() => quotes.value.filter(q => q.status === 'won').reduce((s, q) => s + q.amount, 0))
 
 function clientName(id) { return clients.clients.find(c => c.id === id)?.name || '—' }
-// Devise d'un devis = celle de son pays (q.country), pas du pays sélectionné aujourd'hui
+// A quote's currency = that of its own country (q.country), not of the country selected today
 function quoteCurrency(q) { return countryLaws.getLaws(q.country || billingCountry.value).currency }
 
 function handlePdf(q) {
@@ -151,9 +151,9 @@ function handlePdf(q) {
 
 async function deleteQuote(id) { await quoteStore.deleteQuote(id) }
 
-// Bug statut devis (21/07) : le statut était un badge en lecture seule. Le sélecteur
-// appelle updateQuote qui persiste en base ; en cas d'échec RLS/réseau, withWrite
-// affiche un toast et le :value revient au statut réel (pas de désync visuelle).
+// Quote status bug (21/07): the status was a read-only badge. The selector
+// calls updateQuote, which persists to the database; on an RLS/network failure, withWrite
+// shows a toast and the :value falls back to the real status (no visual desync).
 async function changeStatus(q, status) {
   if (!status || status === q.status) return
   await quoteStore.updateQuote(q.id, { status })
@@ -161,7 +161,7 @@ async function changeStatus(q, status) {
 
 async function createQuote() {
   const res = await quoteStore.addQuote({ ...form, country: billingCountry.value, currency: laws.value.currencySymbol })
-  if (res?.error) return // toast déjà affiché par withWrite ; on ne ferme pas le formulaire
+  if (res?.error) return // toast already shown by withWrite; we do not close the form
   Object.assign(form, { title: '', clientId: '', company: '', amount: 0, tax: laws.value.taxRate, status: 'draft', notes: '' })
   slideOpen.value = false
 }
@@ -170,6 +170,6 @@ async function createQuote() {
 <style scoped>
 .qtc-client-link { cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
 .qtc-client-link:hover { color: var(--primary); }
-/* Bug statut devis : le badge devient un sélecteur ; garde le pill coloré (.qtc-status.*) */
+/* Quote status bug: the badge becomes a selector; keeps the colored pill (.qtc-status.*) */
 select.qtc-status { cursor: pointer; border: 1px solid var(--border); font-family: inherit; line-height: 1.2; }
 </style>

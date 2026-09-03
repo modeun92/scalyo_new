@@ -17,11 +17,11 @@ export function errorResponse(status, message) {
   return Response.json({ error: message }, { status })
 }
 
-// Lot 6 — erreur TYPÉE : un code machine stable + les détails dont le front a
-// besoin pour composer un message (nom d'organisation, adresse visée…).
-// La traduction se fait côté client, qui connaît la langue de l'utilisateur ;
-// la Function ne la devine pas. `error` reste rempli avec le code pour ne rien
-// casser chez les appelants qui lisent déjà ce champ.
+// Lot 6 — TYPED error: a stable machine code + the details the front end
+// needs to compose a message (organization name, targeted address…).
+// Translation happens on the client, which knows the user's language;
+// the Function does not guess it. `error` is still filled with the code so nothing
+// breaks for callers that already read that field.
 export function errorCode(status, code, details = {}) {
   return Response.json({ error: code, code, ...details }, { status })
 }

@@ -1,14 +1,14 @@
-// === SCALYO — Plans backend (quotas + limites) ===
-// CR-2 : les MODULES viennent de la source unique plans.config.js (enterprise inclus).
-// Ce fichier ne porte plus que les quotas IA et les limites seats/clients.
-// Prix retirés (D2 : facturation = Stripe, affichage = i18n).
+// === SCALYO — Back-end plans (quotas + limits) ===
+// CR-2: the MODULES come from the single source plans.config.js (enterprise included).
+// This file now only carries the AI quotas and the seat/client limits.
+// Prices removed (D2: billing = Stripe, display = i18n).
 import { PLANS as CONFIG } from './plans.config.js'
 
 const QUOTAS = {
-  starter: { coach: 35, nova: 35, wellbeing: 35, dashboard: 35, copil: 35, matrice: 35 },
-  growth: { coach: 100, nova: 100, wellbeing: 100, dashboard: 100, copil: 100, matrice: 100, import: 100, playbook: 100 },
-  elite: { coach: 200, nova: 200, wellbeing: 200, dashboard: 200, copil: 200, matrice: 200, import: 200, playbook: 200, email: 200, notif: 200 },
-  enterprise: { coach: -1, nova: -1, wellbeing: -1, dashboard: -1, copil: -1, matrice: -1, import: -1, playbook: -1, email: -1, notif: -1 },
+  starter: { coach: 35, nova: 35, wellbeing: 35, dashboard: 35, copil: 35, matrix: 35 },
+  growth: { coach: 100, nova: 100, wellbeing: 100, dashboard: 100, copil: 100, matrix: 100, import: 100, playbook: 100 },
+  elite: { coach: 200, nova: 200, wellbeing: 200, dashboard: 200, copil: 200, matrix: 200, import: 200, playbook: 200, email: 200, notif: 200 },
+  enterprise: { coach: -1, nova: -1, wellbeing: -1, dashboard: -1, copil: -1, matrix: -1, import: -1, playbook: -1, email: -1, notif: -1 },
 }
 
 const LIMITS = {

@@ -1,12 +1,12 @@
-// ─── OXYGEN Lot 3b — bulle générative DÉTERMINISTE (contrat R23 29/07/2026) ───
-// seed = `${user_id}:${date}` → mulberry32 : MÊME entrée → MÊME bulle, pour
-// toujours (preuve ②). Toutes les entrées visuelles sont PERSISTÉES :
-//   teinte      = energy du check-in (oxygen_checkins)
-//   profondeur  = load_score du jour (oxygen_daily)
-//   texture     = progress_count de la Fermeture (oxygen_recoveries)
-// Jamais de donnée live, JAMAIS Math.random (il casserait le déterminisme).
-// Palette apaisée : teinte bornée violet→bleu — zéro rouge (règle produit).
-// Aucune donnée brute lisible dans le SVG rendu.
+// ─── OXYGEN Lot 3b — DETERMINISTIC generative bubble (contract R23 29/07/2026) ───
+// seed = `${user_id}:${date}` → mulberry32: SAME input → SAME bubble, for
+// ever (evidence ②). All visual inputs are PERSISTED:
+//   hue    = energy from the check-in (oxygen_checkins)
+//   depth  = load_score of the day (oxygen_daily)
+//   texture = progress_count of the Closing (oxygen_recoveries)
+// Never live data, NEVER Math.random (it would break determinism).
+// Calm palette: hue bounded violet→blue — zero red (product rule).
+// No raw data readable in the rendered SVG.
 
 export function hashSeed(str) {
   let h = 1779033703 ^ str.length
@@ -32,14 +32,14 @@ export function bubbleParams({ userId, date, energy, load, progress }) {
   const e = Number.isFinite(energy) ? Math.min(5, Math.max(1, energy)) : 3
   const l = Number.isFinite(load) ? Math.min(100, Math.max(0, load)) : 0
   const p = Number.isFinite(progress) ? Math.min(12, Math.max(0, progress)) : 0
-  const hue = Math.round(260 - ((e - 1) / 4) * 55)   // énergie basse → violet profond, haute → bleu clair
+  const hue = Math.round(260 - ((e - 1) / 4) * 55)   // low energy → deep violet, high → light blue
   const sat = Math.round(45 + ((e - 1) / 4) * 25)
   const light = Math.round(38 + ((e - 1) / 4) * 22)
-  const depth = 0.35 + (l / 100) * 0.5               // charge du jour → profondeur du cœur
-  const r = 9 + e * 1.6 + rnd() * 3                  // rayon organique
-  const dx = (rnd() - 0.5) * 8                       // dérive douce dans la case
+  const depth = 0.35 + (l / 100) * 0.5               // load of the day → depth of the core
+  const r = 9 + e * 1.6 + rnd() * 3                  // organic radius
+  const dx = (rnd() - 0.5) * 8                       // gentle drift inside the cell
   const dy = (rnd() - 0.5) * 8
-  const speckles = Math.min(8, p)                    // texture = progrès persisté
+  const speckles = Math.min(8, p)                    // texture = persisted progress
   const dots = Array.from({ length: speckles }, () => ({
     a: rnd() * Math.PI * 2,
     d: 0.35 + rnd() * 0.5,

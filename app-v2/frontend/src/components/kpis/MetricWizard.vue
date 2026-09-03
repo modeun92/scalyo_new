@@ -6,12 +6,12 @@
       <button class="mw-close" @click="$emit('close')">✕</button>
     </div>
 
-    <!-- Presets métier -->
+    <!-- Business presets -->
     <div class="mw-presets">
       <button v-for="p in presets" :key="p.key" class="mw-preset" @click="applyPreset(p)">{{ p.icon }} {{ t('copil_ps_' + p.key) }}</button>
     </div>
 
-    <!-- Depuis les mesures réelles du client lié (client_metrics — contrat 22/07) -->
+    <!-- From the linked client's real measurements (client_metrics — contract 22/07) -->
     <div v-if="clientId && clientKpis.length" class="mw-client">
       <label class="mw-values-label">📊 {{ t('copil_mw_client_src') }}</label>
       <div class="mw-row">
@@ -37,7 +37,7 @@
     </div>
     <button class="mw-add-row" @click="rows.push({ label: '', value: '' })">+ {{ t('copil_mw_add_row') }}</button>
 
-    <!-- Choix du visuel -->
+    <!-- Visual choice -->
     <label class="mw-values-label">{{ t('copil_mw_type') }}</label>
     <div class="mw-types">
       <button v-for="ty in types" :key="ty.key" class="mw-type" :class="{ active: hint === ty.key }" @click="hint = ty.key">
@@ -65,7 +65,7 @@ const { t, locale } = useI18n({ useScope: 'global' })
 const emit = defineEmits(['close', 'insert'])
 const props = defineProps({ clientId: { type: String, default: null } })
 
-// ── Source « données du client » : mesures mensuelles saisies sur la fiche ──
+// ── "Client data" source: monthly measurements entered on the record ──
 const metricsStore = useClientMetricsStore()
 if (props.clientId) metricsStore.loadAll()
 const clientKpiId = ref('')
@@ -76,9 +76,9 @@ const clientKpis = computed(() => {
 function kpiLabel(k) {
   return locale.value === 'en' ? (k.labelEN || k.label) : locale.value === 'ko' ? (k.labelKO || k.label) : k.label
 }
-// Pré-remplit le formulaire avec la série mensuelle réelle (12 derniers mois max).
-// hint forcé : ≥2 points → courbe, 1 point → carte KPI (indépendant de la langue
-// des labels — isTemporalLabels ne reconnaît pas les mois coréens).
+// Pre-fills the form with the real monthly series (last 12 months max).
+// hint forced: ≥ 2 points → line chart, 1 point → KPI card (independent of the label
+// language — isTemporalLabels does not recognize Korean months).
 function useClientSeries() {
   const k = KPI_CATALOG.find(x => x.id === clientKpiId.value)
   if (!k || !props.clientId) return
@@ -106,10 +106,10 @@ const types = [
   { key: 'table', icon: '📋', labelKey: 'copil_bt_table' },
 ]
 
-// Presets métier client-centric : point de départ, tout reste modifiable.
+// Client-centric business presets: a starting point, everything stays editable.
 const presets = [
   { key: 'adoption', icon: '🚀', unit: '%', target: 80, rows: [{ label: '', value: '' }] },
-  { key: 'users', icon: '👥', unit: '', months: 4 },   // COPIL-I18N : mois via Intl, plus de Jan/Fév en dur
+  { key: 'users', icon: '👥', unit: '', months: 4 },   // COPIL-I18N: months via Intl, no more hard-coded Jan/Feb
   { key: 'tickets', icon: '🎫', unit: '', target: null, rows: [{ label: '', value: '' }] },
   { key: 'response', icon: '⏱', unit: 'h', rows: [{ label: '', value: '' }] },
   { key: 'nps', icon: '⭐', unit: '', target: 50, rows: [{ label: '', value: '' }] },
@@ -166,7 +166,7 @@ function insert() {
 .mw-suggest { font-size: 0.8rem; color: var(--text-secondary); }
 .btn-primary { background: var(--purple); color: #fff; border: none; padding: 9px 18px; border-radius: 8px; font-size: 0.85rem; font-weight: 700; cursor: pointer; }
 .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
-/* Source « données du client » (lot client_metrics 22/07) */
+/* "Client data" source (client_metrics batch 22/07) */
 .mw-client { margin-bottom: 4px; padding: 10px; background: var(--purple-bg); border: 1px solid var(--purple-border); border-radius: 10px; }
 .mw-use { background: var(--purple); color: #fff; border: none; padding: 8px 14px; border-radius: 8px; font-size: 0.8rem; font-weight: 700; cursor: pointer; }
 .mw-use:disabled { opacity: 0.4; cursor: not-allowed; }

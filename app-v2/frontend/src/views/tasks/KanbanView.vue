@@ -115,7 +115,7 @@ import { useTaskStore } from '@/stores/tasks'
 import { useClientStore } from '@/stores/clients'
 import { useTeamStore } from '@/stores/team'
 import SlideOver from '@/components/SlideOver.vue'
-import { fmtDate } from '@/lib/formatters' // DATE-RAW : plus de « 2026-09-15 » brut sur les cartes
+import { fmtDate } from '@/lib/formatters' // DATE-RAW: no more raw "2026-09-15" on the cards
 
 const { t } = useI18n({ useScope: 'global' })
 const tasks = useTaskStore()
@@ -140,7 +140,7 @@ const columns = [
   { key: 'done', label: 'sm_col_done' },
 ]
 
-// MIN-i18n : assignee par defaut '' (non assigne) — 'tm1' etait un membre fantome de l'ere mock
+// MIN-i18n: default assignee '' (unassigned) — 'tm1' was a phantom member from the mock era
 const initForm = () => ({ title: '', description: '', projectId: null, clientId: null, assignee: '', dueDate: '', priority: 'important' })
 const form = reactive(initForm())
 
@@ -156,10 +156,10 @@ function priorityLevel(p) {
   return map[p] || 'low'
 }
 function priorityLabel(p) {
-  // PRIORITY-LABEL (29/08) : la carte affiche les MÊMES libellés que le formulaire
-  // (sm_priority_*, clés ×3 langues) — l'échelle générique sm_badge_* faisait dire
-  // « Élevé » à la carte quand le select disait « Important ». Valeur hors échelle
-  // (ex. 'medium', constat PRIO-MEDIUM séparé) : fallback inchangé.
+  // PRIORITY-LABEL (29/08): the card displays the SAME labels as the form
+  // (sm_priority_*, keys × 3 languages) — the generic sm_badge_* scale made the card
+  // say "High" while the select said "Important". Value outside the scale
+  // (e.g. 'medium', separate PRIO-MEDIUM finding): fallback unchanged.
   const map = { urgent_important: t('sm_priority_urgent_important'), important: t('sm_priority_important'), urgent: t('sm_priority_urgent'), not_urgent: t('sm_priority_not_urgent') }
   return map[p] || t('sm_badge_1')
 }

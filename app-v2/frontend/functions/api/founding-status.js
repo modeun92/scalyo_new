@@ -1,4 +1,4 @@
-// GET /api/founding-status — places founding restantes (sur 10)
+// GET /api/founding-status — remaining founding seats (out of 10)
 import { jsonResponse, errorResponse } from './_utils/response.js'
 import { createSupabaseClient } from './_utils/supabase.js'
 

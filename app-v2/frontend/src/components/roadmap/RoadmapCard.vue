@@ -6,8 +6,8 @@
         <span class="rmc-icon" :style="{ background: rm.color + '22' }">{{ rm.icon }}</span>
         <div>
           <strong>{{ rm.name }}</strong>
-          <!-- DATE-RAW : `rm.createdAt` n'existait pas (ligne spread `...r` → created_at) → libellé vide ;
-               la date de début = celle du premier jalon (saisie à la création), sinon created_at -->
+          <!-- DATE-RAW: `rm.createdAt` did not exist (row spread `...r` → created_at) → empty label;
+               the start date = that of the first milestone (entered at creation), otherwise created_at -->
           <span class="rmc-date">{{ t('rm_start_date') }} : {{ fmtDate(rm.milestones?.[0]?.startDate || rm.created_at) }}</span>
         </div>
       </div>

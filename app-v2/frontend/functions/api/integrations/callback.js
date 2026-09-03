@@ -27,7 +27,7 @@ export async function onRequestGet(context) {
     const encAccessToken = await encryptToken(tokens.access_token, encKey)
     const encRefreshToken = await encryptToken(tokens.refresh_token, encKey)
     const supabaseUrl = env.SUPABASE_URL
-    // ENV-FALLBACK-PROD (lot 6) : plus de repli en dur vers la base de PRODUCTION.
+    // ENV-FALLBACK-PROD (Lot 6): no more hard-coded fallback to the PRODUCTION database.
     if (!supabaseUrl) throw new Error('Missing required environment variable: SUPABASE_URL')
     const serviceKey = env.SUPABASE_SERVICE_ROLE_KEY
     const saveRes = await fetch(supabaseUrl + '/rest/v1/org_integrations', { method: 'POST', headers: { 'Content-Type': 'application/json', 'apikey': serviceKey, 'Authorization': 'Bearer ' + serviceKey, 'Prefer': 'return=minimal' }, body: JSON.stringify({ user_id: uid, integration_id: provider, status: 'active', access_token: encAccessToken, refresh_token: encRefreshToken, token_expires_at: tokens.expires_in ? new Date(Date.now() + tokens.expires_in * 1000).toISOString() : null, provider_data: '{}', config: {}, connected_at: new Date().toISOString() }) })

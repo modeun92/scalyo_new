@@ -4,9 +4,9 @@
 import { jsPDF } from 'jspdf'
 import { localeTag } from '@/lib/formatters'
 
-// QUOTE-VAT (27/08) : montants du PDF au code ISO (« 1 234,00 EUR »), jamais au symbole —
-// la police Helvetica de jsPDF ne rend ni ₩ ni les espaces insécables/fines d'Intl.
-// Espaces U+00A0/U+202F remplacées par des espaces simples pour la même raison.
+// QUOTE-VAT (27/08): PDF amounts use the ISO code ("1 234,00 EUR"), never the symbol —
+// jsPDF's Helvetica font renders neither ₩ nor Intl's non-breaking/narrow spaces.
+// U+00A0/U+202F spaces are replaced by plain spaces for the same reason.
 function pdfMoney(v, currencyCode) {
   const n = Number(v) || 0
   try {

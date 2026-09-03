@@ -4,45 +4,45 @@ import { supabase } from '@/lib/supabase'
 import { withWrite } from '@/lib/supabaseWrite'
 import { useAuthStore } from './auth'
 
-// ─── OXYGEN Lot 3b — recoveries : Fermeture + micro (contrat R23 29/07/2026) ──
-// Première écriture de oxygen_recoveries. Décisions actées :
-//   · kind 'cloture' : écrite UNE SEULE fois, À LA FIN de la Fermeture
-//     (completed=true, duration_s réel, progress_count persisté). Une Fermeture
-//     échappée n'écrit RIEN et ne consomme pas le jour. 1/jour, unicité portée
-//     ici (pas d'UNIQUE en base — vérifié au gate) : refus doux si déjà fermée.
-//   · kind 'micro' : écrite à la fin des 90 s seulement, max 2/jour.
-// Règle REST-SPA (piège vécu 28/07) : GET de contrôle après CHAQUE écriture —
-// l'état local vient de la RELECTURE, jamais du 200 seul.
-// RLS self-only. AUCUN texte ici (t() interdit en store — la vue rend tout).
+// ─── OXYGEN Lot 3b — recoveries: Closing + micro (contract R23 29/07/2026) ──
+// First write of oxygen_recoveries. Decisions taken:
+//   · kind 'cloture': written ONCE ONLY, AT THE END of the Closing
+//     (completed=true, real duration_s, progress_count persisted). An escaped
+//     Closing writes NOTHING and does not consume the day. 1/day, uniqueness enforced
+//     here (no UNIQUE constraint in the database — checked at the gate): soft refusal if already closed.
+//   · kind 'micro': written at the end of the 90 s only, max 2/day.
+// REST-SPA rule (pitfall hit on 28/07): a control GET after EVERY write —
+// the local state comes from the RE-READ, never from the 200 alone.
+// Self-only RLS. NO text here (t() forbidden in a store — the view renders everything).
 
 const todayStr = () => new Date().toISOString().slice(0, 10) // convention UTC oxygen
 
 export const useOxygenRecoveriesStore = defineStore('oxygenRecoveries', () => {
-  const todayCloture = ref(null)      // ligne 'cloture' complétée du jour (ou null)
-  const microToday = ref([])          // lignes 'micro' du jour
+  const todayClosing = ref(null)      // completed 'cloture' row of the day (or null)
+  const microToday = ref([])          // 'micro' rows of the day
   const todayLoaded = ref(false)
   const saving = ref(false)
 
-  // Le Ciel — données du MOIS calendaire, toutes PERSISTÉES (déterminisme) :
-  // clôtures + energy des check-ins + load_score des daily. Jamais de live.
+  // The Sky — data for the calendar MONTH, all PERSISTED (determinism):
+  // closings + energy from check-ins + load_score from daily rows. Never live data.
   const monthRows = ref([])
   const monthCheckins = ref({})       // { 'YYYY-MM-DD': energy }
   const monthDaily = ref({})          // { 'YYYY-MM-DD': load_score }
   const monthLoaded = ref(false)
 
-  // Notes client posées AUJOURD'HUI par le user (progrès — lecture seule)
+  // Client notes written TODAY by the user (progress — read-only)
   const notesCountToday = ref(0)
 
-  // UI partagée pastille/page : l'overlay Fermeture est rendu par OxygenPulse
-  const fermetureOpen = ref(false)
-  const fermetureMode = ref('cloture') // 'cloture' | 'micro'
-  const microDismissedDate = ref(null) // dismiss local session — jamais écrit
+  // Shared dot/page UI: the Closing overlay is rendered by OxygenPulse
+  const closingOpen = ref(false)
+  const closingMode = ref('cloture') // 'cloture' | 'micro'
+  const microDismissedDate = ref(null) // local session dismiss — never written
 
   const microCountToday = computed(() => microToday.value.length)
   const microDismissedToday = computed(() => microDismissedDate.value === todayStr())
 
-  function openFermeture(mode = 'cloture') { fermetureMode.value = mode; fermetureOpen.value = true }
-  function closeOverlay() { fermetureOpen.value = false }
+  function openClosing(mode = 'cloture') { closingMode.value = mode; closingOpen.value = true }
+  function closeOverlay() { closingOpen.value = false }
   function dismissMicroToday() { microDismissedDate.value = todayStr() }
 
   async function loadToday() {
@@ -54,7 +54,7 @@ export const useOxygenRecoveriesStore = defineStore('oxygenRecoveries', () => {
       .eq('user_id', userId).eq('date', todayStr())
     if (error) { console.error('[oxygen] recoveries today failed:', error.message); return }
     const rows = data || []
-    todayCloture.value = rows.find(r => r.kind === 'cloture' && r.completed) || null
+    todayClosing.value = rows.find(r => r.kind === 'cloture' && r.completed) || null
     microToday.value = rows.filter(r => r.kind === 'micro')
     todayLoaded.value = true
   }
@@ -74,7 +74,7 @@ export const useOxygenRecoveriesStore = defineStore('oxygenRecoveries', () => {
         .select('date, load_score').eq('user_id', userId).gte('date', first),
     ])
     if (rec.error || chk.error || dly.error) {
-      console.error('[oxygen] ciel month failed:',
+      console.error('[oxygen] sky month failed:',
         (rec.error || chk.error || dly.error).message)
       return
     }
@@ -96,15 +96,15 @@ export const useOxygenRecoveriesStore = defineStore('oxygenRecoveries', () => {
     notesCountToday.value = count || 0
   }
 
-  // Écriture UNIQUE de la Fermeture, À LA FIN + GET de contrôle (REST-SPA)
+  // SINGLE write of the Closing, AT THE END + control GET (REST-SPA)
   async function closeToday({ durationS, progressCount }) {
     if (saving.value) return { error: 'busy' }
     const auth = useAuthStore(); const userId = auth.user?.id
     if (!userId) return { error: 'not_authenticated' }
-    if (todayCloture.value) return { error: 'already_closed' } // refus doux, jamais 2 lignes
+    if (todayClosing.value) return { error: 'already_closed' } // soft refusal, never 2 rows
     const okInt = v => Number.isInteger(v) && v >= 0
     if (!okInt(durationS) || !okInt(progressCount)) {
-      console.warn('[oxygen] cloture SKIP: valeurs invalides')
+      console.warn('[oxygen] closing SKIP: invalid values')
       return { error: 'invalid' }
     }
     saving.value = true
@@ -119,18 +119,18 @@ export const useOxygenRecoveriesStore = defineStore('oxygenRecoveries', () => {
         progress_count: progressCount,
         completed: true,
       }))
-      console.log('[oxygen] cloture payload:', JSON.stringify(payload))
+      console.log('[oxygen] closing payload:', JSON.stringify(payload))
       const { error } = await withWrite(
         () => supabase.from('oxygen_recoveries').insert([payload]).select(),
-        { label: 'oxygen.recoveries.cloture' }
+        { label: 'oxygen.recoveries.closing' }
       )
-      if (error) { console.error('[oxygen] cloture failed:', error.message || error); return { error } }
-      await loadToday() // GET de contrôle : la vérité vient de la relecture
-      if (!todayCloture.value) {
-        console.error('[oxygen] cloture NON RELUE — écriture non confirmée (REST-SPA ?)')
+      if (error) { console.error('[oxygen] closing failed:', error.message || error); return { error } }
+      await loadToday() // control GET: the truth comes from the re-read
+      if (!todayClosing.value) {
+        console.error('[oxygen] closing NOT RE-READ — write not confirmed (REST-SPA?)')
         return { error: 'not_confirmed' }
       }
-      monthLoaded.value = false // le Ciel se rechargera avec la bulle du jour
+      monthLoaded.value = false // the Sky will reload with the day's bubble
       return { success: true }
     } finally { saving.value = false }
   }
@@ -158,9 +158,9 @@ export const useOxygenRecoveriesStore = defineStore('oxygenRecoveries', () => {
         { label: 'oxygen.recoveries.micro' }
       )
       if (error) { console.error('[oxygen] micro failed:', error.message || error); return { error } }
-      await loadToday() // GET de contrôle
+      await loadToday() // control GET
       if (microCountToday.value <= before) {
-        console.error('[oxygen] micro NON RELUE — écriture non confirmée')
+        console.error('[oxygen] micro NOT RE-READ — write not confirmed')
         return { error: 'not_confirmed' }
       }
       return { success: true }
@@ -168,10 +168,10 @@ export const useOxygenRecoveriesStore = defineStore('oxygenRecoveries', () => {
   }
 
   return {
-    todayCloture, microToday, todayLoaded, saving,
+    todayClosing, microToday, todayLoaded, saving,
     monthRows, monthCheckins, monthDaily, monthLoaded, notesCountToday,
-    fermetureOpen, fermetureMode, microCountToday, microDismissedToday,
-    openFermeture, closeOverlay, dismissMicroToday,
+    closingOpen, closingMode, microCountToday, microDismissedToday,
+    openClosing, closeOverlay, dismissMicroToday,
     loadToday, loadMonth, loadNotesCountToday, closeToday, microDone,
   }
 })

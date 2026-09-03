@@ -7,18 +7,18 @@ import { useOxygenLoadStore } from './oxygenLoad'
 import { useOxygenEngineStore } from './oxygenEngine'
 import { useOxygenCheckinsStore } from './oxygenCheckins'
 
-// ─── OXYGEN Lot 1+2 — persistance quotidienne (contrats R23 28/07/2026) ──────
-// Pattern snapshots / garde B-10b répliqué : payload normalisé JSON (undefined
-// droppés) + garde anti-vide (warn + return, jamais écrire du vide) + withWrite
-// avec {error} testé + état local mis à jour APRÈS écriture confirmée + log à
-// CHAQUE appel. Lot 2 : index = engine.indexToday — null sans check-in du jour
-// (R21 : jamais inventé) ; {force:true} ré-écrit la ligne du jour après un
-// check-in confirmé. RLS self-only : l'upsert ne peut toucher que la ligne du user.
+// ─── OXYGEN Lot 1+2 — daily persistence (contracts R23 28/07/2026) ──────
+// snapshots pattern / B-10b guard replicated: JSON-normalized payload (undefined
+// dropped) + anti-empty guard (warn + return, never write empty data) + withWrite
+// with {error} checked + local state updated AFTER a confirmed write + a log on
+// EVERY call. Lot 2: index = engine.indexToday — null without the day's check-in
+// (R21: never invented); {force:true} rewrites the day's row after a
+// confirmed check-in. Self-only RLS: the upsert can only touch the user's own row.
 
 export const useOxygenDailyStore = defineStore('oxygenDaily', () => {
   const lastSavedDate = ref(null)
   const saving = ref(false)
-  const history = ref([])        // Lot 2 : 30 j (date, load_score, index) — nourrit la divergence
+  const history = ref([])        // Lot 2: 30 d (date, load_score, index) — feeds the divergence
   const historyLoaded = ref(false)
 
   async function loadHistory30() {
@@ -43,7 +43,7 @@ export const useOxygenDailyStore = defineStore('oxygenDaily', () => {
     const userId = auth.user?.id
     if (!userId) return
     const today = new Date().toISOString().slice(0, 10)
-    if (!force && lastSavedDate.value === today) return // 1 écriture par jour et par session (sauf force post-check-in)
+    if (!force && lastSavedDate.value === today) return // 1 write per day and per session (except a forced post-check-in one)
     saving.value = true
     try {
       const load = useOxygenLoadStore()
@@ -57,16 +57,16 @@ export const useOxygenDailyStore = defineStore('oxygenDaily', () => {
         components: load.components,
         updated_at: new Date().toISOString(),
       }
-      // Garde OXY-IDX-NULL (classe B-10b, niveau colonne) : l'indice n'entre dans le
-      // payload QUE si l'état check-in du jour est chargé. Colonne omise → l'UPDATE
-      // conserve la valeur en base ; jamais un boot n'écrase un indice réel par null.
-      if (checkins.historyLoaded) raw.index = engine.indexToday // null si pas de check-in (R21)
+      // OXY-IDX-NULL guard (class B-10b, column level): the index only enters the
+      // payload IF the day's check-in state is loaded. Column omitted → the UPDATE
+      // keeps the value in the database; a boot never overwrites a real index with null.
+      if (checkins.historyLoaded) raw.index = engine.indexToday // null if there is no check-in (R21)
       const payload = JSON.parse(JSON.stringify(raw))
       console.log('[oxygen] daily payload:', JSON.stringify(payload))
-      // Garde B-10b : jamais écraser une ligne saine par un payload incomplet
+      // B-10b guard: never overwrite a healthy row with an incomplete payload
       if (typeof payload.load_score !== 'number' || !payload.components ||
           !Object.keys(payload.components).length) {
-        console.warn('[oxygen] daily SKIP: payload incomplet (valeurs undefined à la source)')
+        console.warn('[oxygen] daily SKIP: incomplete payload (undefined values at the source)')
         return
       }
       const { error } = await withWrite(
@@ -74,8 +74,8 @@ export const useOxygenDailyStore = defineStore('oxygenDaily', () => {
         { label: 'oxygen.daily.upsert' }
       )
       if (error) { console.error('[oxygen] daily upsert failed:', error.message || error); return }
-      lastSavedDate.value = today // état local APRÈS écriture confirmée
-      // Maj de la ligne du jour dans l'history locale (la divergence lit cette fenêtre)
+      lastSavedDate.value = today // local state AFTER a confirmed write
+      // Update the day's row in the local history (the divergence reads this window)
       const prevLocal = history.value.find(r => r.date === today)
       const rowLocal = { date: today, load_score: payload.load_score, index: 'index' in payload ? payload.index : (prevLocal?.index ?? null) }
       const i = history.value.findIndex(r => r.date === today)

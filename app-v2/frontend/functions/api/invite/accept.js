@@ -1,10 +1,10 @@
 // POST /api/invite/accept — Accept invitation and join org
-// Lot 6 — CONTRAT INVITATIONS (31/08/2026) : D1① refus dur si l'email visé
-// n'est pas celui du compte connecté ; D2① refus explicite si le compte
-// appartient déjà à une autre organisation. JAMAIS d'écrasement implicite de
+// Lot 6 — INVITATIONS CONTRACT (31/08/2026): D1① hard refusal if the targeted email
+// is not the one of the logged-in account; D2① explicit refusal if the account
+// already belongs to another organization. NEVER an implicit overwrite of
 // profiles.organization_id (INVITE-ANY-USER).
-// Erreurs typées par code machine : le front traduit (FR/EN/KO). Le message
-// d'exception ne sort plus vers le client.
+// Errors typed by machine code: the front end translates (FR/EN/KO). The exception
+// message no longer reaches the client.
 import { jsonResponse, errorCode } from '../_utils/response.js'
 import { createSupabaseClient, getAuthUser } from '../_utils/supabase.js'
 
@@ -20,8 +20,8 @@ export async function onRequestPost(context) {
 
     const db = createSupabaseClient(env)
 
-    // 1. Invitation — lue SANS filtre de statut, pour distinguer « introuvable »
-    //    de « révoquée / déjà acceptée » (contrat §3 cas 8).
+    // 1. Invitation — read WITHOUT a status filter, to distinguish "not found"
+    //    from "revoked / already accepted" (contract §3 case 8).
     const invitation = await db.selectOne('invitations', 'token=eq.' + tokenParam)
     if (!invitation) return errorCode(404, 'invitation_not_found')
     if (invitation.status !== 'pending') {
@@ -32,13 +32,13 @@ export async function onRequestPost(context) {
       return errorCode(410, 'invitation_expired')
     }
 
-    // 2. Identité du porteur.
+    // 2. Identity of the bearer.
     const user = await getAuthUser(request, env)
     if (!user) return errorCode(401, 'auth_required')
 
-    // 3. D1① — l'invitation est-elle adressée à CE compte ?
-    //    Insensible à la casse et aux espaces : les invitations antérieures à
-    //    invite.js L23 (trim+toLowerCase) ne sont pas garanties normalisées.
+    // 3. D1① — is the invitation addressed to THIS account?
+    //    Case- and whitespace-insensitive: invitations predating
+    //    invite.js L23 (trim+toLowerCase) are not guaranteed to be normalized.
     const invitedEmail = normalizeEmail(invitation.email)
     const currentEmail = normalizeEmail(user.email)
     if (!invitedEmail || !currentEmail || invitedEmail !== currentEmail) {
@@ -48,8 +48,8 @@ export async function onRequestPost(context) {
       })
     }
 
-    // 4. Cas 5 — déjà membre de CETTE organisation : 200 idempotent.
-    //    Aucune écriture destructrice, aucune violation de uq_org_member.
+    // 4. Case 5 — already a member of THIS organization: idempotent 200.
+    //    No destructive write, no uq_org_member violation.
     const existingHere = await db.selectOne(
       'organization_members',
       'organization_id=eq.' + invitation.organization_id + '&user_id=eq.' + user.id
@@ -64,9 +64,9 @@ export async function onRequestPost(context) {
       })
     }
 
-    // 5. D2① — appartenance à une AUTRE organisation : refus explicite, zéro écriture.
-    //    uq_org_member porte sur le COUPLE (organization_id, user_id) : la base
-    //    autorise l'appartenance multiple. Le mono-org n'existe que dans profiles.
+    // 5. D2① — membership of ANOTHER organization: explicit refusal, zero writes.
+    //    uq_org_member covers the PAIR (organization_id, user_id): the database
+    //    allows multiple memberships. Single-org only exists in profiles.
     const memberships = await db.select('organization_members', 'user_id=eq.' + user.id)
     const profile = await db.selectOne('profiles', 'id=eq.' + user.id)
     const currentOrgId =
@@ -77,11 +77,11 @@ export async function onRequestPost(context) {
       try {
         const currentOrg = await db.selectOne('organizations', 'id=eq.' + currentOrgId)
         currentOrgName = currentOrg ? currentOrg.name : null
-      } catch (_) { /* nom indisponible : le refus reste valable */ }
+      } catch (_) { /* name unavailable: the refusal still stands */ }
       return errorCode(409, 'already_member_other_org', { current_organization: currentOrgName })
     }
 
-    // 6. Insertion du membre. Le trigger enforce_org_seat_limit peut lever.
+    // 6. Member insertion. The enforce_org_seat_limit trigger may raise.
     try {
       await db.insert('organization_members', {
         organization_id: invitation.organization_id,
@@ -94,7 +94,7 @@ export async function onRequestPost(context) {
         return errorCode(409, 'seat_limit_reached')
       }
       if (/uq_org_member/i.test(msg) || /duplicate key/i.test(msg)) {
-        // Course entre deux acceptations : traiter comme idempotent.
+        // Race between two acceptances: treat as idempotent.
         await db.update('invitations', 'id=eq.' + invitation.id, { status: 'accepted' })
         return jsonResponse({
           success: true,
@@ -107,17 +107,17 @@ export async function onRequestPost(context) {
       return errorCode(500, 'server_error')
     }
 
-    // 7. Profil — POSE d'une organisation absente, jamais un écrasement :
-    //    le cas « appartient ailleurs » est sorti à l'étape 5.
+    // 7. Profile — SETS a missing organization, never an overwrite:
+    //    the "belongs elsewhere" case exited at step 5.
     await db.update('profiles', 'id=eq.' + user.id, {
       organization_id: invitation.organization_id,
       org_role: invitation.role || 'member',
     })
 
-    // NB : pas de colonne activated_at sur invitations (baseline 20260624131657 L577)
+    // NB: there is no activated_at column on invitations (baseline 20260624131657 L577)
     await db.update('invitations', 'id=eq.' + invitation.id, { status: 'accepted' })
 
-    // Journal — ne doit jamais faire échouer une acceptation réussie.
+    // Log — must never make a successful acceptance fail.
     try {
       await db.insert('activity_log', {
         organization_id: invitation.organization_id,

@@ -5,7 +5,7 @@
         <div class="cm-overlay" @click="modal.close()" />
 
         <div v-if="client" class="cm-window" :style="windowStyle" role="dialog" aria-modal="true">
-          <!-- Barre de titre = poignée de déplacement -->
+          <!-- Title bar = drag handle -->
           <div class="cm-titlebar" @pointerdown="startDrag">
             <div class="cm-title">
               <span class="cm-avatar" :style="{ background: statusColor }">{{ (form.name || '?')[0] }}</span>
@@ -16,14 +16,14 @@
           </div>
 
           <div class="cm-body">
-            <!-- ── Infos éditables (tout modifiable, ici, tout de suite) ── -->
+            <!-- ── Editable info (everything editable, here, right now) ── -->
             <div class="cm-grid">
               <label class="cm-f cm-f-wide"><span>{{ t('port_field_name') }}</span>
                 <input v-model="form.name" class="cm-i" /></label>
               <label class="cm-f"><span>{{ t('port_field_industry') }}</span>
-                <!-- FICHE-SECTEUR (29/08) : une valeur stockée hors liste (import, autre langue)
-                     ne matchait aucune option → select VIDE alors que la donnée existe.
-                     Option dynamique = la valeur s'affiche telle quelle, reclassable. -->
+                <!-- FICHE-SECTEUR (29/08): a stored value outside the list (import, other language)
+                     matched no option → EMPTY select even though the data exists.
+                     Dynamic option = the value shows as-is and can be reclassified. -->
                 <select v-model="form.industry" class="cm-i"><option value="">—</option>
                   <option v-if="form.industry && !industries.includes(form.industry)" :value="form.industry">{{ form.industry }}</option>
                   <option v-for="i in industries" :key="i" :value="i">{{ i }}</option></select></label>
@@ -36,7 +36,7 @@
                 <input v-model.number="form.health" type="number" min="0" max="10" class="cm-i" /></label>
               <label class="cm-f"><span>NPS</span>
                 <input v-model.number="form.nps" type="number" min="-100" max="100" class="cm-i" /></label>
-              <!-- CURRENCY-FORMAT : symbole de la devise du COMPTE (plus de « € » en dur), montant par le formateur unique -->
+              <!-- CURRENCY-FORMAT: currency symbol of the ACCOUNT (no more hard-coded "€"), amount through the single formatter -->
               <label class="cm-f"><span>{{ t('cd_arr') }} ({{ currencySymbol() }})</span>
                 <input v-model.number="form.arr" type="number" min="0" class="cm-i" /></label>
               <label class="cm-f"><span>{{ t('cd_mrr') }} ({{ currencySymbol() }})</span>
@@ -50,14 +50,14 @@
                   <option v-for="m in team.assignableMembers" :key="m.id" :value="m.id">{{ m.name }}</option></select></label>
             </div>
 
-            <!-- ── Métriques mensuelles (client_metrics — contrat 22/07) ── -->
+            <!-- ── Monthly metrics (client_metrics — contract 22/07) ── -->
             <div class="cm-section">
               <div class="cm-section-head">
                 <h3>{{ t('cmet_title') }}</h3>
                 <button class="cm-mini" @click="showMetricAdd = !showMetricAdd">＋ {{ t('cmet_add') }}</button>
               </div>
               <div v-if="showMetricAdd" class="cm-metric-form">
-                <!-- P10 penser CSM : recherche directe (39 KPIs), suivis en tête, focus valeur après choix -->
+                <!-- P10 think-like-a-CSM: direct search (39 KPIs), tracked ones first, focus on value after selection -->
                 <div class="cm-kpi-combo">
                   <input v-model="kpiSearch" class="cm-i" :placeholder="t('cmet_pick')"
                     @focus="kpiListOpen = true" @input="kpiListOpen = true; metricDraft.kpiId = ''"
@@ -110,7 +110,7 @@
               </div>
             </div>
 
-            <!-- ── Notes libres (FB-03 v2) — call / email / réunion / note ── -->
+            <!-- ── Free-form notes (FB-03 v2) — call / email / meeting / note ── -->
             <div class="cm-section">
               <h3>{{ t('cd_notes') }}</h3>
               <div class="cm-note-add">
@@ -137,7 +137,7 @@
               </div>
             </div>
 
-            <!-- ── Créer & historiser (copil / tâche liés à ce client) ── -->
+            <!-- ── Create & log (copil / task linked to this client) ── -->
             <div class="cm-section">
               <h3>{{ t('cd_add_title') }}</h3>
               <div class="cm-add-row">
@@ -166,7 +166,7 @@
               </div>
             </div>
 
-            <!-- ── Historique dérivé (tâches / planning / playbooks / copils) ── -->
+            <!-- ── Derived history (tasks / planning / playbooks / copils) ── -->
             <div class="cm-section">
               <h3>{{ t('cd_timeline') }}</h3>
               <div v-if="!timeline.length" class="cm-muted">{{ t('cd_tl_empty') }}</div>
@@ -233,10 +233,10 @@ const industries = computed(() => t('port_industries').split(','))
 const effectiveStatus = computed(() => client.value ? clients.getEffectiveStatus({ ...client.value, ...form }) : 'healthy')
 const statusLabel = computed(() => t('status_' + effectiveStatus.value))
 const statusColor = computed(() => effectiveStatus.value === 'healthy' ? '#10b981' : effectiveStatus.value === 'watch' ? '#f59e0b' : '#ef4444')
-// CA signée (계약 금액) : somme des devis gagnés du client (lecture seule ; devis chargés à l'ouverture)
+// Signed revenue (계약 금액): sum of the client's won quotes (read-only; quotes loaded on open)
 const signedAmount = computed(() => client.value ? quoteStore.wonAmountForClient(client.value.id) : 0)
 
-// ── Formulaire éditable (miroir du contrat de save de PortfolioView) ──
+// ── Editable form (mirrors PortfolioView's save contract) ──
 const form = reactive({
   name: '', industry: '', status: 'healthy', health: 5, nps: 0, arr: 0, mrr: 0,
   renewalDate: '', csmId: '', churnRisk: 0, lifecycle: 'client', pipeline_stage: null, contacts: []
@@ -289,9 +289,9 @@ async function submitNote() {
 }
 async function removeNote(id) { await notesStore.deleteNote(modal.clientId, id) }
 
-// ── Métriques mensuelles (contrat 22/07) : saisie des KPIs manuels du catalogue ──
-// Un point / (kpi, mois) — re-saisir le même mois corrige (upsert). Les KPIs 'auto'
-// (ARR, MRR, churn…) ne sont JAMAIS proposés ici : ils se calculent des données réelles.
+// ── Monthly metrics (contract 22/07): entry of the catalog's manual KPIs ──
+// One data point per (kpi, month) — re-entering the same month corrects it (upsert). 'auto' KPIs
+// (ARR, MRR, churn…) are NEVER offered here: they are computed from real data.
 const metricsStore = useClientMetricsStore()
 const showMetricAdd = ref(false)
 const savingMetric = ref(false)
@@ -302,7 +302,7 @@ const KPI_BY_ID = Object.fromEntries(KPI_CATALOG.map(k => [k.id, k]))
 const manualKpis = KPI_CATALOG.filter(k => k.source === 'manual')
 const trackedKpis = computed(() => metricsStore.trackedFor(modal.clientId))
 
-// ── Recherche KPI (P10 penser CSM) : filtre direct, suivis de CE client en tête ──
+// ── KPI search (P10 think-like-a-CSM): direct filter, THIS client's tracked KPIs first ──
 const kpiSearch = ref('')
 const kpiListOpen = ref(false)
 const valueInput = ref(null)
@@ -313,7 +313,7 @@ const filteredManualKpis = computed(() => {
   const q = normTxt(kpiSearch.value)
   let list = manualKpis
   if (q) list = list.filter(k => normTxt(metricLabel(k.id)).includes(q) || k.id.includes(q))
-  // le geste récurrent d'abord : les KPIs déjà suivis de ce client en tête
+  // the recurring gesture first: this client's already tracked KPIs at the top
   return [...list].sort((a, b) => (isTracked(b.id) ? 1 : 0) - (isTracked(a.id) ? 1 : 0)).slice(0, 12)
 })
 function pickKpi(k) {
@@ -344,10 +344,10 @@ async function submitMetric() {
 }
 async function removeMetric(p) { await metricsStore.deleteMetric(p.id) }
 
-// ── Créer & historiser (copil / tâche liés à ce client) ──
-// Un copil créé ici part avec client_id → il remonte dans la timeline (kpis.copils
-// filtrés par clientId) ET dans la liste des copils du client. On ouvre ensuite le
-// builder pour le remplir. La tâche rapide s'insère (dbToTask) et apparaît aussitôt.
+// ── Create & log (copil / task linked to this client) ──
+// A copil created here carries client_id → it shows up in the timeline (kpis.copils
+// filtered by clientId) AND in the client's copil list. We then open the
+// builder to fill it in. The quick task is inserted (dbToTask) and appears immediately.
 const addingCopil = ref(false)
 async function addCopil() {
   if (addingCopil.value || !client.value) return
@@ -369,10 +369,10 @@ async function addQuickTask() {
   if (res) { taskDraft.value = ''; showTaskInput.value = false }
 }
 
-// Devis / Événement / Playbook : formulaires riches qui vivent dans leur module.
-// On pose l'intention (client) dans le store prefill, on ferme la fiche et on
-// navigue ; le module consomme au montage → client pré-sélectionné + form ouvert.
-// L'objet créé part avec client_id → il remonte ensuite dans cet historique.
+// Quote / Event / Playbook: rich forms that live in their own module.
+// We record the intent (client) in the prefill store, close the record and
+// navigate; the module consumes it on mount → client pre-selected + form open.
+// The created object carries client_id → it then shows up in this history.
 function goCreate(path) {
   if (!client.value) return
   prefill.set(client.value.id, form.name || client.value.name)
@@ -380,7 +380,7 @@ function goCreate(path) {
   router.push(path)
 }
 
-// ── Planning (état local à PlanningView → lecture ciblée) ──
+// ── Planning (state local to PlanningView → targeted read) ──
 const planningEvents = ref([])
 async function loadPlanning(id) {
   planningEvents.value = []
@@ -393,7 +393,7 @@ async function loadPlanning(id) {
   } catch (e) { console.error('[client-modal] planning load failed:', e.message || e) }
 }
 
-// ── Timeline dérivée (contrat R23 D3) ──
+// ── Derived timeline (contract R23 D3) ──
 const timeline = computed(() => {
   const id = modal.clientId
   const out = []
@@ -411,7 +411,7 @@ const timeline = computed(() => {
   for (const cp of kpis.copils.filter(x => x.clientId === id)) out.push({ date: (cp.createdAt || '').slice(0, 10), icon: '📊', to: '/app/kpis', label: t('cd_tl_copil', { title: cp.title }) })
   // Devis (base, store quotes) — clientId + status + createdAt
   for (const q of quoteStore.quotesForClient(id)) out.push({ date: (q.createdAt || '').slice(0, 10), icon: '📄', to: '/app/quotes', label: t('cd_tl_quote', { title: q.title || '—', status: t('qt_filter_' + (q.status || 'draft')) }) })
-  // Projets liés — dérivés des tâches du client (pas de client_id direct sur projects)
+  // Linked projects — derived from the client's tasks (no direct client_id on projects)
   const projByClient = {}
   for (const tk of tasksStore.tasks.filter(x => x.clientId === id && x.projectId)) {
     const d = tk.createdAt?.slice(0, 10) || ''
@@ -421,15 +421,15 @@ const timeline = computed(() => {
     const proj = tasksStore.projects.find(p => p.id === pid)
     if (proj) out.push({ date: d, icon: '📁', to: '/app/tasks', label: t('cd_tl_project', { name: proj.name || proj.title }) })
   }
-  // Situations / tickets = alertes notifiées sur ce client (churn, renouvellement, erreurs…)
+  // Situations / tickets = alerts raised on this client (churn, renewal, errors…)
   for (const n of notifStore.notifications.filter(x => x.target_id === id)) out.push({ date: (n.created_at || '').slice(0, 10), icon: '🔔', to: '/app/dashboard', label: t('cd_tl_alert', { title: notifTitle(n, t) }) })
   return out.filter(e => e.date).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 80)
 })
 
-// Devis chargés une fois à l'ouverture (store en base)
+// Quotes loaded once on open (database-backed store)
 function loadQuotesForClient() { if (!quoteStore.quotes.length) quoteStore.loadQuotes() }
 
-// ── Déplacement de la fenêtre (poignée = barre de titre) ──
+// ── Window dragging (handle = title bar) ──
 const pos = reactive({ x: 0, y: 0 })
 const windowStyle = computed(() => ({ transform: `translate(calc(-50% + ${pos.x}px), calc(-50% + ${pos.y}px))` }))
 let dragging = false, sx = 0, sy = 0, ox = 0, oy = 0
@@ -442,9 +442,9 @@ function startDrag(e) {
 function onDrag(e) { if (dragging) { pos.x = ox + (e.clientX - sx); pos.y = oy + (e.clientY - sy) } }
 function endDrag() { dragging = false; window.removeEventListener('pointermove', onDrag); window.removeEventListener('pointerup', endDrag) }
 
-// À chaque ouverture OU changement de client (ouvrir B alors que A est affiché) :
-// recentrer, ré-hydrater le formulaire, recharger notes + planning. On surveille
-// isOpen ET clientId — sinon le form garderait les valeurs de A (risque d'écrire A sur B).
+// On every open OR client change (opening B while A is displayed):
+// re-center, re-hydrate the form, reload notes + planning. We watch
+// isOpen AND clientId — otherwise the form would keep A's values (risk of writing A over B).
 watch(() => [modal.isOpen, modal.clientId], ([open]) => {
   document.body.style.overflow = open ? 'hidden' : ''
   if (open && modal.clientId) {
@@ -518,7 +518,7 @@ watch(() => [modal.isOpen, modal.clientId], ([open]) => {
 .cm-add-btn.active { border-color: var(--primary); background: var(--bg-hover); }
 .cm-add-btn:disabled { opacity: .6; cursor: default; }
 .cm-task-add { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-top: 10px; }
-/* ── Métriques mensuelles (lot client_metrics 22/07) ── */
+/* ── Monthly metrics (client_metrics batch 22/07) ── */
 .cm-metric-form { display: grid; grid-template-columns: 1fr auto 110px auto; gap: 6px; margin-bottom: 10px; }
 .cm-kpi-combo { position: relative; }
 .cm-kpi-list { position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 30; background: var(--card-bg, var(--bg-card)); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 12px 32px rgba(0,0,0,0.14); max-height: 260px; overflow-y: auto; padding: 4px; }

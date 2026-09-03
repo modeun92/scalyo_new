@@ -64,9 +64,9 @@ const router = useRouter()
 const route = useRoute()
 const auth = useAuthStore()
 
-// PRICE-BY-LANG (contrat D1, 29/08) : le montant affiché est le montant RÉELLEMENT facturé,
-// lu sur /api/billing (source:'stripe') une fois le webhook passé — plus jamais un prix
-// choisi par la langue de l'interface. Tant que Stripe n'est pas lu : plan seul, sans montant.
+// PRICE-BY-LANG (contract D1, 29/08): the displayed amount is the amount ACTUALLY billed,
+// read from /api/billing (source:'stripe') once the webhook has run — never again a price
+// chosen by the interface language. Until Stripe is read: plan only, without an amount.
 const billing = ref(null)
 const planLabel = computed(() => {
   const p = route.query.plan || auth.currentPlan || ''
@@ -83,20 +83,20 @@ async function loadBilling() {
     if (!token) return
     const resp = await fetch('/api/billing', { headers: { Authorization: 'Bearer ' + token } })
     if (resp.ok) billing.value = await resp.json()
-  } catch (_) { /* défensif : plan seul, jamais un montant deviné */ }
+  } catch (_) { /* defensive: plan only, never a guessed amount */ }
 }
 
-// ─── Lecture seule (CR-3 / E-01) ──────────────────────────────────────────
-// Plus AUCUNE écriture côté client : le provisioning vient exclusivement du
-// webhook Stripe (service_role). Le param ?plan= ne sert qu'au libellé
-// optimiste. Polling du profil (3 s, max 60 s) le temps que le webhook passe.
+// ─── Read-only (CR-3 / E-01) ──────────────────────────────────────────
+// NO client-side write any more: provisioning comes exclusively from the
+// Stripe webhook (service_role). The ?plan= param only serves the optimistic
+// label. Profile polling (3 s, max 60 s) while the webhook runs.
 const provisioningPending = ref(false)
 onMounted(async () => {
   if (!auth.user?.id) return
   const started = Date.now()
   while (Date.now() - started < 60_000) {
     await auth.fetchProfile(auth.user.id)
-    // PRICE-BY-LANG : abonnement actif → lire le montant réel Stripe pour le badge
+    // PRICE-BY-LANG: active subscription → read the real Stripe amount for the badge
     if (auth.hasActiveSubscription) { await loadBilling(); return }
     await new Promise(r => setTimeout(r, 3000))
   }

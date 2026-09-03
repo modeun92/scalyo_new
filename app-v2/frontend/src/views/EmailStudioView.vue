@@ -5,7 +5,7 @@
     <p class="es-sub">{{ t('es_subtitle') }}</p>
   </div>
 
-  <!-- CR-D : les échecs du store sont affichés (la vue était muette) — pattern C-07 ChatPanel -->
+  <!-- CR-D: the store's failures are displayed (the view used to be mute) — ChatPanel C-07 pattern -->
   <div v-if="store.lastError" class="es-error-toast">
     <span>{{ t('es_err_' + store.lastError) }}</span>
     <button class="es-error-close" @click="store.clearError()">✕</button>
@@ -98,8 +98,8 @@ const showResendWizard = ref(false)
 const editSubject = ref('')
 const editBody = ref('')
 
-// CR-2 source unique : elite ET enterprise ont emailStudioIA (contrat gating 8/07)
-const isElite = computed(() => hasFeature(auth.currentPlan, 'emailStudioIA'))
+// CR-2 source unique : elite ET enterprise ont aiEmailStudio (contrat gating 8/07)
+const isElite = computed(() => hasFeature(auth.currentPlan, 'aiEmailStudio'))
 
 const selected = computed(() => {
   if (!selectedId.value) return null
@@ -129,7 +129,7 @@ function onSelectTemplate(id) {
 
   if (tpl.source === 'default') {
     editSubject.value = t(tpl.subjectKey)
-    // EMAIL-NEWLINES : conversion structurelle HTML → texte (plus jamais un strip collé)
+    // EMAIL-NEWLINES: structural HTML → text conversion (never again a glued strip)
     editBody.value = htmlToPlainText(t(tpl.bodyKey))
   } else {
     editSubject.value = tpl.subject || ''

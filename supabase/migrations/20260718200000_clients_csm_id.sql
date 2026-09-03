@@ -1,18 +1,18 @@
--- B-04 / G9-10 — clients.csm_id : l'assignation d'agent (CSM) n'était jamais persistée.
--- Le combobox écrivait un csmId local perdu au reload ; seule la colonne csm (text)
--- portait un nom libre. Baseline 20260624131657 relue le 18/07 : csm_id ABSENTE.
+-- B-04 / G9-10 — clients.csm_id: the agent (CSM) assignment was never persisted.
+-- The combobox wrote a local csmId that was lost on reload; only the csm (text) column
+-- carried a free-form name. Baseline 20260624131657 re-read on 18/07: csm_id ABSENT.
 --
--- Backfill volontairement ABSENT : le mapping nom→uuid n'est pas fiable (homonymes,
--- renommages) — NULL = non assigné, les vues rendent déjà l'état vide honnêtement.
+-- Backfill deliberately ABSENT: the name→uuid mapping is not reliable (homonyms,
+-- renames) — NULL = unassigned, and the views already render the empty state honestly.
 --
--- À appliquer : PRÉPROD (wxbape…) PUIS PROD (hcqnin…) — SQL editor, GO Lidia nommé (R8).
+-- To be applied: PRE-PROD (wxbape…) THEN PROD (hcqnin…) — SQL editor, named GO from Lidia (R8).
 
 ALTER TABLE public.clients
   ADD COLUMN IF NOT EXISTS csm_id uuid REFERENCES public.profiles(id) ON DELETE SET NULL;
 
 CREATE INDEX IF NOT EXISTS idx_clients_csm_id ON public.clients (csm_id);
 
--- Contrôles post-application :
+-- Post-application checks:
 -- SELECT column_name, data_type FROM information_schema.columns
---   WHERE table_name = 'clients' AND column_name = 'csm_id';          -- 1 ligne, uuid
--- SELECT count(*) AS assignes FROM public.clients WHERE csm_id IS NOT NULL;  -- 0 attendu
+--   WHERE table_name = 'clients' AND column_name = 'csm_id';          -- 1 row, uuid
+-- SELECT count(*) AS assigned FROM public.clients WHERE csm_id IS NOT NULL;  -- 0 expected

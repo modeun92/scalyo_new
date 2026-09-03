@@ -1,7 +1,7 @@
 <template>
   <div class="mc">
 
-    <!-- Si aucune masterclass sélectionnée : liste des masterclasses -->
+    <!-- If no masterclass is selected: list of masterclasses -->
     <div v-if="!activeMc" class="mc-list-view">
       <div class="mc-list-header">
         <h1>🎓 {{ t('nav.masterclass') }}</h1>
@@ -137,7 +137,7 @@
           </div>
         </div>
 
-        <!-- Leçon active -->
+        <!-- Active lesson -->
         <div v-else class="mc-lesson">
 
           <div class="mc-lesson-header">
@@ -156,7 +156,7 @@
 
           <h1 class="mc-lesson-title">{{ t(activeLesson.titleKey) }}</h1>
 
-          <!-- Contenu leçon -->
+          <!-- Lesson content -->
           <div v-if="!isExercise" class="mc-lesson-body">
             <div v-for="(block, i) in parsedContent" :key="i" class="mc-content-block">
               <p v-if="block.type === 'paragraph'" class="mc-paragraph">{{ block.text }}</p>
@@ -196,7 +196,7 @@
               </div>
             </div>
 
-            <!-- Type notes (défaut) -->
+            <!-- Notes type (default) -->
             <div v-else class="ex-notes">
               <div class="ex-instructions">
                 <div v-for="(block, i) in parsedContent" :key="i">
@@ -222,14 +222,14 @@
             </div>
           </div>
 
-          <!-- Navigation leçons -->
+          <!-- Lesson navigation -->
           <div class="mc-nav">
             <button class="mc-nav-btn" @click="prevLesson" :disabled="!hasPrev">← {{ t('res_prev') }}</button>
             <span class="mc-nav-pos">{{ currentPosition }}</span>
             <button class="mc-nav-btn primary" @click="nextLesson" :disabled="!hasNext">{{ t('res_next') }} →</button>
           </div>
 
-          <!-- Badge de module complété -->
+          <!-- Completed module badge -->
           <transition name="badge-pop">
             <div v-if="showBadge" class="mc-badge-popup">
               <div class="badge-icon">🏅</div>

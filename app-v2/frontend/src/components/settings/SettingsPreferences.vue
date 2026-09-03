@@ -82,7 +82,7 @@ async function changeLang(code) {
     langSaved.value = true
     setTimeout(() => { langSaved.value = false }, 2000)
   } else {
-    // D-15 : échec d'écriture = jamais de faux succès — revert UI + erreur visible
+    // D-15: a write failure = never a false success — UI revert + visible error
     selectedLang.value = prev
     locale.value = prev
     langError.value = true

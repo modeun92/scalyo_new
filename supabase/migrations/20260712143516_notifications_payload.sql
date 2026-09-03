@@ -1,23 +1,23 @@
--- A-06/C-03 — 12 juillet 2026
--- Notifications locale-agnostiques. Jusqu'ici title/body étaient rendus en
--- français à la génération (notifications.js) et persistés tels quels → un
--- testeur KO/EN recevait des notifications en français. On stocke désormais
--- type + payload (snapshot des valeurs au moment de l'alerte) et title/body
--- sont rendus à la locale du lecteur côté frontend (src/lib/notifText.js).
+-- A-06/C-03 — 12 July 2026
+-- Locale-agnostic notifications. Until now title/body were rendered in
+-- French at generation time (notifications.js) and persisted as such → a
+-- KO/EN tester received notifications in French. We now store
+-- type + payload (snapshot of the values at alert time) and title/body
+-- are rendered in the reader's locale on the front end (src/lib/notifText.js).
 --
--- ORDRE DE DÉPLOIEMENT OBLIGATOIRE : cette migration AVANT le deploy frontend.
--- generateFromData insère désormais la colonne payload ; sans la colonne,
--- l'insert échoue ("column payload does not exist").
+-- MANDATORY DEPLOYMENT ORDER: this migration BEFORE the front-end deploy.
+-- generateFromData now inserts the payload column; without the column,
+-- the insert fails ("column payload does not exist").
 --
--- Appliqué : PRÉPROD (à faire) . PROD : au merge validé (R8).
+-- Applied: PRE-PROD (to do). PROD: on approved merge (R8).
 
--- 1) Colonne payload (idempotent, défaut '{}' → lignes existantes non nulles).
+-- 1) payload column (idempotent, default '{}' → existing rows are non-null).
 alter table public.notifications
   add column if not exists payload jsonb not null default '{}'::jsonb;
 
--- 2) Migration des lignes existantes.
---    Ce sont des alertes transitoires (FR figé, sans payload). generateFromData
---    dedup par (type, target_id) : tant qu'elles existent, aucune ligne payload
---    ne se recree. On les purge ; le client les regenere AVEC payload au prochain
---    load. Aucune donnee utilisateur (chat, clients, taches...) n'est touchee.
+-- 2) Migration of the existing rows.
+--    These are transient alerts (frozen FR, no payload). generateFromData
+--    dedups by (type, target_id): as long as they exist, no payload row
+--    can be recreated. We purge them; the client regenerates them WITH a payload at the next
+--    load. No user data (chat, clients, tasks...) is touched.
 delete from public.notifications;

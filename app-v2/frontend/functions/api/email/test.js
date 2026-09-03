@@ -1,7 +1,7 @@
-// === SCALYO — Test clé Resend côté SERVEUR (CR-8 : E-08) ===
+// === SCALYO — Resend key test on the SERVER side (CR-8: E-08) ===
 // POST /api/email/test → { valid }
-// Le navigateur n'appelle plus jamais api.resend.com : la clé (fournie ou stockée)
-// est testée ici et n'apparaît dans aucune réponse.
+// The browser never calls api.resend.com any more: the key (supplied or stored)
+// is tested here and appears in no response.
 
 import { extractLang, extractAuth, verifyJwt } from '../_services/auth.service.js'
 import { getConfig } from '../_config/index.js'
@@ -26,7 +26,7 @@ export async function onRequestPost(context) {
     if (key) {
       if (!KEY_FORMAT.test(key)) return jsonError('invalid_key_format', 400, lang)
     } else {
-      // Aucune clé fournie : tester la clé stockée du caller (owner)
+      // No key supplied: test the caller's stored key (owner)
       const db = createSupabaseClient(context.env)
       const row = await db.selectOne('org_email_config', 'owner_id=eq.' + jwt.userId + '&select=resend_api_key')
       if (!row) return jsonError('email_not_configured', 400, lang)

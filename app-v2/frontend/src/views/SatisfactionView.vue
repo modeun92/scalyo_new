@@ -74,7 +74,7 @@ import '@/assets/satisfaction.css'
 const clients = useClientStore()
 const team = useTeamStore()
 const auth = useAuthStore()
-const canCustomizeKpis = computed(() => hasFeature(auth.effectivePlan, 'dashboardKPIsAvances'))
+const canCustomizeKpis = computed(() => hasFeature(auth.effectivePlan, 'advancedDashboardKpis'))
 
 const customizerOpen = ref(false)
 const defaultKpis = ['health_score', 'nps', 'churn_rate', 'renewal_rate', 'csat', 'promoters_pct']
@@ -99,12 +99,12 @@ function resetFilters() {
   search.value = ''
 }
 
-// HEALTH-SCALE (25/08) : filtres, score global et déclin lisent le statut EFFECTIF et
-// l'échelle /10 de lib/health — plus de `c.status` brut ni de ×10 (« 10 /100 »).
+// HEALTH-SCALE (25/08): filters, global score and decline read the EFFECTIVE status and
+// the /10 scale from lib/health — no more raw `c.status` nor ×10 ("10 /100").
 const statusOf = (c) => clients.getEffectiveStatus(c)
 
-// COUNT-353-352 (29/08) : base = clientsOnly (prospects exclus), même périmètre que les
-// compteurs du store (healthy/watch/critical, arrAtRisk) — un prospect n'a pas de santé mesurée.
+// COUNT-353-352 (29/08): base = clientsOnly (prospects excluded), same scope as the store
+// counters (healthy/watch/critical, arrAtRisk) — a prospect has no measured health.
 const filteredClients = computed(() => {
   let list = clients.clientsOnly
   if (activeFilter.value === 'healthy') list = list.filter(c => statusOf(c) === 'healthy')
@@ -126,26 +126,26 @@ const sortedClients = computed(() => {
   return list
 })
 
-// Score moyen /10 (1 décimale), même formule que clients.avgHealth mais sur la sélection filtrée
+// Average score out of 10 (1 decimal), same formula as clients.avgHealth but over the filtered selection
 const globalScore = computed(() => {
   if (!filteredClients.value.length) return null
   return parseFloat((filteredClients.value.reduce((s, c) => s + (toHealthNumber(c.health) ?? 0), 0) / filteredClients.value.length).toFixed(1))
 })
 
-// Couleur et seuils = ceux du statut effectif (3/6), plus de 50/70 locaux
+// Color and thresholds = those of the effective status (3/6), no more local 50/70
 const gaugeStatus = computed(() => healthStatus(globalScore.value, null))
 const gaugeColor = computed(() => healthColor(gaugeStatus.value))
 
 const gaugeArc = computed(() => ((healthPct(globalScore.value) / 100) * 534.07).toFixed(1))
 
-// « En déclin » = tout compte qui n'est pas Sain (statut effectif), plus de seuil local < 5
-// COUNT-353-352 : sur clients actifs uniquement (même base que watchCount + criticalCount)
+// "Declining" = any account that is not Healthy (effective status), no more local < 5 threshold
+// COUNT-353-352: on active clients only (same base as watchCount + criticalCount)
 const decliningCount = computed(() => clients.clientsOnly.filter(c => statusOf(c) !== 'healthy').length)
 
 const bestCsm = computed(() => {
   const csmScores = {}
-  // BEST-CSM-VIDE (29/08) : les comptes SANS csm_id ne concourent pas — le groupe « vide »
-  // (4 comptes, moyenne 7,0) battait Claire (95 comptes, 6,76) et affichait « — »
+  // BEST-CSM-VIDE (29/08): accounts WITHOUT a csm_id do not compete — the "empty" group
+  // (4 accounts, average 7.0) beat Claire (95 accounts, 6.76) and displayed "—"
   clients.clientsOnly.filter(c => c.csmId).forEach(c => {
     if (!csmScores[c.csmId]) csmScores[c.csmId] = { total: 0, count: 0, name: c.csm }
     csmScores[c.csmId].total += c.health

@@ -9,11 +9,11 @@ export const useTeamStore = defineStore('team', () => {
   const loading = ref(false)
   const lastError = ref(null)
 
-  // ─── Computed ─────────────────────────────────────────────────
-  // B-09 : plus AUCUNE métrique inventée. null = « pas de donnée » → rendu '—'.
-  // Les agrégats ne comptent que les membres qui ONT une valeur réelle ; tant
-  // qu'aucune source réelle n'existe (bien-être = confidentiel, charge = non
-  // mesurée, clients/ARR = bloqués par B-04), ils rendent null, jamais un chiffre.
+  // ─── Computed ────────────────────────────────────────
+  // B-09: NO more invented metrics. null = "no data" → rendered as '—'.
+  // The aggregates only count members that HAVE a real value; as long
+  // as no real source exists (wellbeing = confidential, load = not
+  // measured, clients/ARR = blocked by B-04), they return null, never a figure.
   const wellbeingData = computed(() => members.value.filter(m => typeof m.wellbeingScore === 'number'))
   const workloadData = computed(() => members.value.filter(m => typeof m.workload === 'number'))
   const hasWellbeingData = computed(() => wellbeingData.value.length > 0)
@@ -29,12 +29,12 @@ export const useTeamStore = defineStore('team', () => {
     if (!withArr.length) return null
     return withArr.reduce((s, m) => s + m.arrManaged, 0)
   })
-  // SEATS-MISMATCH (25/08) : SOURCE UNIQUE des sièges = /api/members (used = membres non-viewer
-  // + invitations pending, calculé côté serveur) et plafond = plan (plans.config.getMaxSeats).
-  // L'ancien `seatsUsed = members.length + 1` / `profile.seats_paid || 1` donnait « 5/1 » sur
-  // Manager (profil d'un Member → 1) contre « 5 / 24 » sur Équipe.
+  // SEATS-MISMATCH (25/08): the SINGLE SOURCE for seats = /api/members (used = non-viewer members
+  // + pending invitations, computed server-side) and the ceiling = the plan (plans.config.getMaxSeats).
+  // The old `seatsUsed = members.length + 1` / `profile.seats_paid || 1` produced "5/1" on
+  // Manager (a Member's profile → 1) against "5 / 24" on the Team screen.
   const seats = ref({ used: null, paid: null })
-  const seatsCap = computed(() => getMaxSeats(useAuthStore().currentPlan)) // null = illimité (Enterprise)
+  const seatsCap = computed(() => getMaxSeats(useAuthStore().currentPlan)) // null = unlimited (Enterprise)
   async function loadSeats() {
     try {
       const token = (await supabase.auth.getSession()).data.session?.access_token
@@ -63,11 +63,11 @@ export const useTeamStore = defineStore('team', () => {
     statusLabel: typeof m.workload !== 'number' ? null : (m.workload >= 90 ? 'overloaded' : m.workload >= 75 ? 'loaded' : 'good'),
   })))
 
-  // TEAM-METRICS (D2, 29/08) : liste de STATS self-inclusive — un manager-CSM voit aussi
-  // ses propres chiffres (sinon ses clients assignés n'apparaissent chez personne quand
-  // il regarde Manager/Health Tracker). G9-10 (exclusion du user courant) reste la règle
-  // pour `members`/`enrichedMembers` (gestion d'équipe, invitations). Le self porte les
-  // mêmes champs B-09 (null = pas de donnée, jamais un chiffre inventé).
+  // TEAM-METRICS (D2, 29/08): self-inclusive STATS list — a manager-CSM also sees
+  // their own figures (otherwise their assigned clients appear under nobody when
+  // they look at Manager/Health Tracker). G9-10 (excluding the current user) stays the rule
+  // for `members`/`enrichedMembers` (team management, invitations). The self entry carries the
+  // same B-09 fields (null = no data, never an invented figure).
   const statsMembers = computed(() => {
     const auth = useAuthStore()
     if (!auth.user?.id) return enrichedMembers.value
@@ -129,10 +129,10 @@ export const useTeamStore = defineStore('team', () => {
           id: m.user_id,
           name: [p.first_name, p.last_name].filter(Boolean).join(' ') || '',
           email: '', role: m.role || 'member',
-          // B-09 : null = pas de donnée réelle (jamais 75/60/0 inventés)
+          // B-09: null = no real data (never an invented 75/60/0)
           wellbeingScore: null, workload: null,
           clientCount: null, arrManaged: null,
-          // CR-8 (C-05) : vraie valeur lue en base — le toggle owner reflète la réalité
+          // CR-8 (C-05): real value read from the database — the owner toggle reflects reality
           moodHistory: [], canSendEmail: m.can_send_email ?? false,
         }
       })

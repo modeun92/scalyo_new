@@ -1,16 +1,16 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 
-// ─── OXYGEN Lot 3a — jours off personnalisés (contrat R23 validé 28/07/2026) ──
-// Persistance v1 : localStorage user-scopé (pattern D-16, jamais la fuite
-// cross-comptes D-07) — clé scalyo_oxygen_offdays_<uid>. v2 colonne base = hors
-// périmètre (décision contrat). Défaut = sam + dim off (comportement Lot 2
-// inchangé tant que l'utilisateur ne règle rien). AUCUN texte ici (t() interdit
-// en store — la vue rend les libellés). Convention date UTC (= oxygen_daily).
+// ─── OXYGEN Lot 3a — custom days off (contract R23 approved 28/07/2026) ──
+// v1 persistence: user-scoped localStorage (D-16 pattern, never the D-07
+// cross-account leak) — key scalyo_oxygen_offdays_<uid>. A v2 database column is out of
+// scope (contract decision). Default = Sat + Sun off (Lot 2 behaviour
+// unchanged as long as the user configures nothing). NO text here (t() forbidden
+// in a store — the view renders the labels). UTC date convention (= oxygen_daily).
 //
-// weeklyOff : jours de semaine non travaillés (0=dim … 6=sam, getUTCDay).
-// offDates  : dates précises non travaillées ('YYYY-MM-DD') — fériés, congés.
-// Garde : impossible de déclarer les 7 jours off (il faut ≥1 jour travaillé).
+// weeklyOff: non-working weekdays (0=Sun … 6=Sat, getUTCDay).
+// offDates : specific non-working dates ('YYYY-MM-DD') — holidays, leave.
+// Guard: it is impossible to declare all 7 days off (at least 1 working day is required).
 
 const DEFAULT_WEEKLY_OFF = [0, 6]
 const keyFor = uid => `scalyo_oxygen_offdays_${uid}`
@@ -39,7 +39,7 @@ export const useOxygenPrefsStore = defineStore('oxygenPrefs', () => {
         offDates.value = []
       }
     } catch (e) {
-      console.warn('[oxygen] prefs load failed, défauts appliqués:', e.message || e)
+      console.warn('[oxygen] prefs load failed, defaults applied:', e.message || e)
       weeklyOff.value = [...DEFAULT_WEEKLY_OFF]
       offDates.value = []
     }
@@ -55,13 +55,13 @@ export const useOxygenPrefsStore = defineStore('oxygenPrefs', () => {
     } catch (e) { console.warn('[oxygen] prefs save failed:', e.message || e) }
   }
 
-  // Toggle d'un jour de semaine — refuse de passer les 7 jours en off
+  // Toggle a weekday — refuses to switch all 7 days off
   function toggleWeeklyOff(day) {
     if (!Number.isInteger(day) || day < 0 || day > 6) return
     const i = weeklyOff.value.indexOf(day)
     if (i >= 0) weeklyOff.value.splice(i, 1)
     else {
-      if (weeklyOff.value.length >= 6) return // ≥1 jour travaillé obligatoire
+      if (weeklyOff.value.length >= 6) return // ≥ 1 working day is mandatory
       weeklyOff.value.push(day)
     }
     persist()
@@ -81,8 +81,8 @@ export const useOxygenPrefsStore = defineStore('oxygenPrefs', () => {
 
   const offDateSet = computed(() => new Set(offDates.value))
 
-  // Prédicat UNIQUE consommé par la série ET la divergence (engine).
-  // d = Date ; convention UTC (dstr/getUTCDay), identique à oxygenEngine.
+  // The SINGLE predicate consumed by both the streak AND the divergence (engine).
+  // d = Date; UTC convention (dstr/getUTCDay), identical to oxygenEngine.
   function isWorkingDay(d) {
     if (weeklyOff.value.includes(d.getUTCDay())) return false
     return !offDateSet.value.has(d.toISOString().slice(0, 10))

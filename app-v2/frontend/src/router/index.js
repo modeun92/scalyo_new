@@ -5,12 +5,12 @@ import { i18n } from '@/i18n'
 import { L } from '@/i18n/landing'
 
 const routes = [
-  // SEO-I18N : la landing existe a trois URLs. Le prefixe d'URL est la seule
-  // autorite de langue ici — sans ces routes, /en/ et /ko/ tombent sur le
-  // catch-all NotFound, donc en noindex, et le <head> statique genere au build
-  // servirait une page qui se desindexe elle-meme apres hydratation.
-  // Codes : l'URL et le hreflang portent 'ko' (ISO 639-1) ; landing.js indexe
-  // ses libelles sous 'kr'. meta.landingLocale porte la cle landing.js.
+  // SEO-I18N: the landing page exists at three URLs. The URL prefix is the only
+  // language authority here — without these routes, /en/ and /ko/ fall through to the
+  // NotFound catch-all, hence noindex, and the static <head> generated at build time
+  // would serve a page that de-indexes itself after hydration.
+  // Codes: the URL and the hreflang carry 'ko' (ISO 639-1); landing.js indexes
+  // its labels under 'kr'. meta.landingLocale carries the landing.js key.
   { path: '/', name: 'landing', component: () => import('@/views/LandingPage.vue'), meta: { guest: true, landingLocale: 'fr' } },
   { path: '/en', alias: '/en/', name: 'landing-en', component: () => import('@/views/LandingPage.vue'), meta: { guest: true, landingLocale: 'en' } },
   { path: '/ko', alias: '/ko/', name: 'landing-ko', component: () => import('@/views/LandingPage.vue'), meta: { guest: true, landingLocale: 'kr' } },
@@ -47,16 +47,16 @@ const routes = [
       { path: 'tasks/team', name: 'tasks-team', component: () => import('@/views/tasks/TeamView.vue') },
       { path: 'tasks/settings', name: 'tasks-settings', component: () => import('@/views/tasks/SettingsView.vue') },
       { path: 'workload', name: 'workload', component: () => import('@/views/WorkloadView.vue') },
-      // OXYGEN Lot 3a : page unique (absorbe Bien-être) — redirect pour les anciens liens
+      // OXYGEN Lot 3a: single page (absorbs Wellbeing) — redirect for old links
       { path: 'oxygen', name: 'oxygen', component: () => import('@/views/OxygenView.vue') },
       { path: 'wellbeing', redirect: { name: 'oxygen' } },
       { path: 'coach', name: 'coach', component: () => import('@/views/CoachView.vue') },
       { path: 'chat', name: 'chat', meta: { requiresAuth: true }, component: () => import('@/views/ChatView.vue') },
       { path: 'email-studio', name: 'email-studio', component: () => import('@/views/EmailStudioView.vue'), meta: { requiredModule: 'email' } },
       { path: 'quotes', name: 'quotes', component: () => import('@/views/QuotesView.vue') },
-      // Import IA masqué — import standard désormais dans chaque module
+      // AI import hidden — standard import now lives inside each module
       { path: 'import', redirect: { name: 'dashboard' } },
-      // Module Integrations masqué (beta) — accès coupé, code conservé dormant (contrat R23 landing, D1)
+      // Integrations module hidden (beta) — access cut off, code kept dormant (landing contract R23, D1)
       { path: 'integrations', redirect: { name: 'dashboard' } },
       { path: 'settings', name: 'settings', component: () => import('@/views/SettingsView.vue') },
       { path: 'team', name: 'team', component: () => import('@/views/TeamManagementView.vue') },
@@ -102,10 +102,10 @@ const routes = [
     component: () => import('@/views/SupportView.vue')
   },
   {
-    // Lot 6 / INV-GUEST : PAS de meta.guest — un utilisateur deja connecte doit
-    // pouvoir atteindre l'ecran d'acceptation (le guard le renvoyait au dashboard
-    // et le jeton de l'URL etait perdu au rebond). Pas de requiresAuth non plus :
-    // l'invite sans compte doit y acceder.
+    // Lot 6 / INV-GUEST: NO meta.guest — an already logged-in user must be
+    // able to reach the acceptance screen (the guard sent them to the dashboard
+    // and the URL token was lost on the bounce). No requiresAuth either:
+    // an invitee without an account must be able to reach it.
     path: '/join',
     name: 'join',
     component: () => import('@/views/JoinView.vue')
@@ -146,7 +146,7 @@ router.beforeEach(async (to) => {
   if (to.meta.requiresAuth && to.name !== 'onboarding' && authStore.profile && !authStore.onboardingCompleted) {
     return { name: 'onboarding' }
   }
-  // G9-3 (garde inverse) : onboarding déjà complété → dashboard, jamais de re-onboarding
+  // G9-3 (inverse guard): onboarding already completed → dashboard, never a re-onboarding
   if (to.name === 'onboarding' && authStore.profile && authStore.onboardingCompleted) {
     return { name: 'dashboard' }
   }
@@ -155,7 +155,7 @@ router.beforeEach(async (to) => {
   if (to.meta.requiredModule && authStore.isAuthenticated) {
     const plan = authStore.currentPlan || 'starter'
     if (!isModuleAllowed(plan, to.meta.requiredModule)) {
-      // Chantier A : contexte upgrade (module gaté) vs essai expiré (needsPayment ci-dessous)
+      // Workstream A: upgrade context (gated module) vs expired trial (needsPayment below)
       return { name: 'paywall', query: { reason: 'upgrade', module: to.meta.requiredModule } }
     }
   }
@@ -167,17 +167,17 @@ router.beforeEach(async (to) => {
 })
 
 // SEO: dynamic title per route
-// L-13/E-13 : titres résolus à la locale courante via i18n.global (pattern
-// supabaseWrite.js — pas de useI18n hors setup, T12). Le titre se met à jour
-// à chaque navigation ; un changement de langue re-titre au clic suivant.
+// L-13/E-13: titles resolved against the current locale via i18n.global (the
+// supabaseWrite.js pattern — no useI18n outside setup, T12). The title updates
+// on every navigation; a language change re-titles on the next click.
 router.afterEach((to) => {
   const t = i18n.global.t
 
-  // SEO-I18N : sur les trois URLs de la landing, titre et description viennent
-  // de landing.js — la meme source que le <head> statique produit au build.
-  // Passer par i18n.global ferait dependre le titre de localStorage, donc
-  // divergerait du <head> servi : canonical et hreflang mentiraient.
-  // Aucun effet de bord sur l'app : on ne touche ni i18n.global ni localStorage.
+  // SEO-I18N: on the three landing URLs, title and description come
+  // from landing.js — the same source as the static <head> produced at build time.
+  // Going through i18n.global would make the title depend on localStorage, and so
+  // diverge from the served <head>: canonical and hreflang would be lying.
+  // No side effect on the app: we touch neither i18n.global nor localStorage.
   const landingKey = to.meta?.landingLocale
   if (landingKey) {
     const S = L[landingKey] || L.fr
@@ -212,9 +212,9 @@ router.afterEach((to) => {
     'Support': 'rt_support',
     'Blog': 'rt_blog',
     'Privacy': 'rt_privacy',
-    // HEADER-PILL (29/08) : ~30 routes nommées titraient l'onglet « rt_default » générique —
-    // chaque écran nomme sa vue (clés rt_* ×3 langues, alignées sur les titres réels des vues).
-    // 'landing' reste volontairement sur rt_default (titre SEO de la home).
+    // HEADER-PILL (29/08): ~30 named routes titled the tab with the generic "rt_default" —
+    // each screen now names its own view (rt_* keys × 3 languages, aligned with the views' real titles).
+    // 'landing' deliberately stays on rt_default (SEO title of the home page).
     'onboarding': 'rt_onboarding',
     'manager': 'rt_manager',
     'satisfaction': 'rt_satisfaction',
@@ -246,9 +246,9 @@ router.afterEach((to) => {
     'dpa': 'rt_dpa',
     'join': 'rt_join',
   }
-  // Hors landing, <html lang> suit la locale de l'application : sans cette ligne,
-  // une navigation interne depuis /ko/ vers /blog laisserait lang="ko" sur une
-  // page francaise — attribut faux pour les lecteurs d'ecran comme pour Google.
+  // Outside the landing page, <html lang> follows the application locale: without this line,
+  // an internal navigation from /ko/ to /blog would leave lang="ko" on a
+  // French page — a wrong attribute for screen readers as well as for Google.
   document.documentElement.lang = i18n.global.locale?.value || 'fr'
 
   const key = to.name && TITLE_KEYS[to.name]
@@ -257,12 +257,12 @@ router.afterEach((to) => {
   if (!metaDesc) { metaDesc = document.createElement('meta'); metaDesc.setAttribute('name', 'description'); document.head.appendChild(metaDesc) }
   metaDesc.setAttribute('content', to.meta?.description || t('rt_meta_desc'))
 
-  // SEO-404 : le fallback SPA de Cloudflare Pages renvoie 200 avec le HTML de la
-  // landing pour toute URL inexistante. Search Console a ainsi decouvert des URLs
-  // fantomes (/mois, /blog/customer-success-guide) qu'il traite comme des pages.
-  // Servir un vrai 404 demanderait de reecrire le routage de production ; le
-  // noindex, lui, suffit a les faire sortir de l'index : Googlebot execute le JS,
-  // lit la balise et desindexe. Aucun risque cote produit.
+  // SEO-404: the Cloudflare Pages SPA fallback returns 200 with the landing page's
+  // HTML for any non-existent URL. Search Console thus discovered phantom
+  // URLs (/mois, /blog/customer-success-guide) that it treats as pages.
+  // Serving a real 404 would require rewriting production routing; the
+  // noindex is enough to get them out of the index: Googlebot runs the JS,
+  // reads the tag and de-indexes. No product-side risk.
   let metaRobots = document.querySelector('meta[name="robots"]')
   if (!metaRobots) { metaRobots = document.createElement('meta'); metaRobots.setAttribute('name', 'robots'); document.head.appendChild(metaRobots) }
   metaRobots.setAttribute('content', to.name === 'NotFound' ? 'noindex, follow' : 'index, follow')

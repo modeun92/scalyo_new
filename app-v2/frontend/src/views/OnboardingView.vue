@@ -71,8 +71,8 @@ const authStore = useAuthStore()
 const clientStore = useClientStore()
 const taskStore = useTaskStore()
 
-// ONB-ORG : l'étape 1 (nom d'entreprise) est réservée au owner — un invité rejoint une org déjà nommée.
-// RLS org_manage (UPDATE owner-only) rendait déjà l'écriture member inopérante ; ici on cesse de la proposer.
+// ONB-ORG: step 1 (company name) is reserved for the owner — an invitee joins an already named org.
+// The org_manage RLS (owner-only UPDATE) already made a member's write ineffective; here we simply stop offering it.
 const isOwner = (authStore.profile?.org_role || 'owner') === 'owner'
 const minStep = isOwner ? 1 : 2
 const step = ref(minStep)
@@ -96,7 +96,7 @@ async function nextStep() {
     if (step.value === 1 && companyName.value.trim()) {
       const { error: companyErr } = await supabase.from('profiles').update({ company_name: companyName.value.trim() }).eq('id', authStore.user.id)
         if (companyErr) throw companyErr
-      // G9-5 : le nom saisi est aussi le nom de l'organisation (visible sur /join, Team, factures)
+      // G9-5: the entered name is also the organization's name (visible on /join, Team, invoices)
       const orgId = authStore.profile?.organization_id
       if (orgId && isOwner) {
         const { error: orgErr } = await supabase.from('organizations').update({ name: companyName.value.trim() }).eq('id', orgId)
@@ -125,7 +125,7 @@ async function sendCoachMessage() {
   errorMsg.value = ''
   try {
     const response = await askScalyoAI({ module: 'coach', message: coachMessage.value.trim(), context: {} })
-    // G9-2 : le backend renvoie { response } (cf. coach.module.js) — alignement sur CoachView
+    // G9-2: the back end returns { response } (see coach.module.js) — aligned with CoachView
     coachResponse.value = (response && (response.response || response.content || response.message)) || ''
   } catch (err) {
     errorMsg.value = t('onb_error')
@@ -141,7 +141,7 @@ async function finishOnboarding() {
   try {
     const { error: onbErr } = await supabase.from('profiles').update({ onboarding_completed: true }).eq('id', authStore.user.id)
       if (onbErr) throw onbErr
-    // G9-3 : fetchProfile exige l'uid (seul appelant qui ne le passait pas → profil stale → boucle onboarding)
+    // G9-3: fetchProfile requires the uid (the only caller that did not pass it → stale profile → onboarding loop)
     await authStore.fetchProfile(authStore.user.id)
     router.push({ name: 'dashboard' })
   } catch (err) {

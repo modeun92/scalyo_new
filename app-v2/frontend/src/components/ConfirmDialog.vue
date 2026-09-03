@@ -1,8 +1,8 @@
 <template>
-  <!-- NO-CONFIRM : confirmation DANS le produit, jamais confirm() natif (bloque aussi
-       toute preuve automatisée). Extrait de TeamManagementView (SEAT-RM D3①).
-       Titre et corps en <div>, pas h4/p : le thème sombre force !important sur les
-       balises nues (CSS-DARK-IMPORTANT). -->
+  <!-- NO-CONFIRM: confirmation INSIDE the product, never a native confirm() (which also blocks
+       any automated evidence capture). Extracted from TeamManagementView (SEAT-RM D3①).
+       Title and body in <div>, not h4/p: the dark theme forces !important on bare
+       tags (CSS-DARK-IMPORTANT). -->
   <div class="cf-overlay" @click.self="onCancel" @keydown.esc.stop.prevent="onCancel">
     <div class="cf-card" role="dialog" aria-modal="true" :aria-label="title">
       <div class="cf-title">{{ title }}</div>
@@ -34,7 +34,7 @@ const { t } = useI18n({ useScope: 'global' })
 const cancelBtn = ref(null)
 
 function onCancel() { if (!props.busy) emit('cancel') }
-// Le focus part sur « Annuler » : Entrée par réflexe n'exécute jamais le geste destructif.
+// Focus starts on "Cancel": pressing Enter by reflex never runs the destructive action.
 onMounted(() => { cancelBtn.value?.focus() })
 </script>
 

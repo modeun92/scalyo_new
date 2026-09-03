@@ -35,8 +35,8 @@ export async function onRequestPost(context) {
       return jsonError('module_not_allowed', 403, lang)
     }
 
-    // CR-8 (C-04/C-05) : lecture de la config org côté SERVEUR (service_role).
-    // Owner direct, sinon membre de l'org avec can_send_email=true → config de l'owner.
+    // CR-8 (C-04/C-05): read of the org config on the SERVER side (service_role).
+    // Direct owner, otherwise an org member with can_send_email=true → the owner's config.
     const db = createSupabaseClient(context.env)
     let configRow = await db.selectOne(
       'org_email_config',
@@ -64,7 +64,7 @@ export async function onRequestPost(context) {
       return jsonError('email_not_configured', 400, lang)
     }
 
-    // Clé chiffrée AES-256-GCM en base (migration CR-8) — déchiffrement serveur uniquement
+    // Key encrypted with AES-256-GCM in the database (migration CR-8) — server-side decryption only
     const resendKey = await decryptToken(configRow.resend_api_key, context.env.ENCRYPTION_KEY)
     if (!resendKey) {
       console.error('email.js: decrypt failed (encryption_key_missing or invalid ciphertext)')

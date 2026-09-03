@@ -53,8 +53,8 @@ const { t } = useI18n()
 const emit = defineEmits(['close', 'connected'])
 const step = ref(1), apiKey = ref(''), testing = ref(false), error = ref('')
 const canTest = computed(() => /^re_[A-Za-z0-9_-]{10,}$/.test(apiKey.value))
-// CR-8 (E-08) : test + sauvegarde côté serveur (/api/email/*). La clé est chiffrée
-// en base, n'est plus écrite dans profiles ni conservée dans le state Pinia.
+// CR-8 (E-08): test + save on the server side (/api/email/*). The key is encrypted
+// in the database, is no longer written into profiles nor kept in the Pinia state.
 async function apiFetch(path, body) {
   const token = (await supabase.auth.getSession()).data.session?.access_token
   return fetch(path, {

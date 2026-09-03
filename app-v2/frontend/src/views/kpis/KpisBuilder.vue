@@ -13,7 +13,7 @@
     </div>
 
     <div class="kb-layout" :class="{ 'drawer-open': drawerOpen, 'panel-open': !!activeBlock }">
-      <!-- G9-11 : sous 1024 px le catalogue est un tiroir ouvert par « + Bloc », l'inspecteur un panneau latéral -->
+      <!-- G9-11: below 1024 px the catalog is a drawer opened by "+ Block", the inspector a side panel -->
       <button type="button" class="kb-drawer-toggle" @click="drawerOpen = !drawerOpen">{{ drawerOpen ? t('copil_close_panel') : t('copil_add_block_cta') }}</button>
       <div v-if="drawerOpen || activeBlock" class="kb-scrim" @click="closePanels" />
       <!-- SIDEBAR: Block types -->
@@ -59,7 +59,7 @@
           </div>
         </div>
 
-        <!-- Blocks (G9-14 : boundary = un bloc qui plante n'emporte pas tout le builder) -->
+        <!-- Blocks (G9-14: boundary = a block that crashes does not take the whole builder down) -->
         <ErrorBoundary>
         <div v-if="copil?.blocks?.length" class="kb-blocks">
           <div v-for="(block, i) in copil.blocks" :key="block.id" class="kb-block" :class="{ selected: selectedBlock === block.id, hidden: !block.visible }" @click="selectedBlock = block.id" draggable="true" @dragstart="onDragStart($event, i)" @dragover.prevent="onDragOver($event, i)" @dragend="onDragEnd" @drop.prevent="onDrop(i)">
@@ -257,7 +257,7 @@
 
         <!-- Image inspector -->
         <div v-else-if="activeBlock.type === 'image'" class="insp-body">
-          <!-- COPIL-IMAGE-EXPORT (D1①) : fichier téléversé dans le bucket privé copil-media, exporté dans le PPTX -->
+          <!-- COPIL-IMAGE-EXPORT (D1①): file uploaded to the private copil-media bucket, exported into the PPTX -->
           <div class="fg"><label>{{ t('copil_image_file') }}</label>
             <input ref="imageInput" type="file" accept="image/png,image/jpeg,image/webp" class="insp-file" :disabled="uploading" @change="onImageFile" />
             <span class="insp-hint">{{ t('copil_image_hint') }}</span>
@@ -320,7 +320,7 @@
       </aside>
     </div>
 
-    <!-- NO-CONFIRM : un bloc rempli ne se supprime qu'après confirmation dans le produit -->
+    <!-- NO-CONFIRM: a filled block is only deleted after confirmation in the product -->
     <ConfirmDialog v-if="blockToDelete" :title="t('copil_block_delete_title')" :body="t('copil_block_delete_body', { type: t('copil_bt_' + blockToDelete.type), title: blockToDelete.title || t('copil_block_untitled') })" :cta="t('cf_delete')" :busy="deletingBlock" @confirm="confirmDeleteBlock" @cancel="blockToDelete = null" />
     <MetricWizard v-if="showMetricWizard" :client-id="meta.clientId" @close="showMetricWizard = false" @insert="insertMetric" />
   </div>
@@ -368,8 +368,8 @@ onMounted(async () => {
   if (c) { Object.assign(meta, { title: c.title, subtitle: c.subtitle, clientId: c.clientId || null, clientName: c.clientName, period: c.period, presenter: c.presenter, color: c.color, lang: c.lang || 'fr' }) }
 })
 
-// Lier un client du portefeuille : auto-remplit nom + logo. Retour au texte
-// libre : clientId null, le nom saisi reste.
+// Link a portfolio client: auto-fills name + logo. Back to free
+// text: clientId null, the entered name stays.
 function onClientPick() {
   const cl = clientStore.clients.find(x => x.id === meta.clientId)
   if (cl) {
@@ -400,12 +400,12 @@ function addBlock(type) {
   drawerOpen.value = false
 }
 
-// COPIL-BLOCK-DELETE : un bloc VIDE (aucune valeur saisie) part immédiatement ; un bloc
-// rempli passe par ConfirmDialog. « Rempli » = au moins une chaîne non vide dans data,
-// hors les exemples posés à la création (labels/couleurs), ou un titre.
+// COPIL-BLOCK-DELETE: an EMPTY block (no value entered) is removed immediately; a filled
+// block goes through ConfirmDialog. "Filled" = at least one non-empty string in data,
+// excluding the examples set at creation time (labels/colors), or a title.
 function blockHasContent(b) {
   if (b.title && b.title.trim()) return true
-  // un graphique porte toujours des valeurs numériques : on confirme toujours
+  // a chart always carries numeric values: we always confirm
   if (b.type === 'chart_bar' || b.type === 'chart_line' || b.type === 'chart_donut') return true
   const skip = new Set(['color', 'colors', 'trend', 'status', 'size', 'style', 'done', 'labels'])
   const walk = (v, k) => {
@@ -432,12 +432,12 @@ async function confirmDeleteBlock() {
   } finally { deletingBlock.value = false; blockToDelete.value = null }
 }
 
-// D-14 : « ✓ Enregistré » seulement après réponse Supabase OK — l'échec est toasté
-// par withWrite (store), la saisie de l'utilisateur n'est jamais détruite.
-// COPIL-RACE : les champs sont branchés sur @input ; un debounce de 400 ms
-// regroupe une rafale de frappes en une écriture, la file du store (une écriture
-// en vol par COPIL, coalescence) garantit l'ordre. Le ✓ n'apparaît que quand
-// plus rien n'est en attente pour ce COPIL.
+// D-14: "✓ Saved" only after an OK Supabase response — failure is toasted
+// by withWrite (store), the user's input is never destroyed.
+// COPIL-RACE: the fields are wired to @input; a 400 ms debounce
+// groups a burst of keystrokes into a single write, and the store's queue (one write
+// in flight per COPIL, coalescing) guarantees ordering. The ✓ only appears when
+// nothing is pending any more for this COPIL.
 const SAVE_DEBOUNCE_MS = 400
 let metaTimer = null
 let blocksTimer = null
@@ -462,9 +462,9 @@ function saveBlocks() {
   }, SAVE_DEBOUNCE_MS)
 }
 
-// Départ de page : on envoie ce qui est encore en debounce, puis on attend que la
-// file soit vide (bornée par le timeout de withWrite). La saisie tapée juste avant
-// « ← Retour » arrive en base.
+// Leaving the page: we send whatever is still debounced, then wait for the
+// queue to be empty (bounded by the withWrite timeout). Text typed right before
+// "← Back" makes it into the database.
 async function flushPending() {
   if (!copilId.value) return
   if (metaTimer) { clearTimeout(metaTimer); metaTimer = null; store.updateCopil(copilId.value, { ...meta }) }
@@ -475,8 +475,8 @@ onBeforeRouteLeave(async () => { await flushPending() })
 
 const showMetricWizard = ref(false)
 const exporting = ref(false)
-// COPIL-PPTX-FORMAT : un échec d'export se VOIT (toast) ; une image irrécupérable
-// donne un cadre vide dans le fichier et un toast « export partiel ».
+// COPIL-PPTX-FORMAT: an export failure is VISIBLE (toast); an unrecoverable image
+// produces an empty frame in the file and a "partial export" toast.
 async function exportPptx() {
   if (!copil.value) return
   exporting.value = true
@@ -498,7 +498,7 @@ async function exportPptx() {
 const imageInput = ref(null)
 const uploading = ref(false)
 const imageError = ref('')
-// Axes ApexCharts : décimales de la langue du deck (COPIL-I18N)
+// ApexCharts axes: decimals from the deck's language (COPIL-I18N)
 function axisNum(v) { return deckNumber(v, meta.lang) }
 function imageSrc(block) {
   const d = block.data || {}
@@ -525,7 +525,7 @@ async function removeImage() {
   const res = await store.removeImage(copilId.value, activeBlock.value.id)
   if (res.success) flash()
 }
-// Insertion d'un bloc généré par le wizard métrique (déjà pré-rempli)
+// Insertion of a block generated by the metric wizard (already pre-filled)
 function insertMetric(block) {
   if (!copil.value) return
   const blocks = [...(copil.value.blocks || []), block]
@@ -624,7 +624,7 @@ function toggleVisible(block) {
 .kb-block { border: 2px solid var(--border-light); border-radius: var(--radius-sm); overflow: hidden; cursor: pointer; transition: all 0.15s; }
 .kb-block:hover { border-color: var(--border); }
 .kb-block.selected { border-color: var(--purple); box-shadow: 0 0 0 2px rgba(124,58,237,0.1); }
-/* flex-wrap : sous ~1300 px les contrôles passent sur une 2e ligne au lieu de déborder (🗑 coupé) */
+/* flex-wrap: below ~1300 px the controls move to a 2nd line instead of overflowing (🗑 cut off) */
 .kbb-header { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; padding: 8px 12px; background: var(--bg); border-bottom: 1px solid var(--border-light); }
 .kbb-drag { cursor: grab; color: var(--text-muted); font-size: 0.85rem; }
 .kbb-type { font-size: 0.65rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; }
@@ -716,9 +716,9 @@ function toggleVisible(block) {
 .insp-remove-inline { background: none; border: none; font-size: 0.75rem; color: var(--text-muted); cursor: pointer; flex-shrink: 0; }
 .insp-remove-inline:hover { color: var(--red); }
 
-/* 1024-1300 px : l'inspecteur se resserre pour laisser le canvas respirer */
+/* 1024-1300 px: the inspector narrows to let the canvas breathe */
 @media (max-width: 1300px) { .kb-layout { grid-template-columns: 180px minmax(380px, 1fr) 240px; gap: 12px; } }
-/* G9-11 — < 1024 px : une colonne ; catalogue en tiroir, inspecteur en panneau latéral */
+/* G9-11 — < 1024 px: single column; catalog as a drawer, inspector as a side panel */
 @media (max-width: 1024px) {
   .kb-layout { grid-template-columns: 1fr; }
   .kb-drawer-toggle { display: inline-flex; position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 62; background: var(--purple); color: #fff; border: none; padding: 10px 18px; border-radius: 999px; font-size: 0.85rem; font-weight: 700; cursor: pointer; box-shadow: 0 8px 24px rgba(0,0,0,0.25); }

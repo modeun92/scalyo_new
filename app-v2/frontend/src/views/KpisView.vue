@@ -42,7 +42,7 @@
       <button class="btn-primary" @click="createNew">{{ t('kpis_create_first') }}</button>
     </div>
 
-    <!-- NO-CONFIRM : suppression confirmée dans le produit (ConfirmDialog), jamais confirm() natif -->
+    <!-- NO-CONFIRM: deletion confirmed inside the product (ConfirmDialog), never a native confirm() -->
     <ConfirmDialog v-if="toDelete" :title="t('copil_delete_title')" :body="t('copil_delete_body', { title: toDelete.title || t('copil_untitled'), n: (toDelete.blocks || []).length })" :cta="t('cf_delete')" :busy="deleting" @confirm="confirmDelete" @cancel="toDelete = null" />
   </div>
 </template>
@@ -70,7 +70,7 @@ async function duplicate(id) {
   if (newId) router.push('/app/kpis/' + newId)
 }
 
-// NO-CONFIRM : modale du produit ; le bouton reste occupé pendant l'écriture (D-14).
+// NO-CONFIRM: product modal; the button stays busy during the write (D-14).
 const toDelete = ref(null)
 const deleting = ref(false)
 function remove(c) { toDelete.value = c }

@@ -1,13 +1,13 @@
 <template>
   <div class="oxy-view">
-    <!-- ── En-tête : Oxygen + confidentialité (self-only, formule visible) ── -->
+    <!-- ── Header: Oxygen + privacy (self-only, formula visible) ── -->
     <h1>🫧 Oxygen</h1>
     <div class="oxy-privacy">
       <span>🔒</span>
       <span>{{ t('oxy_privacy') }}</span>
     </div>
 
-    <!-- ── Indice du jour — « — » sans check-in (R21, jamais inventé) ── -->
+    <!-- ── Index of the day — "—" without a check-in (R21, never invented) ── -->
     <section class="oxy-card oxy-index-card">
       <div class="oxy-index-main">
         <span class="oxy-index-big">{{ displayIndex }}</span>
@@ -21,7 +21,7 @@
       <p v-if="showHow" class="oxy-how-body">{{ t('oxy_how_body', { load: loadStore.loadScore }) }}</p>
     </section>
 
-    <!-- ── Météo de charge — composantes réelles uniquement (lecture pure) ── -->
+    <!-- ── Load weather — real components only (pure read) ── -->
     <section class="oxy-card">
       <h2>{{ t('oxy_weather_title') }}</h2>
       <div class="oxy-weather-line">
@@ -35,13 +35,13 @@
       </div>
     </section>
 
-    <!-- ── Check-in du jour — MÊME composant et MÊME écriture que la pastille ── -->
+    <!-- ── Check-in of the day — SAME component and SAME write as the dot ── -->
     <section class="oxy-card">
       <h2>{{ t('oxy_checkin_title') }}</h2>
       <OxygenCheckinForm />
     </section>
 
-    <!-- ── Série + jours off personnalisés ── -->
+    <!-- ── Streak + custom days off ── -->
     <section class="oxy-card">
       <h2>{{ t('oxy_series_title') }}</h2>
       <p class="oxy-streak-line">
@@ -80,23 +80,23 @@
       </div>
     </section>
 
-    <!-- ── Fermeture (Lot 3b) — overlay global rendu par OxygenPulse ── -->
+    <!-- ── Closing (Lot 3b) — global overlay rendered by OxygenPulse ── -->
     <section class="oxy-card">
       <h2>{{ t('oxy_ferm_title') }}</h2>
-      <p v-if="recoveries.todayCloture" class="oxy-ferm-done-line">✓ {{ t('oxy_ferm_already') }}</p>
-      <button v-else class="oxy-ferm-launch" @click="recoveries.openFermeture('cloture')">
+      <p v-if="recoveries.todayClosing" class="oxy-closing-done-line">✓ {{ t('oxy_ferm_already') }}</p>
+      <button v-else class="oxy-closing-launch" @click="recoveries.openClosing('cloture')">
         🫧 {{ t('oxy_ferm_start') }}
       </button>
     </section>
 
-    <!-- ── Le Ciel (Lot 3b) — une bulle par journée fermée ── -->
+    <!-- ── The Sky (Lot 3b) — one bubble per closed day ── -->
     <section class="oxy-card">
-      <h2>{{ t('oxy_ciel_title') }}</h2>
-      <p class="oxy-ciel-hint">{{ t('oxy_ciel_hint') }}</p>
-      <OxygenCiel />
+      <h2>{{ t('oxy_sky_title') }}</h2>
+      <p class="oxy-sky-hint">{{ t('oxy_sky_hint') }}</p>
+      <OxygenSky />
     </section>
 
-    <!-- ── Nova + urgences — conservés tels quels jusqu'à Lyo (Lot 5) ── -->
+    <!-- ── Nova + urgent items — kept as-is until Lyo (Lot 5) ── -->
     <WbNovaChat />
     <WbEmergency />
   </div>
@@ -115,22 +115,22 @@ import { useOxygenEngineStore } from '@/stores/oxygenEngine'
 import { useOxygenRecoveriesStore } from '@/stores/oxygenRecoveries'
 import { localeTag, fmtDate } from '@/lib/formatters'
 import OxygenCheckinForm from '@/components/oxygen/OxygenCheckinForm.vue'
-import OxygenCiel from '@/components/oxygen/OxygenCiel.vue'
+import OxygenSky from '@/components/oxygen/OxygenSky.vue'
 import WbNovaChat from '@/components/wellbeing/WbNovaChat.vue'
 import WbEmergency from '@/components/wellbeing/WbEmergency.vue'
 import '@/assets/wellbeing.css'
 import '@/assets/oxygen.css'
 
-// ─── OXYGEN Lot 3a — LA PAGE OXYGEN UNIQUE (contrat R23 validé 28/07/2026) ───
-// Un seul écran scrollable : indice + formule · météo de charge · check-in
-// inline (composant PARTAGÉ avec la pastille — une seule écriture) · série +
-// jours off perso · Nova + urgences (conservés jusqu'à Lyo, Lot 5).
-// La page LIT — l'upsert oxygen_daily du jour reste porté par OxygenPulse
-// (ordre boot OXY-IDX-NULL contractuel, jamais dupliqué ici). La Fermeture et
-// le Ciel arrivent au Lot 3b (aucun bouton mort en attendant).
-// Smileys « comment vous sentez-vous » et curseurs % : SUPPRIMÉS (amendement
-// 28/07 — un seul système de check-in, zéro doublon, table wellbeing_entries
-// plus jamais écrite ; son sort = Lot 5).
+// ─── OXYGEN Lot 3a — THE SINGLE OXYGEN PAGE (contract R23 approved 28/07/2026) ───
+// One scrollable screen: index + formula · load weather · inline check-in
+// (component SHARED with the dot — a single write) · streak +
+// personal days off · Nova + urgent items (kept until Lyo, Lot 5).
+// The page READS — the day's oxygen_daily upsert stays owned by OxygenPulse
+// (contractual OXY-IDX-NULL boot order, never duplicated here). The Closing and
+// the Sky arrive in Lot 3b (no dead buttons in the meantime).
+// "How do you feel" smileys and % sliders: REMOVED (amendment
+// 28/07 — a single check-in system, zero duplication, the wellbeing_entries table
+// is never written to again; its fate = Lot 5).
 
 const { t } = useI18n({ useScope: 'global' })
 const auth = useAuthStore()
@@ -154,7 +154,7 @@ const streakLine = computed(() => {
   return t('oxy_streak', { n: engine.streakCapped ? '30+' : engine.streak })
 })
 
-// Composantes réelles de la charge (lecture pure oxygenLoad — R21)
+// Real components of the load (pure oxygenLoad read — R21)
 const componentChips = computed(() => ([
   { key: 'critical', value: loadStore.components.critical, label: 'oxy_c_critical' },
   { key: 'renewals30', value: loadStore.components.renewals30, label: 'oxy_c_renewals' },
@@ -163,14 +163,14 @@ const componentChips = computed(() => ([
   { key: 'playbooks', value: loadStore.components.active_playbooks, label: 'oxy_c_playbooks' },
 ]))
 
-// Libellés des jours localisés par Intl (C7 — zéro hardcode, suit la locale ;
-// localeTag() lit le ref i18n global → le computed se recalcule au switch).
-// Ordre d'affichage lun→dim ; d.day = convention getUTCDay (0=dim).
+// Day labels localized by Intl (C7 — zero hardcoding, follows the locale;
+// localeTag() reads the global i18n ref → the computed recomputes on switch).
+// Display order Mon→Sun; d.day = getUTCDay convention (0=Sun).
 const weekDays = computed(() => {
   const fmt = new Intl.DateTimeFormat(localeTag(), { weekday: 'short', timeZone: 'UTC' })
   return [1, 2, 3, 4, 5, 6, 0].map(day => ({
     day,
-    // 2026-07-05 = un dimanche (UTC) → base stable pour dériver chaque jour
+    // 2026-07-05 = a Sunday (UTC) → stable base to derive each day from
     label: fmt.format(new Date(Date.UTC(2026, 6, 5 + day))),
   }))
 })
@@ -182,12 +182,12 @@ function addDate() {
 }
 
 onMounted(() => {
-  // Nova (volet conservé du store wellbeing — historique seulement)
+  // Nova (panel kept from the wellbeing store — history only)
   wellbeing.init()
   if (!auth.user?.id) return
   prefs.loadFor(auth.user.id)
-  // Histories : déjà chargées par le boot OxygenPulse dans le cas nominal —
-  // gardes idempotentes pour l'arrivée directe sur /app/oxygen. AUCUN upsert ici.
+  // Histories: already loaded by the OxygenPulse boot in the nominal case —
+  // idempotent guards for landing directly on /app/oxygen. NO upsert here.
   if (!checkins.historyLoaded) checkins.loadHistory30()
   if (!oxygenDaily.historyLoaded) oxygenDaily.loadHistory30()
   if (!recoveries.todayLoaded) recoveries.loadToday()

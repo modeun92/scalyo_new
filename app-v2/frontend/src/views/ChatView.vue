@@ -1,9 +1,9 @@
 <template>
-  <!-- G9-19/D1 : surface unique — la page /app/chat rend la même implémentation que le
-       panneau flottant (ChatPanel/Cp*). L'ancienne implémentation autonome (sidebar,
-       composer, formatTime dupliqués, zéro gating de rôle) est supprimée.
-       La classe .chat-layout est conservée : AppLayout s'appuie dessus
-       (.main-content:has(.chat-layout) { padding: 0 } + hauteur). -->
+  <!-- G9-19/D1: a single surface — the /app/chat page renders the same implementation as the
+       floating panel (ChatPanel/Cp*). The old standalone implementation (duplicated sidebar,
+       composer, formatTime, zero role gating) has been removed.
+       The .chat-layout class is kept: AppLayout relies on it
+       (.main-content:has(.chat-layout) { padding: 0 } + height). -->
   <div class="chat-layout">
     <ErrorBoundary>
       <ChatPanel :show-close="false" />

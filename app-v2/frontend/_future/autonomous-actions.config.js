@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// SCALYO — Autonomous AI Actions (Niveau 5)
+// SCALYO — Autonomous AI Actions (Level 5)
 // ═══════════════════════════════════════════════════════════════════════════
 // This file is NOT wired into the app. Ready to plug in for a future version.
 //

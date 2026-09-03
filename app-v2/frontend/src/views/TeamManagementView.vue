@@ -61,8 +61,8 @@
           </table>
         </div>
       </div>
-      <!-- NO-CONFIRM (SEAT-RM) : confirmation DANS le produit, jamais confirm() natif.
-           Composant partagé ConfirmDialog (lot COPIL-LAYOUT), rendu identique. -->
+      <!-- NO-CONFIRM (SEAT-RM): confirmation INSIDE the product, never a native confirm().
+           Shared ConfirmDialog component (COPIL-LAYOUT batch), identical rendering. -->
       <ConfirmDialog v-if="confirmAction" :title="confirmAction.title" :body="confirmAction.body" :cta="confirmAction.cta" :busy="confirmBusy" @confirm="runConfirmAction" @cancel="closeConfirm" />
     </template>
   </div>
@@ -75,14 +75,14 @@ import { useAuthStore } from '@/stores/auth'
 import { useTeamStore } from '@/stores/team'
 import { supabase } from '@/lib/supabase'
 import { fmtDate } from '@/lib/formatters'
-import { getAvailableRolesForInvite, canPerform } from '@/config/plans.config.js' // isRoleAbove : import mort retiré
+import { getAvailableRolesForInvite, canPerform } from '@/config/plans.config.js' // isRoleAbove: dead import removed
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 
 const { t } = useI18n({ useScope: 'global' })
 const authStore = useAuthStore()
 
-// Chantier A : le badge affiche le plafond du forfait (maxSeats), pas seats_paid. Enterprise (null) → ∞.
-// SEATS-MISMATCH : plafond lu dans le store team (même source que Manager)
+// Workstream A: the badge displays the plan ceiling (maxSeats), not seats_paid. Enterprise (null) → ∞.
+// SEATS-MISMATCH: ceiling read from the team store (same source as Manager)
 const teamStore = useTeamStore()
 const seatsCap = computed(() => teamStore.seatsCap === null ? '∞' : teamStore.seatsCap)
 
@@ -98,7 +98,7 @@ const sending = ref(false)
 const inviteMsg = ref('')
 const inviteMsgType = ref('')
 const copiedId = ref(null)
-// Fix UUID brut : map user_id → nom complet, résolue via RPC get_org_member_names (même pattern que chat G9-21)
+// Raw UUID fix: map user_id → full name, resolved via RPC get_org_member_names (same pattern as chat G9-21)
 const memberNames = ref({})
 
 const canInvite = computed(() => canPerform(myRole.value, 'canInvite'))
@@ -107,7 +107,7 @@ const availableRoles = computed(() => org.value ? getAvailableRolesForInvite(org
 
 onMounted(() => { loadTeam(); loadMemberNames() })
 
-// Résolution des noms au rendu — fallback = UUID tronqué, jamais de crash (contrat §5)
+// Name resolution at render time — fallback = truncated UUID, never a crash (contract §5)
 async function loadMemberNames() {
   try {
     const { data, error } = await supabase.rpc('get_org_member_names')
@@ -159,7 +159,7 @@ async function sendInvite() {
     })
     const data = await resp.json()
     if (resp.ok) {
-      // INV-EMAIL : fin du faux succès — le message reflète l'envoi réel de l'email
+      // INV-EMAIL: end of the false success — the message reflects the actual email send
       inviteMsg.value = data.email_sent ? t('team_invite_sent_email') : t('team_invite_no_email')
       inviteMsgType.value = data.email_sent ? 'success' : 'warn'
       inviteEmail.value = ''; await loadTeam()
@@ -174,8 +174,8 @@ function canRemove(m) {
   return canPerform(myRole.value, 'canRevoke')
 }
 
-// NO-CONFIRM (SEAT-RM) : la confirmation passe par une modale du produit.
-// confirm() natif interdit — il bloque aussi toute preuve automatisee.
+// NO-CONFIRM (SEAT-RM): the confirmation goes through a product modal.
+// A native confirm() is forbidden — it also blocks any automated evidence capture.
 const confirmAction = ref(null)
 const confirmBusy = ref(false)
 
@@ -188,8 +188,8 @@ async function runConfirmAction() {
   finally { confirmBusy.value = false; confirmAction.value = null }
 }
 
-// Les Functions renvoient un code machine stable (errorCode, lot 6). La traduction
-// se fait ICI, ou la langue de l'utilisateur est connue — la Function ne la devine pas.
+// The Functions return a stable machine code (errorCode, Lot 6). The translation
+// happens HERE, where the user's language is known — the Function does not guess it.
 const KNOWN_ERRORS = ['billing_update_failed', 'billing_failed', 'cannot_remove_owner',
   'cannot_remove_self', 'insufficient_role', 'member_not_found', 'permission_denied']
 function errorLabel(code, fallbackKey) {
@@ -205,8 +205,8 @@ function askRemoveMember(m) {
   }
 }
 
-// SEAT-RM : la reponse du serveur est LUE et affichee. Avant, un 403
-// cannot_remove_owner etait invisible — la liste se rechargeait a l'identique.
+// SEAT-RM: the server's response is READ and displayed. Before, a 403
+// cannot_remove_owner was invisible — the list simply reloaded unchanged.
 async function doRemoveMember(m) {
   inviteMsg.value = ''
   try {
@@ -223,7 +223,7 @@ async function doRemoveMember(m) {
   } catch { inviteMsg.value = t('team_remove_error'); inviteMsgType.value = 'error' }
 }
 
-// Chantier C : expiration lazy — le statut reste pending, on signale visuellement la date dépassée
+// Workstream C: lazy expiry — the status stays pending, we flag the past date visually
 function isExpired(inv) { return inv.expires_at && new Date(inv.expires_at) < new Date() }
 
 function askRevokeInvitation(inv) {
@@ -247,7 +247,7 @@ async function doRevokeInvitation(inv) {
   } catch { inviteMsg.value = t('team_revoke_error'); inviteMsgType.value = 'error' }
 }
 
-// INV-EMAIL : lien d'invitation copiable (owner/admin — /api/members ne sert le token qu'à eux)
+// INV-EMAIL: copyable invitation link (owner/admin — /api/members only serves the token to them)
 async function copyInviteLink(inv) {
   const url = window.location.origin + '/join?token=' + inv.token
   try {
@@ -255,12 +255,12 @@ async function copyInviteLink(inv) {
     copiedId.value = inv.id
     setTimeout(() => { copiedId.value = null }, 2000)
   } catch {
-    // Clipboard refusé → le lien est affiché pour copie manuelle (contrat §5)
+    // Clipboard denied → the link is displayed for manual copying (contract §5)
     inviteMsg.value = url; inviteMsgType.value = 'success'
   }
 }
 
-// E-15b : date a la locale APP (formateur central), plus jamais la locale navigateur
+// E-15b: date in the APP locale (central formatter), never again the browser locale
 function formatDate(d) { return d ? fmtDate(d) : '' }
 </script>
 

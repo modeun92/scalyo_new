@@ -16,8 +16,8 @@
             <span class="perf-role">{{ m.role }}</span>
           </div>
         </div>
-        <!-- TEAM-METRICS (29/08) : comptes et ARR DÉRIVÉS du store clients par csm_id
-             (m.clientCount/m.arrManaged du team store sont null par design B-09) -->
+        <!-- TEAM-METRICS (29/08): accounts and ARR DERIVED from the clients store by csm_id
+             (m.clientCount/m.arrManaged from the team store are null by B-09 design) -->
         <span class="perf-val">{{ clientCountFor(m.id) }}</span>
         <span class="perf-val">{{ fmtCurrency(arrManagedFor(m.id), { compact: true }) }}</span>
         <span class="perf-val">
@@ -43,9 +43,9 @@ defineProps({
   members: { type: Array, required: true }
 })
 
-// HEALTH-SCALE (25/08) : moyenne /10 des clients ACTIFS assignés (prospects exclus, comme
-// clients.avgHealth) ; null si aucun → « — ». Seuils de couleur = statut effectif (3/6),
-// plus de 5/7 locaux.
+// HEALTH-SCALE (25/08): average out of 10 of the assigned ACTIVE clients (prospects excluded, like
+// clients.avgHealth); null if there are none → "—". Color thresholds = effective status (3/6),
+// no more local 5/7.
 function avgHealthValue(csmId) {
   const csmClients = clients.clientsOnly.filter(c => c.csmId === csmId)
   if (!csmClients.length) return null
@@ -61,8 +61,8 @@ function avgHealthClass(csmId) {
   return v === null ? '' : healthTone(healthStatus(v, null))
 }
 
-// TEAM-METRICS (29/08) : dérivés réels depuis les clients ACTIFS assignés (csm_id) —
-// même périmètre que avgHealthValue. 0 = zéro client assigné, une donnée vraie (R21).
+// TEAM-METRICS (29/08): real values derived from the assigned ACTIVE clients (csm_id) —
+// same scope as avgHealthValue. 0 = zero assigned clients, which is a true value (R21).
 function clientCountFor(csmId) {
   return clients.clientsOnly.filter(c => c.csmId === csmId).length
 }

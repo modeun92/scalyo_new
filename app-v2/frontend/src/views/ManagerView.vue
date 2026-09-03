@@ -19,30 +19,30 @@
           <span class="mkpi-label">{{ t('mgr_global_health') }}</span>
         </div>
         <div class="mkpi">
-          <!-- TEAM-METRICS (29/08) : « ARR géré » = somme réelle des ARR des clients ASSIGNÉS
-               (csm_id posé), dérivée du store clients — team.totalArrManaged est null par design B-09 -->
+          <!-- TEAM-METRICS (29/08): "Managed ARR" = real sum of the ARR of ASSIGNED clients
+               (csm_id set), derived from the clients store — team.totalArrManaged is null by B-09 design -->
           <span class="mkpi-value">{{ fmtCurrency(arrManagedTotal, { compact: true }) }}</span>
           <span class="mkpi-label">{{ t('mgr_total_arr') }}</span>
         </div>
         <div class="mkpi">
-          <!-- COUNT-353-352 : clients ACTIFS (prospects exclus) — même base que le donut Dashboard -->
+          <!-- COUNT-353-352: ACTIVE clients (prospects excluded) — same base as the Dashboard donut -->
           <span class="mkpi-value">{{ clients.clientsOnly.length }}</span>
           <span class="mkpi-label">{{ t('mgr_total_clients') }}</span>
         </div>
         <div class="mkpi">
-          <!-- SEATS-MISMATCH : même source que l'écran Équipe (/api/members + plafond du plan) -->
+          <!-- SEATS-MISMATCH: same source as the Team screen (/api/members + plan ceiling) -->
           <span class="mkpi-value" :class="{ 'text-orange': team.seatsCap !== null && team.seats.used >= team.seatsCap }">{{ team.seats.used ?? '—' }}/{{ team.seatsCap === null ? '∞' : team.seatsCap }}</span>
           <span class="mkpi-label">{{ t('mgr_seats') }}</span>
         </div>
       </div>
     </div>
 
-    <!-- OXYGEN Lot 4 : onglets locaux (Équipe | Oxygen) — zéro route neuve, router intouché -->
+    <!-- OXYGEN Lot 4: local tabs (Team | Oxygen) — zero new route, router untouched -->
     <div class="mgr-tabs">
       <button class="mgr-tab" :class="{ active: tab === 'team' }" @click="tab = 'team'">
         {{ t('mgr_tab_team') }}
       </button>
-      <!-- D2 : hors forfait → cadenas, clic vers paywall mode upgrade -->
+      <!-- D2: outside the plan → padlock, click goes to the paywall in upgrade mode -->
       <button v-if="oxygenTeamLocked" class="mgr-tab mgr-tab--locked" @click="goOxygenPaywall">
         🫧 {{ t('mgr_tab_oxygen') }} <span class="mgr-tab-lock">🔒</span>
       </button>
@@ -51,7 +51,7 @@
       </button>
     </div>
 
-    <!-- ONGLET OXYGEN — boucle équipe (agrégats n≥5 uniquement) -->
+    <!-- OXYGEN TAB — team loop (n ≥ 5 aggregates only) -->
     <OxygenTeamPanel v-if="tab === 'oxygen' && !oxygenTeamLocked" />
 
     <!-- FILTERS -->
@@ -114,7 +114,7 @@ const auth = useAuthStore()
 team.loadSeats()
 const clients = useClientStore()
 
-// OXYGEN Lot 4 — onglet local (contrat R23 : pas de route neuve)
+// OXYGEN Lot 4 — local tab (contract R23: no new route)
 const tab = ref('team')
 const oxygenTeamLocked = computed(() => !isModuleAllowed(auth.effectivePlan, 'oxygen_team'))
 function goOxygenPaywall() {
@@ -122,7 +122,7 @@ function goOxygenPaywall() {
 }
 
 const customizerOpen = ref(false)
-const canCustomizeKpis = computed(() => hasFeature(auth.effectivePlan, 'dashboardKPIsAvances'))
+const canCustomizeKpis = computed(() => hasFeature(auth.effectivePlan, 'advancedDashboardKpis'))
 const defaultKpis = ['team_wellbeing', 'arr', 'churn_rate', 'accounts_per_csm', 'nrr', 'health_score']
 const selectedKpis = ref([...defaultKpis])
 
@@ -137,19 +137,19 @@ const formattedDate = computed(() => {
   })
 })
 
-// B-09 : pas de donnée → pas de couleur
+// B-09: no data → no color
 const healthClass = computed(() => {
   const s = team.teamHealthScore
   if (typeof s !== 'number') return ''
   return s >= 70 ? 'green' : s >= 50 ? 'amber' : 'red'
 })
 
-// TEAM-METRICS (D2, 29/08) : statsMembers = self-inclusif — un manager-CSM voit aussi ses chiffres
+// TEAM-METRICS (D2, 29/08): statsMembers = self-inclusive — a manager-CSM also sees their own figures
 const filteredMembers = computed(() =>
   team.statsMembers.filter(m => {
     if (filterCsm.value !== 'all' && m.id !== filterCsm.value) return false
     if (filterLevel.value !== 'all' && m.role !== filterLevel.value) return false
-    // statusLabel honnête (m.status n'a jamais existé — E-16) ; null = pas de donnée → exclu des filtres ciblés
+    // honest statusLabel (m.status never existed — E-16); null = no data → excluded from targeted filters
     if (filterStatus.value === 'overloaded' && m.statusLabel !== 'overloaded') return false
     if (filterStatus.value === 'healthy' && (!m.statusLabel || m.statusLabel === 'overloaded')) return false
     return true
@@ -160,11 +160,11 @@ const uniqueRoles = computed(() =>
   [...new Set(team.statsMembers.map(m => m.role))]
 )
 
-// TEAM-METRICS (29/08) : ARR géré total = clients actifs assignés (csm_id posé), R21
+// TEAM-METRICS (29/08): total managed ARR = active assigned clients (csm_id set), R21
 const arrManagedTotal = computed(() =>
   clients.clientsOnly.filter(c => c.csmId).reduce((s, c) => s + (c.arr || 0), 0)
 )
 
-// B-08 : reset global retiré (ne supprimait rien en base, i18n cassé). Reset clients propre = PortfolioView.
+// B-08: global reset removed (it deleted nothing in the database, broken i18n). A clean client reset = PortfolioView.
 
 </script>

@@ -1,19 +1,19 @@
-// Export PPTX d'un COPIL (étape 4 du chantier client-centric).
-// pptxgenjs est chargé à la demande (dynamic import) pour ne pas alourdir le
-// bundle. Les graphiques sont des charts PowerPoint NATIFS (modifiables par le
-// client après export).
+// PPTX export of a COPIL (step 4 of the client-centric workstream).
+// pptxgenjs is loaded on demand (dynamic import) so it does not weigh down the
+// bundle. Charts are NATIVE PowerPoint charts (editable by the
+// client after export).
 //
-// Lot COPIL-RENDER-EXPORT (03/09/2026) :
-//   • la LANGUE DU DECK (copil.lang) pilote nombres, guillemets, police et `lang`
-//     des runs — plus aucune chaîne française en dur (t() reçu en argument) ;
-//   • TOUTES les séries d'un graphique sont exportées (COPIL-SERIES-LOST) ;
-//   • le bloc image est exporté, embarqué en base64 (COPIL-IMAGE-EXPORT) — un
-//     média irrécupérable donne un cadre vide + légende, jamais un crash ;
-//   • le KPI unique garde son titre ; valeur et unité sont séparées.
+// COPIL-RENDER-EXPORT batch (03/09/2026):
+//   • the DECK LANGUAGE (copil.lang) drives numbers, quotation marks, font and the `lang`
+//     of the runs — no more hard-coded French strings (t() received as an argument);
+//   • ALL series of a chart are exported (COPIL-SERIES-LOST);
+//   • the image block is exported, embedded as base64 (COPIL-IMAGE-EXPORT) — an
+//     unrecoverable medium yields an empty frame + caption, never a crash;
+//   • the single KPI keeps its title; value and unit are separated.
 import { deckLang, deckLocaleTag, deckFont, deckNumber, deckValueUnit, deckQuote, presentableBlocks } from '@/utils/copilFormat'
 
-// Design 3a « nuit en fond clair » : fond blanc violacé, encre nuit,
-// accents violets, barre signature 4 couleurs sur chaque slide de contenu.
+// Design 3a "night on a light background": violet-tinted white background, night ink,
+// violet accents, 4-color signature bar on every content slide.
 const BG = 'FDFCFF'
 const CARD = 'FFFFFF'
 const CARD_BORDER = 'F0EBFA'
@@ -34,7 +34,7 @@ function hex(c, fallback = '7C3AED') {
   return m ? m[1].toUpperCase() : fallback
 }
 
-// Contexte d'export : langue du deck → police, tag de langue, formateurs.
+// Export context: deck language → font, language tag, formatters.
 function makeCtx(copil, t) {
   const lang = deckLang(copil.lang)
   const fontFace = deckFont(lang)
@@ -78,7 +78,7 @@ function addChartSlide(pptx, block, kind, X) {
     data = [{ name: block.title || X.t('copil_export_share'), labels, values: toNum(block.data.data) }]
     chartColors = (block.data.colors || []).map((c, i) => hex(c, SERIES_FALLBACK[i % SERIES_FALLBACK.length]))
   } else {
-    // COPIL-SERIES-LOST : toutes les séries, chacune avec sa couleur
+    // COPIL-SERIES-LOST: all series, each with its own color
     const series = (block.data.datasets || []).slice(0, 6)
     data = series.map((ds, i) => ({ name: ds.label || (block.title ? block.title + ' ' + (i + 1) : String(i + 1)), labels, values: toNum(ds.data) }))
     chartColors = series.map((ds, i) => hex(ds.color, SERIES_FALLBACK[i % SERIES_FALLBACK.length]))
@@ -107,14 +107,14 @@ function addKpiGridSlide(pptx, block, X) {
     const value = X.vu(k.value, k.unit)
     s.addShape('roundRect', { x, y, w, h, fill: { color: CARD }, rectRadius: 0.12, line: { color: CARD_BORDER, width: 1.25 }, shadow: { type: 'outer', color: '3C1E8C', opacity: 0.12, blur: 8, offset: 2, angle: 90 } })
     s.addText(String(k.label || '').toUpperCase(), X.text({ x, y: y + 0.15, w, h: 0.4, fontSize: 10, color: FAINT, align: 'center', charSpacing: 2 }))
-    // valeur longue (KO : 1,250,000,000 ₩) : la police descend au lieu de passer sur deux lignes
+    // long value (KO: 1,250,000,000 ₩): the font size shrinks instead of wrapping onto two lines
     s.addText(value, X.text({ x, y: y + 0.55, w, h: 0.8, fontSize: value.length > 12 ? 20 : value.length > 9 ? 25 : 30, bold: true, color: hex(k.color, '7C3AED'), align: 'center', fit: 'shrink' }))
     if (k.target) s.addText('/ ' + X.vu(k.target, k.unit), X.text({ x, y: y + 1.3, w, h: 0.35, fontSize: 11, color: FAINT, align: 'center' }))
   })
 }
 
 function addKpiSingleSlide(pptx, block, X) {
-  const s = slideBase(pptx, block.title, X)   // le titre du bloc est rendu (audit : il disparaissait)
+  const s = slideBase(pptx, block.title, X)   // the block title is rendered (audit: it used to disappear)
   const d = block.data
   const value = X.vu(d.value, d.unit)
   s.addText(value, X.text({ x: 0.5, y: 1.6, w: 9, h: 1.6, fontSize: value.length > 12 ? 56 : 80, bold: true, color: hex(d.color, '7C3AED'), align: 'center', fit: 'shrink' }))
@@ -136,7 +136,7 @@ function addTextSlide(pptx, block, lines, X, opts = {}) {
   s.addText(lines, X.text({ x: 0.9, y: 1.4, w: 8.2, h: 3.8, fontSize: opts.fontSize || 18, color: TXT, align: opts.align || 'left', italic: opts.italic || false, lineSpacing: 30 }))
 }
 
-// COPIL-IMAGE-EXPORT : image embarquée (data URL). Sans donnée → cadre vide + légende.
+// COPIL-IMAGE-EXPORT: embedded image (data URL). Without data → empty frame + caption.
 function addImageSlide(pptx, block, dataUrl, X) {
   const s = slideBase(pptx, block.title, X)
   const caption = block.data.caption || ''
@@ -150,8 +150,8 @@ function addImageSlide(pptx, block, dataUrl, X) {
   if (caption) s.addText(caption, X.text({ x: 0.7, y: 1.3 + h + 0.1, w: 8.6, h: 0.4, fontSize: 12, color: MUTED, align: 'center' }))
 }
 
-// Point d'entrée. t = fonction i18n ; loadImage(block) → data URL ou null (store).
-// Rend { slides, fileName, missingImages }.
+// Entry point. t = i18n function; loadImage(block) → data URL or null (store).
+// Returns { slides, fileName, missingImages }.
 export async function exportCopilPptx(copil, t, loadImage) {
   const { default: PptxGen } = await import('pptxgenjs')
   const pptx = new PptxGen()

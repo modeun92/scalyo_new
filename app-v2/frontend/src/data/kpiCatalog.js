@@ -1,5 +1,5 @@
 export const KPI_CATALOG = [
-  // ── REVENUS ──
+  // ── REVENUE ──
   { id: 'arr', source: 'auto', label: 'ARR', labelEN: 'ARR', labelKO: '연간 반복 수익', cat: 'revenue', unit: '€', format: 'currency', roles: ['csm','kam','commercial','manager'], sectors: ['b2b','saas'] },
   { id: 'mrr', source: 'auto', label: 'MRR', labelEN: 'MRR', labelKO: '월간 반복 수익', cat: 'revenue', unit: '€', format: 'currency', roles: ['csm','kam','commercial','manager'], sectors: ['b2b','saas'] },
   { id: 'revenue_total', source: 'auto', label: 'CA Total', labelEN: 'Total Revenue', labelKO: '총 매출', cat: 'revenue', unit: '€', format: 'currency', roles: ['manager','commercial'], sectors: ['b2b','b2c','retail'] },
@@ -10,7 +10,7 @@ export const KPI_CATALOG = [
   { id: 'arpu', source: 'manual', agg: 'avg', label: 'ARPU', labelEN: 'ARPU', labelKO: '사용자당 평균 수익', cat: 'revenue', unit: '€', format: 'currency', roles: ['manager','commercial'], sectors: ['b2c','saas','marketplace'] },
   { id: 'gmv', source: 'manual', agg: 'sum', label: 'GMV', labelEN: 'GMV', labelKO: '총 상품 거래량', cat: 'revenue', unit: '€', format: 'currency', roles: ['manager','commercial'], sectors: ['marketplace','ecommerce'] },
 
-  // ── RÉTENTION ──
+  // ── RETENTION ──
   { id: 'nrr', source: 'auto', label: 'NRR', labelEN: 'NRR', labelKO: '순 수익 유지율', cat: 'retention', unit: '%', format: 'percentage', roles: ['csm','kam','manager'], sectors: ['b2b','saas'], benchmark: { good: 100, excellent: 110, world_class: 130 }, recommended: true },
   { id: 'grr', source: 'manual', agg: 'avg', label: 'GRR', labelEN: 'GRR', labelKO: '총 수익 유지율', cat: 'retention', unit: '%', format: 'percentage', roles: ['csm','manager'], sectors: ['b2b','saas'] },
   { id: 'churn_rate', source: 'auto', label: 'Taux de Churn', labelEN: 'Churn Rate', labelKO: '이탈률', cat: 'retention', unit: '%', format: 'percentage', roles: ['csm','kam','manager'], sectors: ['b2b','b2c','saas'], benchmark: { good: 3, excellent: 1, alert: 7 }, recommended: true, inverse: true },
@@ -47,7 +47,7 @@ export const KPI_CATALOG = [
   { id: 'dau_mau', source: 'manual', agg: 'avg', label: 'DAU/MAU', labelEN: 'DAU/MAU', labelKO: 'DAU/MAU', cat: 'activation', unit: '%', format: 'percentage', roles: ['csm','manager'], sectors: ['saas','b2c'] },
   { id: 'active_users', source: 'auto', label: 'Utilisateurs Actifs', labelEN: 'Active Users', labelKO: '활성 사용자', cat: 'activation', unit: '', format: 'number', roles: ['csm','manager'], sectors: ['saas','b2c'] },
 
-  // ── ÉQUIPE CS ──
+  // ── CS TEAM ──
   { id: 'accounts_per_csm', source: 'auto', label: 'Comptes/CSM', labelEN: 'Accounts per CSM', labelKO: 'CSM당 계정', cat: 'team', unit: '', format: 'number', roles: ['manager'], sectors: ['b2b','saas'] },
   { id: 'arr_per_csm', source: 'auto', label: 'ARR/CSM', labelEN: 'ARR per CSM', labelKO: 'CSM당 ARR', cat: 'team', unit: '€', format: 'currency', roles: ['manager'], sectors: ['b2b','saas'] },
   { id: 'team_wellbeing', source: 'manual', agg: 'avg', label: 'Bien-être Équipe', labelEN: 'Team Wellbeing', labelKO: '팀 웰빙', cat: 'team', unit: '/10', format: 'score', roles: ['manager'], sectors: ['b2b','b2c'] },
@@ -69,7 +69,7 @@ export const KPI_CATALOG = [
   { id: 'repeat_purchase', source: 'manual', agg: 'avg', label: 'Rachat', labelEN: 'Repeat Purchase Rate', labelKO: '재구매율', cat: 'ecommerce', unit: '%', format: 'percentage', roles: ['commercial','manager'], sectors: ['ecommerce','b2c','retail'] },
   { id: 'aov', source: 'manual', agg: 'avg', label: 'Panier Moyen', labelEN: 'Avg Order Value', labelKO: '평균 주문 금액', cat: 'ecommerce', unit: '€', format: 'currency', roles: ['commercial','manager'], sectors: ['ecommerce','b2c','retail'] },
 
-  // ── PROJETS ──
+  // ── PROJECTS ──
   { id: 'projects_on_time', source: 'manual', agg: 'avg', label: 'Projets dans les délais', labelEN: 'Projects on Time', labelKO: '기한 내 프로젝트', cat: 'projects', unit: '%', format: 'percentage', roles: ['manager','csm'], sectors: ['b2b','b2c'] },
   { id: 'tasks_completion', source: 'auto', label: 'Tâches Terminées', labelEN: 'Tasks Completed', labelKO: '완료 작업', cat: 'projects', unit: '%', format: 'percentage', roles: ['manager','csm'], sectors: ['b2b','b2c'] },
   { id: 'estimation_accuracy', source: 'manual', agg: 'avg', label: 'Précision Estimations', labelEN: 'Estimation Accuracy', labelKO: '추정 정확도', cat: 'projects', unit: '%', format: 'percentage', roles: ['manager'], sectors: ['b2b'] },

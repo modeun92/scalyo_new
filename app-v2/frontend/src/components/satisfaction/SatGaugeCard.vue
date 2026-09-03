@@ -4,8 +4,8 @@
     <div class="gauge-wrap">
       <svg viewBox="0 0 200 200" class="gauge-svg">
         <circle cx="100" cy="100" r="85" fill="none" stroke="#f3f4f6" stroke-width="14" />
-        <!-- HEALTH-SCALE : score /10 (jauge = pourcentage de l'échelle) ; couleur = variable de thème
-             via style (var() n'est pas garanti dans un attribut SVG stroke=/fill=) -->
+        <!-- HEALTH-SCALE: score out of 10 (gauge = percentage of the scale); color = theme variable
+             via style (var() is not guaranteed inside an SVG stroke=/fill= attribute) -->
         <circle
           cx="100" cy="100" r="85" fill="none"
           :style="{ stroke: gaugeColor }" stroke-width="14"

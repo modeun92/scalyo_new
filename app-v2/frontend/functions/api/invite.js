@@ -1,14 +1,14 @@
 // POST /api/invite — Send team invitation
-// Modèle GitHub (chantier B) : inviter un rôle non-viewer accorde le siège ET le facture
-// immédiatement (Stripe quantity +1, prorata). seats_paid = membres + invitations pending.
+// GitHub model (workstream B): inviting a non-viewer role grants the seat AND bills it
+// immediately (Stripe quantity +1, prorated). seats_paid = members + pending invitations.
 import { jsonResponse, errorResponse, errorCode } from './_utils/response.js'
 import { createSupabaseClient, getAuthUser, getUserMembership } from './_utils/supabase.js'
 import { setSubscriptionQuantity } from './_utils/stripe.js'
 import { canPerform, canAddSeat, canAddViewer, getAvailableRolesForInvite, ORG_SETTINGS } from './_config/plans.config.js'
 import { t } from './_i18n/messages.js'
 
-// Echappement HTML des valeurs interpolees dans le corps de l'email
-// (org.name est saisi par l'utilisateur).
+// HTML-escaping of the values interpolated into the email body
+// (org.name is entered by the user).
 const esc = (v) => String(v == null ? '' : v)
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
   .replace(/"/g, '&quot;').replace(/'/g, '&#39;')
@@ -34,28 +34,28 @@ export async function onRequestPost(context) {
     const allowedRoles = getAvailableRolesForInvite(org.plan)
     if (!allowedRoles.includes(role)) return errorResponse(400, 'Invalid role for this plan')
 
-    // Sièges engagés = membres non-viewer + invitations pending non-viewer (modèle GitHub)
+    // Committed seats = non-viewer members + pending non-viewer invitations (GitHub model)
     const existing = await db.select('organization_members', 'organization_id=eq.' + org.id)
     const pending = await db.select('invitations', 'organization_id=eq.' + org.id + '&status=eq.pending')
     const seatsCommitted = existing.filter(m => m.role !== 'viewer').length
       + pending.filter(i => i.role !== 'viewer').length
 
-    // Quota de sièges (plafond du forfait) pour les rôles consommant un siège
+    // Seat quota (plan ceiling) for the roles that consume a seat
     if (role !== 'viewer') {
       if (!canAddSeat(org.plan, seatsCommitted)) return errorResponse(403, 'Seat limit reached')
     } else if (!canAddViewer(org.plan)) {
       return errorResponse(403, 'Viewers not available on this plan')
     }
 
-    // Pas d'invitation pending déjà existante pour cet email
+    // No pending invitation already existing for this email
     if (pending.some(i => (i.email || '').toLowerCase() === normalizedEmail)) {
       return errorResponse(409, 'Invitation already pending for this email')
     }
 
-    // Expiration explicite (config = source unique ; expires_at n'était pas posé → défaut DB 7j)
+    // Explicit expiry (config = single source; expires_at was not set → DB default of 7 d)
     const expiresAt = new Date(Date.now() + ORG_SETTINGS.invitationExpiryDays * 86400000).toISOString()
 
-    // Créer l'invitation
+    // Create the invitation
     const [invitation] = await db.insert('invitations', {
       organization_id: org.id,
       invited_by: user.id,
@@ -64,31 +64,31 @@ export async function onRequestPost(context) {
       expires_at: expiresAt,
     })
 
-    // Facturer le siège (rôle consommant un siège uniquement) — modèle GitHub.
-    // Rollback de l'invitation si Stripe échoue, pour ne jamais accorder un siège non facturé.
+    // Bill the seat (seat-consuming role only) — GitHub model.
+    // Roll back the invitation if Stripe fails, so we never grant an unbilled seat.
     if (role !== 'viewer') {
       const newQty = seatsCommitted + 1
       if (org.stripe_subscription_id) {
         const billed = await setSubscriptionQuantity(env.STRIPE_SECRET_KEY, org.stripe_subscription_id, newQty, 'create_prorations')
         if (!billed.ok) {
           await db.remove('invitations', 'id=eq.' + invitation.id)
-          // CF-502-MASQUE : le 502 etait avale par Cloudflare (page HTML), le
-          // message applicatif n'arrivait jamais a l'ecran. 409 type.
+          // CF-502-MASQUE: the 502 was swallowed by Cloudflare (HTML page), the
+          // application message never reached the screen. Typed as 409.
           return errorCode(409, 'billing_failed', { billing_error: billed.error })
         }
       }
-      // seats_paid = sièges engagés (même en essai sans abonnement : compteur des sièges commandés)
+      // seats_paid = committed seats (even on a trial without a subscription: counter of ordered seats)
       await db.update('organizations', 'id=eq.' + org.id, { seats_paid: newQty })
     }
 
-    // Envoi de l'email d'invitation via Resend.
-    // email_sent est renvoyé au client : plus jamais de faux succès silencieux (INV-EMAIL).
+    // Sending the invitation email via Resend.
+    // email_sent is returned to the client: never again a silent false success (INV-EMAIL).
     let emailSent = false
     if (env.RESEND_API_KEY) {
       try {
-        // URL dérivée de l'origine de la requête : env-aware (préprod → preprod.scalyo.app)
+        // URL derived from the request origin: env-aware (pre-prod → preprod.scalyo.app)
         const joinUrl = new URL(request.url).origin + '/join?token=' + invitation.token
-        // D4-1 : langue de l'email = locale de l'invitant (profiles.locale), repli 'fr'.
+        // D4-1: email language = the inviter's locale (profiles.locale), fallback 'fr'.
         let mailLang = 'fr'
         try {
           const inviterProfile = await db.selectOne('profiles', 'id=eq.' + user.id)

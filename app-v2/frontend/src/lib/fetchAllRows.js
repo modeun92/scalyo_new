@@ -1,15 +1,15 @@
-// ─── HOTFIX CAP-1000 (contrat R23 29/07/2026) ────────────────────────────────
-// PostgREST plafonne TOUTE réponse à 1000 lignes (max-rows) SANS erreur : les
-// lectures « tout le jeu » (clients, notifications) passent par cette boucle
-// .range() en pages de 1000 jusqu'à épuisement.
+// ─── HOTFIX CAP-1000 (contract R23 29/07/2026) ────────────────────────
+// PostgREST caps EVERY response at 1000 rows (max-rows) WITHOUT an error: the
+// "whole dataset" reads (clients, notifications) go through this .range()
+// loop in pages of 1000 until exhaustion.
 //
-// Exigences côté appelant :
-//   - buildQuery() retourne une requête AVEC select(..., { count: 'exact' })
-//     et un tri STABLE (un insert batch partage le même created_at — now()
-//     transactionnel Postgres → tri secondaire sur id OBLIGATOIRE).
-// Garde-fou : au-delà de maxRows on COUPE et on le DIT (truncated + total
-// exact) — jamais silencieux (R21). L'affichage appartient aux vues (t()
-// interdit ici).
+// Requirements on the caller side:
+//   - buildQuery() returns a query WITH select(..., { count: 'exact' })
+//     and a STABLE sort (a batch insert shares the same created_at — Postgres
+//     transactional now() → a secondary sort on id is MANDATORY).
+// Safeguard: past maxRows we CUT and we SAY SO (truncated + exact
+// total) — never silently (R21). Display belongs to the views (t()
+// forbidden here).
 
 export const PAGE_SIZE = 1000
 export const MAX_ROWS = 5000
@@ -21,15 +21,15 @@ export async function fetchAllRows(buildQuery, { pageSize = PAGE_SIZE, maxRows =
     const to = Math.min(from + pageSize, maxRows) - 1
     const { data, error, count } = await buildQuery().range(from, to)
     if (error) {
-      // Fin de plage (jeu = multiple exact de pageSize) : PostgREST peut répondre
-      // 416/PGRST103 sur une page hors bornes — c'est une fin de jeu, pas un échec.
+      // End of range (dataset = an exact multiple of pageSize): PostgREST may answer
+      // 416/PGRST103 on an out-of-bounds page — that is the end of the dataset, not a failure.
       if (rows.length && (error.code === 'PGRST103' || /range/i.test(error.message || ''))) break
       throw error
     }
     if (typeof count === 'number') total = count
     if (data && data.length) rows.push(...data)
-    if (!data || data.length < to - from + 1) break        // page incomplète = fin du jeu
-    if (total != null && rows.length >= total) break       // évite la requête vide finale
+    if (!data || data.length < to - from + 1) break        // incomplete page = end of the dataset
+    if (total != null && rows.length >= total) break       // avoids the final empty request
   }
   const truncated = total != null && rows.length < total
   return { rows, total: total ?? rows.length, truncated }

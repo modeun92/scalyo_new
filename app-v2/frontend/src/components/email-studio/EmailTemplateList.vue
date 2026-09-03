@@ -40,7 +40,7 @@
         <span class="esi-cat" :class="catClass(tpl.categoryKey)">
           {{ t('es_cat_' + tpl.categoryKey) }}
         </span>
-        <!-- CR-D : templates custom = nom stocké, defaults = clé i18n -->
+        <!-- CR-D: custom templates = stored name, defaults = i18n key -->
         <strong>{{ tpl.nameKey ? t(tpl.nameKey) : tpl.name }}</strong>
       </div>
     </div>
@@ -59,7 +59,7 @@ const props = defineProps({
   activeCat: { type: String, required: true },
   selectedId: { type: [Number, String], default: null }, // CR-D : ids custom = uuid string
   search: { type: String, default: '' },
-  customTemplates: { type: Array, default: () => [] } // CR-D : la prop était passée mais jamais consommée
+  customTemplates: { type: Array, default: () => [] } // CR-D: the prop was passed but never consumed
 })
 
 const emit = defineEmits(['update:activeTab', 'update:activeCat', 'update:selectedId', 'update:search'])
@@ -81,7 +81,7 @@ const categoryKeys = computed(() => {
   return ['all', ...new Set(keys)]
 })
 
-// CR-D : les templates custom rejoignent la liste (forme alignée sur allTemplates du store)
+// CR-D: custom templates join the list (shape aligned with the store's allTemplates)
 const customAsItems = computed(() => props.customTemplates.map(tpl => ({
   id: tpl.id,
   nameKey: null,

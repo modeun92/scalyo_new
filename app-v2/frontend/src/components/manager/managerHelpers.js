@@ -2,7 +2,7 @@
  * Manager View — Shared helpers
  */
 
-// B-09 : pas de donnée (null) → pas de classe couleur
+// B-09: no data (null) → no color class
 export function wellbeingClass(score) {
   if (typeof score !== 'number') return ''
   return score >= 70 ? 'green' : score >= 50 ? 'amber' : 'red'

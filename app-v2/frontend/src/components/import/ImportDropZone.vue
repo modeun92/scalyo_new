@@ -1,6 +1,6 @@
 <template>
   <div>
-    <!-- STEP 0 : Zone de dépôt -->
+    <!-- STEP 0: Drop zone -->
     <div v-if="currentStep === 0"
          class="imp-dropzone"
          :class="{ dragover }"

@@ -1,5 +1,5 @@
-// === SCALYO — Helper centralise pour appels IA ===
-// POST /api/ai avec auth Supabase automatique
+// === SCALYO — Centralized helper for AI calls ===
+// POST /api/ai with automatic Supabase auth
 
 import { supabase } from '@/lib/supabase'
 
@@ -7,15 +7,15 @@ const ENDPOINTS = {}
 const AI_ENDPOINT = '/api/ai'
 
 /**
- * Appelle le backend IA Scalyo
+ * Calls the Scalyo AI back end
  * @param {Object} params
- * @param {string} params.module - Module IA
- * @param {string} params.message - Message utilisateur
- * @param {Array} [params.history] - Historique conversation [{role, content}]
- * @param {Object} [params.context] - Contexte additionnel
- * @param {string} [params.lang] - Langue (fr, en, ko)
- * @param {AbortSignal} [params.signal] - Signal pour annulation
- * @returns {Promise<Object>} Reponse IA
+ * @param {string} params.module - AI module
+ * @param {string} params.message - User message
+ * @param {Array} [params.history] - Conversation history [{role, content}]
+ * @param {Object} [params.context] - Additional context
+ * @param {string} [params.lang] - Language (fr, en, ko)
+ * @param {AbortSignal} [params.signal] - Signal for cancellation
+ * @returns {Promise<Object>} AI response
  */
 export async function askScalyoAI({ module, message, history = [], context = {}, lang, signal }) {
   const { data: { session } } = await supabase.auth.getSession()

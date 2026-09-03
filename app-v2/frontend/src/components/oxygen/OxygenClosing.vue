@@ -8,19 +8,19 @@ import { useOxygenEngineStore } from '@/stores/oxygenEngine'
 import { useOxygenRecoveriesStore } from '@/stores/oxygenRecoveries'
 import { useQuoteStore } from '@/stores/quotes'
 import { setDnd } from '@/lib/toast'
-import { bubbleParams } from './cielBubble'
+import { bubbleParams } from './skyBubble'
 import OxygenCheckinForm from './OxygenCheckinForm.vue'
 
-// ─── OXYGEN Lot 3b — LA FERMETURE (contrat R23 29/07/2026) ───────────────────
-// Overlay PLEIN ÉCRAN sans route (décision contrat) : un état, pas une page —
-// rien dans l'historique de navigation. Échappable À TOUT INSTANT (Esc, ✕,
-// « passer ») : une Fermeture échappée n'écrit RIEN et ne consomme pas le jour.
-// Mode 'cloture' : 4 étapes (progrès réels → un mot → respiration 90 s →
-// demain est prêt) puis écriture UNIQUE (recoveries.closeToday) et bulle du
-// jour. Mode 'micro' : respiration 90 s seule, écriture à la fin seulement.
-// DND actif pendant l'overlay : toasts en file + badge cloche masqué (lib/toast).
-// Respiration = cyclic sighing (~3 cycles/min) ; prefers-reduced-motion →
-// bulle statique, le décompte textuel guide seul. Jamais bloquant, zéro rouge.
+// ─── OXYGEN Lot 3b — THE CLOSING (contract R23 29/07/2026) ─────────────────
+// FULL-SCREEN overlay without a route (contract decision): a state, not a page —
+// nothing in the navigation history. Escapable AT ANY MOMENT (Esc, ✕,
+// "skip"): an escaped Closing writes NOTHING and does not consume the day.
+// 'cloture' mode: 4 steps (real progress → one word → 90 s breathing →
+// tomorrow is ready) then a SINGLE write (recoveries.closeToday) and the bubble of
+// the day. 'micro' mode: 90 s breathing only, write at the end only.
+// DND active during the overlay: toasts queued + bell badge hidden (lib/toast).
+// Breathing = cyclic sighing (~3 cycles/min); prefers-reduced-motion →
+// static bubble, the text countdown guides on its own. Never blocking, zero red.
 
 const emitClose = () => { recoveries.closeOverlay() }
 
@@ -32,23 +32,23 @@ const engine = useOxygenEngineStore()
 const recoveries = useOxygenRecoveriesStore()
 const quoteStore = useQuoteStore()
 
-const isMicro = computed(() => recoveries.fermetureMode === 'micro')
+const isMicro = computed(() => recoveries.closingMode === 'micro')
 
-// step (cloture) : 1 progrès · 2 mot · 3 respiration · 4 demain · 5 fermée
-// step (micro)   : 3 respiration · 5 terminé
+// step (cloture): 1 progress · 2 word · 3 breathing · 4 tomorrow · 5 closed
+// step (micro)  : 3 breathing · 5 done
 const step = ref(1)
 const startedAtMs = ref(0)
 const closing = ref(false)
 const closeError = ref('')
 
-// ── Un mot (pré-rempli du check-in — MÊME ligne base, jamais un 2e système) ──
+// ── One word (pre-filled from the check-in — SAME database row, never a 2nd system) ──
 const word = ref('')
 const hasCheckin = computed(() => !!checkins.todayCheckin)
-// BUG OXY-FERM-WORD (tué 29/07, vu au rendu run 1) : après le check-in inline de
-// l'étape 2, la bascule vers l'input mot partait d'un ref VIDE — le mot venait
-// d'être écrit mais n'était pas repris, et un Continuer l'aurait effacé en base.
-// Reprise du mot dès que le check-in du jour apparaît — jamais par-dessus une
-// saisie en cours (word non vide).
+// BUG OXY-FERM-WORD (killed 29/07, seen while rendering run 1): after the inline check-in of
+// step 2, switching to the word input started from an EMPTY ref — the word had just
+// been written but was not picked up, and a Continue would have erased it in the database.
+// The word is picked up as soon as the day's check-in appears — never over an
+// in-progress edit (word not empty).
 watch(() => checkins.todayCheckin, (c) => { if (c && !word.value) word.value = c.word || '' })
 
 // ── Respiration 90 s ──
@@ -58,7 +58,7 @@ let breathTimer = null
 const reducedMotion = typeof window !== 'undefined' &&
   window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
-// ── Progrès du jour (lecture pure engine + notes self) ──
+// ── Progress of the day (pure engine read + self notes) ──
 const progressItems = computed(() => {
   const p = engine.dayProgress
   const items = []
@@ -73,9 +73,9 @@ const progressCount = computed(() => {
   return p.tasksDone + recoveries.notesCountToday + p.quotesCreated + p.clientsAdded
 })
 
-// ── Bulle du jour (écran final — UNIQUEMENT des valeurs persistées relues) ──
+// ── Bubble of the day (final screen — ONLY persisted values read back) ──
 const todayBubble = computed(() => {
-  const row = recoveries.todayCloture
+  const row = recoveries.todayClosing
   if (!row) return null
   const dailyRow = oxygenDaily.history.find(r => r.date === row.date)
   return bubbleParams({
@@ -102,13 +102,13 @@ function afterBreath() {
 }
 function skipBreath() {
   stopBreath()
-  if (isMicro.value) emitClose() // micro passée = rien écrit, jamais de culpabilisation
+  if (isMicro.value) emitClose() // micro skipped = nothing written, never any guilt-tripping
   else step.value = 4
 }
 
 async function saveWordIfChanged() {
   const c = checkins.todayCheckin
-  if (!c) return // sans check-in, l'étape 2 a affiché le formulaire complet
+  if (!c) return // without a check-in, step 2 displayed the full form
   const w = (word.value || '').trim().slice(0, 80)
   if (w === (c.word || '')) return
   await checkins.upsertToday({ energy: c.energy, mood: c.mood, feltLoad: c.felt_load, word: w })
@@ -117,10 +117,10 @@ async function saveWordIfChanged() {
 function next() {
   if (step.value === 1) { step.value = 2; word.value = checkins.todayCheckin?.word || '' }
   else if (step.value === 2) { saveWordIfChanged(); step.value = 3; startBreath() }
-  else if (step.value === 4) finishCloture()
+  else if (step.value === 4) finishClosing()
 }
 
-async function finishCloture() {
+async function finishClosing() {
   if (closing.value) return
   closing.value = true
   closeError.value = ''
@@ -129,7 +129,7 @@ async function finishCloture() {
   closing.value = false
   if (res?.success) step.value = 5
   else if (res?.error === 'already_closed') { closeError.value = 'already'; step.value = 5 }
-  // autre échec : withWrite a déjà montré le toast (en file DND) — on reste, rien de perdu
+  // other failure: withWrite already showed the toast (queued by DND) — we stay, nothing is lost
 }
 
 async function finishMicro() {
@@ -146,7 +146,7 @@ function onKeydown(e) {
 }
 
 onMounted(() => {
-  setDnd(true) // DND : toasts en file + cloche masquée — restauré quoi qu'il arrive
+  setDnd(true) // DND: toasts queued + bell hidden — restored whatever happens
   window.addEventListener('keydown', onKeydown)
   startedAtMs.value = performance.now()
   recoveries.loadNotesCountToday()
@@ -158,79 +158,79 @@ onMounted(() => {
 onUnmounted(() => {
   stopBreath()
   window.removeEventListener('keydown', onKeydown)
-  setDnd(false) // flush de la file — JAMAIS de toast perdu
+  setDnd(false) // flush the queue — NEVER a lost toast
 })
 </script>
 
 <template>
   <Teleport to="body">
-    <div class="oxy-ferm" role="dialog" aria-modal="true" :aria-label="t('oxy_ferm_title')">
-      <button class="oxy-ferm-x" :aria-label="t('oxy_close')" @click="stopBreath(); emitClose()">✕</button>
-      <p class="oxy-ferm-esc">{{ t('oxy_ferm_esc_hint') }}</p>
+    <div class="oxy-closing" role="dialog" aria-modal="true" :aria-label="t('oxy_ferm_title')">
+      <button class="oxy-closing-x" :aria-label="t('oxy_close')" @click="stopBreath(); emitClose()">✕</button>
+      <p class="oxy-closing-esc">{{ t('oxy_ferm_esc_hint') }}</p>
 
-      <!-- ── Étape 1 : progrès réels du jour (zéro saisie) ── -->
-      <section v-if="step === 1" class="oxy-ferm-step">
-        <span class="oxy-ferm-stepnum">{{ t('oxy_ferm_step', { n: 1 }) }}</span>
+      <!-- ── Step 1: real progress of the day (zero input) ── -->
+      <section v-if="step === 1" class="oxy-closing-step">
+        <span class="oxy-closing-stepnum">{{ t('oxy_ferm_step', { n: 1 }) }}</span>
         <h2>{{ t('oxy_ferm_progress_title') }}</h2>
-        <ul v-if="progressItems.length" class="oxy-ferm-list">
+        <ul v-if="progressItems.length" class="oxy-closing-list">
           <li v-for="(it, i) in progressItems" :key="i">{{ t(it.key, it.params) }}</li>
         </ul>
-        <p v-else class="oxy-ferm-soft">{{ t('oxy_ferm_progress_none') }}</p>
-        <button class="oxy-ferm-btn" @click="next">{{ t('oxy_ferm_next') }}</button>
+        <p v-else class="oxy-closing-soft">{{ t('oxy_ferm_progress_none') }}</p>
+        <button class="oxy-closing-btn" @click="next">{{ t('oxy_ferm_next') }}</button>
       </section>
 
-      <!-- ── Étape 2 : un mot (même ligne base que le check-in) ── -->
-      <section v-else-if="step === 2" class="oxy-ferm-step">
-        <span class="oxy-ferm-stepnum">{{ t('oxy_ferm_step', { n: 2 }) }}</span>
+      <!-- ── Step 2: one word (same database row as the check-in) ── -->
+      <section v-else-if="step === 2" class="oxy-closing-step">
+        <span class="oxy-closing-stepnum">{{ t('oxy_ferm_step', { n: 2 }) }}</span>
         <h2>{{ t('oxy_ferm_word_title') }}</h2>
         <template v-if="hasCheckin">
-          <p class="oxy-ferm-soft">{{ t('oxy_ferm_word_hint') }}</p>
+          <p class="oxy-closing-soft">{{ t('oxy_ferm_word_hint') }}</p>
           <input
-            v-model="word" class="oxy-ferm-word" type="text" maxlength="80"
+            v-model="word" class="oxy-closing-word" type="text" maxlength="80"
             :placeholder="t('oxy_word_placeholder')" :aria-label="t('oxy_word_label')"
             @keydown.enter.prevent="next"
           />
         </template>
         <template v-else>
-          <p class="oxy-ferm-soft">{{ t('oxy_ferm_checkin_first') }}</p>
-          <div class="oxy-ferm-checkin"><OxygenCheckinForm autofocus /></div>
+          <p class="oxy-closing-soft">{{ t('oxy_ferm_checkin_first') }}</p>
+          <div class="oxy-closing-checkin"><OxygenCheckinForm autofocus /></div>
         </template>
-        <button class="oxy-ferm-btn" @click="next">{{ t('oxy_ferm_next') }}</button>
+        <button class="oxy-closing-btn" @click="next">{{ t('oxy_ferm_next') }}</button>
       </section>
 
-      <!-- ── Étape 3 : respiration 90 s — cyclic sighing, jamais bloquante ── -->
-      <section v-else-if="step === 3" class="oxy-ferm-step oxy-ferm-breath">
-        <span v-if="!isMicro" class="oxy-ferm-stepnum">{{ t('oxy_ferm_step', { n: 3 }) }}</span>
+      <!-- ── Step 3: 90 s breathing — cyclic sighing, never blocking ── -->
+      <section v-else-if="step === 3" class="oxy-closing-step oxy-closing-breath">
+        <span v-if="!isMicro" class="oxy-closing-stepnum">{{ t('oxy_ferm_step', { n: 3 }) }}</span>
         <h2>{{ t('oxy_ferm_breath_title') }}</h2>
         <div class="oxy-breath-stage">
           <div class="oxy-breath-bubble" :class="{ still: reducedMotion }" aria-hidden="true"></div>
         </div>
-        <p class="oxy-ferm-soft">{{ t('oxy_ferm_breath_hint') }}</p>
+        <p class="oxy-closing-soft">{{ t('oxy_ferm_breath_hint') }}</p>
         <p class="oxy-breath-count" aria-live="polite">{{ breathLeft }}s</p>
-        <button class="oxy-ferm-skip" @click="skipBreath">{{ t('oxy_ferm_breath_skip') }}</button>
+        <button class="oxy-closing-skip" @click="skipBreath">{{ t('oxy_ferm_breath_skip') }}</button>
       </section>
 
-      <!-- ── Étape 4 : demain est prêt (dérivé réel, zéro saisie) ── -->
-      <section v-else-if="step === 4" class="oxy-ferm-step">
-        <span class="oxy-ferm-stepnum">{{ t('oxy_ferm_step', { n: 4 }) }}</span>
+      <!-- ── Step 4: tomorrow is ready (real derived data, zero input) ── -->
+      <section v-else-if="step === 4" class="oxy-closing-step">
+        <span class="oxy-closing-stepnum">{{ t('oxy_ferm_step', { n: 4 }) }}</span>
         <h2>{{ t('oxy_ferm_tomorrow_title') }}</h2>
-        <ul v-if="engine.tomorrowTop3.length" class="oxy-ferm-list">
+        <ul v-if="engine.tomorrowTop3.length" class="oxy-closing-list">
           <li v-for="(it, i) in engine.tomorrowTop3" :key="i">{{ t(it.key, it.params) }}</li>
         </ul>
-        <p v-else class="oxy-ferm-soft">{{ t('oxy_ferm_tomorrow_none') }}</p>
-        <button class="oxy-ferm-btn" :disabled="closing || recoveries.saving" @click="next">
+        <p v-else class="oxy-closing-soft">{{ t('oxy_ferm_tomorrow_none') }}</p>
+        <button class="oxy-closing-btn" :disabled="closing || recoveries.saving" @click="next">
           {{ t('oxy_ferm_finish') }}
         </button>
       </section>
 
-      <!-- ── Écran final ── -->
-      <section v-else class="oxy-ferm-step oxy-ferm-done">
+      <!-- ── Final screen ── -->
+      <section v-else class="oxy-closing-step oxy-closing-done">
         <template v-if="isMicro">
           <h2>{{ t('oxy_micro_done') }}</h2>
         </template>
         <template v-else>
           <h2>{{ closeError === 'already' ? t('oxy_ferm_already') : t('oxy_ferm_done_title') }}</h2>
-          <svg v-if="todayBubble" class="oxy-ferm-bubble-svg" viewBox="0 0 80 80" aria-hidden="true">
+          <svg v-if="todayBubble" class="oxy-closing-bubble-svg" viewBox="0 0 80 80" aria-hidden="true">
             <circle
               cx="40" cy="40" :r="todayBubble.r"
               :fill="`hsl(${todayBubble.hue} ${todayBubble.sat}% ${todayBubble.light}%)`"
@@ -248,8 +248,8 @@ onUnmounted(() => {
               :r="d.s" fill="#fff" fill-opacity="0.55"
             />
           </svg>
-          <p class="oxy-ferm-soft">{{ t('oxy_ferm_done_hint') }}</p>
-          <button class="oxy-ferm-btn" @click="emitClose">{{ t('oxy_close') }}</button>
+          <p class="oxy-closing-soft">{{ t('oxy_ferm_done_hint') }}</p>
+          <button class="oxy-closing-btn" @click="emitClose">{{ t('oxy_close') }}</button>
         </template>
       </section>
     </div>
@@ -257,31 +257,31 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-.oxy-ferm {
+.oxy-closing {
   position: fixed; inset: 0; z-index: 9000;
   background: linear-gradient(180deg, var(--bg-card) 0%, var(--purple-bg) 100%);
   display: flex; align-items: center; justify-content: center;
 }
-.oxy-ferm-x { position: absolute; top: 18px; right: 22px; background: none; border: none; font-size: 1.1rem; color: var(--text-muted); cursor: pointer; padding: 6px; }
-.oxy-ferm-x:hover { color: var(--text); }
-.oxy-ferm-esc { position: absolute; top: 24px; left: 24px; font-size: 0.72rem; color: var(--text-muted); margin: 0; }
+.oxy-closing-x { position: absolute; top: 18px; right: 22px; background: none; border: none; font-size: 1.1rem; color: var(--text-muted); cursor: pointer; padding: 6px; }
+.oxy-closing-x:hover { color: var(--text); }
+.oxy-closing-esc { position: absolute; top: 24px; left: 24px; font-size: 0.72rem; color: var(--text-muted); margin: 0; }
 
-.oxy-ferm-step { max-width: 520px; width: 100%; padding: 0 24px; text-align: center; }
-.oxy-ferm-stepnum { display: block; font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 10px; }
-.oxy-ferm-step h2 { font-size: 1.35rem; font-weight: 700; color: var(--text); margin: 0 0 16px; }
-.oxy-ferm-soft { font-size: 0.88rem; color: var(--text-secondary); line-height: 1.55; margin: 0 0 18px; }
-.oxy-ferm-list { list-style: none; padding: 0; margin: 0 0 20px; }
-.oxy-ferm-list li { font-size: 0.95rem; color: var(--text); padding: 8px 0; border-bottom: 1px solid var(--border); }
-.oxy-ferm-list li:last-child { border-bottom: none; }
+.oxy-closing-step { max-width: 520px; width: 100%; padding: 0 24px; text-align: center; }
+.oxy-closing-stepnum { display: block; font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 10px; }
+.oxy-closing-step h2 { font-size: 1.35rem; font-weight: 700; color: var(--text); margin: 0 0 16px; }
+.oxy-closing-soft { font-size: 0.88rem; color: var(--text-secondary); line-height: 1.55; margin: 0 0 18px; }
+.oxy-closing-list { list-style: none; padding: 0; margin: 0 0 20px; }
+.oxy-closing-list li { font-size: 0.95rem; color: var(--text); padding: 8px 0; border-bottom: 1px solid var(--border); }
+.oxy-closing-list li:last-child { border-bottom: none; }
 
-.oxy-ferm-btn { padding: 11px 26px; border: none; border-radius: 999px; background: var(--purple); color: #fff; font-size: 0.9rem; font-weight: 600; cursor: pointer; }
-.oxy-ferm-btn:disabled { opacity: 0.6; cursor: default; }
-.oxy-ferm-skip { display: block; margin: 14px auto 0; background: none; border: none; font-size: 0.78rem; color: var(--text-muted); text-decoration: underline; cursor: pointer; }
-.oxy-ferm-skip:hover { color: var(--text-secondary); }
+.oxy-closing-btn { padding: 11px 26px; border: none; border-radius: 999px; background: var(--purple); color: #fff; font-size: 0.9rem; font-weight: 600; cursor: pointer; }
+.oxy-closing-btn:disabled { opacity: 0.6; cursor: default; }
+.oxy-closing-skip { display: block; margin: 14px auto 0; background: none; border: none; font-size: 0.78rem; color: var(--text-muted); text-decoration: underline; cursor: pointer; }
+.oxy-closing-skip:hover { color: var(--text-secondary); }
 
-.oxy-ferm-word { width: 100%; padding: 11px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-card); color: var(--text); font-size: 0.95rem; margin: 0 0 18px; text-align: center; }
-.oxy-ferm-word:focus { outline: none; border-color: var(--purple); }
-.oxy-ferm-checkin { text-align: left; margin-bottom: 16px; }
+.oxy-closing-word { width: 100%; padding: 11px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-card); color: var(--text); font-size: 0.95rem; margin: 0 0 18px; text-align: center; }
+.oxy-closing-word:focus { outline: none; border-color: var(--purple); }
+.oxy-closing-checkin { text-align: left; margin-bottom: 16px; }
 
 /* Respiration — cyclic sighing ~3 cycles/min : 2 inspirations + longue expiration */
 .oxy-breath-stage { display: flex; align-items: center; justify-content: center; height: 220px; margin-bottom: 8px; }
@@ -301,7 +301,7 @@ onUnmounted(() => {
 }
 .oxy-breath-count { font-size: 1.1rem; font-weight: 700; color: var(--purple); margin: 0; font-variant-numeric: tabular-nums; }
 
-.oxy-ferm-done .oxy-ferm-bubble-svg { width: 130px; height: 130px; margin: 6px auto 14px; display: block; }
+.oxy-closing-done .oxy-closing-bubble-svg { width: 130px; height: 130px; margin: 6px auto 14px; display: block; }
 
 @media (prefers-reduced-motion: reduce) {
   .oxy-breath-bubble { animation: none; }

@@ -97,7 +97,7 @@ async function send() {
   const content = text.value.trim()
   if (!content || !store.activeChannel) return
   try {
-    // G9-21 : le store résout nom + uid (prénom, sinon préfixe email — jamais « user_default »)
+    // G9-21: the store resolves name + uid (first name, otherwise the email prefix — never "user_default")
     await store.sendMessage(store.activeChannel, content)
     text.value = ''
     showEmojis.value = false

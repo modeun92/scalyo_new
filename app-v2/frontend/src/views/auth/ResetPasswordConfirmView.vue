@@ -5,13 +5,13 @@
         <ScalyoLogo :size="48" /><span class="auth-brand">Scalyo</span>
       </div>
 
-      <!-- Chargement / vérification du lien -->
+      <!-- Loading / link verification -->
       <div v-if="state === 'loading'" class="state-loading">
         <div class="spinner-lg" />
         <p>{{ t('reset_confirm_checking') }}</p>
       </div>
 
-      <!-- Lien invalide ou expiré -->
+      <!-- Invalid or expired link -->
       <div v-else-if="state === 'invalid'" class="state-error">
         <div class="error-icon">⚠️</div>
         <h1>{{ t('reset_confirm_invalid_title') }}</h1>
@@ -56,7 +56,7 @@
         </form>
       </template>
 
-      <!-- Succès -->
+      <!-- Success -->
       <div v-else-if="state === 'success'" class="reset-success">
         <div class="success-icon">✅</div>
         <p class="success-msg">{{ t('reset_confirm_success') }}</p>
@@ -83,22 +83,22 @@ const loading         = ref(false)
 const errorMsg        = ref('')
 
 onMounted(async () => {
-  // Supabase traite automatiquement le hash de l'URL et émet PASSWORD_RECOVERY
+  // Supabase automatically handles the URL hash and emits PASSWORD_RECOVERY
   const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
     if (event === 'PASSWORD_RECOVERY') {
       state.value = 'form'
       subscription.unsubscribe()
     }
   })
-  // Rattrapage : detectSessionInUrl traite le hash AU BOOT — l'event peut être
-  // émis AVANT le mount de cette vue (route lazy) et donc raté. Si une session
-  // existe déjà, le lien était valide → afficher le formulaire.
+  // Catch-up: detectSessionInUrl processes the hash AT BOOT — the event may be
+  // emitted BEFORE this view mounts (lazy route) and therefore missed. If a session
+  // already exists, the link was valid → display the form.
   const { data: { session } } = await supabase.auth.getSession()
   if (session && state.value === 'loading') {
     state.value = 'form'
     subscription.unsubscribe()
   }
-  // Fallback : si aucun event après 4s → lien invalide
+  // Fallback: if no event after 4s → invalid link
   setTimeout(() => {
     if (state.value === 'loading') state.value = 'invalid'
   }, 4000)
@@ -118,7 +118,7 @@ async function handleSubmit() {
   const { error } = await supabase.auth.updateUser({ password: password.value })
   loading.value = false
   if (error) {
-    // Messages véridiques par cause réelle (contrat 16/07) — motif brut en console
+    // Truthful messages by real cause (contract 16/07) — raw reason in the console
     console.warn('[reset-confirm] updateUser failed:', error.code || error.name || error.status, error.message)
     if (error.code === 'same_password') {
       errorMsg.value = t('reset_confirm_err_same_pw')

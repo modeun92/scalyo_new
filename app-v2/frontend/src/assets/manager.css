@@ -74,7 +74,7 @@
   width: 38px; height: 38px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
   color: #fff; font-weight: 700; font-size: 0.9rem; flex-shrink: 0;
-  background: var(--text-muted, #9ca3af); /* B-09 : statut inconnu = neutre, jamais invisible */
+  background: var(--text-muted, #9ca3af); /* B-09: unknown status = neutral, never invisible */
 }
 .mc-avatar.healthy { background: var(--green); }
 .mc-avatar.overloaded { background: var(--red); }
@@ -218,7 +218,7 @@
 .btn-add-seat:hover { opacity: 0.85; }
 .text-orange { color: var(--text-warning, #EA580C); }
 
-/* ── OXYGEN Lot 4 : onglets Manager (Équipe | Oxygen) ── */
+/* ── OXYGEN Lot 4: Manager tabs (Team | Oxygen) ── */
 .mgr-tabs { display: flex; gap: 6px; margin-bottom: 20px; border-bottom: 1px solid var(--border); }
 .mgr-tab { background: none; border: none; border-bottom: 2px solid transparent; padding: 8px 14px; font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); cursor: pointer; transition: color 0.15s, border-color 0.15s; }
 .mgr-tab:hover { color: var(--text); }

@@ -16,7 +16,7 @@
         <template v-for="section in sidebarSections" :key="section.label">
           <div v-if="!app.sidebarCollapsed && section.label" class="nav-section-label">{{ t(section.label) }}</div>
           <template v-for="item in section.items.filter(i => !i.ownerOnly || auth.isOrgOwner)" :key="item.name">
-            <!-- D2 : module hors forfait → grisé + cadenas, clic vers paywall mode upgrade -->
+            <!-- D2: module outside the plan → greyed out + padlock, click goes to the paywall in upgrade mode -->
             <router-link v-if="isLocked(item)" :to="{ name: 'paywall', query: { reason: 'upgrade', module: item.module } }" class="nav-item nav-item--locked" @click="app.closeMobileSidebar()">
               <span class="nav-icon">{{ item.icon }}</span>
               <span v-if="!app.sidebarCollapsed" class="nav-label">{{ t(item.label) }}</span>
@@ -60,7 +60,7 @@
           <ScalyoLogo :size="24" class="hide-desktop topbar-logo-mobile" />
         </div>
         <div class="topbar-right">
-          <!-- OXYGEN Lot 2 : pastille Pulse (absorbe le montage renderless Lot 1) -->
+          <!-- OXYGEN Lot 2: Pulse dot (absorbs the Lot 1 renderless mount) -->
           <OxygenPulse />
           <!-- Notifications -->
           <div class="topbar-notif" ref="notifRef">
@@ -119,11 +119,11 @@
 
       <!-- CONTENT -->
       <main class="main-content">
-        <!-- NAV-SLOW (29/08) : le <transition fade out-in> rendait le changement d'écran
-             OTAGE d'un fondu de 0,2 s en 3 phases d'animation frames — onglet occulté ou
-             thread occupé → phases gelées → l'ANCIEN écran reste affiché (12 s constatés,
-             indéfiniment en arrière-plan, classe fade-leave-from collée au runtime).
-             Le swap est redevenu synchrone et inconditionnel ; :key/.route-shell conservés. -->
+        <!-- NAV-SLOW (29/08): the <transition fade out-in> held the screen change
+             HOSTAGE to a 0.2 s fade across 3 animation-frame phases — hidden tab or
+             busy thread → frozen phases → the OLD screen stayed displayed (12 s observed,
+             indefinitely in the background, class fade-leave-from stuck at runtime).
+             The swap is synchronous and unconditional again; :key/.route-shell kept. -->
         <router-view v-slot="{ Component, route }">
           <div :key="route.fullPath" class="route-shell">
             <component :is="Component" />
@@ -135,9 +135,9 @@
     <!-- ONBOARDING -->
     <OnboardingWizard />
 
-    <!-- FB-02 : fiche client en pop-up modale, ouverte depuis partout -->
+    <!-- FB-02: client record as a modal pop-up, opened from anywhere -->
     <ClientModal />
-    <!-- CHAT FAB (masqué sur /app/chat — G9-19/D1 : une seule surface à la fois) -->
+    <!-- CHAT FAB (hidden on /app/chat — G9-19/D1: a single surface at a time) -->
     <button v-if="route.name !== 'chat'" class="chat-fab" @click="app.toggleChat()" :class="{ active: app.chatOpen }">
       💬
       <span v-if="chatStore.totalUnread" class="chat-fab-badge">{{ chatStore.totalUnread }}</span>
@@ -161,7 +161,7 @@ import AiAssistant from '@/components/ai/AiAssistant.vue'
 import OnboardingWizard from '@/components/onboarding/OnboardingWizard.vue'
 import FeedbackWidget from '@/components/FeedbackWidget.vue'
 import GlobalToast from '@/components/base/GlobalToast.vue'
-// OXYGEN Lot 3b : badge cloche masqué pendant la Fermeture (DND local)
+// OXYGEN Lot 3b: bell badge hidden during the Closing (local DND)
 import { dndActive } from '@/lib/toast'
 import ClientModal from '@/components/clients/ClientModal.vue'
 import OxygenPulse from '@/components/oxygen/OxygenPulse.vue'
@@ -182,7 +182,7 @@ const { t, locale } = useI18n({ useScope: 'global' })
 const app = useAppStore()
 const auth = useAuthStore()
 const isEliteOrAbove = computed(() => ['elite', 'enterprise'].includes(auth.currentPlan))
-// D2 : un item porteur d'un module hors forfait est grisé + cadenas (clic → paywall upgrade)
+// D2: an item carrying a module outside the plan is greyed out + padlocked (click → upgrade paywall)
 function isLocked(item) { return !!item.module && !isModuleAllowed(auth.currentPlan, item.module) }
 const notifications = useNotificationStore()
 const chatStore = useChatStore()
@@ -274,7 +274,7 @@ const sidebarSections = [
     label: 'sidebar_projects_section',
     items: [
       {
-        name: 'tasks', icon: '⚡', label: 'sidebar_smart_matrice', to: '/app/tasks/stats',
+        name: 'tasks', icon: '⚡', label: 'sidebar_smart_matrix', to: '/app/tasks/stats',
         children: [
           { name: 'tasks-stats', label: 'sidebar_stats', to: '/app/tasks/stats' },
           { name: 'tasks-planning', label: 'sidebar_planning', to: '/app/tasks/planning' },
@@ -328,8 +328,8 @@ const sidebarSections = [
 ]
 
 import { onMounted, onUnmounted } from 'vue'
-// G9-20 : le realtime chat vit à l'échelle du layout (badge FAB hors surface ouverte).
-// Il n'est détruit qu'au démontage du layout (logout / sortie de /app), plus au close du panneau.
+// G9-20: the chat realtime lives at the layout level (FAB badge outside the open surface).
+// It is only destroyed when the layout unmounts (logout / leaving /app), no longer when the panel closes.
 onUnmounted(() => { chatStore.destroy() })
 onMounted(async () => {
     chatStore.init()

@@ -5,12 +5,12 @@ import DOMPurify from 'dompurify'
  * Use this for ANY v-html that displays user-generated or AI-generated content
  * NOT needed for static i18n translations (LandingPage.vue)
  */
-// COACH-MD puis LYO-MARKDOWN (29/08) : mise en forme des réponses IA puis sanitization.
-// Source UNIQUE partagée Coach / démo onboarding — ne jamais dupliquer localement (R25 §3).
-// LYO-MARKDOWN : le renderer ne couvrait que **gras** — les ###/####/--- et les listes
-// des réponses Lyo s'affichaient en littéral. Renderer ligne à ligne, zéro dépendance :
-// titres #..#### (→ h2..h4, plafonné aux tags autorisés par sanitizeHtml), séparateurs,
-// listes - * • et 1., gras, `code`. Tout passe ensuite par DOMPurify (inchangé).
+// COACH-MD then LYO-MARKDOWN (29/08): formatting of AI answers, then sanitization.
+// A SINGLE source shared by Coach / the onboarding demo — never duplicate it locally (R25 §3).
+// LYO-MARKDOWN: the renderer only covered **bold** — the ###/####/--- and the lists
+// in Lyo's answers were displayed literally. Line-by-line renderer, zero dependency:
+// headings #..#### (→ h2..h4, capped at the tags allowed by sanitizeHtml), separators,
+// lists - * • and 1., bold, `code`. Everything then goes through DOMPurify (unchanged).
 function mdInline(s) {
   return s
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
@@ -27,7 +27,7 @@ export function formatAiText(text) {
     let m
     if ((m = t.match(/^(#{1,6})\s+(.*)$/))) {
       closeList()
-      const lvl = Math.min(m[1].length + 1, 4) // # → h2 … ###+ → h4 (h5/h6 non autorisés par DOMPurify ici)
+      const lvl = Math.min(m[1].length + 1, 4) // # → h2 … ###+ → h4 (h5/h6 not allowed by DOMPurify here)
       out.push('<h' + lvl + '>' + mdInline(m[2]) + '</h' + lvl + '>')
       continue
     }

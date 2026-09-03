@@ -156,11 +156,11 @@ const tabs = [
   { key: 'delete', label: 'stg_tab_delete', danger: true }
 ]
 
-// E-04 : init depuis le profil RÉEL (l'ancien code lisait auth.user?.displayName,
-// propriété inexistante sur l'objet User GoTrue → champ toujours vide).
-// Sync unique au premier profil disponible (boot direct /app/settings : fetchProfile
-// peut arriver après le setup) — flag explicite, jamais de stop() dans son propre
-// callback immédiat (piège watch-once, famille B-10).
+// E-04: init from the REAL profile (the old code read auth.user?.displayName,
+// a property that does not exist on the GoTrue User object → the field was always empty).
+// One-off sync at the first available profile (direct boot on /app/settings: fetchProfile
+// may arrive after setup) — explicit flag, never a stop() inside its own immediate
+// callback (watch-once trap, B-10 family).
 const profile = reactive({
   firstName: '',
   lastName: '',
@@ -250,7 +250,7 @@ function cancelDelete() {
   deleteError.value = false
 }
 
-// --- E-04 : sauvegarde profil réelle (pattern D-15 : ✓ véridique sinon revert + erreur) ---
+// --- E-04: real profile save (D-15 pattern: a truthful ✓, otherwise revert + error) ---
 const profileSaving = ref(false)
 const profileSaved = ref(false)
 const profileError = ref(false)
@@ -270,7 +270,7 @@ async function saveProfile() {
     profileSaved.value = true
     setTimeout(() => { profileSaved.value = false }, 2500)
   } else {
-    // Échec d'écriture = jamais de faux succès — revert depuis le store (inchangé) + erreur visible
+    // A write failure = never a false success — revert from the store (unchanged) + visible error
     const p = auth.profile
     if (p) {
       profile.firstName = p.first_name || ''
@@ -282,7 +282,7 @@ async function saveProfile() {
   }
 }
 
-// --- E-04 : changement de mot de passe (erreurs véridiques par cause réelle) ---
+// --- E-04: password change (truthful errors by real cause) ---
 const pwdSaving = ref(false)
 const pwdSaved = ref(false)
 const pwdErrorKey = ref('')

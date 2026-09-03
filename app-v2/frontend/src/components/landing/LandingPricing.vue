@@ -110,8 +110,8 @@ const props = defineProps({
 
 const authStore = useAuthStore()
 
-// CR-3 : liens via source unique par environnement + client_reference_id
-// quand l'utilisateur est connecté (mapping webhook)
+// CR-3: links via a single source per environment + client_reference_id
+// when the user is logged in (webhook mapping)
 function stripeUrl(plan) {
   return stripeCheckoutUrl('checkout', plan, { email: authStore.user?.email, userId: authStore.user?.id })
 }

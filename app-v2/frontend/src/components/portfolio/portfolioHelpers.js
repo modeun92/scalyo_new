@@ -2,11 +2,11 @@
  * Portfolio View — Shared helpers
  */
 
-// fmtNum retiré (CURRENCY-FORMAT 25/08) : montants = lib/formatters.fmtCurrency({ compact })
+// fmtNum removed (CURRENCY-FORMAT 25/08): amounts = lib/formatters.fmtCurrency({ compact })
 
-// fmtDate(d, locale) retiré (DATE-RAW 25/08) : dates = lib/formatters.fmtDate (locale globale)
+// fmtDate(d, locale) removed (DATE-RAW 25/08): dates = lib/formatters.fmtDate (global locale)
 
-// sClass(status) retiré (HEALTH-SCALE 25/08) : teinte = lib/health.healthTone(statut effectif)
+// sClass(status) removed (HEALTH-SCALE 25/08): hue = lib/health.healthTone(effective status)
 
 export function renewSoon(c) {
   const d = new Date(c.renewalDate)
