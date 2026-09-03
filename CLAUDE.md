@@ -62,6 +62,7 @@ Three migrations also live under `app-v2/frontend/supabase/migrations/`.
 | plans, seats, roles, gating, Stripe | [docs/BILLING_AND_PLANS.md](docs/BILLING_AND_PLANS.md) |
 | secrets, GDPR, AI residency, Oxygen privacy | [docs/SECURITY_AND_PRIVACY.md](docs/SECURITY_AND_PRIVACY.md) |
 | the business model, entitlements, monetization logic | [docs/BUSINESS.md](docs/BUSINESS.md) |
+| known mock / false-signal code | [docs/MOCK_CODE_AUDIT.md](docs/MOCK_CODE_AUDIT.md) |
 | conventions and doctrine | [docs/CODE_STYLE.md](docs/CODE_STYLE.md) |
 | setup, scripts, env vars, deploy | [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) |
 
@@ -164,8 +165,12 @@ Tracked, not fixed in this snapshot:
   (`oxygen_team` is front-end only). A parity test would remove a class of drift.
 - Eight code-vs-code contradictions, derived and listed in
   [docs/BUSINESS.md](docs/BUSINESS.md#8-contradictions-inside-the-machine) — notably the
-  split plan source above, and a burnout alert that fires for every team member because
-  `null < 55` is true.
+  split plan source above.
+- **24 mock / false-signal findings in [docs/MOCK_CODE_AUDIT.md](docs/MOCK_CODE_AUDIT.md),
+  4 of them critical**: GDPR erasure misses 18 real tables and reports success without
+  checking anything; `account/delete.js` and `account/export.js` still carry a hard-coded
+  **production** Supabase URL fallback; `/api/coach` bypasses rate limit, gating and quota.
+  Read it before touching account deletion, alerts, or the plan config.
 - Upstream hygiene: macOS duplicate files, a committed `.env.production`, session notes at
   the repository root (see [`REVIEW_NOTES.md`](REVIEW_NOTES.md)).
 

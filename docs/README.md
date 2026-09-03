@@ -15,6 +15,7 @@ view to the narrowest.
 | 8 | [SECURITY_AND_PRIVACY.md](SECURITY_AND_PRIVACY.md) | secret custody, GDPR, AI data residency, well-being confidentiality |
 | 9 | [CODE_STYLE.md](CODE_STYLE.md) | the doctrine you are expected to follow, and why |
 | 10 | [DEVELOPMENT.md](DEVELOPMENT.md) | local setup, scripts, env vars, the pre-commit checklist |
+| 11 | [MOCK_CODE_AUDIT.md](MOCK_CODE_AUDIT.md) | audit of mock, hard-coded and "pretending to work" code — 24 findings, 4 critical |
 
 Repository scope and known hygiene items: [`../REVIEW_NOTES.md`](../REVIEW_NOTES.md).
 Operational environment table: `../app-v2/frontend/functions/api/_config/SECURITY.md`.

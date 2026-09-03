@@ -55,6 +55,7 @@ back end, and the database migrations — no `node_modules`, no build output, no
 | [docs/SECURITY_AND_PRIVACY.md](docs/SECURITY_AND_PRIVACY.md) | Secret custody, GDPR, AI data residency |
 | [docs/CODE_STYLE.md](docs/CODE_STYLE.md) | Engineering doctrine and the code-language policy |
 | [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | Local setup, scripts, environment variables, deployment |
+| [docs/MOCK_CODE_AUDIT.md](docs/MOCK_CODE_AUDIT.md) | Mock / hard-coded / false-signal code audit |
 
 `CLAUDE.md` at the repository root is the orientation file for AI agents working here; it
 must be kept in sync with the code.
