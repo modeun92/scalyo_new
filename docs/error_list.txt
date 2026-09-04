@@ -1,7 +1,8 @@
 1. button's design changed
 	when I click client's info, after refreshing in https://scalyo.app/app/dashboard,
 	the button looks weird
-	
+	=> (fixed) : it was because btn_primary was in other modules but not in main
+
 2. automatic logout
 	after for a while it logout automatically, not good.
 
@@ -12,7 +13,7 @@
 4. ARR in dashboard shall be compressed
 	when the number is too much then hard to see
 	$1.64K / $633.7M / $55.73B
-	
+
 5. currency unit changing
 	right now, it is only euro but it is not good.
 	
@@ -67,7 +68,7 @@
 		(2) achievement / difficulty
 	5) charge in which clients
 	6) cons & pros review (if it is legal to write)
-	
+
 10. organization information
 	1) what company we are
 	2) our performance
