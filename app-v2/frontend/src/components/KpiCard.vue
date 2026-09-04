@@ -1,7 +1,7 @@
 <template>
   <div class="kpi_card" :class="[size, statusClass]">
     <div class="kpi_customizer_header">
-      <span class="kpi_customizer_label">{{ localLabel }}</span>
+      <span class="kpi_customizer_label">{{ localizedLabel }}</span>
       <span v-if="change" class="kpi_customizer_change" :class="changePositive ? 'up' : 'down'">{{ change > 0 ? '+' : '' }}{{ change }}{{ isPercent ? 'pts' : kpiUnit(meta) }}</span>
     </div>
     <div class="kpi_customizer_value">{{ formattedValue }}</div>
@@ -31,7 +31,7 @@ const meta = computed(() => KPI_CATALOG.find(k => k.id === props.kpiId))
 
 // KPI-I18N (04/09): the catalog carries an i18n KEY, t() resolves it — no more
 // per-component locale ladder over labelEN / labelKO. Unknown id → the id itself.
-const localLabel = computed(() => meta.value ? t(meta.value.label) : props.kpiId)
+const localizedLabel = computed(() => meta.value ? t(meta.value.label) : props.kpiId)
 
 const isPercent = computed(() => meta.value?.format === 'percentage')
 

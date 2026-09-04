@@ -87,7 +87,7 @@ broke something visible. Do not relax one without saying so explicitly.
    AI prompts, email bodies, public FR pages, **persisted French enum
    values** (`kind = 'cloture'`, `category = 'renouvellement'`, CSV import aliases) or
    public SEO slugs. A label that reaches the screen belongs in i18n — including the KPI
-   library's (`kpilib_<id>` / `kpilibcat_<id>`), which `config/kpis.js` references by key.
+   library's (`kpi_library_<id>` / `kpi_library_category_<id>`), which `config/kpis.js` references by key.
 5. **No `t()` in a store.** Stores return i18n keys plus params; views render them.
    Outside a component, use `i18n.global`, never `useI18n()`.
 6. **`fetchAllRows` for any complete read.** PostgREST truncates at 1000 rows with no

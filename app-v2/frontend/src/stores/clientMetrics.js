@@ -13,7 +13,7 @@ import { KPI_CATALOG } from '@/config/kpis'
 // MetricWizard (copil curves). Zero t() here (rule C2/C6) — the views localize.
 
 const MANUAL_IDS = new Set(KPI_CATALOG.filter(k => k.source === 'manual').map(k => k.id))
-const AGG = Object.fromEntries(KPI_CATALOG.filter(k => k.source === 'manual').map(k => [k.id, k.agg || 'avg']))
+const AGG = Object.fromEntries(KPI_CATALOG.filter(k => k.source === 'manual').map(k => [k.id, k.aggregation || 'avg']))
 
 // 'YYYY-MM' (input type=month) → 'YYYY-MM-01' (period column, 1st of the month)
 export function monthToPeriod(month) {

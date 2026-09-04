@@ -24,14 +24,14 @@
 
       <!-- Catalog grouped by category -->
       <div class="kpi_customizer_catalog">
-        <div v-for="cat in filteredCategories" :key="cat.id" class="kpi_customizer_category">
-          <h4 class="kpi_customizer_category_title" @click="catOpen[cat.id] = !catOpen[cat.id]">
-            <span>{{ catOpen[cat.id] ? '▾' : '▸' }}</span>
-            {{ cat.icon }} {{ catLabel(cat) }}
-            <span class="kpi_customizer_category_count">{{ catKpis(cat.id).length }}</span>
+        <div v-for="category in filteredCategories" :key="category.id" class="kpi_customizer_category">
+          <h4 class="kpi_customizer_category_title" @click="categoryOpen[category.id] = !categoryOpen[category.id]">
+            <span>{{ categoryOpen[category.id] ? '▾' : '▸' }}</span>
+            {{ category.icon }} {{ categoryLabel(category) }}
+            <span class="kpi_customizer_category_count">{{ categoryKpis(category.id).length }}</span>
           </h4>
-          <div v-if="catOpen[cat.id]" class="kpi_customizer_category_items">
-            <label v-for="kpi in catKpis(cat.id)" :key="kpi.id" class="kpi_customizer_kpi_item" :class="{ selected: selected.includes(kpi.id), disabled: selected.length >= 8 && !selected.includes(kpi.id) }">
+          <div v-if="categoryOpen[category.id]" class="kpi_customizer_category_items">
+            <label v-for="kpi in categoryKpis(category.id)" :key="kpi.id" class="kpi_customizer_kpi_item" :class="{ selected: selected.includes(kpi.id), disabled: selected.length >= 8 && !selected.includes(kpi.id) }">
               <input type="checkbox" :checked="selected.includes(kpi.id)" @change="toggleKpi(kpi.id)" :disabled="selected.length >= 8 && !selected.includes(kpi.id)" />
               <span class="kpi_customizer_kpi_label">{{ kpiLabel(kpi.id) }}</span>
               <span v-if="kpi.source === 'manual'" class="kpi_customizer_manual" :title="t('kpi_manual_hint')">✍️</span>
@@ -74,7 +74,7 @@ const { t } = useI18n({ useScope: 'global' })
 
 const search = ref('')
 const roleFilter = ref('all')
-const catOpen = reactive({})
+const categoryOpen = reactive({})
 const dragIdx = ref(null)
 
 const selected = ref([...props.modelValue.length ? props.modelValue : props.defaults])
@@ -98,24 +98,24 @@ const filteredKpis = computed(() => {
     // KPI-I18N (04/09): the catalog no longer carries a FR + EN string to match against, so the
     // search runs on the label AS DISPLAYED plus the id. The id keeps a French UI findable by its
     // English name ("churn" finds "Taux de Churn"), which is what matching labelEN used to give.
-    // normTxt: accent-insensitive, so "recurrent" matches "Récurrent" — the old lowercase-only
+    // normalizeText: accent-insensitive, so "recurrent" matches "Récurrent" — the old lowercase-only
     // filter returned nothing for an accented label typed without its accent.
-    const q = normTxt(search.value)
-    list = list.filter(k => normTxt(kpiLabel(k.id)).includes(q) || k.id.includes(q))
+    const query = normalizeText(search.value)
+    list = list.filter(k => normalizeText(kpiLabel(k.id)).includes(query) || k.id.includes(query))
   }
   return list
 })
 
 const filteredCategories = computed(() => {
-  return KPI_CATEGORIES.filter(cat => filteredKpis.value.some(k => k.cat === cat.id))
+  return KPI_CATEGORIES.filter(category => filteredKpis.value.some(k => k.category === category.id))
 })
 
-function catKpis(catId) { return filteredKpis.value.filter(k => k.cat === catId) }
+function categoryKpis(categoryId) { return filteredKpis.value.filter(k => k.category === categoryId) }
 
 // KPI-I18N (04/09): both the KPI and its category carry an i18n key; t() resolves it.
-function normTxt(s) { return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '') }
+function normalizeText(value) { return String(value || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '') }
 
-function catLabel(cat) { return t(cat.label) }
+function categoryLabel(category) { return t(category.label) }
 
 function kpiLabel(id) {
   const kpi = KPI_CATALOG.find(k => k.id === id)
@@ -147,7 +147,7 @@ function apply() {
 }
 
 // Open first 3 categories by default
-KPI_CATEGORIES.slice(0, 3).forEach(c => { catOpen[c.id] = true })
+KPI_CATEGORIES.slice(0, 3).forEach(category => { categoryOpen[category.id] = true })
 </script>
 
 <style scoped>

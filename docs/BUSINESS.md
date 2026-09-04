@@ -77,7 +77,7 @@ a sales CRM. The software's economics start where the pipeline ends.
 
 `src/config/kpis.js` carries 53 KPIs in 11 categories, each tagged with the roles and
 sectors it serves. (An earlier count of "64" here summed the 53 KPIs and the 11 category
-rows.) Their labels live in i18n under `kpilib_<id>` / `kpilibcat_<id>`.
+rows.) Their labels live in i18n under `kpi_library_<id>` / `kpi_library_category_<id>`.
 Counting the tags is the cleanest available description of the target user:
 
 | Role tag | KPIs |

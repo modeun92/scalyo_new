@@ -128,7 +128,7 @@ Outside a component, i18n is reached through `i18n.global` — never `useI18n()`
 | Dates | `lib/formatters.fmtDate` / `fmtTime` | Application locale, device time zone. |
 | KPI values | `lib/formatters.fmtKpiValue` | Shared by dashboard tiles, the client record and the COPIL wizard. |
 | KPI unit suffix | `lib/formatters.kpiUnit` | The unit printed next to a `KPI_CATALOG` entry (`config/kpis.js`). A `format: 'currency'` KPI carries `unit: null` and takes the **account** symbol; every other KPI keeps the catalog unit (`%`, `h`). Never read `kpi.unit` directly. |
-| KPI label | `t(kpi.label)` | The catalog stores an i18n **key** (`kpilib_<id>`, `kpilibcat_<id>`), never a translated string. No component re-implements a locale ladder. |
+| KPI label | `t(kpi.label)` | The catalog stores an i18n **key** (`kpi_library_<id>`, `kpi_library_category_<id>`), never a translated string. No component re-implements a locale ladder. Structural fields are spelled out: `category`, `aggregation`, `source`, `format` — no abbreviations. |
 | Calendar day key | `lib/formatters.localDateKey` | **Local** `YYYY-MM-DD`, never `toISOString().slice(0,10)` (that yields the UTC day: D-1 between 00:00 and 02:00 Paris). |
 
 `Intl` formatters are cached per locale + options: building one costs ~0.1 ms and they

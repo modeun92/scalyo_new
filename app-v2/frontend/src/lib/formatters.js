@@ -59,11 +59,11 @@ export function accountCurrency() {
 // called PER LIST ROW (1,097 clients × several formats per render, measured in pre-prod).
 // Module-level cache per locale+options: same objects, same output, zero repeated construction.
 // An invalid currency throws AT CONSTRUCTION → never cached, the EUR fallback behaves as before.
-const NF_CACHE = new Map()
+const NUMBER_FORMAT_CACHE = new Map()
 function numberFormat(loc, opts) {
   const key = loc + '|' + JSON.stringify(opts)
-  let f = NF_CACHE.get(key)
-  if (!f) { f = new Intl.NumberFormat(loc, opts); NF_CACHE.set(key, f) }
+  let f = NUMBER_FORMAT_CACHE.get(key)
+  if (!f) { f = new Intl.NumberFormat(loc, opts); NUMBER_FORMAT_CACHE.set(key, f) }
   return f
 }
 
@@ -100,18 +100,18 @@ export function currencySymbol(currency = null) {
 // "미국 달러") for the settings picker — derived from the ISO code and the display locale,
 // so a new currency in config/currencies needs no i18n key. Falls back to the bare ISO code where
 // Intl.DisplayNames is missing (older WebKit) — the picker then reads "USD — USD", never blank.
-// Same reason as NF_CACHE for the one-per-locale cache: the picker calls this once per currency.
-const DN_CACHE = new Map()
+// Same reason as NUMBER_FORMAT_CACHE for the one-per-locale cache: the picker calls this once per currency.
+const DISPLAY_NAMES_CACHE = new Map()
 export function currencyLabel(code) {
   const c = String(code || '').toUpperCase()
   const loc = localeTag()
-  let dn = DN_CACHE.get(loc)
-  if (dn === undefined) {
-    try { dn = new Intl.DisplayNames([loc], { type: 'currency' }) } catch (_) { dn = null }
-    DN_CACHE.set(loc, dn)
+  let displayNames = DISPLAY_NAMES_CACHE.get(loc)
+  if (displayNames === undefined) {
+    try { displayNames = new Intl.DisplayNames([loc], { type: 'currency' }) } catch (_) { displayNames = null }
+    DISPLAY_NAMES_CACHE.set(loc, displayNames)
   }
   try {
-    const name = dn && dn.of(c)
+    const name = displayNames && displayNames.of(c)
     return name && name !== c ? name : c
   } catch (_) { return c }
 }

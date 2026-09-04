@@ -13,7 +13,7 @@ identifiers, CSS class names, file names and internal keys.
 
 | Kind | Where |
 |---|---|
-| UI strings | `src/i18n/fr.js`, `src/i18n/fr-content.js`, `landing.js`, `legal.js`, `dpa.js` — **including the KPI library labels** (`kpilib_<id>` / `kpilibcat_<id>`), which used to be a `label`/`labelEN`/`labelKO` table inside the catalog file and were therefore invisible to `check-i18n.mjs` |
+| UI strings | `src/i18n/fr.js`, `src/i18n/fr-content.js`, `landing.js`, `legal.js`, `dpa.js` — **including the KPI library labels** (`kpi_library_<id>` / `kpi_library_category_<id>`), which used to be a `label`/`labelEN`/`labelKO` table inside the catalog file and were therefore invisible to `check-i18n.mjs` |
 | AI system prompts | `functions/api/_prompts/*`, the inlined wellbeing prompt in `_modules/index.js` and `ai.js` |
 | Email template bodies | `src/i18n/*-content.js`, and the `[Entreprise]` / `[ENTREPRISE]` substitution tokens |
 | Email/notification fallbacks | the hard-coded FR `title` / `body` in `stores/notifications.js`, kept as legacy fallbacks behind the locale-agnostic payload |

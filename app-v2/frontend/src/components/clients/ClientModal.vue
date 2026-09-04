@@ -306,13 +306,13 @@ const trackedKpis = computed(() => metricsStore.trackedFor(modal.clientId))
 const kpiSearch = ref('')
 const kpiListOpen = ref(false)
 const valueInput = ref(null)
-function normTxt(s) { return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '') }
+function normalizeText(value) { return String(value || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '') }
 const trackedIds = computed(() => new Set(trackedKpis.value.map(x => x.kpiId)))
 function isTracked(id) { return trackedIds.value.has(id) }
 const filteredManualKpis = computed(() => {
-  const q = normTxt(kpiSearch.value)
+  const query = normalizeText(kpiSearch.value)
   let list = manualKpis
-  if (q) list = list.filter(k => normTxt(metricLabel(k.id)).includes(q) || k.id.includes(q))
+  if (query) list = list.filter(k => normalizeText(metricLabel(k.id)).includes(query) || k.id.includes(query))
   // the recurring gesture first: this client's already tracked KPIs at the top
   return [...list].sort((a, b) => (isTracked(b.id) ? 1 : 0) - (isTracked(a.id) ? 1 : 0)).slice(0, 12)
 })
