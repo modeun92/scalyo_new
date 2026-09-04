@@ -13,8 +13,13 @@ const LOCALE_TAGS = { fr: 'fr-FR', en: 'en-US', ko: 'ko-KR' }
 const FONTS = { fr: 'Calibri', en: 'Calibri', ko: 'Malgun Gothic' }
 const QUOTES = { fr: ['« ', ' »'], en: ['“', '”'], ko: ['“', '”'] }
 
+// REGIONAL-I18N (04/09): the region is STRIPPED, never matched. The deck language is one of
+// DECK_LANGS, and the app locale that seeds it now carries a country ('en-GB'): the old exact
+// `includes(lang)` sent an English deck to the French branch — French separators and « » quotes
+// on an English deck, silently, because 'en-GB' is not literally 'en'.
 export function deckLang(lang) {
-  return DECK_LANGS.includes(lang) ? lang : 'fr'
+  const base = String(lang || '').split(/[-_]/)[0]
+  return DECK_LANGS.includes(base) ? base : 'fr'
 }
 export function deckLocaleTag(lang) {
   return LOCALE_TAGS[deckLang(lang)]

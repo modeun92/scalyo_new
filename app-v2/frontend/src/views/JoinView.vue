@@ -86,6 +86,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { baseLanguage } from '@/i18n/regional'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
@@ -249,7 +250,7 @@ async function handleJoin() {
   registerError.value = ''
   joining.value = true
   try {
-    const result = await authStore.register(invitation.value.email, password.value, firstName.value, lastName.value, locale.value)
+    const result = await authStore.register(invitation.value.email, password.value, firstName.value, lastName.value, baseLanguage(locale.value))
     // G9-6: never a raw object on screen ("{}") — string message or i18n fallback
     if (!result.success) { registerError.value = (typeof result.error === 'string' && result.error) || t('join_error'); return }
     // "Email confirmation enabled" path: no immediate session. The token is

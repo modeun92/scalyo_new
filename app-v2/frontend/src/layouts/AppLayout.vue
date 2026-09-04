@@ -172,13 +172,14 @@ import { useNotificationStore } from '@/stores/notifications'
 import { notifTitle, notifBody } from '@/lib/notifText'
 import { useChatStore } from '@/stores/chat'
 import { useProfileStore } from '@/stores/profile'
+import { localeTag } from '@/lib/formatters'
 import { useClientStore } from '@/stores/clients'
 import { useTaskStore } from '@/stores/tasks'
 import { useTeamStore } from '@/stores/team'
 
 const route = useRoute()
 const router = useRouter()
-const { t, locale } = useI18n({ useScope: 'global' })
+const { t } = useI18n({ useScope: 'global' })
 const app = useAppStore()
 const auth = useAuthStore()
 const isEliteOrAbove = computed(() => ['elite', 'enterprise'].includes(auth.currentPlan))
@@ -238,8 +239,10 @@ function fmtNotifDate(iso) {
   if (diffH < 24) return t('notif_hours_ago', { n: diffH })
   const diffD = Math.round(diffH / 24)
   if (diffD < 7) return t('notif_days_ago', { n: diffD })
-  const loc = locale.value === 'ko' ? 'ko-KR' : locale.value === 'en' ? 'en-GB' : 'fr-FR'
-  return d.toLocaleDateString(loc, { day: 'numeric', month: 'short' })
+  // REGIONAL-I18N (04/09): localeTag() instead of a local ladder — it is the one place that knows
+  // the locale may carry a country ('fr-CA'), which this ladder read as neither 'ko' nor 'en' and
+  // formatted as France.
+  return d.toLocaleDateString(localeTag(), { day: 'numeric', month: 'short' })
 }
 // ─── Sidebar ───────────────────────────────────────────────────────────────────
 function isActiveGroup(item) {

@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { supabase } from '@/lib/supabase'
 import { withWrite } from '@/lib/supabaseWrite'
 import { i18n } from '@/i18n'
+import { baseLanguage } from '@/i18n/regional'
 import { localDateKey, localeTag } from '@/lib/formatters'
 
 function uid() { return 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6) }
@@ -228,7 +229,10 @@ export const useKpiStore = defineStore('kpis', () => {
       date: localDateKey(),   // DATE-KEY-UTC: local day, not UTC day
       color: partial.color || '#7c3aed',
       presenter: partial.presenter || '',
-      lang: partial.lang || i18n.global.locale.value || 'fr',   // COPIL-I18N: deck language = user's language
+      // COPIL-I18N: deck language = user's language. REGIONAL-I18N (04/09): baseLanguage() —
+      // copils.lang is a DECK_LANGS value ('fr'|'en'|'ko'), never a regional tag; storing 'fr-CA'
+      // here would be persisted, re-read on every render and re-normalized forever after.
+      lang: partial.lang || baseLanguage(i18n.global.locale.value) || 'fr',
       blocks: [],
       share_token: uid(),
       created_at: now,

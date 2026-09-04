@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { supabase } from '@/lib/supabase'
+import { baseLanguage, isSupportedRegion, resolveLocale, BASE_REGION } from '@/i18n/regional'
 async function loadAllStores() {
 try {
 const { useClientStore } = await import('@/stores/clients')
@@ -70,6 +71,20 @@ const currentPlanLabel = computed(() => { const p = currentPlan.value; if (!p) r
 // V1 gating: effective plan is never null → starter (the most restrictive). Avoids getMaxClients(null)=0, which would block any creation.
 const effectivePlan = computed(() => currentPlan.value || 'starter')
 const userLocale = computed(() => profile.value?.locale || localStorage.getItem('scalyo_locale') || 'fr')
+// REGIONAL-I18N (04/09): the account's COUNTRY of expression — the second half of the locale.
+// Deliberately NOT profiles.country (which is the company's legal country, read by the quote /
+// country-law code): a team can be registered in France and want Québec wording, and a manager
+// changing how the interface reads must not silently move the company's legal jurisdiction.
+// Falls back to the base region of the language, so an account that never opened the picker keeps
+// exactly the wording it had before this column existed.
+const userRegion = computed(() => {
+  const stored = profile.value?.region || (() => { try { return localStorage.getItem('scalyo_region') } catch (_) { return null } })()
+  const code = String(stored || '').trim().toUpperCase()
+  return isSupportedRegion(userLocale.value, code) ? code : BASE_REGION[baseLanguage(userLocale.value)]
+})
+// The locale id the interface actually runs in: language + country resolved once (App.vue applies
+// it, formatters.localeTag() formats with it).
+const userAppLocale = computed(() => resolveLocale(userLocale.value, userRegion.value))
 // SEATS-MISMATCH (25/08): paid seats = organizations.seats_paid (Stripe quantity); the profile
 // is only a fallback for accounts without an org — read from a Member's profile it returned 1.
 const seatsPaid = computed(() => org.value?.seats_paid ?? profile.value?.seats_paid ?? 1)
@@ -270,6 +285,27 @@ try { localStorage.setItem('scalyo_locale', locale) } catch (_) {}
 return { success: true }
 } catch (e) { console.error('saveLocale — unexpected failure:', e.message || e); return { error: e.message || String(e) } }
 }
+// REGIONAL-I18N (04/09): the country half of the locale, same write contract as saveLocale
+// ({success}/{error}, D-14/D-15 — the picker only shows a ✓ after a confirmed write and reverts
+// otherwise). Validated against the picker list for the CURRENT language before the write: a
+// country the language has no option for (region 'CA' under Korean) would be stored, then ignored
+// by userRegion at every read — a setting that says one thing and does nothing.
+async function saveRegion(region) {
+if (!user.value) return { error: 'no_user' }
+const next = String(region || '').trim().toUpperCase()
+if (!isSupportedRegion(userLocale.value, next)) return { error: 'unsupported_region' }
+try {
+const { error: err } = await supabase.from('profiles').update({ region: next }).eq('id', user.value.id)
+if (err) { console.error('saveRegion — update failed:', err.message); return { error: err.message } }
+if (profile.value) profile.value = { ...profile.value, region: next }
+// Read back before the profile loads (i18n/index.js boot) — same role as scalyo_locale, and a
+// SEPARATE key on purpose: scalyo_locale must keep holding the bare language for the public
+// pages that index a { fr, en, ko } table with it.
+try { localStorage.setItem('scalyo_region', next) } catch (_) {}
+return { success: true }
+} catch (e) { console.error('saveRegion — unexpected failure:', e.message || e); return { error: e.message || String(e) } }
+}
+
 // E-04: real profile save — same return contract as saveLocale ({success}/{error})
 async function saveProfile(fields) {
 if (!user.value) return { error: 'no_user' }
@@ -319,9 +355,9 @@ user, profile, org, loading, error,
 isAuthenticated, fullName, greeting,
 hasActiveSubscription, isOnTrial, trialExpired, trialDaysLeft, trialUsed, needsPayment, isAlphaTester,
 isOnBetaAccess, orgTrialDaysLeft,
-userLocale, currentPlan, currentPlanLabel, effectivePlan, seatsPaid, onboardingCompleted, orgRole, isOrgOwner,
+userLocale, userRegion, userAppLocale, currentPlan, currentPlanLabel, effectivePlan, seatsPaid, onboardingCompleted, orgRole, isOrgOwner,
 session, company, displayName, roleLabel,
-init, login, register, logout, clearAllStores, saveLocale, saveProfile, changePassword, fetchProfile, fetchOrg, resetPassword,
+init, login, register, logout, clearAllStores, saveLocale, saveRegion, saveProfile, changePassword, fetchProfile, fetchOrg, resetPassword,
 pendingInviteResult, clearPendingInviteResult, acceptPendingInvite
 }
 })

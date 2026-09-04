@@ -13,8 +13,16 @@ import { DEFAULT_CURRENCY, isSupportedCurrency } from '@/config/currencies'
 
 const LOCALE_TAGS = { fr: 'fr-FR', en: 'en-US', ko: 'ko-KR' }
 
+// REGIONAL-I18N (04/09): the app locale can now carry a country ('fr-CA', 'en-GB'), and THAT is
+// already a BCP-47 tag Intl understands — pass it through untouched so a Québec account gets
+// `1 234,56 $` and a UK account `£1,234.56`, not the France/US default. Only a bare language is
+// expanded through the table below (Intl needs a region to pick separators: 'fr' alone works, but
+// 'fr-FR' is what the product has always formatted with — keeping it avoids a silent format shift
+// on every existing account). An unknown value still lands on French, as before.
 export function localeTag() {
-  return LOCALE_TAGS[i18n.global.locale.value] || 'fr-FR'
+  const locale = String(i18n.global.locale.value || '')
+  if (locale.includes('-')) return locale
+  return LOCALE_TAGS[locale] || 'fr-FR'
 }
 
 // DATE-KEY-UTC — LOCAL day key 'YYYY-MM-DD' (never toISOString().slice(0,10),

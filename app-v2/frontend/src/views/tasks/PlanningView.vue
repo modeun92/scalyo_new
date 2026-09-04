@@ -184,6 +184,7 @@
 <script setup>
 import { ref, watch, onMounted, reactive, computed } from 'vue'
 import { localeTag } from '@/lib/formatters'
+import { baseLanguage } from '@/i18n/regional'
 import { useI18n } from 'vue-i18n'
 import { supabase } from '@/lib/supabase'
 import FullCalendar from '@fullcalendar/vue3'
@@ -256,7 +257,9 @@ const eventForm = reactive(defaultEvent())
 // Mock events
 const events = ref([])
 
-const fcLocale = computed(() => locale.value === 'ko' ? 'ko' : locale.value === 'en' ? 'en' : 'fr')
+// REGIONAL-I18N (04/09): FullCalendar's locale bundles are per LANGUAGE — baseLanguage(), not an
+// equality ladder, which sent 'en-GB' to the French calendar.
+const fcLocale = computed(() => baseLanguage(locale.value))
 const slotHeight = computed(() => planningSettings.density === 'compact' ? 32 : planningSettings.density === 'comfortable' ? 56 : 44)
 
 const calendarOptions = computed(() => ({

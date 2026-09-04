@@ -33,8 +33,11 @@
 import { computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { legal } from '@/i18n/legal'
+import { baseLanguage } from '@/i18n/regional'
 const { locale } = useI18n({ useScope: 'global' })
-const c = computed(() => legal[locale.value] || legal.fr)
+// REGIONAL-I18N (04/09): baseLanguage() — legal/ is a per-LANGUAGE table with no regional packs,
+// and legal['en-GB'] is undefined: a UK account would have read the Terms in French.
+const c = computed(() => legal[baseLanguage(locale.value)] || legal.fr)
 const sections = [{key:'cgu_s1'},{key:'cgu_s2'},{key:'cgu_s3'},{key:'cgu_s4'},{key:'cgu_s5'},{key:'cgu_s6'},{key:'cgu_s7'},{key:'cgu_s8'},{key:'cgu_s9'},{key:'cgu_s10'},{key:'cgu_s11'},{key:'cgu_s12'},{key:'cgu_s13'},{key:'cgu_s14'}]
 onMounted(() => { document.title = c.value.cgu_title + ' — Scalyo' })
 </script>
