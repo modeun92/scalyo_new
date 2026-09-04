@@ -98,8 +98,11 @@ broke something visible. Do not relax one without saying so explicitly.
 8. **Health scores are /10 through `lib/health`.** No local threshold, no ×10, never a raw
    `client.status` for a colour. The thresholds are mirrored in
    `_services/context.service.js` — parity is mandatory.
-9. **Money through `lib/formatters.fmtCurrency`.** Currency is a property of the account,
-   not of the language. Zero conversion.
+9. **Money through `lib/formatters.fmtCurrency`.** Currency is a property of the account
+   (`user_profiles.currency`), not of the language. Zero conversion. The offered codes live
+   once in `src/config/currencies.js`; the account picks one in Settings → Preferences
+   (`stores/profile.setCurrency`). A KPI's unit suffix comes from `formatters.kpiUnit`,
+   never from a literal in `data/kpiCatalog.js`.
 10. **No native `confirm()`.** Use the shared `ConfirmDialog`.
 11. **Partial updates must be partial-safe.** A field absent from the input is not sent.
     Insert defaults live in the `add*` functions, not in the mapper.
@@ -176,5 +179,5 @@ Tracked, not fixed in this snapshot:
 
 ---
 
-*Last updated: 2026-09-03. If you changed something described above and did not update
+*Last updated: 2026-09-04. If you changed something described above and did not update
 this file, you are not done.*

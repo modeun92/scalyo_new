@@ -2,7 +2,7 @@
   <div class="kpi_card" :class="[size, statusClass]">
     <div class="kpi_customizer_header">
       <span class="kpi_customizer_label">{{ localLabel }}</span>
-      <span v-if="change" class="kpi_customizer_change" :class="changePositive ? 'up' : 'down'">{{ change > 0 ? '+' : '' }}{{ change }}{{ isPercent ? 'pts' : meta?.unit || '' }}</span>
+      <span v-if="change" class="kpi_customizer_change" :class="changePositive ? 'up' : 'down'">{{ change > 0 ? '+' : '' }}{{ change }}{{ isPercent ? 'pts' : kpiUnit(meta) }}</span>
     </div>
     <div class="kpi_customizer_value">{{ formattedValue }}</div>
     <div v-if="target" class="kpi_customizer_target">{{ t('copil_wiz_target') }}: {{ formattedTarget }}</div>
@@ -24,7 +24,8 @@ const props = defineProps({
 })
 
 const { t, locale } = useI18n({ useScope: 'global' })
-import { fmtCurrency } from '@/lib/formatters'
+// CURRENCY-ACCOUNT (04/09): kpiUnit() — a 'currency' KPI shows the ACCOUNT symbol, no more catalog '€'.
+import { fmtCurrency, kpiUnit } from '@/lib/formatters'
 
 const meta = computed(() => KPI_CATALOG.find(k => k.id === props.kpiId))
 
@@ -50,7 +51,7 @@ function formatVal(v) {
   if (f === 'ratio') return v + 'x'
   if (f === 'days') return v + 'j'
   if (f === 'hours') return v + 'h'
-  if (f === 'score') return v + (meta.value?.unit || '')
+  if (f === 'score') return v + kpiUnit(meta.value)
   return new Intl.NumberFormat(loc).format(v)
 }
 

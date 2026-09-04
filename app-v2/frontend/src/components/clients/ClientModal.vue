@@ -66,7 +66,7 @@
                     <button v-for="k in filteredManualKpis" :key="k.id" class="client_modal_kpi_option" @mousedown.prevent="pickKpi(k)">
                       <span v-if="isTracked(k.id)" class="client_modal_kpi_tracked">●</span>
                       <span class="client_modal_kpi_option_label">{{ metricLabel(k.id) }}</span>
-                      <span class="client_modal_kpi_unit">{{ k.unit }}</span>
+                      <span class="client_modal_kpi_unit">{{ kpiUnit(k) }}</span>
                     </button>
                     <div v-if="!filteredManualKpis.length" class="client_modal_muted client_modal_kpi_none">—</div>
                   </div>
@@ -212,7 +212,7 @@ import { useCreatePrefillStore } from '@/stores/createPrefill'
 import { useClientMetricsStore, currentMonth } from '@/stores/clientMetrics'
 import { KPI_CATALOG } from '@/data/kpiCatalog'
 import { supabase } from '@/lib/supabase'
-import { fmtDate, fmtKpiValue, fmtMonth, fmtCurrency, currencySymbol } from '@/lib/formatters'
+import { fmtDate, fmtKpiValue, fmtMonth, fmtCurrency, currencySymbol, kpiUnit } from '@/lib/formatters'
 import { notifTitle } from '@/lib/notifText'
 
 const { t, locale } = useI18n({ useScope: 'global' })

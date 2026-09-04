@@ -59,7 +59,7 @@ import { useI18n } from 'vue-i18n'
 import { suggestBlock, buildMetricBlock } from '@/utils/smartVisual.js'
 import { useClientMetricsStore } from '@/stores/clientMetrics'
 import { KPI_CATALOG } from '@/data/kpiCatalog'
-import { fmtMonth } from '@/lib/formatters'
+import { fmtMonth, kpiUnit } from '@/lib/formatters'
 
 const { t, locale } = useI18n({ useScope: 'global' })
 const emit = defineEmits(['close', 'insert'])
@@ -85,7 +85,9 @@ function useClientSeries() {
   const pts = metricsStore.seriesFor(props.clientId, k.id).slice(-12)
   if (!pts.length) return
   name.value = kpiLabel(k)
-  unit.value = k.unit || ''
+  // CURRENCY-ACCOUNT (04/09): kpiUnit() — a monetary KPI carries no '€' in the catalog any more;
+  // the slide is a snapshot, so the account symbol of the day is what gets stored in the block.
+  unit.value = kpiUnit(k)
   target.value = ''
   rows.value = pts.map(p => ({ label: fmtMonth(p.period), value: String(p.value) }))
   hint.value = pts.length > 1 ? 'line' : 'kpi'

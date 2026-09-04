@@ -21,6 +21,29 @@
       <p v-if="langError" class="settings_view_field_error">{{ t('stg_lang_error') }}</p>
     </div>
 
+    <!-- Currency — CURRENCY-ACCOUNT (04/09): the account currency was in the database but on no
+         screen, so everything rendered in euro whatever the account billed in (error_list §5). -->
+    <div class="settings_view_section">
+      <h3>💱 {{ t('stg_currency_title') }}</h3>
+      <p class="settings_view_note">{{ t('stg_currency_desc') }}</p>
+      <div class="settings_currency_row">
+        <select
+          class="settings_currency_select"
+          :value="selectedCurrency"
+          :disabled="currencySaving"
+          @change="changeCurrency($event)"
+        >
+          <option v-for="code in currencyOptions" :key="code" :value="code">
+            {{ code }} — {{ currencyLabel(code) }}
+          </option>
+        </select>
+        <span class="settings_currency_sample">{{ currencySample }}</span>
+      </div>
+      <p class="settings_view_note settings_currency_warning">⚠️ {{ t('stg_currency_no_conversion') }}</p>
+      <p v-if="currencySaved" class="settings_saved">✓ {{ t('stg_currency_saved') }}</p>
+      <p v-if="currencyError" class="settings_view_field_error">{{ t('stg_currency_error') }}</p>
+    </div>
+
     <!-- Theme -->
     <div class="settings_view_section">
       <h3>🌙 {{ t('stg_dark_title') }}</h3>
@@ -53,12 +76,16 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
+import { useProfileStore } from '@/stores/profile'
+import { SUPPORTED_CURRENCIES } from '@/config/currencies'
+import { currencyLabel, fmtCurrency } from '@/lib/formatters'
 
 const { t, locale } = useI18n({ useScope: 'global' })
 const auth = useAuthStore()
+const profileStore = useProfileStore()
 
 /* ── Language ──────────────────────────────── */
 const langOptions = [
@@ -87,6 +114,46 @@ async function changeLang(code) {
     locale.value = prev
     langError.value = true
     setTimeout(() => { langError.value = false }, 4000)
+  }
+}
+
+/* ── Currency ───────────────────────────── */
+// Read straight from the store: after a successful write the whole app re-renders in the new
+// currency — every fmtCurrency() call reads the same profile.
+const selectedCurrency = computed(() => profileStore.currency)
+// A stored code the picker does not list (legacy row) is shown rather than silently swapped for
+// EUR — the amounts on screen are in THAT currency. It can be left, not re-selected.
+const currencyOptions = computed(() => SUPPORTED_CURRENCIES.includes(selectedCurrency.value)
+  ? SUPPORTED_CURRENCIES
+  : [selectedCurrency.value, ...SUPPORTED_CURRENCIES])
+const currencySample = computed(() => fmtCurrency(1234567, { compact: true }))
+// AppLayout loads the profile on mount; this guard covers a direct hit on /app/settings
+// where the store may not be populated yet — without it the picker shows EUR for a KRW account.
+if (!profileStore.profile) profileStore.load()
+
+const currencySaving = ref(false)
+const currencySaved = ref(false)
+const currencyError = ref(false)
+
+async function changeCurrency(event) {
+  const el = event.target
+  const code = el.value
+  const prev = selectedCurrency.value
+  if (code === prev) return
+  currencySaving.value = true
+  currencyError.value = false
+  const res = await profileStore.setCurrency(code)
+  currencySaving.value = false
+  if (res && res.success) {
+    currencySaved.value = true
+    setTimeout(() => { currencySaved.value = false }, 2000)
+  } else {
+    // D-15: no false ✓. The revert is written on the DOM node ON PURPOSE: :value is bound to an
+    // unchanged computed, so Vue patches nothing and the <select> would keep showing the currency
+    // the account is NOT in — a silent lie about what the amounts around it mean.
+    el.value = prev
+    currencyError.value = true
+    setTimeout(() => { currencyError.value = false }, 4000)
   }
 }
 

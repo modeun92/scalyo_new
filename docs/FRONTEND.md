@@ -123,10 +123,11 @@ Outside a component, i18n is reached through `i18n.global` — never `useI18n()`
 
 | Concern | Module | Rule |
 |---|---|---|
-| Money | `lib/formatters.fmtCurrency` | Currency is a property of the **account** (`user_profiles.currency`, default EUR), never of the display language. Only separators and symbol position follow the locale. Zero conversion. A quote is the exception: it follows its own billing country. |
+| Money | `lib/formatters.fmtCurrency` | Currency is a property of the **account** (`user_profiles.currency`, default EUR), never of the display language. Chosen in **Settings → Preferences**; the list of offered codes is `config/currencies.js` (`SUPPORTED_CURRENCIES`), written by `stores/profile.setCurrency`. Only separators and symbol position follow the locale. Zero conversion — the symbol changes, the stored amounts do not. A quote is the exception: it follows its own billing country. |
 | Health score | `lib/health` + `formatters.fmtHealth` | The score is **/10 everywhere**. Thresholds ≤ 3 critical, ≤ 6 watch, > 6 healthy. The entered status can only *worsen* the derived one ("worst of the two wins"). No local threshold, no ×10, no raw `client.status` for a colour. |
 | Dates | `lib/formatters.fmtDate` / `fmtTime` | Application locale, device time zone. |
 | KPI values | `lib/formatters.fmtKpiValue` | Shared by dashboard tiles, the client record and the COPIL wizard. |
+| KPI unit suffix | `lib/formatters.kpiUnit` | The unit printed next to a `KPI_CATALOG` entry. A `format: 'currency'` KPI carries `unit: null` and takes the **account** symbol; every other KPI keeps the catalog unit (`%`, `h`). Never read `kpi.unit` directly. |
 | Calendar day key | `lib/formatters.localDateKey` | **Local** `YYYY-MM-DD`, never `toISOString().slice(0,10)` (that yields the UTC day: D-1 between 00:00 and 02:00 Paris). |
 
 `Intl` formatters are cached per locale + options: building one costs ~0.1 ms and they

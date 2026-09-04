@@ -16,6 +16,18 @@
 
 5. currency unit changing
 	right now, it is only euro but it is not good.
+	=> (fixed) : user_profiles.currency already existed (default EUR) and lib/formatters
+	   already read it, but NO screen ever wrote it, so every account rendered in euro.
+	   - src/config/currencies.js : the single list of offered ISO codes (20) + default
+	   - Settings > Preferences : currency picker (localized names, live sample,
+	     withWrite + no false success, reverts the <select> on a failed write)
+	   - stores/profile.setCurrency() ; profile.currency computed
+	   - kpiCatalog: the 13 monetary KPIs no longer carry a hard-coded unit '€' that
+	     was printed next to an already-formatted amount ("$1,200 €" on a USD account);
+	     formatters.kpiUnit() gives the account symbol instead
+	   - /api/* AI context already read user_profiles.currency: it follows automatically
+	   NOT changed on purpose: no conversion (A-11 - the symbol changes, the amounts do
+	   not), and a quote keeps the currency of its own billing country (countryLaws).
 	
 6. member's authority what they are allowed to do
 	1) nominating CSM (manager only)

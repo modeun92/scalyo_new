@@ -36,7 +36,7 @@
               <span class="kpi_customizer_kpi_label">{{ kpiLabel(kpi.id) }}</span>
               <span v-if="kpi.source === 'manual'" class="kpi_customizer_manual" :title="t('kpi_manual_hint')">✍️</span>
               <span v-if="kpi.recommended" class="kpi_customizer_rec">⭐</span>
-              <span class="kpi_customizer_kpi_unit">{{ kpi.unit }}</span>
+              <span class="kpi_customizer_kpi_unit">{{ kpiUnit(kpi) }}</span>
             </label>
           </div>
         </div>
@@ -58,6 +58,8 @@ import { ref, reactive, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { KPI_CATALOG, KPI_CATEGORIES } from '@/data/kpiCatalog'
 import SlideOver from '@/components/SlideOver.vue'
+// CURRENCY-ACCOUNT (04/09): the unit shown next to a monetary KPI is the ACCOUNT symbol.
+import { kpiUnit } from '@/lib/formatters'
 
 const props = defineProps({
   open: { type: Boolean, default: false },

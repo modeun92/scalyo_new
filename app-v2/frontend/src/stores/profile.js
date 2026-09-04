@@ -1,6 +1,8 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { supabase } from '@/lib/supabase'
+import { withWrite } from '@/lib/supabaseWrite'
+import { DEFAULT_CURRENCY, SUPPORTED_CURRENCIES, isSupportedCurrency } from '@/config/currencies'
 
 export const useProfileStore = defineStore('profile', () => {
   const profile = ref(null)
@@ -77,6 +79,35 @@ export const useProfileStore = defineStore('profile', () => {
     return { data, error }
   }
 
+  // CURRENCY-ACCOUNT (04/09): the account currency — what every amount in the product is
+  // LABELLED in (zero conversion, A-11). Deliberately NOT restricted to SUPPORTED_CURRENCIES:
+  // it must report what lib/formatters.accountCurrency() actually renders, which also accepts a
+  // stored code Intl knows but the picker does not list yet. Narrowing it here would make the
+  // settings screen claim EUR while every amount on the page said otherwise.
+  const currency = computed(() => {
+    const c = String(profile.value?.currency || '').trim().toUpperCase()
+    return /^[A-Z]{3}$/.test(c) ? c : DEFAULT_CURRENCY
+  })
+
+  // D-14 / D-15: through withWrite, and returns { success } / { error } — the picker only shows
+  // a ✓ after a confirmed write and reverts its selection otherwise (same contract as
+  // auth.saveLocale). upsert, not update: a profile row may not exist yet before onboarding.
+  async function setCurrency(code) {
+    const next = String(code || '').trim().toUpperCase()
+    if (!isSupportedCurrency(next)) return { error: 'unsupported_currency' }
+    if (currency.value === next) return { success: true }
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) return { error: 'no_user' }
+    const { error } = await withWrite(
+      () => supabase.from('user_profiles').upsert({ id: session.user.id, currency: next }, { onConflict: 'id' }),
+      { label: 'profile.setCurrency' }
+    )
+    if (error) { console.error('setCurrency — write failed:', error.message || error); return { error: error.message || String(error) } }
+    // New object identity: fmtCurrency() is called inside render computeds, they must re-run.
+    profile.value = { ...(profile.value || { id: session.user.id }), currency: next }
+    return { success: true }
+  }
+
   function toAIContext() {
     if (!profile.value) return ''
     const p = profile.value
@@ -87,7 +118,7 @@ export const useProfileStore = defineStore('profile', () => {
     if (p.company_size) parts.push('Company size: ' + p.company_size)
     if (p.market) parts.push('Market: ' + p.market)
     if (p.portfolio_size) parts.push('Portfolio: ' + p.portfolio_size + ' accounts')
-    if (p.avg_contract_value) parts.push('Avg contract: ' + p.avg_contract_value + ' ' + (p.currency || 'EUR'))
+    if (p.avg_contract_value) parts.push('Avg contract: ' + p.avg_contract_value + ' ' + currency.value)
     if (p.goals?.length) parts.push('Goals: ' + p.goals.join(', '))
     if (p.challenges?.length) parts.push('Challenges: ' + p.challenges.join(', '))
     if (p.tools?.length) parts.push('Tools: ' + p.tools.join(', '))
@@ -96,8 +127,8 @@ export const useProfileStore = defineStore('profile', () => {
   }
 
   return {
-    profile, loading, isComplete,
-    ROLE_OPTIONS, INDUSTRY_OPTIONS, SENIORITY_OPTIONS, SIZE_OPTIONS,
-    load, save, toAIContext,
+    profile, loading, isComplete, currency,
+    ROLE_OPTIONS, INDUSTRY_OPTIONS, SENIORITY_OPTIONS, SIZE_OPTIONS, SUPPORTED_CURRENCIES,
+    load, save, setCurrency, toAIContext,
   }
 })

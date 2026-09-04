@@ -9,6 +9,7 @@
 import { i18n } from '@/i18n'
 import { useProfileStore } from '@/stores/profile'
 import { HEALTH_MAX, toHealthNumber } from '@/lib/health'
+import { DEFAULT_CURRENCY, isSupportedCurrency } from '@/config/currencies'
 
 const LOCALE_TAGS = { fr: 'fr-FR', en: 'en-US', ko: 'ko-KR' }
 
@@ -26,12 +27,32 @@ export function localDateKey(d = new Date()) {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
 }
 
+// CURRENCY-ACCOUNT (04/09): a code is kept when the picker offers it (config/currencies) OR when
+// Intl can actually format it. The old /^[A-Za-z]{3}$/ accepted "ABC", which then threw inside Intl
+// on EVERY amount and fell back to euro row by row; validating ONLY against the picker list would
+// have been the opposite mistake — a legacy profile row holding a real code the list does not carry
+// yet (TRY, ZAR…) would have started rendering as euro. Anything else degrades once, here.
+const CURRENCY_OK = new Map()
+function formattableCurrency(code) {
+  if (!/^[A-Z]{3}$/.test(code)) return false
+  let ok = CURRENCY_OK.get(code)
+  if (ok === undefined) {
+    try { new Intl.NumberFormat('en-US', { style: 'currency', currency: code }); ok = true }
+    catch (_) { ok = false }
+    CURRENCY_OK.set(code, ok)
+  }
+  return ok
+}
+
 export function accountCurrency() {
   try {
     const c = useProfileStore().profile?.currency
-    if (typeof c === 'string' && /^[A-Za-z]{3}$/.test(c.trim())) return c.trim().toUpperCase()
+    if (typeof c === 'string') {
+      const code = c.trim().toUpperCase()
+      if (isSupportedCurrency(code) || formattableCurrency(code)) return code
+    }
   } catch (_) { /* store unavailable (public route / early boot) → default */ }
-  return 'EUR'
+  return DEFAULT_CURRENCY
 }
 
 // NAV-SLOW (29/08): building an Intl.NumberFormat costs ~0.1 ms — and these formatters are
@@ -61,7 +82,7 @@ export function fmtCurrency(v, { compact = false, currency = null, decimals = 0 
     return numberFormat(localeTag(), { ...opts, currency: currency || accountCurrency() }).format(n)
   } catch (_) {
     // invalid currency (database or parameter) → EUR rendering, never a crash
-    return numberFormat(localeTag(), { ...opts, currency: 'EUR' }).format(n)
+    return numberFormat(localeTag(), { ...opts, currency: DEFAULT_CURRENCY }).format(n)
   }
 }
 
@@ -73,6 +94,36 @@ export function currencySymbol(currency = null) {
       .formatToParts(0).find(p => p.type === 'currency')
     return part ? part.value : code
   } catch (_) { return code }
+}
+
+// CURRENCY-ACCOUNT (04/09): localized currency NAME ("US Dollar" / "dollar des États-Unis" /
+// "미국 달러") for the settings picker — derived from the ISO code and the display locale,
+// so a new currency in config/currencies needs no i18n key. Falls back to the bare ISO code where
+// Intl.DisplayNames is missing (older WebKit) — the picker then reads "USD — USD", never blank.
+// Same reason as NF_CACHE for the one-per-locale cache: the picker calls this once per currency.
+const DN_CACHE = new Map()
+export function currencyLabel(code) {
+  const c = String(code || '').toUpperCase()
+  const loc = localeTag()
+  let dn = DN_CACHE.get(loc)
+  if (dn === undefined) {
+    try { dn = new Intl.DisplayNames([loc], { type: 'currency' }) } catch (_) { dn = null }
+    DN_CACHE.set(loc, dn)
+  }
+  try {
+    const name = dn && dn.of(c)
+    return name && name !== c ? name : c
+  } catch (_) { return c }
+}
+
+// CURRENCY-ACCOUNT (04/09): display unit of a KPI_CATALOG entry. The monetary KPIs used to carry
+// a hard-coded unit: '€' in the catalog, printed raw next to values fmtCurrency had already
+// rendered in the account currency — "$1,200 €" on a USD account. A 'currency' KPI has no fixed
+// unit any more: its symbol is the account's, everything else keeps the catalog's own unit ('%', 'h').
+export function kpiUnit(meta) {
+  if (!meta) return ''
+  if (meta.format === 'currency') return currencySymbol()
+  return meta.unit || ''
 }
 
 export function fmtNumber(v, opts = {}) {

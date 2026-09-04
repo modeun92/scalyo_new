@@ -147,6 +147,22 @@
 .language_check { color: var(--green); font-weight: 700; }
 .settings_saved { margin-top: 8px; font-size: 0.82rem; color: var(--green); font-weight: 500; }
 
+/* Currency — CURRENCY-ACCOUNT (04/09) */
+.settings_currency_row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: 12px; }
+.settings_currency_select {
+  min-width: 260px; padding: 10px 12px;
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background-color: var(--bg-card); color: var(--text);
+  font-size: 0.88rem; cursor: pointer;
+}
+.settings_currency_select:focus { outline: none; border-color: var(--purple); }
+.settings_currency_select:disabled { opacity: 0.6; cursor: progress; }
+.settings_currency_sample {
+  font-size: 0.95rem; font-weight: 700; color: var(--purple);
+  background: var(--purple-bg); border-radius: var(--radius-sm); padding: 6px 12px;
+}
+.settings_currency_warning { margin-top: 10px; font-size: 0.78rem; color: var(--text-muted); }
+
 /* Theme */
 .theme_cards { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
 .theme_card {
