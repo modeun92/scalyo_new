@@ -1,4 +1,4 @@
-import { t } from '../_i18n/messages.js'
+import { t } from '../_i18n/translate.js'
 
 export function jsonOk(data) {
   return Response.json(data, { status: 200 })

@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import { supabase } from '@/lib/supabase'
 import { withWrite } from '@/lib/supabaseWrite'
 import { i18n } from '@/i18n'
-import { localDateKey } from '@/lib/formatters'
+import { localDateKey, localeTag } from '@/lib/formatters'
 
 function uid() { return 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6) }
 
@@ -69,11 +69,15 @@ const BLOCK_DEFAULTS = {
   // COPIL-SEED-DATA (D2①): a brand-new chart carries NO figures — a COPIL never
   // presents a value nobody entered. Labels stay localized
   // examples (localizedSeed), values are empty (null).
-  chart_bar: { labels: ['Jan', 'Fév', 'Mar'], datasets: [{ label: 'Série 1', data: [null, null, null], color: '#7c3aed' }] },
-  chart_line: { labels: ['Jan', 'Fév', 'Mar', 'Avr'], datasets: [{ label: 'Série 1', data: [null, null, null, null], color: '#3b82f6' }] },
-  chart_donut: { labels: ['Sain', 'Vigilance', 'Critique'], data: [null, null, null], colors: ['#10b981', '#f59e0b', '#ef4444'] },
+  // I18N-HARDCODE (04/09): these labels used to be French ('Jan/Fév/Mar', 'Série 1',
+  // 'Sain/Vigilance/Critique'). localizedSeed() overwrites all three at creation, so the French
+  // only surfaced on a corrupted row — i.e. exactly where a language nobody chose is most confusing.
+  // The structure is what BLOCK_DEFAULTS is for; the words come from localizedSeed via t().
+  chart_bar: { labels: ['', '', ''], datasets: [{ label: '', data: [null, null, null], color: '#7c3aed' }] },
+  chart_line: { labels: ['', '', '', ''], datasets: [{ label: '', data: [null, null, null, null], color: '#3b82f6' }] },
+  chart_donut: { labels: ['', '', ''], data: [null, null, null], colors: ['#10b981', '#f59e0b', '#ef4444'] },
   text: { content: '', size: 'normal' },
-  table: { headers: ['Col 1', 'Col 2', 'Col 3'], rows: [['', '', '']] },
+  table: { headers: ['', '', ''], rows: [['', '', '']] },
   divider: { style: 'line' },
   image: { url: '', path: '', caption: '' },   // path = Storage object (uploaded); url = external link
   checklist: { items: [{ text: '', done: false }] },
@@ -89,11 +93,14 @@ const BLOCK_DEFAULTS = {
 function localizedSeed(type) {
   const base = JSON.parse(JSON.stringify(BLOCK_DEFAULTS[type] || {}))
   const t = i18n.global.t
-  const tag = { fr: 'fr-FR', en: 'en-US', ko: 'ko-KR' }[i18n.global.locale.value] || 'fr-FR'
+  // LOCALE-TAG (04/09): localeTag() — the ko-KR/en-US/fr-FR ladder existed in 9 copies.
+  const tag = localeTag()
   const months = (n) => Array.from({ length: n }, (_, i) => new Date(2026, i, 1).toLocaleDateString(tag, { month: 'short' }))
   if (type === 'chart_bar') { base.labels = months(3); base.datasets[0].label = t('copil_sample_series') + ' 1' }
   if (type === 'chart_line') { base.labels = months(4); base.datasets[0].label = t('copil_sample_series') + ' 1' }
   if (type === 'chart_donut') { base.labels = [t('status_healthy'), t('status_watch'), t('status_critical')] }
+  // I18N-HARDCODE (04/09): the table headers were the literal 'Col 1/2/3' — seeded through t() now.
+  if (type === 'table') { base.headers = [1, 2, 3].map(n => t('copil_sample_column') + ' ' + n) }
   return base
 }
 

@@ -40,9 +40,9 @@ import DashMyTasks from '@/components/dashboard/DashMyTasks.vue'
 import DashQuickActions from '@/components/dashboard/DashQuickActions.vue'
 import AiInsightPanel from '@/components/ai/AiInsightPanel.vue'
 import EmptyState from '@/components/EmptyState.vue'
-import { fmtKpiValue } from '@/lib/formatters'
+import { fmtKpiValue, localeTag } from '@/lib/formatters'
 
-const { t, locale } = useI18n({ useScope: 'global' })
+const { t } = useI18n({ useScope: 'global' })
 const auth = useAuthStore()
 const clients = useClientStore()
 const tasks = useTaskStore()
@@ -60,12 +60,11 @@ const selectedKpis = ref(JSON.parse(localStorage.getItem('scalyo_dashboard_kpis'
 watch(selectedKpis, (val) => { localStorage.setItem('scalyo_dashboard_kpis', JSON.stringify(val)) })
 
 const periods = [{ key: '7d', label: 'period_7d' }, { key: '30d', label: 'period_30d' }, { key: '90d', label: 'period_90d' }]
-const LOCALE_MAP = { ko: 'ko-KR', en: 'en-US', fr: 'fr-FR' }
 const PERIOD_DAYS = { '7d': 7, '30d': 30, '90d': 90 }
 
 const formattedDate = computed(() => {
   const d = new Date()
-  return d.toLocaleDateString(LOCALE_MAP[locale.value] || 'fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+  return d.toLocaleDateString(localeTag(), { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
 })
 
 const currentPeriodDays = computed(() => PERIOD_DAYS[snapStore.comparePeriod] || 30)

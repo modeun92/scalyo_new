@@ -43,7 +43,7 @@ const { t } = useI18n({ useScope: 'global' })
 defineProps({
   renewalsNext30: { type: Number, default: 0 },
   decliningCount: { type: Number, default: 0 },
-  bestCsm: { type: String, default: '\u2014' },
+  bestCsm: { type: String, default: '—' },
   arrAtRisk: { type: Number, default: 0 }
 })
 </script>

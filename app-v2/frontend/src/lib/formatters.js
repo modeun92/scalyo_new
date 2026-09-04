@@ -134,21 +134,20 @@ export function fmtNumber(v, opts = {}) {
 
 // client_metrics batch (22/07): CENTRAL KPI formatter — extracted from DashboardView
 // (single source, R25 §3) so it can be shared with the client record and the copil wizard.
-// Localized day/hour suffixes without an i18n key (same family as LOCALE_TAGS).
-const DAY_SUFFIX = { fr: 'j', en: 'd', ko: '일' }
-const HOUR_SUFFIX = { fr: 'h', en: 'h', ko: '시간' }
+// UNIT-SUFFIX-I18N (04/09): the day/hour suffixes were a { fr, en, ko } map right here — a
+// translation table inside the formatter module. They are i18n keys now (unit_day_suffix /
+// unit_hour_suffix), reached through i18n.global because this is not a component (R25 §5).
 
 export function fmtKpiValue(v, format) {
   if (v == null || v === '' || Number.isNaN(Number(v))) return '—'
   const n = Number(v)
   const loc = localeTag()
-  const lang = i18n.global.locale.value
   if (format === 'currency') return fmtCurrency(n) // ACCOUNT currency (A-11)
   if (format === 'percentage' || format === 'percent') return numberFormat(loc, { maximumFractionDigits: 1 }).format(n) + '%'
   if (format === 'score' || format === 'decimal') return numberFormat(loc, { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(n)
   if (format === 'ratio') return numberFormat(loc, { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(n) + 'x'
-  if (format === 'days') return String(Math.round(n)) + (DAY_SUFFIX[lang] || 'j')
-  if (format === 'hours') return numberFormat(loc, { maximumFractionDigits: 1 }).format(n) + (HOUR_SUFFIX[lang] || 'h')
+  if (format === 'days') return String(Math.round(n)) + i18n.global.t('unit_day_suffix')
+  if (format === 'hours') return numberFormat(loc, { maximumFractionDigits: 1 }).format(n) + i18n.global.t('unit_hour_suffix')
   if (format === 'number' || format === 'integer') return numberFormat(loc, { maximumFractionDigits: 0 }).format(n)
   return String(v)
 }

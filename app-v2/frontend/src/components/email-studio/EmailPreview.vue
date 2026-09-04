@@ -53,7 +53,7 @@
   </div>
 
   <div v-else class="email_studio_preview_empty">
-    <span class="email_studio_preview_empty_icon">\ud83d\udce7</span>
+    <span class="email_studio_preview_empty_icon">📧</span>
     <p>{{ t('es_preview') }}</p>
   </div>
 </div>

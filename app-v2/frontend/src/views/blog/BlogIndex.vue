@@ -22,7 +22,7 @@
         <div class="blog_notify_form">
           <input v-model="email" type="email" :placeholder="t('blog_email_placeholder')" class="blog_input" @keyup.enter="subscribe" />
           <button class="blog_button" @click="subscribe" :disabled="subscribed">
-            {{ subscribed ? '\u2713' : t('blog_cta') }}
+            {{ subscribed ? '✓' : t('blog_cta') }}
           </button>
         </div>
       </div>

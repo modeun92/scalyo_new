@@ -44,7 +44,7 @@
         <div class="field_group">
           <label>{{ t('sm_vacation_days') }}</label>
           <input v-model.number="form.vacationDays" type="number" min="0" class="field_input" />
-          <span class="legal_hint">⚖️ {{ t('cl_updated', { country: '' }) }} {{ laws.vacationDays }}j</span>
+          <span class="legal_hint">⚖️ {{ t('country_law_updated', { country: '' }) }} {{ laws.vacationDays }}j</span>
         </div>
         <div class="field_group">
           <label>{{ t('sm_holidays') }}</label>
@@ -86,17 +86,17 @@
 
     <!-- Legal compliance -->
     <div class="settings_card legal">
-      <h3>⚖️ {{ laws.flag }} {{ laws.name }} — {{ t('cl_work_law') }}</h3>
+      <h3>⚖️ {{ laws.flag }} {{ t(laws.nameKey) }} — {{ t('country_law_work_law') }}</h3>
       <div class="legal_grid">
-        <div class="legal_item"><span class="li_label">{{ t('cl_work_law') }}</span><span>{{ t('law_' + form.country.toLowerCase() + '_labor') }}</span></div>
-        <div class="legal_item"><span class="li_label">{{ t('cl_data_law') }}</span><span>{{ t('law_' + form.country.toLowerCase() + '_privacy') }}</span></div>
-        <div class="legal_item"><span class="li_label">{{ t('cl_hours_week') }}</span><span>{{ laws.hoursPerWeek }}h</span></div>
-        <div class="legal_item"><span class="li_label">{{ t('cl_vacation') }}</span><span>{{ laws.vacationDays }} {{ t('sm_vacation_days').split('/')[0] }}</span></div>
-        <div class="legal_item"><span class="li_label">{{ t('cl_holidays') }}</span><span>{{ laws.publicHolidays }}</span></div>
-        <div class="legal_item"><span class="li_label">{{ t('cl_tva') }}</span><span>{{ laws.taxRate }}% ({{ laws.taxName }})</span></div>
+        <div class="legal_item"><span class="li_label">{{ t('country_law_work_law') }}</span><span>{{ t('law_' + form.country.toLowerCase() + '_labor') }}</span></div>
+        <div class="legal_item"><span class="li_label">{{ t('country_law_data_law') }}</span><span>{{ t('law_' + form.country.toLowerCase() + '_privacy') }}</span></div>
+        <div class="legal_item"><span class="li_label">{{ t('country_law_hours_week') }}</span><span>{{ laws.hoursPerWeek }}h</span></div>
+        <div class="legal_item"><span class="li_label">{{ t('country_law_vacation') }}</span><span>{{ laws.vacationDays }} {{ t('sm_vacation_days').split('/')[0] }}</span></div>
+        <div class="legal_item"><span class="li_label">{{ t('country_law_holidays') }}</span><span>{{ laws.publicHolidays }}</span></div>
+        <div class="legal_item"><span class="li_label">{{ t('country_law_tax') }}</span><span>{{ laws.taxRate }}% ({{ t(laws.taxNameKey) }})</span></div>
       </div>
       <div class="legal_rights">
-        <strong>{{ t('cl_rights_title') }}</strong>
+        <strong>{{ t('country_law_rights_title') }}</strong>
         <ul>
           <li v-for="i in lawRightsCount" :key="i">{{ t('law_' + form.country.toLowerCase() + '_r' + i) }}</li>
         </ul>

@@ -10,7 +10,7 @@
         <div v-for="(item, i) in faqItems" :key="i" class="faq_item" :class="{ open: openFaq === i }" @click="openFaq = openFaq === i ? null : i">
           <div class="faq_q">
             <span>{{ item.q }}</span>
-            <span class="faq_toggle">{{ openFaq === i ? '\u2212' : '+' }}</span>
+            <span class="faq_toggle">{{ openFaq === i ? '−' : '+' }}</span>
           </div>
           <div class="faq_a">
             <p>{{ item.a }}</p>

@@ -183,6 +183,7 @@
 
 <script setup>
 import { ref, watch, onMounted, reactive, computed } from 'vue'
+import { localeTag } from '@/lib/formatters'
 import { useI18n } from 'vue-i18n'
 import { supabase } from '@/lib/supabase'
 import FullCalendar from '@fullcalendar/vue3'
@@ -505,7 +506,8 @@ function localDate(d) {
 const ganttStart = computed(() => { const d = new Date(); d.setDate(d.getDate() - 3); d.setHours(0, 0, 0, 0); return d })
 const ganttDates = computed(() => {
   const today = localDate(new Date()) // GANTT-TZ
-  const loc = locale.value === 'ko' ? 'ko-KR' : locale.value === 'en' ? 'en-US' : 'fr-FR'
+  // LOCALE-TAG (04/09): localeTag() — the ko-KR/en-US/fr-FR ladder existed in 9 copies.
+  const loc = localeTag()
   return Array.from({ length: ganttDays.value }, (_, i) => {
     const d = new Date(ganttStart.value); d.setDate(d.getDate() + i)
     const date = localDate(d) // GANTT-TZ: same frame of reference as the displayed label

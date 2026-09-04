@@ -10,7 +10,7 @@ import { handle as notif } from './notif.module.js'
 import { callAI } from '../_services/ai.service.js'
 
 // Wellbeing handler inlined — Cloudflare Pages doesn't resolve new module files reliably
-const LANG_WB = { fr: 'Reponds en francais.', en: 'Reply in English.', ko: '\uD55C\uAD6D\uC5B4\uB85C \uB2F5\uBCC0\uD558\uC138\uC694.' }
+const LANG_WB = { fr: 'Reponds en francais.', en: 'Reply in English.', ko: '한국어로 답변하세요.' }
 
 function getWellbeingPrompt(lang, context) {
   return 'Tu es Nova Sante, un expert en sante mentale et physique dedie aux professionnels du Customer Success et de la tech. Tu es integre a Scalyo pour accompagner les utilisateurs sur leur bien-etre personnel.' +

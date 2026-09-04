@@ -60,7 +60,7 @@ function detectLocale() {
 const locale = ref(detectLocale())
 const msgs = { fr, en, ko }
 const m = computed(() => msgs[locale.value] || msgs.fr)
-onMounted(() => { document.title = m.value.support_title + ' \u2014 Scalyo' })
+onMounted(() => { document.title = m.value.support_title + ' — Scalyo' })
 </script>
 
 <style scoped>

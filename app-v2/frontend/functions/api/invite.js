@@ -5,7 +5,7 @@ import { jsonResponse, errorResponse, errorCode } from './_utils/response.js'
 import { createSupabaseClient, getAuthUser, getUserMembership } from './_utils/supabase.js'
 import { setSubscriptionQuantity } from './_utils/stripe.js'
 import { canPerform, canAddSeat, canAddViewer, getAvailableRolesForInvite, ORG_SETTINGS } from './_config/plans.config.js'
-import { t } from './_i18n/messages.js'
+import { t } from './_i18n/translate.js'
 
 // HTML-escaping of the values interpolated into the email body
 // (org.name is entered by the user).

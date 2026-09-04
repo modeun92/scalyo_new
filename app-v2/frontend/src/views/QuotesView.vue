@@ -10,10 +10,10 @@
 
     <!-- Country banner -->
     <div v-if="billingCountry" class="quote_country_banner">
-      <span>{{ laws.flag }} {{ laws.name }}</span>
+      <span>{{ laws.flag }} {{ t(laws.nameKey) }}</span>
       <!-- QUOTE-VAT (27/08): the field is called taxRate — "laws.tva" never existed -->
-      <span>{{ t('qt_field_tax') }}: {{ laws.taxRate }}% ({{ laws.taxName }})</span>
-      <span>{{ t('cl_currency') }}: {{ laws.currencySymbol }}</span>
+      <span>{{ t('qt_field_tax') }}: {{ laws.taxRate }}% ({{ t(laws.taxNameKey) }})</span>
+      <span>{{ t('country_law_currency') }}: {{ laws.currencySymbol }}</span>
     </div>
 
     <!-- KPIs -->
@@ -123,8 +123,8 @@ const billingCountry = ref(countryLaws.currentCountry)
 
 const laws = computed(() => countryLaws.getLaws(billingCountry.value))
 const legalLabel = computed(() => {
-  const map = { FR: t('cl_legal_siret'), BE: t('cl_legal_bce'), CH: t('cl_legal_ide'), CA: t('cl_legal_tps'), US: t('cl_legal_ein'), KR: t('cl_legal_krn') }
-  return map[billingCountry.value] || t('cl_legal_number')
+  const map = { FR: t('country_law_legal_siret'), BE: t('country_law_legal_bce'), CH: t('country_law_legal_ide'), CA: t('country_law_legal_tps'), US: t('country_law_legal_ein'), KR: t('country_law_legal_krn') }
+  return map[billingCountry.value] || t('country_law_legal_number')
 })
 
 const form = reactive({ title: '', clientId: '', company: '', amount: 0, tax: laws.value.taxRate, status: 'draft', notes: '' })

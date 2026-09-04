@@ -64,11 +64,11 @@ const props = defineProps({
 // eur 79/119/159 - usd 89/139/189 - krw 139000/209000/279000.
 // LandingPage.vue propagates the codes fr | en | kr (never 'ko').
 const CURRENCIES = {
-  fr: { symbol: '\u20ac', suffix: true,  tag: 'fr-FR', seat: [79, 119, 159],
+  fr: { symbol: '€', suffix: true,  tag: 'fr-FR', seat: [79, 119, 159],
         arr: { def: 15000, min: 1000, max: 100000, step: 1000 } },
   en: { symbol: '$',       suffix: false, tag: 'en-US', seat: [89, 139, 189],
         arr: { def: 16000, min: 1000, max: 100000, step: 1000 } },
-  kr: { symbol: '\u20a9', suffix: false, tag: 'ko-KR', seat: [139000, 209000, 279000],
+  kr: { symbol: '₩', suffix: false, tag: 'ko-KR', seat: [139000, 209000, 279000],
         arr: { def: 25000000, min: 2000000, max: 200000000, step: 1000000 } },
 }
 

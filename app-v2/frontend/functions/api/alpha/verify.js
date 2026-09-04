@@ -2,7 +2,7 @@
 // Returns 200 { valid: true, plan, maxSeats, validDays } or 403
 
 import { jsonResponse, errorResponse } from '../_utils/response.js'
-import { t } from '../_i18n/messages.js'
+import { t } from '../_i18n/translate.js'
 
 export async function onRequestPost(context) {
   const { request, env } = context

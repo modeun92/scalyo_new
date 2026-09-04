@@ -88,6 +88,12 @@ broke something visible. Do not relax one without saying so explicitly.
    values** (`kind = 'cloture'`, `category = 'renouvellement'`, CSV import aliases) or
    public SEO slugs. A label that reaches the screen belongs in i18n — including the KPI
    library's (`kpi_library_<id>` / `kpi_library_category_<id>`), which `config/kpis.js` references by key.
+   **No hard-coded translation**: `src/i18n/` is the ONLY home for a translation, server strings
+   included — `functions/api/_i18n/translate.js` is a resolver holding no data, and
+   `_i18n/messages.js` is deleted. A config stores the key, the view calls `t()`. A table outside
+   i18n is invisible to `check-i18n.mjs`, and a component that resolves its own locale drifts from
+   the app's. Key names are spelled out (`integration_*`, `country_law_*`, `*_description`).
+   See [docs/CODE_STYLE.md](docs/CODE_STYLE.md#no-hard-coded-translation-0409).
 5. **No `t()` in a store.** Stores return i18n keys plus params; views render them.
    Outside a component, use `i18n.global`, never `useI18n()`.
 6. **`fetchAllRows` for any complete read.** PostgREST truncates at 1000 rows with no
@@ -125,7 +131,8 @@ broke something visible. Do not relax one without saying so explicitly.
 - **Cloudflare Pages does not reliably resolve newly added module files** — that is why
   the `wellbeing` AI handler is inlined twice.
 - **`src/i18n/legal.js` has duplicated keys in its `fr` object** (last-one-wins). Editing
-  the wrong copy has no effect.
+  the wrong copy has no effect. `check-i18n.mjs` loads only `fr/en/ko.js` — `landing.js`,
+  `legal.js` and `dpa.js` have **no parity check at all**, which is how that survived.
 - **`/api/ai`, `/api/email` and `/api/usage` read `profiles.plan`**, while the front end
   and the SQL client-limit trigger read `organizations.plan`. A member of a paying org
   can be entitled in the UI and 403'd by the API. Use the org plan when you touch these.
@@ -144,7 +151,10 @@ broke something visible. Do not relax one without saying so explicitly.
 - **Zero dead code**: a removed feature takes its CSS, i18n keys and imports with it.
   What is dormant on purpose (Integrations, `_future/*`) says so in a comment.
 - **Before finishing**: run `node scripts/check-i18n.mjs` (a pre-existing gap of `wb_fri`
-  and three `chat_ch_*` keys is expected), and
+  and three `chat_ch_*` keys is expected) **and `node scripts/check-i18n-quality.mjs`**, which
+  checks that the three values of a key still MEAN the same thing — missing `{n}`, Korean prose
+  in the French file, an untranslated or English-left-in-place Korean value, a procedure that
+  lost a step. `check-i18n.mjs` only proves a key exists; a wrong value fails nothing there. Also
   `node scripts/proof-paywall-member.mjs` if you touched the computeds in
   `src/stores/auth.js`. Both need `npm install` first — `node_modules` is not in this
   snapshot.

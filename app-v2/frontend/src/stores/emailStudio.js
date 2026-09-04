@@ -167,7 +167,7 @@ export const useEmailStudioStore = defineStore('emailStudio', () => {
   function replaceVariables(text, client) {
     if (!text || !client) return text || ''
     return text
-      .replace(/\[Pr\u00e9nom\]/gi, client.name?.split(' ')[0] || '')
+      .replace(/\[Prénom\]/gi, client.name?.split(' ')[0] || '')
       .replace(/\[Nom\]/gi, client.name || '')
       .replace(/\[Entreprise\]/gi, client.name || '')
       .replace(/\[ENTREPRISE\]/gi, (client.name || '').toUpperCase())
@@ -176,15 +176,15 @@ export const useEmailStudioStore = defineStore('emailStudio', () => {
       .replace(/\[ARR\]/gi, client.arr ? fmtCurrency(client.arr) : '')
       .replace(/\[MRR\]/gi, client.mrr ? fmtCurrency(client.mrr) : '')
       .replace(/\[NPS\]/gi, client.nps?.toString() || '')
-      .replace(/\[Sant\u00e9\]/gi, client.health != null ? fmtHealth(client.health) : '')
+      .replace(/\[Santé\]/gi, client.health != null ? fmtHealth(client.health) : '')
       .replace(/\[CSM\]/gi, client.csm || '')
       .replace(/\[Statut\]/gi, client.status || '')
       // EN/KO tokens of the i18n templates - same substitutions as the FR tokens.
       // 회사 = "hoesa" (Company), 이름 = "ireum" (Name) - ASCII only (CR-7).
       .replace(/\[Company\]/gi, client.name || '')
       .replace(/\[First Name\]/gi, client.name?.split(' ')[0] || '')
-      .replace(/\[\uD68C\uC0AC\]/g, client.name || '')
-      .replace(/\[\uC774\uB984\]/g, client.name || '')
+      .replace(/\[회사\]/g, client.name || '')
+      .replace(/\[이름\]/g, client.name || '')
   }
 
   // Init

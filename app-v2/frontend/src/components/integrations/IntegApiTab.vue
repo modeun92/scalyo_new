@@ -3,10 +3,10 @@
     <div class="iv_card">
       <div class="iv_card_header">
         <div>
-          <h2>🔑 {{ t('integ_api_title') }}</h2>
-          <p class="iv_card_sub">{{ t('integ_api_desc') }}</p>
+          <h2>🔑 {{ t('integration_api_title') }}</h2>
+          <p class="iv_card_sub">{{ t('integration_api_description') }}</p>
         </div>
-        <button class="button_create_key" @click="$emit('open-create')">+ {{ t('integ_create_key') }}</button>
+        <button class="button_create_key" @click="$emit('open-create')">+ {{ t('integration_create_key') }}</button>
       </div>
 
       <!-- Base URL -->
@@ -18,7 +18,7 @@
 
       <!-- Keys list -->
       <div v-if="apiKeys.length === 0" class="iv_empty">
-        <p>{{ t('integ_no_keys') }}</p>
+        <p>{{ t('integration_no_keys') }}</p>
       </div>
       <div v-else class="iv_keys_list">
         <div v-for="key in apiKeys" :key="key.id" class="iv_key_row">
@@ -28,28 +28,28 @@
             <span class="iv_key_scopes">{{ key.scopes?.join(', ') }}</span>
           </div>
           <div class="iv_key_meta">
-            <span class="iv_key_date">{{ t('integ_created') }} {{ formatDate(key.created_at) }}</span>
+            <span class="iv_key_date">{{ t('integration_created') }} {{ formatDate(key.created_at) }}</span>
             <span v-if="key.last_used_at" class="iv_key_used">
-              {{ t('integ_used') }} {{ formatDate(key.last_used_at) }}
+              {{ t('integration_used') }} {{ formatDate(key.last_used_at) }}
             </span>
-            <span v-else class="iv_key_unused">{{ t('integ_never_used') }}</span>
+            <span v-else class="iv_key_unused">{{ t('integration_never_used') }}</span>
           </div>
-          <button class="button_revoke" @click="$emit('revoke', key.id)" :title="t('integ_revoke_key')">🗑️</button>
+          <button class="button_revoke" @click="$emit('revoke', key.id)" :title="t('integration_revoke_key')">🗑️</button>
         </div>
       </div>
 
       <!-- New key reveal -->
       <div v-if="newKeyValue" class="iv_new_key_reveal">
-        <p>⚠️ {{ t('integ_key_shown_once') }}</p>
+        <p>⚠️ {{ t('integration_key_shown_once') }}</p>
         <code class="iv_new_key_code">{{ newKeyValue }}</code>
         <button class="button_copy" @click="copy(newKeyValue); $emit('key-copied')">
-          {{ keyCopied ? '✓ ' + t('integ_copied') : '📋 ' + t('integ_copy_key') }}
+          {{ keyCopied ? '✓ ' + t('integration_copied') : '📋 ' + t('integration_copy_key') }}
         </button>
       </div>
 
       <!-- Documentation -->
       <div class="iv_doc_section">
-        <h3>📖 {{ t('integ_endpoints') }}</h3>
+        <h3>📖 {{ t('integration_endpoints') }}</h3>
         <div class="iv_endpoints">
           <div v-for="ep in endpoints" :key="ep.method + ep.path" class="iv_endpoint">
             <span class="iv_method" :class="ep.method.toLowerCase()">{{ ep.method }}</span>
@@ -58,7 +58,7 @@
           </div>
         </div>
         <div class="iv_example">
-          <h4>{{ t('integ_curl_example') }}</h4>
+          <h4>{{ t('integration_curl_example') }}</h4>
           <code class="iv_code_block">curl -H "x-api-key: sk_..." {{ apiBaseUrl }}/clients</code>
         </div>
       </div>

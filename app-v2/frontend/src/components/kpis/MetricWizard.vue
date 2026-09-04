@@ -59,9 +59,9 @@ import { useI18n } from 'vue-i18n'
 import { suggestBlock, buildMetricBlock } from '@/utils/smartVisual.js'
 import { useClientMetricsStore } from '@/stores/clientMetrics'
 import { KPI_CATALOG } from '@/config/kpis'
-import { fmtMonth, kpiUnit } from '@/lib/formatters'
+import { fmtMonth, kpiUnit, localeTag } from '@/lib/formatters'
 
-const { t, locale } = useI18n({ useScope: 'global' })
+const { t } = useI18n({ useScope: 'global' })
 const emit = defineEmits(['close', 'insert'])
 const props = defineProps({ clientId: { type: String, default: null } })
 
@@ -123,7 +123,8 @@ function applyPreset(p) {
   unit.value = p.unit || ''
   target.value = p.target ?? ''
   if (p.months) {
-    const tag = { fr: 'fr-FR', en: 'en-US', ko: 'ko-KR' }[locale.value] || 'fr-FR'
+    // LOCALE-TAG (04/09): localeTag() — the ko-KR/en-US/fr-FR ladder existed in 9 copies.
+    const tag = localeTag()
     rows.value = Array.from({ length: p.months }, (_, i) => ({ label: new Date(2026, i, 1).toLocaleDateString(tag, { month: 'short' }), value: '' }))
   } else rows.value = p.rows.map(r => ({ ...r }))
   hint.value = 'auto'

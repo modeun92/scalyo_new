@@ -3,7 +3,7 @@
   <div v-if="!isElite" class="email_studio_history_gate">
     <span class="email_studio_elite_gate">
       <span>Elite</span>
-      <span class="email_studio_elite_lock">\ud83d\udd12 {{ t('es_history_elite') }}</span>
+      <span class="email_studio_elite_lock">🔒 {{ t('es_history_elite') }}</span>
     </span>
   </div>
   <template v-else>
@@ -39,7 +39,7 @@
         <span class="email_studio_history_subject" :title="email.subject">{{ email.subject }}</span>
         <span class="email_studio_history_date">{{ formatDate(email.sent_at) }}</span>
         <span :class="['email_studio_history_status', email.opened_at ? 'opened' : 'pending']">
-          {{ email.opened_at ? '\u2705 ' + t('es_history_read') : t('es_history_unread') }}
+          {{ email.opened_at ? '✅ ' + t('es_history_read') : t('es_history_unread') }}
         </span>
         <span class="email_studio_history_opens">{{ email.open_count || 0 }}x</span>
       </div>
@@ -66,7 +66,7 @@ const openRate = computed(() => {
 })
 
 function formatDate(iso) {
-  if (!iso) return '\u2014'
+  if (!iso) return '—'
   const d = new Date(iso)
   return d.toLocaleDateString(undefined, {
     day: '2-digit', month: '2-digit', year: '2-digit',

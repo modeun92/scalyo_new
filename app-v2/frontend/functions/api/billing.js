@@ -6,7 +6,7 @@ import { createSupabaseClient, getAuthUser, getUserMembership } from './_utils/s
 import { stripeRequest } from './_utils/stripe.js'
 import { canPerform } from './_config/plans.config.js'
 import { pricesFor, planFromPrice, toMajor, normalizeCurrency, BILLING_INTERVAL } from './_config/prices.js'
-import { t } from './_i18n/messages.js'
+import { t } from './_i18n/translate.js'
 
 function isoFromUnix(seconds) {
   return seconds ? new Date(seconds * 1000).toISOString() : null

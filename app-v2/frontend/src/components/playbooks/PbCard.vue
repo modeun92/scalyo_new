@@ -79,9 +79,10 @@
 
 <script setup>
 import { computed, reactive } from 'vue'
+import { localeTag } from '@/lib/formatters'
 import { useI18n } from 'vue-i18n'
 
-const { t, te, locale } = useI18n({ useScope: 'global' })
+const { t, te } = useI18n({ useScope: 'global' })
 
 const props = defineProps({
   pb: { type: Object, required: true },
@@ -99,9 +100,8 @@ const progressPct = computed(() => {
 
 const formattedDate = computed(() => {
   if (!props.pb.startedAt) return '—'
-  const loc = locale.value === 'ko' ? 'ko-KR'
-    : locale.value === 'en' ? 'en-US' : 'fr-FR'
-  return new Date(props.pb.startedAt).toLocaleDateString(loc, {
+  // LOCALE-TAG (04/09): localeTag() — the ko-KR/en-US/fr-FR ladder existed in 9 copies.
+  return new Date(props.pb.startedAt).toLocaleDateString(localeTag(), {
     day: 'numeric',
     month: 'short'
   })
@@ -110,9 +110,7 @@ const formattedDate = computed(() => {
 // Due dates per step (rework 21/07) — legacy without `due`: nothing displayed
 const todayIso = new Date().toISOString().slice(0, 10)
 function dueLabel(d) {
-  const loc = locale.value === 'ko' ? 'ko-KR'
-    : locale.value === 'en' ? 'en-US' : 'fr-FR'
-  return new Date(d).toLocaleDateString(loc, { day: 'numeric', month: 'short' })
+  return new Date(d).toLocaleDateString(localeTag(), { day: 'numeric', month: 'short' })
 }
 
 // Guides per step (key `<step>_g`): expanded by clicking the row.

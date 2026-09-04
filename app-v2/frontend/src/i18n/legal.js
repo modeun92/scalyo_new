@@ -15,7 +15,7 @@ export const legal = {
     cgu_s4_title: '4. Accès au service',
     cgu_s4: 'Le service est accessible 24h/24, 7j/7, sous réserve des opérations de maintenance. Scalyo se réserve le droit d\'interrompre le service pour maintenance sans préavis. L\'accès nécessite la création d\'un compte avec une adresse email valide.',
     cgu_s5_title: '5. Période d\'essai',
-    cgu_s5: 'Scalyo propose une p\u00e9riode d\'essai de 14 jours avec acc\u00e8s complet aux fonctionnalit\u00e9s Elite. L\'acc\u00e8s n\u00e9cessite une inscription pr\u00e9alable via Stripe. \u00c0 l\'issue de la p\u00e9riode d\'essai, l\'acc\u00e8s est ajust\u00e9 en fonction du plan choisi.',
+    cgu_s5: 'Scalyo propose une période d\'essai de 14 jours avec accès complet aux fonctionnalités Elite. L\'accès nécessite une inscription préalable via Stripe. À l\'issue de la période d\'essai, l\'accès est ajusté en fonction du plan choisi.',
     cgu_s6_title: '6. Abonnements et tarification',
     cgu_s6_intro: 'Les abonnements sont disponibles aux tarifs suivants :',
     cgu_price_starter: 'Starter : 79 €/utilisateur/mois HT',

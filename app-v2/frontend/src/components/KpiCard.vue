@@ -23,9 +23,9 @@ const props = defineProps({
   size: { type: String, default: 'md' }, // sm, md, lg
 })
 
-const { t, locale } = useI18n({ useScope: 'global' })
+const { t } = useI18n({ useScope: 'global' })
 // CURRENCY-ACCOUNT (04/09): kpiUnit() — a 'currency' KPI shows the ACCOUNT symbol, no more catalog '€'.
-import { fmtCurrency, kpiUnit } from '@/lib/formatters'
+import { fmtCurrency, kpiUnit, localeTag } from '@/lib/formatters'
 
 const meta = computed(() => KPI_CATALOG.find(k => k.id === props.kpiId))
 
@@ -40,7 +40,8 @@ const formattedTarget = computed(() => formatVal(props.target))
 
 function formatVal(v) {
   if (v == null) return '—'
-  const loc = locale.value === 'ko' ? 'ko-KR' : locale.value === 'en' ? 'en-US' : 'fr-FR'
+  // LOCALE-TAG (04/09): localeTag() — the ko-KR/en-US/fr-FR ladder existed in 9 copies.
+  const loc = localeTag()
   const f = meta.value?.format
   // A-11: ACCOUNT currency (central formatter), never again a forced EUR
   if (f === 'currency') return fmtCurrency(v, { compact: v >= 1e6 })

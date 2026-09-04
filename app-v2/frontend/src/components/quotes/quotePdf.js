@@ -36,7 +36,7 @@ export function downloadPdf(q, laws, billingCountry, t, clientName) {
   doc.setFont('helvetica', 'normal')
   doc.text(t('qt_create_date') + ' : ' + q.createdAt, 20, 55)
   doc.text(t('qt_field_status') + ' : ' + t('qt_filter_' + q.status), 20, 62)
-  doc.text(l.name + ' — ' + l.taxName + ' ' + l.taxRate + '%', 20, 72)
+  doc.text(t(l.nameKey) + ' — ' + t(l.taxNameKey) + ' ' + l.taxRate + '%', 20, 72)
 
   doc.line(20, 78, 190, 78)
 
@@ -66,7 +66,7 @@ export function downloadPdf(q, laws, billingCountry, t, clientName) {
 
   doc.setFontSize(8)
   doc.setTextColor(150)
-  const privacyLines = doc.splitTextToSize(l.privacy, 170)
+  const privacyLines = doc.splitTextToSize(t(l.privacyKey), 170)
   doc.text(privacyLines, 20, 268)
   const legalY = 268 + (privacyLines.length * 4)
   const countryCode = (q.country || billingCountry).toLowerCase()

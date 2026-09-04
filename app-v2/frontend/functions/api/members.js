@@ -2,7 +2,7 @@
 import { jsonResponse, errorResponse } from './_utils/response.js'
 import { createSupabaseClient, getAuthUser, getUserMembership } from './_utils/supabase.js'
 import { canPerform } from './_config/plans.config.js'
-import { t } from './_i18n/messages.js'
+import { t } from './_i18n/translate.js'
 
 export async function onRequestGet(context) {
   const { request, env } = context

@@ -1,13 +1,13 @@
 <template>
   <div class="integrations_page">
     <header class="integration_header">
-      <h1>{{ t('integ_title') }}</h1>
-      <p class="integration_sub">{{ t('integ_subtitle') }}</p>
+      <h1>{{ t('integration_title') }}</h1>
+      <p class="integration_sub">{{ t('integration_subtitle') }}</p>
     </header>
     <div v-if="loading" class="integration_loading"><span class="spinner"></span></div>
     <template v-else>
       <div v-for="cat in catalog" :key="cat.id" class="integration_section">
-        <h2 class="integration_section_title"><i :class="'ti ' + cat.icon"></i> {{ cat.displayLabel }}</h2>
+        <h2 class="integration_section_title"><i :class="'ti ' + cat.icon"></i> {{ t(cat.labelKey) }}</h2>
         <div class="integration_grid">
           <div v-for="integ in cat.integrations" :key="integ.id" class="integration_card" :class="{ 'integration_card_on': integStore.isConnected(integ.id) }">
             <div class="integration_card_top">
@@ -17,10 +17,10 @@
               <div class="integration_card_info">
                 <div class="integration_name_row">
                   <h3>{{ integ.name }}</h3>
-                  <span v-if="integStore.isConnected(integ.id)" class="integration_tag integration_tag_ok">{{ t('integ_connected') }}</span>
+                  <span v-if="integStore.isConnected(integ.id)" class="integration_tag integration_tag_ok">{{ t('integration_connected') }}</span>
                   <span v-else class="integration_tag integration_tag_plan">{{ planLabel(integ.plan) }}</span>
                 </div>
-                <p class="integration_description">{{ integ.label[locale] || integ.label.fr }}</p>
+                <p class="integration_description">{{ t(integ.labelKey) }}</p>
               </div>
             </div>
             <div class="integration_capabilities">
@@ -30,11 +30,11 @@
             </div>
             <div class="integration_actions">
               <template v-if="integStore.isConnected(integ.id)">
-                <button class="integration_button integration_button_secondary" @click="openSetup(integ)"><i class="ti ti-settings"></i> {{ t('integ_configure') }}</button>
-                <button class="integration_button integration_button_danger" @click="handleDisconnect(integ)">{{ t('integ_disconnect') }}</button>
+                <button class="integration_button integration_button_secondary" @click="openSetup(integ)"><i class="ti ti-settings"></i> {{ t('integration_configure') }}</button>
+                <button class="integration_button integration_button_danger" @click="handleDisconnect(integ)">{{ t('integration_disconnect') }}</button>
               </template>
-              <button v-else-if="!planAllows(integ.plan)" class="integration_button integration_button_upgrade" @click="$router.push({ name: 'paywall' })"><i class="ti ti-lock"></i> {{ t('integ_upgrade') }}</button>
-              <button v-else class="integration_button integration_button_primary" @click="openSetup(integ)"><i class="ti ti-plug"></i> {{ t('integ_connect') }}</button>
+              <button v-else-if="!planAllows(integ.plan)" class="integration_button integration_button_upgrade" @click="$router.push({ name: 'paywall' })"><i class="ti ti-lock"></i> {{ t('integration_upgrade') }}</button>
+              <button v-else class="integration_button integration_button_primary" @click="openSetup(integ)"><i class="ti ti-plug"></i> {{ t('integration_connect') }}</button>
             </div>
           </div>
         </div>
@@ -53,30 +53,30 @@
           <button class="integration_modal_close" @click="closeModal"><i class="ti ti-x"></i></button>
         </div>
         <div class="integration_modal_body">
-          <div v-if="setupModal.setupSteps" class="integration_steps">
-            <p class="integration_steps_title">{{ t('integ_setup_steps') }}</p>
-            <pre class="integration_steps_content">{{ setupModal.setupSteps[locale] || setupModal.setupSteps.fr }}</pre>
+          <div v-if="setupModal.setupStepsKey" class="integration_steps">
+            <p class="integration_steps_title">{{ t('integration_setup_steps') }}</p>
+            <pre class="integration_steps_content">{{ t(setupModal.setupStepsKey) }}</pre>
             <a v-if="setupModal.helpUrl" :href="setupModal.helpUrl" target="_blank" rel="noopener" class="integration_help_link">
-              {{ t('integ_help_link') }} <i class="ti ti-external-link"></i>
+              {{ t('integration_help_link') }} <i class="ti ti-external-link"></i>
             </a>
           </div>
           <div v-for="field in setupModal.fields" :key="field.key" class="integration_field">
-            <label class="integration_label">{{ field.label[locale] || field.label.fr }}</label>
+            <label class="integration_label">{{ t(field.labelKey) }}</label>
             <input v-model="fieldValues[field.key]" :type="field.type || 'text'" :placeholder="field.placeholder || ''" class="integration_input" />
           </div>
-          <p v-if="saveError" class="integration_message integration_message_error">{{ t('integ_save_error') }}</p>
-          <p v-if="saveSuccess" class="integration_message integration_message_ok">{{ t('integ_save_success') }}</p>
+          <p v-if="saveError" class="integration_message integration_message_error">{{ t('integration_save_error') }}</p>
+          <p v-if="saveSuccess" class="integration_message integration_message_ok">{{ t('integration_save_success') }}</p>
         </div>
         <div class="integration_modal_footer">
           <button class="integration_button integration_button_primary" :disabled="saving || !allFieldsFilled" @click="handleSave">
-            {{ saving ? t('integ_saving') : (integStore.isConnected(setupModal.id) ? t('integ_update') : t('integ_connect')) }}
+            {{ saving ? t('integration_saving') : (integStore.isConnected(setupModal.id) ? t('integration_update') : t('integration_connect')) }}
           </button>
-          <button class="integration_button integration_button_ghost" @click="closeModal">{{ t('integ_cancel') }}</button>
+          <button class="integration_button integration_button_ghost" @click="closeModal">{{ t('integration_cancel') }}</button>
         </div>
       </div>
     </div>
     <!-- NO-CONFIRM: product modal (ConfirmDialog), never a native confirm() -->
-    <ConfirmDialog v-if="toDisconnect" :title="t('integ_disconnect_title')" :body="t('integ_disconnect_confirm', { name: toDisconnect.name })" :cta="t('integ_disconnect')" :busy="disconnecting" @confirm="doDisconnect" @cancel="toDisconnect = null" />
+    <ConfirmDialog v-if="toDisconnect" :title="t('integration_disconnect_title')" :body="t('integration_disconnect_confirm', { name: toDisconnect.name })" :cta="t('integration_disconnect')" :busy="disconnecting" @confirm="doDisconnect" @cancel="toDisconnect = null" />
   </div>
 </template>
 
@@ -89,7 +89,7 @@ import { getCapabilityInfo } from '@/config/integrations'
 import '@/assets/integrations.css'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 
-const { t, locale } = useI18n({ useScope: 'global' })
+const { t } = useI18n({ useScope: 'global' })
 const auth = useAuthStore()
 const integStore = useIntegrationStore()
 
@@ -100,7 +100,7 @@ const saving = ref(false)
 const saveError = ref(false)
 const saveSuccess = ref(false)
 
-const catalog = computed(() => integStore.getCatalog(locale.value))
+const catalog = computed(() => integStore.getCatalog())
 
 const PLAN_ORDER = { starter: 0, growth: 1, elite: 2, enterprise: 3 }
 
@@ -113,8 +113,9 @@ function planLabel(plan) {
   return labels[plan] || plan
 }
 
-function getCapLabel(capId) { return getCapabilityInfo(capId, locale.value).label }
-function getCapIcon(capId) { return getCapabilityInfo(capId, locale.value).icon }
+// INTEGRATIONS-I18N (04/09): the registry returns a KEY, t() renders it.
+function getCapLabel(capId) { return t(getCapabilityInfo(capId).labelKey) }
+function getCapIcon(capId) { return getCapabilityInfo(capId).icon }
 
 const allFieldsFilled = computed(() => {
   if (!setupModal.value?.fields) return false

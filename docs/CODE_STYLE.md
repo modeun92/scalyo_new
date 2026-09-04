@@ -24,6 +24,51 @@ identifiers, CSS class names, file names and internal keys.
 The persisted values and the public slugs are the important carve-outs: renaming them is
 a data migration or an SEO change, not a refactor.
 
+### No hard-coded translation (04/09)
+
+A `{ fr, en, ko }` object holding **display text** anywhere outside `src/i18n/*` is a bug, not a
+shortcut. **`src/i18n/` is the only home for a translation** — server strings included. Six such
+tables existed and are gone:
+
+| Was | Now |
+|---|---|
+| `SettingsIntegrations.vue` — 28 keys x 3 with its own `L()` **and its own locale** | `integration_resend_*`, `t()` |
+| `config/integrations.js` — 49 objects (`label`, `setupSteps`) | `integration_category_*`, `integration_capability_*`, `integration_description_*`, `integration_field_*`, `integration_steps_*` |
+| `stores/countryLaws.js` — country / privacy regime / tax name | `country_law_country_*`, `country_law_privacy_*`, `country_law_tax_*` |
+| `functions/api/_config/metrics.js` — 7 metrics x label + description | `metric_*_label` / `metric_*_description` |
+| `functions/api/_i18n/messages.js` — 40 server keys x 3 | moved into `src/i18n/*`; **the file is deleted** |
+| `lib/formatters.js` — `DAY_SUFFIX` / `HOUR_SUFFIX` | `unit_day_suffix` / `unit_hour_suffix` |
+
+A config module stores an i18n **key**; the view renders it with `t()` (never `t()` in a store or
+config — R25 §5).
+
+**Server side.** The Pages Functions call `functions/api/_i18n/translate.js`, a resolver that holds
+no data: it imports `src/i18n/{fr,en,ko}.js` directly. Those dictionaries are plain
+`export default {}` objects with no imports of their own, so they load unchanged in the Workers
+runtime (no Vite alias, no vue-i18n, no DOM). `{name}` interpolation is the same syntax vue-i18n
+uses, so one string can be rendered by either side. Cost to weigh before adding more: the three
+dictionaries (~415 KB total) are now part of the Functions bundle.
+
+**Write the character, not its escape.** A value spelled `'1. Google Cloud Console \u2192 APIs'`
+renders correctly and passes every key check, but no translator can proof-read it. Escapes are kept
+only for characters invisible on screen — NBSP (`\u00a0`), narrow NBSP, thin space, BOM, combining
+marks — and inside regexes over those. `check-i18n-quality.mjs` enforces this.
+
+**Names are spelled out**, never abbreviated: `integration_*` (not `integ_`), `country_law_*`
+(not `cl_`), `*_description` (not `*_desc`), `*_placeholder` (not `*_ph`).
+
+Two consequences worth keeping in mind:
+
+- A table outside i18n is **invisible to `check-i18n.mjs`**, so a missing Korean string fails no check.
+- A component that resolves its own locale drifts from the app's. `SettingsIntegrations` read
+  `localStorage['scalyo_lang']`, a key nothing writes (everything else uses `scalyo_locale`), so it
+  silently followed `navigator.language`: switching language moved every panel except that one.
+
+Still legitimately outside i18n: AI prompt language directives (`_prompts/*`), language endonyms
+(`Français`, `한국어`) in the language picker, proper nouns, BCP-47 locale tags
+(`formatters.localeTag()` — the single source), export fonts and typographic quotes in
+`utils/copilFormat.js`.
+
 ## R21 — never invent a value
 
 If there is no real data, the value is `null` and the UI renders `—`. This is the single

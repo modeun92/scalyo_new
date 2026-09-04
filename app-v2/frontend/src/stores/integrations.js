@@ -82,7 +82,8 @@ export const useIntegrationStore = defineStore('integrations', () => {
     } catch (err) { lastError.value = err.message; throw err }
   }
 
-  function getCatalog(locale = 'fr') { return getIntegrationsByCategory(locale) }
+  // INTEGRATIONS-I18N (04/09): the catalog carries i18n keys; the view renders them (no t() in a store).
+  function getCatalog() { return getIntegrationsByCategory() }
   function getAvailable(plan) { return getAvailableForPlan(plan) }
   function getIntegrationMeta(id) { return INTEGRATIONS[id] || null }
 

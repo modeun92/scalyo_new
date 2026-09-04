@@ -30,6 +30,7 @@ npx wrangler pages dev . --port 8787
 | `npm run build` | `vite build` then `node scripts/build-blog.js` |
 | `npm run preview` | Serve the production build |
 | `node scripts/check-i18n.mjs` | Compare the FR / EN / KO key sets |
+| `node scripts/check-i18n-quality.mjs` | Compare the FR / EN / KO **values**: missing `{n}`, wrong script for the file, untranslated or English-left-in-place Korean, a procedure that lost a step, and values written as `\uXXXX` escapes instead of the characters |
 | `node scripts/proof-paywall-member.mjs` | Regression proof of the paywall computeds in `stores/auth.js` |
 
 `scripts/build-blog.js` is part of the build, not an optional step. It renders the blog
@@ -86,6 +87,8 @@ The protocol every migration header documents:
 ## Before you commit
 
 1. `node scripts/check-i18n.mjs` — if you added a key, add it to all three locales.
+1. `node scripts/check-i18n-quality.mjs` — a key can exist in all three files and still say
+   three different things. This catches that; `check-i18n.mjs` cannot.
    (A small pre-existing gap is currently reported: `wb_fri` and three `chat_ch_*` keys.)
 2. `node scripts/proof-paywall-member.mjs` if you touched the computeds in
    `src/stores/auth.js`.

@@ -157,6 +157,6 @@ const bestCsm = computed(() => {
     const avg = csmScores[id].total / csmScores[id].count
     if (avg > bestAvg) { bestAvg = avg; best = csmScores[id].name }
   }
-  return best || '\u2014'
+  return best || '—'
 })
 </script>

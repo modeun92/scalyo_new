@@ -3,14 +3,14 @@
   <div class="send_modal">
     <div class="send_modal_header">
       <h3>{{ t('es_send_title') }}</h3>
-      <button class="send_modal_close" @click="$emit('close')">\u2715</button>
+      <button class="send_modal_close" @click="$emit('close')">✕</button>
     </div>
     <div class="send_modal_body">
       <div v-if="sendResult?.success" class="send_modal_success">
-        \u2705 {{ t('es_send_success') }}
+        ✅ {{ t('es_send_success') }}
       </div>
       <div v-else-if="sendResult?.error" class="send_modal_error">
-        \u274c {{ sendResult.error }}
+        ❌ {{ sendResult.error }}
       </div>
       <template v-else>
       <div class="send_modal_field">

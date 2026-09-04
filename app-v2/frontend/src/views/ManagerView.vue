@@ -104,10 +104,10 @@ import ManagerWellbeing from '@/components/manager/ManagerWellbeing.vue'
 import ManagerPerformance from '@/components/manager/ManagerPerformance.vue'
 import ManagerPortfolio from '@/components/manager/ManagerPortfolio.vue'
 import OxygenTeamPanel from '@/components/oxygen/OxygenTeamPanel.vue'
-import { fmtCurrency } from '@/lib/formatters'
+import { fmtCurrency, localeTag } from '@/lib/formatters'
 import '@/assets/manager.css'
 
-const { t, locale } = useI18n({ useScope: 'global' })
+const { t } = useI18n({ useScope: 'global' })
 const router = useRouter()
 const team = useTeamStore()
 const auth = useAuthStore()
@@ -131,7 +131,8 @@ const filterLevel = ref('all')
 const filterStatus = ref('all')
 
 const formattedDate = computed(() => {
-  const loc = locale.value === 'ko' ? 'ko-KR' : locale.value === 'en' ? 'en-US' : 'fr-FR'
+  // LOCALE-TAG (04/09): localeTag() — the ko-KR/en-US/fr-FR ladder existed in 9 copies.
+  const loc = localeTag()
   return new Date().toLocaleDateString(loc, {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
   })

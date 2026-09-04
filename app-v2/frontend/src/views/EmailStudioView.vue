@@ -12,7 +12,7 @@
   </div>
 
   <div :class="['email_studio_email_banner', store.emailConfigured ? 'connected' : 'setup_needed']">
-    <span class="email_studio_banner_icon">{{ store.emailConfigured ? '\u2705' : '\u26a0\ufe0f' }}</span>
+    <span class="email_studio_banner_icon">{{ store.emailConfigured ? '✅' : '⚠️' }}</span>
     <div class="email_studio_banner_text">
       <strong>{{ store.emailConfigured ? t('es_resend_connected') : t('es_resend_setup_title') }}</strong>
       <span>{{ store.emailConfigured ? t('es_resend_connected_desc') : t('es_resend_setup_desc') }}</span>

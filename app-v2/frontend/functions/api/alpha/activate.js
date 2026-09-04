@@ -1,7 +1,7 @@
 // POST /api/alpha/activate — Create org from promo code after registration
 import { jsonResponse, errorResponse } from '../_utils/response.js'
 import { createSupabaseClient } from '../_utils/supabase.js'
-import { t } from '../_i18n/messages.js'
+import { t } from '../_i18n/translate.js'
 import { getPlan } from '../_config/plans.config.js'
 
 export async function onRequestPost(context) {

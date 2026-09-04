@@ -133,8 +133,8 @@ export const useNotificationStore = defineStore('notifications', () => {
         addIfNew({
           type: 'churn_risk',
           icon: '\u{1F534}',
-          title: `Risque churn \u2014 ${client.name}`,
-          body: `Health score ${client.health}/10. Intervention urgente recommand\u00E9e.`,
+          title: `Risque churn — ${client.name}`,
+          body: `Health score ${client.health}/10. Intervention urgente recommandée.`,
           payload: { name: client.name, health: client.health },
           target_id: client.id,
           route: '/app/portfolio',
@@ -148,7 +148,7 @@ export const useNotificationStore = defineStore('notifications', () => {
             addIfNew({
               type: 'renewal',
               icon: '\u{1F4C5}',
-              title: `Renouvellement dans ${daysLeft}j \u2014 ${client.name}`,
+              title: `Renouvellement dans ${daysLeft}j — ${client.name}`,
               body: `Date de renouvellement : ${client.renewalDate}`,
               payload: { name: client.name, days: daysLeft, date: client.renewalDate },
               target_id: client.id,
@@ -161,7 +161,7 @@ export const useNotificationStore = defineStore('notifications', () => {
         addIfNew({
           type: 'nps_drop',
           icon: '\u{1F4C9}',
-          title: `NPS bas \u2014 ${client.name}`,
+          title: `NPS bas — ${client.name}`,
           body: `Score NPS : ${client.nps}. En dessous du seuil critique.`,
           payload: { name: client.name, nps: client.nps },
           target_id: client.id,
@@ -176,8 +176,8 @@ export const useNotificationStore = defineStore('notifications', () => {
         if (daysLate > 0) {
           addIfNew({
             type: 'task_overdue',
-            icon: '\u23F0',
-            title: `T\u00E2che en retard \u2014 ${task.title}`,
+            icon: '⏰',
+            title: `Tâche en retard — ${task.title}`,
             body: `En retard de ${daysLate} jour${daysLate > 1 ? 's' : ''}. Statut : ${task.status}`,
             payload: { title: task.title, days: daysLate, status: task.status },
             target_id: task.id,
@@ -190,13 +190,13 @@ export const useNotificationStore = defineStore('notifications', () => {
     for (const member of (teamMembers || [])) {
       if (member.wellbeingScore < 55 || member.workload > 85) {
         const reasons = []
-        if (member.wellbeingScore < 55) reasons.push(`bien-\u00EAtre ${member.wellbeingScore}/100`)
+        if (member.wellbeingScore < 55) reasons.push(`bien-être ${member.wellbeingScore}/100`)
         if (member.workload > 85) reasons.push(`charge ${member.workload}%`)
         addIfNew({
           type: 'burnout',
-          icon: '\u26A0\uFE0F',
-          title: `Alerte burnout \u2014 ${member.name}`,
-          body: `${reasons.join(', ')}. V\u00E9rification recommand\u00E9e.`,
+          icon: '⚠️',
+          title: `Alerte burnout — ${member.name}`,
+          body: `${reasons.join(', ')}. Vérification recommandée.`,
           payload: {
             name: member.name,
             wellbeing: member.wellbeingScore < 55 ? member.wellbeingScore : null,
