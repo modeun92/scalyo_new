@@ -1,75 +1,75 @@
 <template>
-  <div class="pb-card" @click="$emit('open', pb)">
-    <div class="pbc-header">
-      <div class="pbc-left">
+  <div class="playbook_card" @click="$emit('open', pb)">
+    <div class="playbook_card_header">
+      <div class="playbook_card_left">
         <span
-          class="pbc-icon"
+          class="playbook_card_icon"
           :style="{ background: pb.color + '15', color: pb.color }"
         >{{ pb.icon }}</span>
         <div>
           <strong>{{ t('pb_template_' + pb.templateKey) }}</strong>
-          <span class="pbc-client" v-if="pb.clientId">
+          <span class="playbook_card_client" v-if="pb.clientId">
             {{ clientLabel }}
           </span>
         </div>
       </div>
-      <span class="pbc-status" :class="pb.status">
+      <span class="playbook_card_status" :class="pb.status">
         {{ t('pb_status_' + pb.status) }}
       </span>
     </div>
 
-    <div class="pbc-progress">
-      <div class="pbc-progress-header">
+    <div class="playbook_card_progress">
+      <div class="playbook_card_progress_header">
         <span>{{ t('pb_progress') }}</span>
-        <span class="pbc-pct">{{ progressPct }}%</span>
+        <span class="playbook_card_percent">{{ progressPct }}%</span>
       </div>
-      <div class="pbc-bar">
+      <div class="playbook_card_bar">
         <div
-          class="pbc-fill"
+          class="playbook_card_fill"
           :style="{ width: progressPct + '%', background: pb.color }"
         />
       </div>
     </div>
 
-    <div class="pbc-steps">
+    <div class="playbook_card_steps">
       <template v-for="step in pb.steps" :key="step.id">
         <div
-          class="pbc-step"
+          class="playbook_card_step"
           :class="{ done: step.done, expandable: hasGuide(step) }"
           @click.stop="toggleGuide(step)"
         >
           <span
-            class="step-check"
+            class="step_check"
             @click.stop="$emit('toggleStep', pb.id, step.id)"
           >{{ step.done ? '✅' : '⬜' }}</span>
-          <span class="step-title">{{ t(step.title) }}</span>
+          <span class="step_title">{{ t(step.title) }}</span>
           <!-- Real due date of the step (set at activation); red if overdue and not done -->
           <span
             v-if="step.due"
-            class="step-due"
+            class="step_due"
             :class="{ late: !step.done && step.due < todayIso }"
           >{{ dueLabel(step.due) }}</span>
-          <span v-if="hasGuide(step)" class="step-chev">{{ openGuides.has(step.id) ? '▾' : '▸' }}</span>
+          <span v-if="hasGuide(step)" class="step_chevron">{{ openGuides.has(step.id) ? '▾' : '▸' }}</span>
         </div>
         <!-- Step guide: Goal / Method / Pitfall / Exit (click on the row) -->
-        <div v-if="hasGuide(step) && openGuides.has(step.id)" class="step-guide" @click.stop>
+        <div v-if="hasGuide(step) && openGuides.has(step.id)" class="step_guide" @click.stop>
           {{ t(step.title + '_g') }}
         </div>
       </template>
     </div>
 
-    <div class="pbc-footer">
-      <span class="pbc-date">
+    <div class="playbook_card_footer">
+      <span class="playbook_card_date">
         {{ t('pb_started') }} {{ formattedDate }}
       </span>
-      <div class="pbc-btns">
+      <div class="playbook_card_buttons">
         <button
           v-if="pb.status === 'active'"
-          class="btn-sm green"
+          class="button_small green"
           @click.stop="$emit('complete', pb.id)"
         >{{ t('pb_complete') }}</button>
         <button
-          class="btn-sm red"
+          class="button_small red"
           @click.stop="$emit('delete', pb.id)"
         >{{ t('pb_delete') }}</button>
       </div>
@@ -127,11 +127,11 @@ function toggleGuide(step) {
 </script>
 
 <style scoped>
-.step-due { margin-left: auto; font-size: 0.7rem; color: var(--text-muted); white-space: nowrap; }
-.step-due.late { color: #ef4444; font-weight: 600; }
-.pbc-step.expandable { cursor: pointer; }
-.step-chev { font-size: 0.7rem; color: var(--text-muted); flex-shrink: 0; }
-.step-guide {
+.step_due { margin-left: auto; font-size: 0.7rem; color: var(--text-muted); white-space: nowrap; }
+.step_due.late { color: #ef4444; font-weight: 600; }
+.playbook_card_step.expandable { cursor: pointer; }
+.step_chevron { font-size: 0.7rem; color: var(--text-muted); flex-shrink: 0; }
+.step_guide {
   white-space: pre-line; font-size: 0.76rem; line-height: 1.5;
   color: var(--text-secondary); background: var(--bg);
   border-left: 3px solid var(--border); border-radius: 6px;

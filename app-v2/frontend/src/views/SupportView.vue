@@ -1,39 +1,39 @@
 <template>
-  <div class="support-page">
-    <div class="support-container">
-      <header class="support-header">
+  <div class="support_page">
+    <div class="support_container">
+      <header class="support_header">
         <h1>{{ m.support_title }}</h1>
-        <p class="support-sub">{{ m.support_subtitle }}</p>
+        <p class="support_sub">{{ m.support_subtitle }}</p>
       </header>
-      <section class="support-card">
-        <p class="support-pitch">{{ m.support_pitch }}</p>
+      <section class="support_card">
+        <p class="support_pitch">{{ m.support_pitch }}</p>
       </section>
-      <div class="support-grid">
-        <section class="support-card">
+      <div class="support_grid">
+        <section class="support_card">
           <h2>{{ m.support_email_label }}</h2>
-          <a href="mailto:contact@scalyo.app" class="support-email">contact@scalyo.app</a>
+          <a href="mailto:contact@scalyo.app" class="support_email">contact@scalyo.app</a>
         </section>
-        <section class="support-card">
+        <section class="support_card">
           <h2>{{ m.support_response_title }}</h2>
           <p>{{ m.support_response_desc }}</p>
         </section>
-        <section class="support-card">
+        <section class="support_card">
           <h2>{{ m.support_langs_label }}</h2>
           <p>{{ m.support_langs_desc }}</p>
         </section>
       </div>
-      <section class="support-card support-privacy">
+      <section class="support_card support_privacy">
         <h2>{{ m.support_privacy_title }}</h2>
         <p>{{ m.support_privacy_desc }}</p>
       </section>
-      <section class="support-card support-legal">
+      <section class="support_card support_legal">
         <h2>{{ m.support_legal_title }}</h2>
-        <div class="legal-links">
+        <div class="legal_links">
           <a href="/cgu">{{ m.support_cgu_link }}</a>
           <a href="/privacy">{{ m.support_privacy_link }}</a>
         </div>
       </section>
-      <div class="support-back">
+      <div class="support_back">
         <a href="/">{{ m.support_back }}</a>
       </div>
     </div>
@@ -64,24 +64,24 @@ onMounted(() => { document.title = m.value.support_title + ' \u2014 Scalyo' })
 </script>
 
 <style scoped>
-.support-page { min-height: 100vh; background: #f8f9fa; display: flex; align-items: center; justify-content: center; padding: 2rem; }
-.support-container { max-width: 640px; width: 100%; }
-.support-header { text-align: center; margin-bottom: 2rem; }
-.support-header h1 { font-size: 1.75rem; font-weight: 700; margin: 0 0 0.25rem; }
-.support-sub { color: #6b7280; font-size: 0.95rem; }
-.support-card { background: #fff; border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem; border: 1px solid #e5e7eb; }
-.support-pitch { line-height: 1.7; color: #1f2937; }
-.support-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 1rem; }
-.support-grid .support-card h2 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; margin: 0 0 0.5rem; }
-.support-email { font-size: 1.1rem; font-weight: 600; color: #6366f1; text-decoration: none; }
-.support-email:hover { text-decoration: underline; }
-.support-privacy { border-left: 3px solid #6366f1; }
-.support-privacy h2 { font-size: 1rem; font-weight: 600; margin: 0 0 0.5rem; }
-.support-legal h2 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; margin: 0 0 0.75rem; }
-.legal-links { display: flex; gap: 1.5rem; }
-.legal-links a { color: #6366f1; text-decoration: none; font-weight: 500; }
-.legal-links a:hover { text-decoration: underline; }
-.support-back { text-align: center; margin-top: 2rem; }
-.support-back a { color: #6b7280; text-decoration: none; font-size: 0.9rem; }
-.support-back a:hover { color: #6366f1; }
+.support_page { min-height: 100vh; background: #f8f9fa; display: flex; align-items: center; justify-content: center; padding: 2rem; }
+.support_container { max-width: 640px; width: 100%; }
+.support_header { text-align: center; margin-bottom: 2rem; }
+.support_header h1 { font-size: 1.75rem; font-weight: 700; margin: 0 0 0.25rem; }
+.support_sub { color: #6b7280; font-size: 0.95rem; }
+.support_card { background: #fff; border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem; border: 1px solid #e5e7eb; }
+.support_pitch { line-height: 1.7; color: #1f2937; }
+.support_grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 1rem; }
+.support_grid .support_card h2 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; margin: 0 0 0.5rem; }
+.support_email { font-size: 1.1rem; font-weight: 600; color: #6366f1; text-decoration: none; }
+.support_email:hover { text-decoration: underline; }
+.support_privacy { border-left: 3px solid #6366f1; }
+.support_privacy h2 { font-size: 1rem; font-weight: 600; margin: 0 0 0.5rem; }
+.support_legal h2 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; margin: 0 0 0.75rem; }
+.legal_links { display: flex; gap: 1.5rem; }
+.legal_links a { color: #6366f1; text-decoration: none; font-weight: 500; }
+.legal_links a:hover { text-decoration: underline; }
+.support_back { text-align: center; margin-top: 2rem; }
+.support_back a { color: #6b7280; text-decoration: none; font-size: 0.9rem; }
+.support_back a:hover { color: #6366f1; }
 </style>

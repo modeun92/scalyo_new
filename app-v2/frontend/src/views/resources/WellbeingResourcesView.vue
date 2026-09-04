@@ -1,14 +1,14 @@
 <template>
-  <div class="wbr-view">
-    <div class="wbr-header">
+  <div class="wellbeing_resources_view">
+    <div class="wellbeing_resources_header">
       <h1>💚 {{ t('nav.wellbeing') }}</h1>
       <p>{{ t('nav.wellbeingSub') }}</p>
-      <span class="wbr-season">{{ currentQuarterLabel }}</span>
+      <span class="wellbeing_resources_season">{{ currentQuarterLabel }}</span>
     </div>
 
-    <div class="wbr-grid">
-      <div v-for="card in currentTips" :key="card.titleKey" class="wbr-card" :class="'wbr-' + card.color">
-        <span class="wbrc-icon">{{ card.icon }}</span>
+    <div class="wellbeing_resources_grid">
+      <div v-for="card in currentTips" :key="card.titleKey" class="wellbeing_resources_card" :class="'wellbeing_resources_' + card.color">
+        <span class="wbrc_icon">{{ card.icon }}</span>
         <h3>{{ t(card.titleKey) }}</h3>
         <p>{{ t(card.descKey) }}</p>
         <ul>
@@ -17,20 +17,20 @@
       </div>
     </div>
 
-    <div class="wbr-books">
-      <div class="wbr-books-header">
+    <div class="wellbeing_resources_books">
+      <div class="wellbeing_resources_books_header">
         <div>
           <h2>📚 {{ t('wbr_readings') }}</h2>
-          <span class="wbr-refresh-note">✨ {{ t('wbr_refresh_note') }}</span>
+          <span class="wellbeing_resources_refresh_note">✨ {{ t('wbr_refresh_note') }}</span>
         </div>
       </div>
-      <div class="wbr-book-grid">
-        <div v-for="book in currentBooks" :key="book.title" class="wbr-book">
-          <div class="wbr-book-cover" :style="{ background: book.color }">{{ book.emoji }}</div>
-          <div class="wbr-book-info">
+      <div class="wellbeing_resources_book_grid">
+        <div v-for="book in currentBooks" :key="book.title" class="wellbeing_resources_book">
+          <div class="wellbeing_resources_book_cover" :style="{ background: book.color }">{{ book.emoji }}</div>
+          <div class="wellbeing_resources_book_info">
             <strong>{{ book.title }}</strong>
-            <span class="wbrb-author">{{ book.author }}</span>
-            <p class="wbrb-why">{{ t(book.whyKey) }}</p>
+            <span class="wbrb_author">{{ book.author }}</span>
+            <p class="wbrb_why">{{ t(book.whyKey) }}</p>
           </div>
         </div>
       </div>
@@ -117,38 +117,38 @@ const currentBooks = computed(() => allBooks[currentQuarter.value])
 </script>
 
 <style scoped>
-.wbr-view { max-width: 900px; }
-.wbr-header { margin-bottom: 24px; }
-.wbr-header h1 { font-size: 1.5rem; font-weight: 800; margin-bottom: 4px; }
-.wbr-header p { font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 8px; }
-.wbr-season { font-size: 0.78rem; background: var(--purple-bg); color: var(--purple); padding: 4px 12px; border-radius: 99px; font-weight: 600; }
-.wbr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; margin-bottom: 40px; }
-.wbr-card { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 20px; transition: all 0.2s; }
-.wbr-card:hover { box-shadow: var(--shadow-sm); transform: translateY(-2px); }
-.wbr-green { border-top: 3px solid var(--green); }
-.wbr-red { border-top: 3px solid #ef4444; }
-.wbr-blue { border-top: 3px solid #3b82f6; }
-.wbr-purple { border-top: 3px solid var(--purple); }
-.wbr-amber { border-top: 3px solid #f59e0b; }
-.wbrc-icon { font-size: 2rem; display: block; margin-bottom: 10px; }
-.wbr-card h3 { font-size: 0.95rem; font-weight: 700; margin-bottom: 6px; }
-.wbr-card p { font-size: 0.78rem; color: var(--text-secondary); line-height: 1.5; margin-bottom: 12px; }
-.wbr-card ul { list-style: none; display: flex; flex-direction: column; gap: 7px; }
-.wbr-card li { font-size: 0.78rem; padding-left: 16px; position: relative; line-height: 1.5; color: #374151; }
-.wbr-card li::before { content: '→'; position: absolute; left: 0; color: var(--text-muted); }
-.wbr-books { margin-bottom: 32px; }
-.wbr-books-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
-.wbr-books-header h2 { font-size: 1rem; font-weight: 700; margin-bottom: 4px; }
-.wbr-refresh-note { font-size: 0.72rem; color: var(--text-muted); }
-.wbr-book-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
-.wbr-book { display: flex; flex-direction: column; gap: 12px; background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 16px; transition: all 0.2s; }
-.wbr-book:hover { box-shadow: var(--shadow-sm); transform: translateY(-2px); }
-.wbr-book-cover { width: 48px; height: 64px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; }
-.wbr-book strong { font-size: 0.85rem; display: block; margin-bottom: 2px; }
-.wbrb-author { font-size: 0.72rem; color: var(--text-muted); display: block; margin-bottom: 6px; }
-.wbrb-why { font-size: 0.75rem; color: var(--text-secondary); line-height: 1.5; margin: 0; }
+.wellbeing_resources_view { max-width: 900px; }
+.wellbeing_resources_header { margin-bottom: 24px; }
+.wellbeing_resources_header h1 { font-size: 1.5rem; font-weight: 800; margin-bottom: 4px; }
+.wellbeing_resources_header p { font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 8px; }
+.wellbeing_resources_season { font-size: 0.78rem; background: var(--purple-bg); color: var(--purple); padding: 4px 12px; border-radius: 99px; font-weight: 600; }
+.wellbeing_resources_grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; margin-bottom: 40px; }
+.wellbeing_resources_card { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 20px; transition: all 0.2s; }
+.wellbeing_resources_card:hover { box-shadow: var(--shadow-sm); transform: translateY(-2px); }
+.wellbeing_resources_green { border-top: 3px solid var(--green); }
+.wellbeing_resources_red { border-top: 3px solid #ef4444; }
+.wellbeing_resources_blue { border-top: 3px solid #3b82f6; }
+.wellbeing_resources_purple { border-top: 3px solid var(--purple); }
+.wellbeing_resources_amber { border-top: 3px solid #f59e0b; }
+.wbrc_icon { font-size: 2rem; display: block; margin-bottom: 10px; }
+.wellbeing_resources_card h3 { font-size: 0.95rem; font-weight: 700; margin-bottom: 6px; }
+.wellbeing_resources_card p { font-size: 0.78rem; color: var(--text-secondary); line-height: 1.5; margin-bottom: 12px; }
+.wellbeing_resources_card ul { list-style: none; display: flex; flex-direction: column; gap: 7px; }
+.wellbeing_resources_card li { font-size: 0.78rem; padding-left: 16px; position: relative; line-height: 1.5; color: #374151; }
+.wellbeing_resources_card li::before { content: '→'; position: absolute; left: 0; color: var(--text-muted); }
+.wellbeing_resources_books { margin-bottom: 32px; }
+.wellbeing_resources_books_header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+.wellbeing_resources_books_header h2 { font-size: 1rem; font-weight: 700; margin-bottom: 4px; }
+.wellbeing_resources_refresh_note { font-size: 0.72rem; color: var(--text-muted); }
+.wellbeing_resources_book_grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+.wellbeing_resources_book { display: flex; flex-direction: column; gap: 12px; background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 16px; transition: all 0.2s; }
+.wellbeing_resources_book:hover { box-shadow: var(--shadow-sm); transform: translateY(-2px); }
+.wellbeing_resources_book_cover { width: 48px; height: 64px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; }
+.wellbeing_resources_book strong { font-size: 0.85rem; display: block; margin-bottom: 2px; }
+.wbrb_author { font-size: 0.72rem; color: var(--text-muted); display: block; margin-bottom: 6px; }
+.wbrb_why { font-size: 0.75rem; color: var(--text-secondary); line-height: 1.5; margin: 0; }
 @media (max-width: 768px) {
-  .wbr-grid { grid-template-columns: 1fr; }
-  .wbr-book-grid { grid-template-columns: 1fr 1fr; }
+  .wellbeing_resources_grid { grid-template-columns: 1fr; }
+  .wellbeing_resources_book_grid { grid-template-columns: 1fr 1fr; }
 }
 </style>

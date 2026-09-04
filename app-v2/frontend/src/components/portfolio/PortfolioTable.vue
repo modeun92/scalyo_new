@@ -1,44 +1,44 @@
 <template>
-  <div class="table-wrap">
-    <div class="th">
-      <span class="c-name">{{ t('port_field_name') }}</span>
-      <span class="c-ind hide-sm">{{ t('port_field_industry') }}</span>
-      <span class="c-arr">{{ t('kpi_arr') }}</span>
-      <span class="c-h">{{ t('cd_health') }}</span>
-      <span class="c-st hide-sm">{{ t('port_field_status') }}</span>
-      <span class="c-csm hide-md">{{ t('port_field_agent') }}</span>
-      <span class="c-ren hide-md">{{ t('port_renewal') }}</span>
-      <span class="c-act hide-sm"></span>
+  <div class="table_wrapper">
+    <div class="table_head">
+      <span class="client_name">{{ t('port_field_name') }}</span>
+      <span class="client_indicator hide_small">{{ t('port_field_industry') }}</span>
+      <span class="client_arr">{{ t('kpi_arr') }}</span>
+      <span class="client_header">{{ t('cd_health') }}</span>
+      <span class="client_st hide_small">{{ t('port_field_status') }}</span>
+      <span class="client_csm hide_medium">{{ t('port_field_agent') }}</span>
+      <span class="client_renewal hide_medium">{{ t('port_renewal') }}</span>
+      <span class="client_action hide_small"></span>
     </div>
-    <div v-for="c in clients" :key="c.id" class="tr" @click="$emit('open', c)">
-      <div class="c-name">
+    <div v-for="c in clients" :key="c.id" class="table_row" @click="$emit('open', c)">
+      <div class="client_name">
         <div class="av" :class="statusOf(c)">{{ c.name[0] }}</div>
         <div>
           <strong>
             {{ c.name }}
-            <span v-if="c.lifecycle === 'prospect'" class="lc-badge" :class="'stage-' + (c.pipeline_stage || 'new')">{{ t('port_stage_' + (c.pipeline_stage || 'new')) }}</span>
+            <span v-if="c.lifecycle === 'prospect'" class="library_card_badge" :class="'stage_' + (c.pipeline_stage || 'new')">{{ t('port_stage_' + (c.pipeline_stage || 'new')) }}</span>
           </strong>
           <span class="sub" v-if="mainContact(c)">
             {{ mainContact(c).name }}<template v-if="mainContact(c).role"> · {{ mainContact(c).role }}</template>
           </span>
         </div>
       </div>
-      <span class="c-ind hide-sm">{{ c.industry }}</span>
+      <span class="client_indicator hide_small">{{ c.industry }}</span>
       <!-- CURRENCY-FORMAT: account currency, locale formatting ("118 k€" / "€118K"), no more hard-coded "€" -->
-      <span class="c-arr fw">{{ fmtCurrency(c.arr, { compact: true }) }}<small v-if="wonAmount(c.id) > 0" class="c-signed">{{ t('port_ca_signed') }} {{ fmtCurrency(wonAmount(c.id), { compact: true }) }}</small></span>
+      <span class="client_arr fw">{{ fmtCurrency(c.arr, { compact: true }) }}<small v-if="wonAmount(c.id) > 0" class="client_signed">{{ t('port_ca_signed') }} {{ fmtCurrency(wonAmount(c.id), { compact: true }) }}</small></span>
       <!-- HEALTH-SCALE: localized score out of 10, pill/badge/avatar colored by the EFFECTIVE status
            (the same function as the counters and filters) — never again a raw c.status -->
-      <span class="c-h">
+      <span class="client_header">
         <span class="pill" :class="healthTone(statusOf(c))">{{ fmtHealth(c.health) }}</span>
       </span>
-      <span class="c-st hide-sm">
+      <span class="client_st hide_small">
         <span class="sbadge" :class="statusOf(c)">{{ t('status_' + statusOf(c)) }}</span>
       </span>
-      <span class="c-csm hide-md">{{ c.csm }}</span>
-      <span class="c-ren hide-md" :class="{ soon: renewSoon(c) }">
+      <span class="client_csm hide_medium">{{ c.csm }}</span>
+      <span class="client_renewal hide_medium" :class="{ soon: renewSoon(c) }">
         {{ fmtDate(c.renewalDate) }}
       </span>
-      <span class="c-act hide-sm">
+      <span class="client_action hide_small">
         <button class="rb" @click.stop="$emit('edit', c)" :title="t('edit')">✏️</button>
         <template v-if="deleteId === c.id">
           <button class="rb del active" @click.stop="$emit('delete', c)" :title="t('port_delete_step2')">✓</button>
@@ -78,5 +78,5 @@ function mainContact(c) {
 </script>
 
 <style scoped>
-.c-signed { display: block; font-size: 0.66rem; font-weight: 600; color: var(--green, #10b981); margin-top: 2px; line-height: 1.2; }
+.client_signed { display: block; font-size: 0.66rem; font-weight: 600; color: var(--green, #10b981); margin-top: 2px; line-height: 1.2; }
 </style>

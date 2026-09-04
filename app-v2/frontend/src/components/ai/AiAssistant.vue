@@ -1,49 +1,49 @@
 <template>
-  <div v-if="showAgent" class="ai-agent">
-    <button class="ai-fab" @click="open = !open" :title="t('ai_agent_title')">
-      <span class="ai-fab-icon">🧠</span>
-      <span v-if="ctxLabel" class="ai-fab-ctx">{{ ctxLabel }}</span>
+  <div v-if="showAgent" class="ai_agent">
+    <button class="ai_fab" @click="open = !open" :title="t('ai_agent_title')">
+      <span class="ai_fab_icon">🧠</span>
+      <span v-if="ctxLabel" class="ai_fab_context">{{ ctxLabel }}</span>
     </button>
 
-    <transition name="ai-slide">
-      <div v-if="open" class="ai-panel">
-        <div class="ai-header">
-          <div class="ai-header-left">
-            <span class="ai-header-icon">🧠</span>
+    <transition name="ai_slide">
+      <div v-if="open" class="ai_panel">
+        <div class="ai_header">
+          <div class="ai_header_left">
+            <span class="ai_header_icon">🧠</span>
             <div>
               <strong>{{ t('ai_agent_name') }}</strong>
-              <span class="ai-ctx-badge">{{ ctxLabel }}</span>
+              <span class="ai_context_badge">{{ ctxLabel }}</span>
             </div>
           </div>
-          <button class="ai-new-conv" @click="newConversation" :title="t('ai_new_conv')">+</button>
-          <button class="ai-close" @click="open = false">✕</button>
+          <button class="ai_new_conv" @click="newConversation" :title="t('ai_new_conv')">+</button>
+          <button class="ai_close" @click="open = false">✕</button>
         </div>
 
-        <div class="ai-messages" ref="msgsRef">
-          <div v-if="!messages.length" class="ai-welcome">
+        <div class="ai_messages" ref="msgsRef">
+          <div v-if="!messages.length" class="ai_welcome">
             <p>{{ t('ai_agent_welcome') }}</p>
-            <div class="ai-suggestions">
-              <button v-for="s in suggestions" :key="s" class="ai-sug" @click="send(t(s))">{{ t(s) }}</button>
+            <div class="ai_suggestions">
+              <button v-for="s in suggestions" :key="s" class="ai_suggestion" @click="send(t(s))">{{ t(s) }}</button>
             </div>
           </div>
-          <div v-for="msg in messages" :key="msg.id" class="ai-msg" :class="msg.role">
-            <div class="ai-msg-av">{{ msg.role === 'user' ? '👤' : '🧠' }}</div>
-            <div class="ai-msg-body" v-html="fmt(msg.content)" />
+          <div v-for="msg in messages" :key="msg.id" class="ai_message" :class="msg.role">
+            <div class="ai_message_avatar">{{ msg.role === 'user' ? '👤' : '🧠' }}</div>
+            <div class="ai_message_body" v-html="fmt(msg.content)" />
           </div>
-          <div v-if="thinking" class="ai-msg assistant">
-            <div class="ai-msg-av">🧠</div>
-            <div class="ai-msg-body"><div class="ai-dots"><span /><span /><span /></div></div>
+          <div v-if="thinking" class="ai_message assistant">
+            <div class="ai_message_avatar">🧠</div>
+            <div class="ai_message_body"><div class="ai_dots"><span /><span /><span /></div></div>
           </div>
         </div>
 
-        <div class="ai-input-row">
+        <div class="ai_input_row">
           <input
             v-model="input"
             :placeholder="t('ai_agent_placeholder')"
             @keydown.enter="send(input)"
             :disabled="thinking"
           />
-          <button class="ai-send" @click="send(input)" :disabled="!input.trim() || thinking">→</button>
+          <button class="ai_send" @click="send(input)" :disabled="!input.trim() || thinking">→</button>
         </div>
       </div>
     </transition>
@@ -162,59 +162,59 @@ async function send(text) {
 </script>
 
 <style scoped>
-.ai-agent { position: fixed; bottom: 24px; right: 88px; z-index: 401; }
-.ai-fab { display: flex; align-items: center; gap: 6px; padding: 10px 16px; border-radius: 28px; background: linear-gradient(135deg, #7c3aed, #a78bfa); color: #fff; border: none; font-size: 0.85rem; font-weight: 600; box-shadow: 0 4px 20px rgba(124,58,237,0.35); cursor: pointer; transition: all 0.2s; }
-.ai-fab:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(124,58,237,0.45); }
-.ai-fab-icon { font-size: 1.2rem; }
-.ai-fab-ctx { font-size: 0.75rem; opacity: 0.9; }
+.ai_agent { position: fixed; bottom: 24px; right: 88px; z-index: 401; }
+.ai_fab { display: flex; align-items: center; gap: 6px; padding: 10px 16px; border-radius: 28px; background: linear-gradient(135deg, #7c3aed, #a78bfa); color: #fff; border: none; font-size: 0.85rem; font-weight: 600; box-shadow: 0 4px 20px rgba(124,58,237,0.35); cursor: pointer; transition: all 0.2s; }
+.ai_fab:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(124,58,237,0.45); }
+.ai_fab_icon { font-size: 1.2rem; }
+.ai_fab_context { font-size: 0.75rem; opacity: 0.9; }
 
-.ai-panel { position: absolute; bottom: 56px; right: 0; width: 400px; height: 520px; background-color: var(--bg-card); border-radius: 16px; box-shadow: 0 12px 48px rgba(0,0,0,0.15); border: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
-.ai-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid var(--border-light); background: linear-gradient(135deg, #f5f3ff, #ede9fe); }
-.ai-header-left { display: flex; align-items: center; gap: 10px; }
-.ai-header-icon { font-size: 1.4rem; }
-.ai-header-left strong { font-size: 0.9rem; display: block; }
-.ai-ctx-badge { font-size: 0.7rem; color: var(--purple); font-weight: 600; }
-.ai-new-conv {
+.ai_panel { position: absolute; bottom: 56px; right: 0; width: 400px; height: 520px; background-color: var(--bg-card); border-radius: 16px; box-shadow: 0 12px 48px rgba(0,0,0,0.15); border: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+.ai_header { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid var(--border-light); background: linear-gradient(135deg, #f5f3ff, #ede9fe); }
+.ai_header_left { display: flex; align-items: center; gap: 10px; }
+.ai_header_icon { font-size: 1.4rem; }
+.ai_header_left strong { font-size: 0.9rem; display: block; }
+.ai_context_badge { font-size: 0.7rem; color: var(--purple); font-weight: 600; }
+.ai_new_conv {
   background: none; border: 1px solid var(--border-color, #e0e0e0); color: var(--text-secondary, #888);
   width: 28px; height: 28px; border-radius: 6px; cursor: pointer; font-size: 18px; line-height: 1;
   display: flex; align-items: center; justify-content: center;
 }
-.ai-new-conv:hover { background: var(--bg-hover, #f0f0f0); color: var(--text-primary, #333); }
-.ai-close { background: none; border: none; font-size: 1rem; color: var(--text-muted); cursor: pointer; padding: 4px 8px; }
+.ai_new_conv:hover { background: var(--bg-hover, #f0f0f0); color: var(--text-primary, #333); }
+.ai_close { background: none; border: none; font-size: 1rem; color: var(--text-muted); cursor: pointer; padding: 4px 8px; }
 
-.ai-messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
-.ai-welcome { text-align: center; padding: 20px 0; }
-.ai-welcome p { color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 16px; }
-.ai-suggestions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
-.ai-sug { padding: 8px 14px; border-radius: 20px; border: 1px solid var(--border); background-color: var(--bg-card); font-size: 0.78rem; color: var(--text-secondary); cursor: pointer; transition: all 0.15s; }
-.ai-sug:hover { border-color: var(--purple); color: var(--purple); background: var(--purple-bg); }
+.ai_messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.ai_welcome { text-align: center; padding: 20px 0; }
+.ai_welcome p { color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 16px; }
+.ai_suggestions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.ai_suggestion { padding: 8px 14px; border-radius: 20px; border: 1px solid var(--border); background-color: var(--bg-card); font-size: 0.78rem; color: var(--text-secondary); cursor: pointer; transition: all 0.15s; }
+.ai_suggestion:hover { border-color: var(--purple); color: var(--purple); background: var(--purple-bg); }
 
-.ai-msg { display: flex; gap: 8px; }
-.ai-msg.user { flex-direction: row-reverse; }
-.ai-msg-av { font-size: 1.1rem; flex-shrink: 0; margin-top: 2px; }
-.ai-msg-body { padding: 10px 14px; border-radius: 14px; font-size: 0.84rem; line-height: 1.55; max-width: 80%; word-break: break-word; }
-.ai-msg.user .ai-msg-body { background: var(--purple); color: #fff; border-bottom-right-radius: 4px; }
-.ai-msg.assistant .ai-msg-body { background: var(--bg); color: var(--text); border-bottom-left-radius: 4px; }
-.ai-msg-body :deep(strong) { font-weight: 700; }
+.ai_message { display: flex; gap: 8px; }
+.ai_message.user { flex-direction: row-reverse; }
+.ai_message_avatar { font-size: 1.1rem; flex-shrink: 0; margin-top: 2px; }
+.ai_message_body { padding: 10px 14px; border-radius: 14px; font-size: 0.84rem; line-height: 1.55; max-width: 80%; word-break: break-word; }
+.ai_message.user .ai_message_body { background: var(--purple); color: #fff; border-bottom-right-radius: 4px; }
+.ai_message.assistant .ai_message_body { background: var(--bg); color: var(--text); border-bottom-left-radius: 4px; }
+.ai_message_body :deep(strong) { font-weight: 700; }
 
-.ai-dots { display: flex; gap: 4px; padding: 4px 0; }
-.ai-dots span { width: 6px; height: 6px; background: var(--purple); border-radius: 50%; animation: ai-bounce 1.4s infinite; }
-.ai-dots span:nth-child(2) { animation-delay: 0.2s; }
-.ai-dots span:nth-child(3) { animation-delay: 0.4s; }
+.ai_dots { display: flex; gap: 4px; padding: 4px 0; }
+.ai_dots span { width: 6px; height: 6px; background: var(--purple); border-radius: 50%; animation: ai-bounce 1.4s infinite; }
+.ai_dots span:nth-child(2) { animation-delay: 0.2s; }
+.ai_dots span:nth-child(3) { animation-delay: 0.4s; }
 @keyframes ai-bounce { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-4px); } }
 
-.ai-input-row { display: flex; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--border-light); }
-.ai-input-row input { flex: 1; padding: 10px 14px; border: 1px solid var(--border); border-radius: 24px; font-size: 0.84rem; outline: none; transition: border-color 0.15s; }
-.ai-input-row input:focus { border-color: var(--purple); }
-.ai-send { width: 38px; height: 38px; border-radius: 50%; background: var(--purple); color: #fff; border: none; font-size: 1rem; cursor: pointer; transition: opacity 0.15s; display: flex; align-items: center; justify-content: center; }
-.ai-send:disabled { opacity: 0.4; cursor: not-allowed; }
+.ai_input_row { display: flex; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--border-light); }
+.ai_input_row input { flex: 1; padding: 10px 14px; border: 1px solid var(--border); border-radius: 24px; font-size: 0.84rem; outline: none; transition: border-color 0.15s; }
+.ai_input_row input:focus { border-color: var(--purple); }
+.ai_send { width: 38px; height: 38px; border-radius: 50%; background: var(--purple); color: #fff; border: none; font-size: 1rem; cursor: pointer; transition: opacity 0.15s; display: flex; align-items: center; justify-content: center; }
+.ai_send:disabled { opacity: 0.4; cursor: not-allowed; }
 
-.ai-slide-enter-active, .ai-slide-leave-active { transition: all 0.25s ease; }
-.ai-slide-enter-from, .ai-slide-leave-to { opacity: 0; transform: translateY(12px) scale(0.95); }
+.ai_slide-enter-active, .ai_slide-leave-active { transition: all 0.25s ease; }
+.ai_slide-enter-from, .ai_slide-leave-to { opacity: 0; transform: translateY(12px) scale(0.95); }
 
 @media (max-width: 768px) {
-  .ai-agent { bottom: 88px; right: 16px; }
-  .ai-panel { position: fixed; inset: 0; width: 100%; height: 100%; border-radius: 0; bottom: auto; right: auto; }
-  .ai-fab-ctx { display: none; }
+  .ai_agent { bottom: 88px; right: 16px; }
+  .ai_panel { position: fixed; inset: 0; width: 100%; height: 100%; border-radius: 0; bottom: auto; right: auto; }
+  .ai_fab_context { display: none; }
 }
 </style>

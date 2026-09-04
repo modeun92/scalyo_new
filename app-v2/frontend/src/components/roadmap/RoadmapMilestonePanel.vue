@@ -1,44 +1,44 @@
 <template>
-  <Transition name="so-slide">
-    <div v-if="open" class="so-overlay" @click.self="$emit('close')">
-      <div class="so-panel">
-        <div class="so-head">
+  <Transition name="slide_over_slide">
+    <div v-if="open" class="roadmap_slide_over_overlay" @click.self="$emit('close')">
+      <div class="main_slide_over_panel">
+        <div class="roadmap_slide_over_header">
           <h3>{{ isEdit ? t('edit') : t('rm_add_milestone') }}</h3>
-          <button class="so-close" @click="$emit('close')">✕</button>
+          <button class="roadmap_slide_over_close" @click="$emit('close')">✕</button>
         </div>
-        <div class="so-body">
-          <div class="fg">
+        <div class="roadmap_slide_over_body">
+          <div class="field_group">
             <label>{{ t('rm_milestone_title') }} *</label>
-            <input v-model="form.title" class="fi" />
+            <input v-model="form.title" class="field_input" />
           </div>
-          <div class="fr mt">
-            <div class="fg">
+          <div class="field_row mt">
+            <div class="field_group">
               <label>{{ t('rm_milestone_start') }}</label>
-              <input v-model="form.startDate" type="date" class="fi" />
+              <input v-model="form.startDate" type="date" class="field_input" />
             </div>
-            <div class="fg">
+            <div class="field_group">
               <label>{{ t('rm_milestone_end') }}</label>
-              <input v-model="form.endDate" type="date" class="fi" />
+              <input v-model="form.endDate" type="date" class="field_input" />
             </div>
           </div>
-          <div class="fg mt">
+          <div class="field_group mt">
             <label>{{ t('rm_milestone_status') }}</label>
-            <select v-model="form.status" class="fi">
+            <select v-model="form.status" class="field_input">
               <option value="todo">{{ t('rm_ms_todo') }}</option>
               <option value="in_progress">{{ t('rm_ms_progress') }}</option>
               <option value="done">{{ t('rm_ms_done') }}</option>
               <option value="blocked">{{ t('rm_ms_blocked') }}</option>
             </select>
           </div>
-          <div class="fg mt">
+          <div class="field_group mt">
             <label>{{ t('rm_milestone_notes') }}</label>
-            <textarea v-model="form.notes" class="fi ta" rows="3" />
+            <textarea v-model="form.notes" class="field_input textarea" rows="3" />
           </div>
-          <div class="so-actions">
-            <button v-if="isEdit" class="btn-danger-outline" @click="doDelete">{{ t('delete') }}</button>
+          <div class="slide_over_actions">
+            <button v-if="isEdit" class="button_danger_outline" @click="doDelete">{{ t('delete') }}</button>
             <div style="flex:1" />
-            <button class="btn-outline" @click="$emit('close')">{{ t('cancel') }}</button>
-            <button class="btn-primary" @click="doSave" :disabled="!form.title">{{ t('save') }}</button>
+            <button class="button_outline" @click="$emit('close')">{{ t('cancel') }}</button>
+            <button class="button_primary" @click="doSave" :disabled="!form.title">{{ t('save') }}</button>
           </div>
         </div>
       </div>

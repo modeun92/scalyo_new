@@ -1,49 +1,49 @@
 <template>
-<div class="es-right">
-  <div v-if="selected" class="es-preview">
-    <div class="esp-header">
+<div class="email_studio_right">
+  <div v-if="selected" class="email_studio_preview">
+    <div class="email_studio_preview_header">
       <h2>{{ selected.source === 'custom' ? selected.name : t(selected.nameKey) }}</h2>
-      <div class="esp-actions">
-        <span class="esp-cat" :class="catClass(selected.categoryKey || selected.category)">
+      <div class="email_studio_preview_actions">
+        <span class="email_studio_preview_category" :class="catClass(selected.categoryKey || selected.category)">
           {{ t('es_cat_' + (selected.categoryKey || selected.category)) }}
         </span>
-        <button class="btn-outline" @click="resetToTemplate" :title="t('es_reset')">
+        <button class="button_outline" @click="resetToTemplate" :title="t('es_reset')">
           {{ t('es_reset') }}
         </button>
-        <button class="btn-outline" @click="$emit('save-template')" :title="t('es_save_template')">
+        <button class="button_outline" @click="$emit('save-template')" :title="t('es_save_template')">
           {{ t('es_save_template') }}
         </button>
-        <button class="btn-primary" @click="copyEmail">
+        <button class="button_primary" @click="copyEmail">
           {{ copied ? t('es_copied') : t('es_copy') }}
         </button>
         <template v-if="isElite">
-          <button class="btn-send" @click="$emit('open-send')" :disabled="!selected || !hasResendKey">
+          <button class="button_send" @click="$emit('open-send')" :disabled="!selected || !hasResendKey">
             {{ !hasResendKey ? t('es_resend_required') : t('es_send') }}
           </button>
         </template>
         <template v-else>
-          <div class="es-elite-gate" :title="t('es_elite_tooltip')">
+          <div class="email_studio_elite_gate" :title="t('es_elite_tooltip')">
             <span>{{ t('es_elite_badge') }}</span>
           </div>
         </template>
       </div>
     </div>
 
-    <div class="esp-field">
-      <label class="esp-label">{{ t('es_subject') }}</label>
+    <div class="email_studio_preview_field">
+      <label class="email_studio_preview_label">{{ t('es_subject') }}</label>
       <input
         type="text"
-        class="esp-input"
+        class="email_studio_preview_input"
         :value="editSubject"
         @input="$emit('update:editSubject', $event.target.value)"
         :placeholder="t('es_subject_placeholder')"
       />
     </div>
 
-    <div class="esp-field">
-      <label class="esp-label">{{ t('es_body') }}</label>
+    <div class="email_studio_preview_field">
+      <label class="email_studio_preview_label">{{ t('es_body') }}</label>
       <textarea
-        class="esp-textarea"
+        class="email_studio_preview_textarea"
         :value="editBody"
         @input="$emit('update:editBody', $event.target.value)"
         :placeholder="t('es_body_placeholder')"
@@ -52,8 +52,8 @@
     </div>
   </div>
 
-  <div v-else class="esp-empty">
-    <span class="esp-empty-icon">\ud83d\udce7</span>
+  <div v-else class="email_studio_preview_empty">
+    <span class="email_studio_preview_empty_icon">\ud83d\udce7</span>
     <p>{{ t('es_preview') }}</p>
   </div>
 </div>

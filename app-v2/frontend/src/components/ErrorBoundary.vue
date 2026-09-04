@@ -1,9 +1,9 @@
 <template>
-  <div v-if="error" class="error-boundary">
-    <div class="error-boundary-content">
-      <p class="error-boundary-title">{{ t('error_boundary_title') }}</p>
-      <p class="error-boundary-desc">{{ t('error_boundary_desc') }}</p>
-      <button class="btn-primary" @click="reset">{{ t('error_boundary_retry') }}</button>
+  <div v-if="error" class="error_boundary">
+    <div class="error_boundary_content">
+      <p class="error_boundary_title">{{ t('error_boundary_title') }}</p>
+      <p class="error_boundary_description">{{ t('error_boundary_desc') }}</p>
+      <button class="button_primary" @click="reset">{{ t('error_boundary_retry') }}</button>
     </div>
   </div>
   <slot v-else />
@@ -28,8 +28,8 @@ function reset() {
 </script>
 
 <style scoped>
-.error-boundary { display: flex; align-items: center; justify-content: center; min-height: 200px; padding: 32px; }
-.error-boundary-content { text-align: center; max-width: 400px; }
-.error-boundary-title { font-size: 16px; font-weight: 600; color: var(--text-primary, #111827); margin-bottom: 8px; }
-.error-boundary-desc { font-size: 14px; color: var(--text-muted, #9ca3af); margin-bottom: 16px; }
+.error_boundary { display: flex; align-items: center; justify-content: center; min-height: 200px; padding: 32px; }
+.error_boundary_content { text-align: center; max-width: 400px; }
+.error_boundary_title { font-size: 16px; font-weight: 600; color: var(--text-primary, #111827); margin-bottom: 8px; }
+.error_boundary_description { font-size: 14px; color: var(--text-muted, #9ca3af); margin-bottom: 16px; }
 </style>

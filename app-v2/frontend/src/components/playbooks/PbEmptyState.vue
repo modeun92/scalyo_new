@@ -1,9 +1,9 @@
 <template>
-  <div class="pb-empty">
-    <div class="empty-icon">📋</div>
+  <div class="playbook_empty">
+    <div class="empty_icon">📋</div>
     <h3>{{ t('pb_empty_title') }}</h3>
     <p>{{ t('pb_empty_desc') }}</p>
-    <button class="btn-primary" @click="$emit('activate')">
+    <button class="button_primary" @click="$emit('activate')">
       {{ t('pb_activate') }}
     </button>
   </div>

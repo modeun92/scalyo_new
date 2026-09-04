@@ -1,12 +1,12 @@
 <template>
-  <div class="legal-page">
-    <div class="legal-container">
-      <div class="legal-header">
-        <router-link to="/" class="legal-back">{{ c.legal_back }}</router-link>
+  <div class="legal_page">
+    <div class="legal_container">
+      <div class="legal_header">
+        <router-link to="/" class="legal_back">{{ c.legal_back }}</router-link>
         <h1>{{ c.cgu_title }}</h1>
-        <p class="legal-date">{{ c.legal_updated }}</p>
+        <p class="legal_date">{{ c.legal_updated }}</p>
       </div>
-      <div class="legal-content">
+      <div class="legal_content">
         <section v-for="s in sections" :key="s.key">
           <h2>{{ c[s.key + '_title'] }}</h2>
           <p v-if="s.key !== 'cgu_s6'">{{ c[s.key] }}</p>
@@ -39,5 +39,5 @@ const sections = [{key:'cgu_s1'},{key:'cgu_s2'},{key:'cgu_s3'},{key:'cgu_s4'},{k
 onMounted(() => { document.title = c.value.cgu_title + ' — Scalyo' })
 </script>
 <style scoped>
-.legal-page{min-height:100vh;background:var(--bg,#f8f9fb);padding:40px 20px}.legal-container{max-width:760px;margin:0 auto}.legal-header{margin-bottom:40px}.legal-back{color:var(--purple,#7c3aed);text-decoration:none;font-size:.9rem;font-weight:500}.legal-header h1{font-size:2rem;font-weight:800;margin-top:16px;margin-bottom:8px}.legal-date{color:var(--text-muted,#6b7280);font-size:.85rem}.legal-content{background:var(--bg-card,#fff);border-radius:16px;padding:40px;border:1px solid var(--border,#e5e7eb)}.legal-content section{margin-bottom:32px}.legal-content h2{font-size:1.1rem;font-weight:700;margin-bottom:12px;color:var(--text,#1a1a2e)}.legal-content p,.legal-content li{font-size:.9rem;line-height:1.7;color:var(--text,#1a1a2e);margin-bottom:8px}.legal-content ul{padding-left:20px}.legal-content a{color:var(--purple,#7c3aed)}
+.legal_page{min-height:100vh;background:var(--bg,#f8f9fb);padding:40px 20px}.legal_container{max-width:760px;margin:0 auto}.legal_header{margin-bottom:40px}.legal_back{color:var(--purple,#7c3aed);text-decoration:none;font-size:.9rem;font-weight:500}.legal_header h1{font-size:2rem;font-weight:800;margin-top:16px;margin-bottom:8px}.legal_date{color:var(--text-muted,#6b7280);font-size:.85rem}.legal_content{background:var(--bg-card,#fff);border-radius:16px;padding:40px;border:1px solid var(--border,#e5e7eb)}.legal_content section{margin-bottom:32px}.legal_content h2{font-size:1.1rem;font-weight:700;margin-bottom:12px;color:var(--text,#1a1a2e)}.legal_content p,.legal_content li{font-size:.9rem;line-height:1.7;color:var(--text,#1a1a2e);margin-bottom:8px}.legal_content ul{padding-left:20px}.legal_content a{color:var(--purple,#7c3aed)}
 </style>

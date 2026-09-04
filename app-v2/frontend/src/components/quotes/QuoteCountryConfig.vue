@@ -1,23 +1,23 @@
 <template>
   <SlideOver :open="open" :title="t('qt_config')" @close="$emit('close')">
-    <div class="sf">
-      <div class="fg">
+    <div class="slideover_form">
+      <div class="field_group">
         <label>{{ t('cl_country') }}</label>
-        <select v-model="country" class="fi" @change="$emit('update:country', country)">
+        <select v-model="country" class="field_input" @change="$emit('update:country', country)">
           <option v-for="c in countries" :key="c.code" :value="c.code">{{ c.flag }} {{ c.name }}</option>
         </select>
       </div>
-      <div class="qt-law-info">
+      <div class="quote_law_info">
         <!-- QUOTE-VAT (27/08): the store's real fields — taxRate and currency (ISO code) -->
-        <div class="qli-row"><span>{{ t('cl_tva') }}</span><strong>{{ laws.taxRate }}% ({{ laws.taxName }})</strong></div>
-        <div class="qli-row"><span>{{ t('cl_currency') }}</span><strong>{{ laws.currencySymbol }} ({{ laws.currency }})</strong></div>
-        <div class="qli-row"><span>{{ t('cl_legal_number') }}</span><strong>{{ legalLabel }}</strong></div>
+        <div class="qli_row"><span>{{ t('cl_tva') }}</span><strong>{{ laws.taxRate }}% ({{ laws.taxName }})</strong></div>
+        <div class="qli_row"><span>{{ t('cl_currency') }}</span><strong>{{ laws.currencySymbol }} ({{ laws.currency }})</strong></div>
+        <div class="qli_row"><span>{{ t('cl_legal_number') }}</span><strong>{{ legalLabel }}</strong></div>
       </div>
-      <div class="fg">
+      <div class="field_group">
         <label>{{ legalLabel }}</label>
-        <input v-model="legalNum" class="fi" :placeholder="laws.legalNumberFormat" />
+        <input v-model="legalNum" class="field_input" :placeholder="laws.legalNumberFormat" />
       </div>
-      <div class="qt-law-mention">
+      <div class="quote_law_mention">
         <strong>⚖️ {{ t('cl_data_law') }}</strong>
         <p>{{ laws.privacy }}</p>
       </div>

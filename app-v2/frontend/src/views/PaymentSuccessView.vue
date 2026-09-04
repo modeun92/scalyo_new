@@ -1,49 +1,49 @@
 <template>
-  <div class="success-page">
+  <div class="success_page">
     <!-- Confetti particles -->
-    <div class="confetti-wrap" aria-hidden="true">
-      <span v-for="i in 18" :key="i" class="confetti-piece" :style="confettiStyle(i)" />
+    <div class="confetti_wrapper" aria-hidden="true">
+      <span v-for="i in 18" :key="i" class="confetti_piece" :style="confettiStyle(i)" />
     </div>
 
-    <div class="success-card">
+    <div class="success_card">
       <!-- Logo -->
-      <div class="sc-logo">
+      <div class="success_logo">
         <ScalyoLogo :size="40" />
-        <span class="sc-brand">Scalyo</span>
+        <span class="success_brand">Scalyo</span>
       </div>
 
       <!-- Checkmark -->
-      <div class="sc-check">
+      <div class="success_check">
         <svg viewBox="0 0 56 56" fill="none" width="56" height="56">
           <circle cx="28" cy="28" r="28" fill="#dcfce7"/>
           <path d="M16 28l8 8 16-16" stroke="#16a34a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </div>
 
-      <h1 class="sc-title">{{ t('success_title') }}</h1>
-      <p class="sc-sub">{{ t('success_subtitle') }}</p>
+      <h1 class="success_title">{{ t('success_title') }}</h1>
+      <p class="success_sub">{{ t('success_subtitle') }}</p>
 
       <!-- Plan badge -->
-      <div v-if="planLabel" class="sc-plan-badge">
-        <span class="sc-plan-icon">⭐</span>
+      <div v-if="planLabel" class="success_plan_badge">
+        <span class="success_plan_icon">⭐</span>
         <span>{{ t('success_plan') }} <strong>{{ planLabel }}</strong></span>
       </div>
 
       <!-- What's next -->
-      <div class="sc-next">
-        <div class="sc-next-item">
-          <span class="sc-ni-icon">📧</span>
+      <div class="success_next">
+        <div class="success_next_item">
+          <span class="success_next_item_icon">📧</span>
           <span>{{ t('success_email_sent') }}</span>
         </div>
-        <div class="sc-next-item">
-          <span class="sc-ni-icon">🚀</span>
+        <div class="success_next_item">
+          <span class="success_next_item_icon">🚀</span>
           <span>{{ t('success_access_ready') }}</span>
         </div>
       </div>
 
-      <p v-if="provisioningPending" class="sc-pending">{{ t('success_provisioning_pending') }}</p>
+      <p v-if="provisioningPending" class="success_pending">{{ t('success_provisioning_pending') }}</p>
 
-      <button class="btn-primary sc-cta" @click="goToDashboard">
+      <button class="button_primary success_cta" @click="goToDashboard">
         {{ t('success_go_dashboard') }} →
       </button>
     </div>
@@ -129,7 +129,7 @@ function confettiStyle(i) {
 </script>
 
 <style scoped>
-.success-page {
+.success_page {
   min-height: 100vh;
   display: flex;
   align-items: center;
@@ -139,7 +139,7 @@ function confettiStyle(i) {
   position: relative;
   overflow: hidden;
 }
-.confetti-wrap {
+.confetti_wrapper {
   position: absolute;
   inset: 0;
   pointer-events: none;
@@ -147,7 +147,7 @@ function confettiStyle(i) {
   align-items: center;
   justify-content: center;
 }
-.confetti-piece {
+.confetti_piece {
   position: absolute;
   width: var(--size);
   height: var(--size);
@@ -161,7 +161,7 @@ function confettiStyle(i) {
   from { transform: translate(0, 0) scale(0); opacity: 0; }
   to   { transform: translate(var(--x), var(--y)) scale(1); opacity: 0.8; }
 }
-.success-card {
+.success_card {
   background: var(--bg-card);
   border-radius: 24px;
   padding: 48px 40px;
@@ -172,20 +172,20 @@ function confettiStyle(i) {
   position: relative;
   z-index: 1;
 }
-.sc-logo {
+.success_logo {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
   margin-bottom: 28px;
 }
-.sc-brand {
+.success_brand {
   font-size: 1.4rem;
   font-weight: 800;
   color: #7c3aed;
   letter-spacing: -0.5px;
 }
-.sc-check {
+.success_check {
   margin-bottom: 20px;
   animation: pop 0.4s 0.3s cubic-bezier(0.34,1.56,0.64,1) both;
 }
@@ -193,19 +193,19 @@ function confettiStyle(i) {
   from { transform: scale(0); opacity: 0; }
   to   { transform: scale(1); opacity: 1; }
 }
-.sc-title {
+.success_title {
   font-size: 1.6rem;
   font-weight: 800;
   margin-bottom: 8px;
   color: #111827;
 }
-.sc-sub {
+.success_sub {
   font-size: 0.9rem;
   color: var(--text-secondary);
   margin-bottom: 24px;
   line-height: 1.6;
 }
-.sc-plan-badge {
+.success_plan_badge {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -217,8 +217,8 @@ function confettiStyle(i) {
   color: #5b21b6;
   margin-bottom: 24px;
 }
-.sc-plan-icon { font-size: 1rem; }
-.sc-next {
+.success_plan_icon { font-size: 1rem; }
+.success_next {
   background: #f9fafb;
   border-radius: 12px;
   padding: 16px 20px;
@@ -228,16 +228,16 @@ function confettiStyle(i) {
   flex-direction: column;
   gap: 10px;
 }
-.sc-next-item {
+.success_next_item {
   display: flex;
   align-items: center;
   gap: 10px;
   font-size: 0.85rem;
   color: #374151;
 }
-.sc-ni-icon { font-size: 1.1rem; }
-.sc-pending { font-size: 0.82rem; color: #92400e; background: #fef3c7; border: 1px solid #fde68a; border-radius: 8px; padding: 8px 12px; margin-bottom: 16px; }
-.btn-primary {
+.success_next_item_icon { font-size: 1.1rem; }
+.success_pending { font-size: 0.82rem; color: #92400e; background: #fef3c7; border: 1px solid #fde68a; border-radius: 8px; padding: 8px 12px; margin-bottom: 16px; }
+.button_primary {
   background: var(--purple);
   color: #fff;
   border: none;
@@ -249,7 +249,7 @@ function confettiStyle(i) {
   width: 100%;
   transition: all 0.2s;
 }
-.btn-primary:hover {
+.button_primary:hover {
   background: #6d28d9;
   transform: translateY(-1px);
   box-shadow: 0 8px 24px rgba(124,58,237,0.3);

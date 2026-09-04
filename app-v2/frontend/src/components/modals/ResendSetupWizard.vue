@@ -1,9 +1,9 @@
 <template>
-<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60" @click.self="handleClose">
+<div class="fixed inset_0 z-50 flex items-center justify-center bg-black/60" @click.self="handleClose">
 <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-lg mx-4">
 <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
 <div class="flex items-center gap-3">
-<div class="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold">R</div>
+<div class="w-10 h-10 rounded-lg bg-gradient-to-br from_indigo_500 to_purple_600 flex items-center justify-center text-white font-bold">R</div>
 <div><h3 class="font-semibold text-slate-900 dark:text-white">{{ t('es_resend_wizard_title') }}</h3>
 <p class="text-xs text-slate-500">{{ t('es_resend_wizard_subtitle') }}</p></div></div>
 <button @click="handleClose" class="text-slate-400 hover:text-slate-600 p-1">&times;</button></div>

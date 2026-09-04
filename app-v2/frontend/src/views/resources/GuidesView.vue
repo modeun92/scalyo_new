@@ -1,51 +1,51 @@
 <template>
   <div class="gv">
-    <div class="gv-header">
+    <div class="guides_view_header">
       <h1>📖 {{ t('nav.guides') }}</h1>
       <p>{{ t('nav.guidesSub') }}</p>
     </div>
 
-    <div class="gv-tabs">
+    <div class="guides_view_tabs">
       <button v-for="cat in categories" :key="cat.key"
-              class="gv-tab" :class="{ active: activeTab === cat.key }"
+              class="guides_view_tab" :class="{ active: activeTab === cat.key }"
               @click="activeTab = cat.key">
         {{ cat.icon }} {{ cat.label }}
       </button>
     </div>
 
-    <div class="gv-list">
+    <div class="guides_view_list">
       <div v-for="process in filteredProcesses" :key="process.id"
-           class="gv-card" :class="{ open: openId === process.id }">
+           class="guides_view_card" :class="{ open: openId === process.id }">
 
-        <div class="gv-card-header" @click="openId = openId === process.id ? null : process.id">
-          <div class="gv-card-left">
-            <span class="gv-icon">{{ process.icon }}</span>
+        <div class="guides_view_card_header" @click="openId = openId === process.id ? null : process.id">
+          <div class="guides_view_card_left">
+            <span class="guides_view_icon">{{ process.icon }}</span>
             <div>
               <strong>{{ t(process.titleKey) }}</strong>
               <p>{{ t(process.descKey) }}</p>
-              <div class="gv-meta">
-                <span class="gv-steps-count">{{ process.steps.length }} {{ t('gv_steps_label') }}</span>
-                <span class="gv-time">⏱ {{ process.duration }}</span>
-                <span class="gv-level" :class="process.level">{{ t(process.levelKey) }}</span>
+              <div class="guides_view_meta">
+                <span class="guides_view_steps_count">{{ process.steps.length }} {{ t('gv_steps_label') }}</span>
+                <span class="guides_view_time">⏱ {{ process.duration }}</span>
+                <span class="guides_view_level" :class="process.level">{{ t(process.levelKey) }}</span>
               </div>
             </div>
           </div>
-          <span class="gv-chev">{{ openId === process.id ? '▾' : '▸' }}</span>
+          <span class="guides_view_chevron">{{ openId === process.id ? '▾' : '▸' }}</span>
         </div>
 
-        <div v-if="openId === process.id" class="gv-steps">
-          <div v-for="(step, i) in process.steps" :key="i" class="gv-step">
-            <div class="gv-step-num">{{ i + 1 }}</div>
-            <div class="gv-step-body">
+        <div v-if="openId === process.id" class="guides_view_steps">
+          <div v-for="(step, i) in process.steps" :key="i" class="guides_view_step">
+            <div class="guides_view_step_number">{{ i + 1 }}</div>
+            <div class="guides_view_step_body">
               <strong>{{ t(step.titleKey) }}</strong>
               <p>{{ t(step.descKey) }}</p>
-              <div v-if="step.tipKeys && step.tipKeys.length" class="gv-step-tips">
-                <span v-for="tipKey in step.tipKeys" :key="tipKey" class="gv-tip">💡 {{ t(tipKey) }}</span>
+              <div v-if="step.tipKeys && step.tipKeys.length" class="guides_view_step_tips">
+                <span v-for="tipKey in step.tipKeys" :key="tipKey" class="guides_view_tip">💡 {{ t(tipKey) }}</span>
               </div>
-              <div v-if="step.warnKey" class="gv-step-warning">⚠️ {{ t(step.warnKey) }}</div>
+              <div v-if="step.warnKey" class="guides_view_step_warning">⚠️ {{ t(step.warnKey) }}</div>
             </div>
           </div>
-          <div v-if="process.outcomeKey" class="gv-outcome">
+          <div v-if="process.outcomeKey" class="guides_view_outcome">
             <span>🎯 {{ t('gv_outcome_label') }}</span> {{ t(process.outcomeKey) }}
           </div>
         </div>
@@ -156,39 +156,39 @@ const filteredProcesses = computed(() =>
 
 <style scoped>
 .gv { max-width: 900px; }
-.gv-header { margin-bottom: 24px; }
-.gv-header h1 { font-size: 1.5rem; font-weight: 800; margin-bottom: 4px; }
-.gv-header p { font-size: 0.85rem; color: var(--text-secondary); }
-.gv-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 24px; }
-.gv-tab { background: var(--bg); border: none; padding: 7px 16px; border-radius: 8px; font-size: 0.78rem; font-weight: 500; color: var(--text-muted); cursor: pointer; transition: all 0.15s; }
-.gv-tab.active { background: var(--purple-bg); color: var(--purple); font-weight: 600; }
-.gv-tab:hover:not(.active) { background: var(--bg-hover); }
-.gv-list { display: flex; flex-direction: column; gap: 12px; }
-.gv-card { background: #fff; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; transition: all 0.2s; }
-.gv-card:hover { box-shadow: var(--shadow-sm); }
-.gv-card.open { border-color: var(--purple-border); }
-.gv-card-header { display: flex; align-items: flex-start; justify-content: space-between; padding: 20px; cursor: pointer; transition: background 0.15s; gap: 16px; }
-.gv-card-header:hover { background: var(--bg-hover); }
-.gv-card-left { display: flex; gap: 14px; flex: 1; min-width: 0; }
-.gv-icon { font-size: 1.8rem; flex-shrink: 0; }
-.gv-card-left strong { font-size: 0.95rem; font-weight: 700; display: block; margin-bottom: 4px; }
-.gv-card-left p { font-size: 0.78rem; color: var(--text-secondary); line-height: 1.5; margin-bottom: 8px; }
-.gv-meta { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-.gv-steps-count { font-size: 0.65rem; background: var(--purple-bg); color: var(--purple); padding: 2px 8px; border-radius: 4px; font-weight: 600; }
-.gv-time { font-size: 0.65rem; color: var(--text-muted); }
-.gv-level { font-size: 0.65rem; color: var(--text-muted); }
-.gv-chev { font-size: 0.85rem; color: var(--text-muted); flex-shrink: 0; margin-top: 4px; }
-.gv-steps { border-top: 1px solid var(--border-light); padding: 20px 24px; display: flex; flex-direction: column; gap: 0; }
-.gv-step { display: flex; gap: 16px; padding: 16px 0; border-bottom: 1px solid var(--border-light); position: relative; }
-.gv-step:last-child { border-bottom: none; }
-.gv-step-num { width: 32px; height: 32px; border-radius: 50%; background: var(--purple); color: #fff; font-size: 0.82rem; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px; }
-.gv-step-body { flex: 1; }
-.gv-step-body strong { font-size: 0.9rem; display: block; margin-bottom: 6px; }
-.gv-step-body p { font-size: 0.82rem; color: var(--text-secondary); line-height: 1.65; margin-bottom: 8px; }
-.gv-step-tips { display: flex; flex-direction: column; gap: 4px; margin-bottom: 6px; }
-.gv-tip { font-size: 0.75rem; color: #92400e; background: #fef3c7; padding: 4px 10px; border-radius: 6px; }
-.gv-step-warning { font-size: 0.75rem; color: #991b1b; background: #fee2e2; padding: 6px 12px; border-radius: 6px; }
-.gv-outcome { margin-top: 12px; padding: 14px 16px; background: #d1fae5; border-radius: 8px; font-size: 0.82rem; color: #065f46; }
-.gv-outcome span { font-weight: 700; }
-@media (max-width: 768px) { .gv-card-left { flex-direction: column; } }
+.guides_view_header { margin-bottom: 24px; }
+.guides_view_header h1 { font-size: 1.5rem; font-weight: 800; margin-bottom: 4px; }
+.guides_view_header p { font-size: 0.85rem; color: var(--text-secondary); }
+.guides_view_tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 24px; }
+.guides_view_tab { background: var(--bg); border: none; padding: 7px 16px; border-radius: 8px; font-size: 0.78rem; font-weight: 500; color: var(--text-muted); cursor: pointer; transition: all 0.15s; }
+.guides_view_tab.active { background: var(--purple-bg); color: var(--purple); font-weight: 600; }
+.guides_view_tab:hover:not(.active) { background: var(--bg-hover); }
+.guides_view_list { display: flex; flex-direction: column; gap: 12px; }
+.guides_view_card { background: #fff; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; transition: all 0.2s; }
+.guides_view_card:hover { box-shadow: var(--shadow-sm); }
+.guides_view_card.open { border-color: var(--purple-border); }
+.guides_view_card_header { display: flex; align-items: flex-start; justify-content: space-between; padding: 20px; cursor: pointer; transition: background 0.15s; gap: 16px; }
+.guides_view_card_header:hover { background: var(--bg-hover); }
+.guides_view_card_left { display: flex; gap: 14px; flex: 1; min-width: 0; }
+.guides_view_icon { font-size: 1.8rem; flex-shrink: 0; }
+.guides_view_card_left strong { font-size: 0.95rem; font-weight: 700; display: block; margin-bottom: 4px; }
+.guides_view_card_left p { font-size: 0.78rem; color: var(--text-secondary); line-height: 1.5; margin-bottom: 8px; }
+.guides_view_meta { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.guides_view_steps_count { font-size: 0.65rem; background: var(--purple-bg); color: var(--purple); padding: 2px 8px; border-radius: 4px; font-weight: 600; }
+.guides_view_time { font-size: 0.65rem; color: var(--text-muted); }
+.guides_view_level { font-size: 0.65rem; color: var(--text-muted); }
+.guides_view_chevron { font-size: 0.85rem; color: var(--text-muted); flex-shrink: 0; margin-top: 4px; }
+.guides_view_steps { border-top: 1px solid var(--border-light); padding: 20px 24px; display: flex; flex-direction: column; gap: 0; }
+.guides_view_step { display: flex; gap: 16px; padding: 16px 0; border-bottom: 1px solid var(--border-light); position: relative; }
+.guides_view_step:last-child { border-bottom: none; }
+.guides_view_step_number { width: 32px; height: 32px; border-radius: 50%; background: var(--purple); color: #fff; font-size: 0.82rem; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px; }
+.guides_view_step_body { flex: 1; }
+.guides_view_step_body strong { font-size: 0.9rem; display: block; margin-bottom: 6px; }
+.guides_view_step_body p { font-size: 0.82rem; color: var(--text-secondary); line-height: 1.65; margin-bottom: 8px; }
+.guides_view_step_tips { display: flex; flex-direction: column; gap: 4px; margin-bottom: 6px; }
+.guides_view_tip { font-size: 0.75rem; color: #92400e; background: #fef3c7; padding: 4px 10px; border-radius: 6px; }
+.guides_view_step_warning { font-size: 0.75rem; color: #991b1b; background: #fee2e2; padding: 6px 12px; border-radius: 6px; }
+.guides_view_outcome { margin-top: 12px; padding: 14px 16px; background: #d1fae5; border-radius: 8px; font-size: 0.82rem; color: #065f46; }
+.guides_view_outcome span { font-weight: 700; }
+@media (max-width: 768px) { .guides_view_card_left { flex-direction: column; } }
 </style>

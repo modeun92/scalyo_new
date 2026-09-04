@@ -1,15 +1,15 @@
 <template>
-  <div class="sv-panel">
-    <div class="sv-section">
+  <div class="settings_view_panel">
+    <div class="settings_view_section">
       <h3>{{ t('stg_tab_team') }}</h3>
-      <div class="team-list">
-        <div v-for="m in team.members" :key="m.id" class="team-row">
-          <div class="tr-avatar" :class="m.status">{{ m.name[0] }}</div>
-          <div class="tr-info">
+      <div class="team_list">
+        <div v-for="m in team.members" :key="m.id" class="team_row">
+          <div class="table_row_avatar" :class="m.status">{{ m.name[0] }}</div>
+          <div class="table_row_info">
             <strong>{{ m.name }}</strong>
             <span>{{ m.email }} · {{ m.role }}</span>
           </div>
-          <span class="tr-status" :class="m.status">
+          <span class="table_row_status" :class="m.status">
             {{ m.status === 'healthy' ? t('status_healthy') : t('kpi_overloaded') }}
           </span>
         </div>

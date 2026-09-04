@@ -1,52 +1,52 @@
 <template>
   <div class="manager">
     <!-- HEADER -->
-    <div class="mgr-header">
+    <div class="manager_header">
       <div>
-        <div class="manager-header-row">
+        <div class="manager_header_row">
           <h1>👥 {{ t('mgr_title') }}</h1>
         </div>
-        <p class="mgr-date">{{ formattedDate }}</p>
+        <p class="manager_date">{{ formattedDate }}</p>
       </div>
-      <div class="mgr-header-actions">
-        <button v-if="canCustomizeKpis" class="btn-customize" @click="customizerOpen = true">
+      <div class="manager_header_actions">
+        <button v-if="canCustomizeKpis" class="button_customize" @click="customizerOpen = true">
           ⚙ {{ t('kpi_cust_title') }}
         </button>
       </div>
-      <div class="mgr-kpis-top">
-        <div class="mkpi">
-          <span class="mkpi-value" :class="healthClass">{{ team.teamHealthScore ?? '—' }}</span>
-          <span class="mkpi-label">{{ t('mgr_global_health') }}</span>
+      <div class="manager_kpis_top">
+        <div class="kpi_manager">
+          <span class="kpi_manager_value" :class="healthClass">{{ team.teamHealthScore ?? '—' }}</span>
+          <span class="kpi_manager_label">{{ t('mgr_global_health') }}</span>
         </div>
-        <div class="mkpi">
+        <div class="kpi_manager">
           <!-- TEAM-METRICS (29/08): "Managed ARR" = real sum of the ARR of ASSIGNED clients
                (csm_id set), derived from the clients store — team.totalArrManaged is null by B-09 design -->
-          <span class="mkpi-value">{{ fmtCurrency(arrManagedTotal, { compact: true }) }}</span>
-          <span class="mkpi-label">{{ t('mgr_total_arr') }}</span>
+          <span class="kpi_manager_value">{{ fmtCurrency(arrManagedTotal, { compact: true }) }}</span>
+          <span class="kpi_manager_label">{{ t('mgr_total_arr') }}</span>
         </div>
-        <div class="mkpi">
+        <div class="kpi_manager">
           <!-- COUNT-353-352: ACTIVE clients (prospects excluded) — same base as the Dashboard donut -->
-          <span class="mkpi-value">{{ clients.clientsOnly.length }}</span>
-          <span class="mkpi-label">{{ t('mgr_total_clients') }}</span>
+          <span class="kpi_manager_value">{{ clients.clientsOnly.length }}</span>
+          <span class="kpi_manager_label">{{ t('mgr_total_clients') }}</span>
         </div>
-        <div class="mkpi">
+        <div class="kpi_manager">
           <!-- SEATS-MISMATCH: same source as the Team screen (/api/members + plan ceiling) -->
-          <span class="mkpi-value" :class="{ 'text-orange': team.seatsCap !== null && team.seats.used >= team.seatsCap }">{{ team.seats.used ?? '—' }}/{{ team.seatsCap === null ? '∞' : team.seatsCap }}</span>
-          <span class="mkpi-label">{{ t('mgr_seats') }}</span>
+          <span class="kpi_manager_value" :class="{ 'text_orange': team.seatsCap !== null && team.seats.used >= team.seatsCap }">{{ team.seats.used ?? '—' }}/{{ team.seatsCap === null ? '∞' : team.seatsCap }}</span>
+          <span class="kpi_manager_label">{{ t('mgr_seats') }}</span>
         </div>
       </div>
     </div>
 
     <!-- OXYGEN Lot 4: local tabs (Team | Oxygen) — zero new route, router untouched -->
-    <div class="mgr-tabs">
-      <button class="mgr-tab" :class="{ active: tab === 'team' }" @click="tab = 'team'">
+    <div class="manager_tabs">
+      <button class="manager_tab" :class="{ active: tab === 'team' }" @click="tab = 'team'">
         {{ t('mgr_tab_team') }}
       </button>
       <!-- D2: outside the plan → padlock, click goes to the paywall in upgrade mode -->
-      <button v-if="oxygenTeamLocked" class="mgr-tab mgr-tab--locked" @click="goOxygenPaywall">
-        🫧 {{ t('mgr_tab_oxygen') }} <span class="mgr-tab-lock">🔒</span>
+      <button v-if="oxygenTeamLocked" class="manager_tab manager_tab_locked" @click="goOxygenPaywall">
+        🫧 {{ t('mgr_tab_oxygen') }} <span class="manager_tab_lock">🔒</span>
       </button>
-      <button v-else class="mgr-tab" :class="{ active: tab === 'oxygen' }" @click="tab = 'oxygen'">
+      <button v-else class="manager_tab" :class="{ active: tab === 'oxygen' }" @click="tab = 'oxygen'">
         🫧 {{ t('mgr_tab_oxygen') }}
       </button>
     </div>
@@ -55,16 +55,16 @@
     <OxygenTeamPanel v-if="tab === 'oxygen' && !oxygenTeamLocked" />
 
     <!-- FILTERS -->
-    <div v-if="tab === 'team'" class="mgr-filters">
-      <select v-model="filterCsm" class="filter-select">
+    <div v-if="tab === 'team'" class="manager_filters">
+      <select v-model="filterCsm" class="filter_select">
         <option value="all">{{ t('mgr_filter_all_csm') }}</option>
         <option v-for="m in team.statsMembers" :key="m.id" :value="m.id">{{ m.name }}</option>
       </select>
-      <select v-model="filterLevel" class="filter-select">
+      <select v-model="filterLevel" class="filter_select">
         <option value="all">{{ t('mgr_filter_all_levels') }}</option>
         <option v-for="role in uniqueRoles" :key="role" :value="role">{{ role }}</option>
       </select>
-      <select v-model="filterStatus" class="filter-select">
+      <select v-model="filterStatus" class="filter_select">
         <option value="all">{{ t('mgr_filter_all_statuses') }}</option>
         <option value="healthy">{{ t('status_healthy') }}</option>
         <option value="overloaded">{{ t('kpi_overloaded') }}</option>
@@ -75,7 +75,7 @@
     <ManagerWellbeing v-if="tab === 'team'" :members="filteredMembers" />
 
     <!-- TWO COLUMNS -->
-    <div v-if="tab === 'team'" class="mgr-columns">
+    <div v-if="tab === 'team'" class="manager_columns">
       <ManagerPerformance :members="filteredMembers" />
       <ManagerPortfolio />
     </div>

@@ -1,16 +1,16 @@
 <template>
-  <div class="settings-view">
-    <div class="sv-header">
+  <div class="settings_view">
+    <div class="settings_view_header">
       <h1>⚙️ {{ t('stg_title') }}</h1>
-      <p class="sv-sub">{{ t('stg_subtitle') }}</p>
+      <p class="settings_view_sub">{{ t('stg_subtitle') }}</p>
     </div>
 
     <!-- Tabs -->
-    <div class="sv-tabs">
+    <div class="settings_view_tabs">
       <button
         v-for="tab in tabs"
         :key="tab.key"
-        class="sv-tab"
+        class="settings_view_tab"
         :class="{ active: activeTab === tab.key, danger: tab.danger }"
         @click="activeTab = tab.key"
       >
@@ -46,27 +46,27 @@
     <SettingsPreferences v-else-if="activeTab === 'appearance'" />
 
     <!-- Notifications -->
-    <div v-else-if="activeTab === 'notifications'" class="sv-panel">
-      <div class="sv-section">
+    <div v-else-if="activeTab === 'notifications'" class="settings_view_panel">
+      <div class="settings_view_section">
         <h3>{{ t('stg_tab_notif') }}</h3>
-        <div class="notif-settings">
-          <label class="ns-row">
+        <div class="notification_settings">
+          <label class="ns_row">
             <input type="checkbox" v-model="notif.churn" />
             {{ t('stg_notif_churn') }}
           </label>
-          <label class="ns-row">
+          <label class="ns_row">
             <input type="checkbox" v-model="notif.renewal" />
             {{ t('stg_notif_renewal') }}
           </label>
-          <label class="ns-row">
+          <label class="ns_row">
             <input type="checkbox" v-model="notif.burnout" />
             {{ t('stg_notif_burnout') }}
           </label>
-          <label class="ns-row">
+          <label class="ns_row">
             <input type="checkbox" v-model="notif.late_tasks" />
             {{ t('stg_notif_late_tasks') }}
           </label>
-          <label class="ns-row">
+          <label class="ns_row">
             <input type="checkbox" v-model="notif.nps" />
             {{ t('stg_notif_nps') }}
           </label>
@@ -75,52 +75,52 @@
     </div>
 
     <!-- Data & Account Deletion -->
-    <div v-else-if="activeTab === 'delete'" class="sv-panel">
+    <div v-else-if="activeTab === 'delete'" class="settings_view_panel">
       <!-- Export Data (RGPD Art. 20) -->
-      <div class="sv-section">
+      <div class="settings_view_section">
         <h3>{{ t('stg_export_title') }}</h3>
-        <p class="sv-desc">{{ t('stg_export_desc') }}</p>
+        <p class="settings_view_description">{{ t('stg_export_desc') }}</p>
         <button
-          class="sv-btn-secondary"
+          class="settings_view_button_secondary"
           :disabled="exportLoading"
           @click="handleExport"
         >
           {{ exportLoading ? t('stg_export_loading') : t('stg_export_btn') }}
         </button>
-        <p v-if="exportError" class="sv-field-error">{{ t('stg_export_error') }}</p>
-        <p v-if="exportSuccess" class="sv-field-success">{{ t('stg_export_success') }}</p>
+        <p v-if="exportError" class="settings_view_field_error">{{ t('stg_export_error') }}</p>
+        <p v-if="exportSuccess" class="settings_view_field_success">{{ t('stg_export_success') }}</p>
       </div>
 
       <!-- Delete Account (RGPD Art. 17) -->
-      <div class="sv-section danger-section">
+      <div class="settings_view_section danger_section">
         <h3>{{ t('stg_delete_title') }}</h3>
         <p>{{ t('stg_delete_warning') }}</p>
-        <div v-if="!deleteConfirmStep" class="delete-action">
-          <button class="btn-danger" @click="deleteConfirmStep = true">
+        <div v-if="!deleteConfirmStep" class="delete_action">
+          <button class="button_danger" @click="deleteConfirmStep = true">
             {{ t('stg_delete_btn') }}
           </button>
         </div>
-        <div v-else class="delete-confirm">
-          <p class="delete-confirm-msg">{{ t('stg_delete_confirm_msg') }}</p>
+        <div v-else class="delete_confirm">
+          <p class="delete_confirm_message">{{ t('stg_delete_confirm_msg') }}</p>
           <input
             v-model="deleteEmail"
             type="email"
             :placeholder="auth.user?.email"
-            class="sv-input"
+            class="settings_view_input"
           />
-          <div class="delete-confirm-actions">
+          <div class="delete_confirm_actions">
             <button
-              class="btn-danger"
+              class="button_danger"
               :disabled="deleteEmail !== auth.user?.email || deleteLoading"
               @click="handleDelete"
             >
               {{ deleteLoading ? t('stg_delete_loading') : t('stg_delete_confirm_btn') }}
             </button>
-            <button class="sv-btn-ghost" @click="cancelDelete">
+            <button class="settings_view_button_ghost" @click="cancelDelete">
               {{ t('stg_delete_cancel') }}
             </button>
           </div>
-          <p v-if="deleteError" class="sv-field-error">{{ t('stg_delete_error') }}</p>
+          <p v-if="deleteError" class="settings_view_field_error">{{ t('stg_delete_error') }}</p>
         </div>
       </div>
     </div>

@@ -1,71 +1,71 @@
 <template>
-  <div class="sv-panel">
+  <div class="settings_view_panel">
     <!-- Account Info -->
-    <div class="sv-section">
+    <div class="settings_view_section">
       <h3>{{ t('stg_account_info') }}</h3>
-      <div class="sv-form">
-        <div class="fg">
+      <div class="settings_view_form">
+        <div class="field_group">
           <label>{{ t('reg_firstname') }}</label>
-          <input v-model="localProfile.firstName" class="fi" />
+          <input v-model="localProfile.firstName" class="field_input" />
         </div>
-        <div class="fg">
+        <div class="field_group">
           <label>{{ t('reg_lastname') }}</label>
-          <input v-model="localProfile.lastName" class="fi" />
+          <input v-model="localProfile.lastName" class="field_input" />
         </div>
-        <div class="fg">
+        <div class="field_group">
           <label>{{ t('stg_email') }}</label>
-          <input v-model="localProfile.email" type="email" class="fi" disabled />
+          <input v-model="localProfile.email" type="email" class="field_input" disabled />
         </div>
-        <button class="btn-primary" :disabled="profileSaving" @click="$emit('save')">
+        <button class="button_primary" :disabled="profileSaving" @click="$emit('save')">
           {{ t('save') }}
         </button>
-        <p v-if="profileSaved" class="stg-saved">✓ {{ t('stg_profile_saved') }}</p>
-        <p v-if="profileError" class="sv-field-error">{{ t('stg_profile_error') }}</p>
+        <p v-if="profileSaved" class="settings_saved">✓ {{ t('stg_profile_saved') }}</p>
+        <p v-if="profileError" class="settings_view_field_error">{{ t('stg_profile_error') }}</p>
       </div>
     </div>
 
     <!-- Company -->
-    <div class="sv-section">
+    <div class="settings_view_section">
       <h3>{{ t('stg_company_name') }}</h3>
-      <div class="sv-form">
-        <div class="fg">
+      <div class="settings_view_form">
+        <div class="field_group">
           <label>{{ t('stg_company_name') }}</label>
-          <input v-model="localProfile.company" class="fi" />
+          <input v-model="localProfile.company" class="field_input" />
         </div>
-        <button class="btn-primary" :disabled="profileSaving" @click="$emit('save')">
+        <button class="button_primary" :disabled="profileSaving" @click="$emit('save')">
           {{ t('save') }}
         </button>
-        <p v-if="profileSaved" class="stg-saved">✓ {{ t('stg_profile_saved') }}</p>
-        <p v-if="profileError" class="sv-field-error">{{ t('stg_profile_error') }}</p>
+        <p v-if="profileSaved" class="settings_saved">✓ {{ t('stg_profile_saved') }}</p>
+        <p v-if="profileError" class="settings_view_field_error">{{ t('stg_profile_error') }}</p>
       </div>
     </div>
 
     <!-- Password -->
-    <div class="sv-section">
+    <div class="settings_view_section">
       <h3>{{ t('stg_change_pwd') }}</h3>
-      <div class="sv-form">
-        <div class="fg">
+      <div class="settings_view_form">
+        <div class="field_group">
           <label>{{ t('stg_current_pwd') }}</label>
-          <input v-model="localPwd.current" type="password" class="fi" autocomplete="current-password" />
+          <input v-model="localPwd.current" type="password" class="field_input" autocomplete="current-password" />
         </div>
-        <div class="fg">
+        <div class="field_group">
           <label>{{ t('stg_new_pwd') }}</label>
-          <input v-model="localPwd.newPwd" type="password" class="fi" autocomplete="new-password" />
-          <span class="fi-hint">{{ t('stg_pwd_hint') }}</span>
+          <input v-model="localPwd.newPwd" type="password" class="field_input" autocomplete="new-password" />
+          <span class="field_input_hint">{{ t('stg_pwd_hint') }}</span>
         </div>
-        <div class="fg">
+        <div class="field_group">
           <label>{{ t('stg_confirm_pwd') }}</label>
-          <input v-model="localPwd.confirm" type="password" class="fi" autocomplete="new-password" />
+          <input v-model="localPwd.confirm" type="password" class="field_input" autocomplete="new-password" />
         </div>
         <button
-          class="btn-primary"
+          class="button_primary"
           :disabled="pwdSaving || !localPwd.current || !localPwd.newPwd || localPwd.newPwd.length < 8 || localPwd.newPwd !== localPwd.confirm"
           @click="$emit('change-pwd')"
         >
           {{ t('stg_change_btn') }}
         </button>
-        <p v-if="pwdSaved" class="stg-saved">✓ {{ t('stg_pwd_changed') }}</p>
-        <p v-if="pwdErrorKey" class="sv-field-error">{{ t(pwdErrorKey) }}</p>
+        <p v-if="pwdSaved" class="settings_saved">✓ {{ t('stg_pwd_changed') }}</p>
+        <p v-if="pwdErrorKey" class="settings_view_field_error">{{ t(pwdErrorKey) }}</p>
       </div>
     </div>
   </div>

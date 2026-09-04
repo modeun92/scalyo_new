@@ -4,30 +4,30 @@
     :title="template ? t('pb_template_' + template.key) : ''"
     @close="$emit('close')"
   >
-    <form @submit.prevent="onSubmit" class="sf" v-if="template">
-      <div class="tpl-preview">
+    <form @submit.prevent="onSubmit" class="slideover_form" v-if="template">
+      <div class="template_preview">
         <span
-          class="tpl-icon-lg"
+          class="template_icon_large"
           :style="{ background: template.color + '15', color: template.color }"
         >{{ template.icon }}</span>
         <p>{{ t('pb_template_' + template.key + '_desc') }}</p>
       </div>
 
-      <div class="tpl-steps-preview">
+      <div class="template_steps_preview">
         <!-- Rework 21/07: steps = objects { key, day } (the label carries the D+N timing) -->
         <div
           v-for="(s, i) in template.steps"
           :key="i"
-          class="tsp-step"
+          class="tsp_step"
         >
-          <span class="tsp-num">{{ i + 1 }}</span>
+          <span class="tsp_number">{{ i + 1 }}</span>
           <span>{{ t(s.key || s) }}</span>
         </div>
       </div>
 
-      <div class="fg">
+      <div class="field_group">
         <label>{{ t('pb_select_client') }} *</label>
-        <select v-model="form.clientId" required class="fi">
+        <select v-model="form.clientId" required class="field_input">
           <option value="" disabled>—</option>
           <option
             v-for="c in clients"
@@ -37,9 +37,9 @@
         </select>
       </div>
 
-      <div class="fg">
+      <div class="field_group">
         <label>{{ t('pb_select_csm') }}</label>
-        <select v-model="form.csmId" class="fi">
+        <select v-model="form.csmId" class="field_input">
           <option
             v-for="m in teamMembers"
             :key="m.id"
@@ -48,11 +48,11 @@
         </select>
       </div>
 
-      <div class="fa">
-        <button type="button" class="btn-outline" @click="$emit('close')">
+      <div class="form_actions">
+        <button type="button" class="button_outline" @click="$emit('close')">
           {{ t('cancel') }}
         </button>
-        <button type="submit" class="btn-primary">
+        <button type="submit" class="button_primary">
           {{ t('pb_start') }}
         </button>
       </div>

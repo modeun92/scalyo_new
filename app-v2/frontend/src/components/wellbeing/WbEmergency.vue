@@ -1,5 +1,5 @@
 <template>
-  <div class="wb-emergency">
+  <div class="wellbeing_emergency">
     <h3>🚨 {{ t('wb_emergency') }}</h3>
     <p style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:8px;">{{ t('wb_emergency_desc') }}</p>
     <div style="display:flex;flex-wrap:wrap;gap:12px;">

@@ -16,8 +16,8 @@
       :teamMembers="team.statsMembers"
     />
 
-    <div class="sat-grid">
-      <div class="sat-left">
+    <div class="satisfaction_grid">
+      <div class="satisfaction_left">
         <SatGaugeCard
           :globalScore="globalScore"
           :gaugeColor="gaugeColor"
@@ -33,7 +33,7 @@
         />
       </div>
 
-      <div class="sat-right">
+      <div class="satisfaction_right">
         <SatHealthList :sortedClients="sortedClients" />
         <SatIndicators
           :renewalsNext30="clients.renewalsNext30"

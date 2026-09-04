@@ -1,85 +1,85 @@
 <template>
-  <div class="profile-view">
-    <div class="pv-header">
+  <div class="profile_view">
+    <div class="profile_view_header">
       <h1>{{ t('profile_title') }}</h1>
-      <p class="pv-sub">{{ t('profile_subtitle') }}</p>
+      <p class="profile_view_sub">{{ t('profile_subtitle') }}</p>
     </div>
 
-    <div class="pv-grid">
+    <div class="profile_view_grid">
       <!-- Left: user info -->
-      <div class="pv-card pv-identity">
-        <div class="pv-avatar">
+      <div class="profile_view_card profile_view_identity">
+        <div class="profile_view_avatar">
           <span>{{ initials }}</span>
         </div>
-        <div class="pv-user-info">
-          <h2 class="pv-name">{{ auth.fullName || t('profile_no_name') }}</h2>
-          <p class="pv-email">{{ auth.user?.email }}</p>
-          <span class="pv-badge pv-role">{{ auth.roleLabel }}</span>
+        <div class="profile_view_user_info">
+          <h2 class="profile_view_name">{{ auth.fullName || t('profile_no_name') }}</h2>
+          <p class="profile_view_email">{{ auth.user?.email }}</p>
+          <span class="profile_view_badge profile_view_role">{{ auth.roleLabel }}</span>
         </div>
       </div>
 
       <!-- Right: plan info -->
-      <div class="pv-card pv-plan">
-        <div class="pv-plan-header">
-          <span class="pv-plan-icon">{{ planIcon }}</span>
+      <div class="profile_view_card profile_view_plan">
+        <div class="profile_view_plan_header">
+          <span class="profile_view_plan_icon">{{ planIcon }}</span>
           <div>
-            <span class="pv-plan-label">{{ t('profile_current_plan') }}</span>
-            <strong class="pv-plan-name">{{ planDisplay }}</strong>
+            <span class="profile_view_plan_label">{{ t('profile_current_plan') }}</span>
+            <strong class="profile_view_plan_name">{{ planDisplay }}</strong>
           </div>
-          <span class="pv-plan-badge" :class="planClass">{{ auth.currentPlan ? auth.currentPlan.charAt(0).toUpperCase() + auth.currentPlan.slice(1) : 'Starter' }}</span>
+          <span class="profile_view_plan_badge" :class="planClass">{{ auth.currentPlan ? auth.currentPlan.charAt(0).toUpperCase() + auth.currentPlan.slice(1) : 'Starter' }}</span>
         </div>
-        <div class="pv-plan-price">
-          <span class="pv-price">{{ planPrice }}</span>
-          <span v-if="planPeriod" class="pv-period">/{{ t('profile_month') }}</span>
+        <div class="profile_view_plan_price">
+          <span class="profile_view_price">{{ planPrice }}</span>
+          <span v-if="planPeriod" class="profile_view_period">/{{ t('profile_month') }}</span>
         </div>
-        <p v-if="planDetail" class="pv-plan-detail">{{ planDetail }}</p>
-        <div class="pv-plan-features">
-          <div v-for="f in planFeatures" :key="f" class="pv-feature">
-            <span class="pv-feat-dot">✓</span>
+        <p v-if="planDetail" class="profile_view_plan_detail">{{ planDetail }}</p>
+        <div class="profile_view_plan_features">
+          <div v-for="f in planFeatures" :key="f" class="profile_view_feature">
+            <span class="profile_view_feature_dot">✓</span>
             <span>{{ t(f) }}</span>
           </div>
         </div>
-        <div class="pv-plan-actions">
-          <button class="btn-outline" @click="$router.push('/app/settings')">
+        <div class="profile_view_plan_actions">
+          <button class="button_outline" @click="$router.push('/app/settings')">
             {{ t('profile_manage_plan') }} →
           </button>
         </div>
       </div>
 
       <!-- Member info -->
-      <div class="pv-card pv-meta">
-        <h3 class="pv-meta-title">{{ t('profile_account_info') }}</h3>
-        <div class="pv-meta-rows">
-          <div class="pv-meta-row">
-            <span class="pv-meta-label">{{ t('profile_email') }}</span>
-            <span class="pv-meta-val">{{ auth.user?.email }}</span>
+      <div class="profile_view_card profile_view_meta">
+        <h3 class="profile_view_meta_title">{{ t('profile_account_info') }}</h3>
+        <div class="profile_view_meta_rows">
+          <div class="profile_view_meta_row">
+            <span class="profile_view_meta_label">{{ t('profile_email') }}</span>
+            <span class="profile_view_meta_value">{{ auth.user?.email }}</span>
           </div>
-          <div class="pv-meta-row">
-            <span class="pv-meta-label">{{ t('profile_name') }}</span>
-            <span class="pv-meta-val">{{ auth.fullName || '—' }}</span>
+          <div class="profile_view_meta_row">
+            <span class="profile_view_meta_label">{{ t('profile_name') }}</span>
+            <span class="profile_view_meta_value">{{ auth.fullName || '—' }}</span>
           </div>
-          <div class="pv-meta-row">
-            <span class="pv-meta-label">{{ t('profile_member_since') }}</span>
-            <span class="pv-meta-val">{{ memberSince }}</span>
+          <div class="profile_view_meta_row">
+            <span class="profile_view_meta_label">{{ t('profile_member_since') }}</span>
+            <span class="profile_view_meta_value">{{ memberSince }}</span>
           </div>
-          <div class="pv-meta-row">
-            <span class="pv-meta-label">{{ t('profile_plan') }}</span>
-            <span class="pv-meta-val"><span class="pv-plan-badge" :class="planClass">{{ auth.currentPlan ? auth.currentPlan.charAt(0).toUpperCase() + auth.currentPlan.slice(1) : 'Starter' }}</span></span>
+          <div class="profile_view_meta_row">
+            <span class="profile_view_meta_label">{{ t('profile_plan') }}</span>
+            <span class="profile_view_meta_value"><span class="profile_view_plan_badge" :class="planClass">{{ auth.currentPlan ? auth.currentPlan.charAt(0).toUpperCase() + auth.currentPlan.slice(1) : 'Starter' }}</span></span>
           </div>
         </div>
       </div>
 
       <!-- Quick links -->
-      <div class="pv-card pv-quick">
-        <h3 class="pv-meta-title">{{ t('profile_quick_links') }}</h3>
-        <div class="pv-links">
-          <button class="pv-link-btn" @click="$router.push('/app/dashboard')">
+      <div class="profile_view_card profile_view_quick">
+        <h3 class="profile_view_meta_title">{{ t('profile_quick_links') }}</h3>
+        <div class="profile_view_links">
+          <button class="profile_view_link_button" @click="$router.push('/app/dashboard')">
             <span>📊</span> {{ t('sidebar_dashboard') }}
           </button>
-          <button class="pv-link-btn" @click="$router.push('/app/settings')">
+          <button class="profile_view_link_button" @click="$router.push('/app/settings')">
             <span>⚙️</span> {{ t('profile_billing_settings') }}
           </button>
-          <button class="pv-link-btn pv-link-danger" @click="handleLogout">
+          <button class="profile_view_link_button profile_view_link_danger" @click="handleLogout">
             <span>🚪</span> {{ t('logout') }}
           </button>
         </div>
@@ -171,20 +171,20 @@ async function handleLogout() {
 </script>
 
 <style scoped>
-.profile-view { max-width: 900px; margin: 0 auto; padding: 0 0 60px; }
-.pv-header { margin-bottom: 32px; }
-.pv-header h1 { font-size: 1.5rem; font-weight: 800; }
-.pv-sub { font-size: 0.85rem; color: var(--text-muted); margin-top: 4px; }
-.pv-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-.pv-card {
+.profile_view { max-width: 900px; margin: 0 auto; padding: 0 0 60px; }
+.profile_view_header { margin-bottom: 32px; }
+.profile_view_header h1 { font-size: 1.5rem; font-weight: 800; }
+.profile_view_sub { font-size: 0.85rem; color: var(--text-muted); margin-top: 4px; }
+.profile_view_grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.profile_view_card {
   background-color: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: 24px;
 }
 /* Identity */
-.pv-identity { display: flex; align-items: center; gap: 20px; }
-.pv-avatar {
+.profile_view_identity { display: flex; align-items: center; gap: 20px; }
+.profile_view_avatar {
   width: 72px; height: 72px;
   background: linear-gradient(135deg, #7c3aed, #a78bfa);
   border-radius: 50%;
@@ -192,50 +192,50 @@ async function handleLogout() {
   font-size: 1.5rem; font-weight: 800; color: #fff;
   flex-shrink: 0;
 }
-.pv-user-info { display: flex; flex-direction: column; gap: 4px; }
-.pv-name { font-size: 1.1rem; font-weight: 800; margin: 0; }
-.pv-email { font-size: 0.82rem; color: var(--text-muted); margin: 0; }
-.pv-badge { font-size: 0.72rem; font-weight: 600; padding: 2px 10px; border-radius: 20px; }
-.pv-role { background: #ede9fe; color: #5b21b6; }
+.profile_view_user_info { display: flex; flex-direction: column; gap: 4px; }
+.profile_view_name { font-size: 1.1rem; font-weight: 800; margin: 0; }
+.profile_view_email { font-size: 0.82rem; color: var(--text-muted); margin: 0; }
+.profile_view_badge { font-size: 0.72rem; font-weight: 600; padding: 2px 10px; border-radius: 20px; }
+.profile_view_role { background: #ede9fe; color: #5b21b6; }
 /* Plan */
-.pv-plan-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
-.pv-plan-icon { font-size: 1.8rem; }
-.pv-plan-label { font-size: 0.72rem; color: var(--text-muted); display: block; margin-bottom: 1px; }
-.pv-plan-name { font-size: 1rem; font-weight: 800; display: block; }
-.pv-plan-badge { margin-left: auto; font-size: 0.72rem; font-weight: 700; padding: 3px 12px; border-radius: 20px; }
-.badge-elite { background: #fef3c7; color: #92400e; }
-.badge-growth { background: #dcfce7; color: #166534; }
-.badge-starter { background: #ede9fe; color: #5b21b6; }
-.pv-plan-price { margin-bottom: 16px; }
-.pv-price { font-size: 1.8rem; font-weight: 800; color: #7c3aed; }
-.pv-period { font-size: 0.82rem; color: var(--text-muted); margin-left: 2px; }
-.pv-plan-detail { font-size: 0.8rem; color: var(--text-muted); margin: -8px 0 16px; }
-.pv-plan-features { display: flex; flex-direction: column; gap: 6px; margin-bottom: 20px; }
-.pv-feature { display: flex; align-items: center; gap: 8px; font-size: 0.82rem; color: var(--text-secondary); }
-.pv-feat-dot { color: var(--green); font-weight: 700; font-size: 0.8rem; }
-.pv-plan-actions { border-top: 1px solid var(--border); padding-top: 16px; }
+.profile_view_plan_header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+.profile_view_plan_icon { font-size: 1.8rem; }
+.profile_view_plan_label { font-size: 0.72rem; color: var(--text-muted); display: block; margin-bottom: 1px; }
+.profile_view_plan_name { font-size: 1rem; font-weight: 800; display: block; }
+.profile_view_plan_badge { margin-left: auto; font-size: 0.72rem; font-weight: 700; padding: 3px 12px; border-radius: 20px; }
+.badge_elite { background: #fef3c7; color: #92400e; }
+.badge_growth { background: #dcfce7; color: #166534; }
+.badge_starter { background: #ede9fe; color: #5b21b6; }
+.profile_view_plan_price { margin-bottom: 16px; }
+.profile_view_price { font-size: 1.8rem; font-weight: 800; color: #7c3aed; }
+.profile_view_period { font-size: 0.82rem; color: var(--text-muted); margin-left: 2px; }
+.profile_view_plan_detail { font-size: 0.8rem; color: var(--text-muted); margin: -8px 0 16px; }
+.profile_view_plan_features { display: flex; flex-direction: column; gap: 6px; margin-bottom: 20px; }
+.profile_view_feature { display: flex; align-items: center; gap: 8px; font-size: 0.82rem; color: var(--text-secondary); }
+.profile_view_feature_dot { color: var(--green); font-weight: 700; font-size: 0.8rem; }
+.profile_view_plan_actions { border-top: 1px solid var(--border); padding-top: 16px; }
 /* Meta */
-.pv-meta-title { font-size: 0.88rem; font-weight: 700; margin: 0 0 16px; }
-.pv-meta-rows { display: flex; flex-direction: column; gap: 12px; }
-.pv-meta-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.83rem; }
-.pv-meta-label { color: var(--text-muted); }
-.pv-meta-val { font-weight: 600; }
+.profile_view_meta_title { font-size: 0.88rem; font-weight: 700; margin: 0 0 16px; }
+.profile_view_meta_rows { display: flex; flex-direction: column; gap: 12px; }
+.profile_view_meta_row { display: flex; justify-content: space-between; align-items: center; font-size: 0.83rem; }
+.profile_view_meta_label { color: var(--text-muted); }
+.profile_view_meta_value { font-weight: 600; }
 /* Quick links */
-.pv-links { display: flex; flex-direction: column; gap: 8px; }
-.pv-link-btn {
+.profile_view_links { display: flex; flex-direction: column; gap: 8px; }
+.profile_view_link_button {
   display: flex; align-items: center; gap: 10px;
   background: none; border: 1px solid var(--border);
   border-radius: var(--radius-sm); padding: 10px 14px;
   font-size: 0.85rem; cursor: pointer; transition: all 0.18s;
   text-align: left; width: 100%;
 }
-.pv-link-btn:hover { border-color: var(--purple); color: var(--purple); background: #f5f3ff; }
-.pv-link-danger:hover { border-color: #ef4444; color: #ef4444; background: #fef2f2; }
-.btn-outline {
+.profile_view_link_button:hover { border-color: var(--purple); color: var(--purple); background: #f5f3ff; }
+.profile_view_link_danger:hover { border-color: #ef4444; color: #ef4444; background: #fef2f2; }
+.button_outline {
   background: none; border: 1px solid var(--border); color: var(--text-secondary);
   padding: 8px 16px; border-radius: var(--radius-sm); font-size: 0.84rem;
   cursor: pointer; transition: all 0.18s; width: 100%;
 }
-.btn-outline:hover { border-color: var(--purple); color: var(--purple); }
-@media (max-width: 640px) { .pv-grid { grid-template-columns: 1fr; } }
+.button_outline:hover { border-color: var(--purple); color: var(--purple); }
+@media (max-width: 640px) { .profile_view_grid { grid-template-columns: 1fr; } }
 </style>

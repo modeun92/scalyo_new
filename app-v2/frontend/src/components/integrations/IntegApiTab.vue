@@ -1,65 +1,65 @@
 <template>
-  <div class="iv-section">
-    <div class="iv-card">
-      <div class="iv-card-header">
+  <div class="iv_section">
+    <div class="iv_card">
+      <div class="iv_card_header">
         <div>
           <h2>🔑 {{ t('integ_api_title') }}</h2>
-          <p class="iv-card-sub">{{ t('integ_api_desc') }}</p>
+          <p class="iv_card_sub">{{ t('integ_api_desc') }}</p>
         </div>
-        <button class="btn-create-key" @click="$emit('open-create')">+ {{ t('integ_create_key') }}</button>
+        <button class="button_create_key" @click="$emit('open-create')">+ {{ t('integ_create_key') }}</button>
       </div>
 
       <!-- Base URL -->
-      <div class="iv-info-box">
-        <span class="iv-info-label">Base URL</span>
-        <code class="iv-code">{{ apiBaseUrl }}</code>
-        <button class="btn-copy-sm" @click="copy(apiBaseUrl)">📋</button>
+      <div class="iv_info_box">
+        <span class="iv_info_label">Base URL</span>
+        <code class="iv_code">{{ apiBaseUrl }}</code>
+        <button class="button_copy_small" @click="copy(apiBaseUrl)">📋</button>
       </div>
 
       <!-- Keys list -->
-      <div v-if="apiKeys.length === 0" class="iv-empty">
+      <div v-if="apiKeys.length === 0" class="iv_empty">
         <p>{{ t('integ_no_keys') }}</p>
       </div>
-      <div v-else class="iv-keys-list">
-        <div v-for="key in apiKeys" :key="key.id" class="iv-key-row">
-          <div class="iv-key-info">
-            <span class="iv-key-name">{{ key.name }}</span>
-            <code class="iv-key-prefix">{{ key.key_prefix }}••••••••</code>
-            <span class="iv-key-scopes">{{ key.scopes?.join(', ') }}</span>
+      <div v-else class="iv_keys_list">
+        <div v-for="key in apiKeys" :key="key.id" class="iv_key_row">
+          <div class="iv_key_info">
+            <span class="iv_key_name">{{ key.name }}</span>
+            <code class="iv_key_prefix">{{ key.key_prefix }}••••••••</code>
+            <span class="iv_key_scopes">{{ key.scopes?.join(', ') }}</span>
           </div>
-          <div class="iv-key-meta">
-            <span class="iv-key-date">{{ t('integ_created') }} {{ formatDate(key.created_at) }}</span>
-            <span v-if="key.last_used_at" class="iv-key-used">
+          <div class="iv_key_meta">
+            <span class="iv_key_date">{{ t('integ_created') }} {{ formatDate(key.created_at) }}</span>
+            <span v-if="key.last_used_at" class="iv_key_used">
               {{ t('integ_used') }} {{ formatDate(key.last_used_at) }}
             </span>
-            <span v-else class="iv-key-unused">{{ t('integ_never_used') }}</span>
+            <span v-else class="iv_key_unused">{{ t('integ_never_used') }}</span>
           </div>
-          <button class="btn-revoke" @click="$emit('revoke', key.id)" :title="t('integ_revoke_key')">🗑️</button>
+          <button class="button_revoke" @click="$emit('revoke', key.id)" :title="t('integ_revoke_key')">🗑️</button>
         </div>
       </div>
 
       <!-- New key reveal -->
-      <div v-if="newKeyValue" class="iv-new-key-reveal">
+      <div v-if="newKeyValue" class="iv_new_key_reveal">
         <p>⚠️ {{ t('integ_key_shown_once') }}</p>
-        <code class="iv-new-key-code">{{ newKeyValue }}</code>
-        <button class="btn-copy" @click="copy(newKeyValue); $emit('key-copied')">
+        <code class="iv_new_key_code">{{ newKeyValue }}</code>
+        <button class="button_copy" @click="copy(newKeyValue); $emit('key-copied')">
           {{ keyCopied ? '✓ ' + t('integ_copied') : '📋 ' + t('integ_copy_key') }}
         </button>
       </div>
 
       <!-- Documentation -->
-      <div class="iv-doc-section">
+      <div class="iv_doc_section">
         <h3>📖 {{ t('integ_endpoints') }}</h3>
-        <div class="iv-endpoints">
-          <div v-for="ep in endpoints" :key="ep.method + ep.path" class="iv-endpoint">
-            <span class="iv-method" :class="ep.method.toLowerCase()">{{ ep.method }}</span>
-            <code class="iv-path">{{ ep.path }}</code>
-            <span class="iv-ep-desc">{{ ep.desc }}</span>
+        <div class="iv_endpoints">
+          <div v-for="ep in endpoints" :key="ep.method + ep.path" class="iv_endpoint">
+            <span class="iv_method" :class="ep.method.toLowerCase()">{{ ep.method }}</span>
+            <code class="iv_path">{{ ep.path }}</code>
+            <span class="iv_ep_description">{{ ep.desc }}</span>
           </div>
         </div>
-        <div class="iv-example">
+        <div class="iv_example">
           <h4>{{ t('integ_curl_example') }}</h4>
-          <code class="iv-code-block">curl -H "x-api-key: sk_..." {{ apiBaseUrl }}/clients</code>
+          <code class="iv_code_block">curl -H "x-api-key: sk_..." {{ apiBaseUrl }}/clients</code>
         </div>
       </div>
     </div>

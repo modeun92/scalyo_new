@@ -1,31 +1,31 @@
 <template>
-  <div class="sv-panel">
+  <div class="settings_view_panel">
     <!-- Email Config Section -->
-    <div class="sv-section">
+    <div class="settings_view_section">
       <h3>{{ L('title') }}</h3>
-      <p class="ei-desc">{{ L('desc') }}</p>
+      <p class="email_integration_description">{{ L('desc') }}</p>
 
       <!-- Status badge -->
-      <div class="ei-status-bar">
-        <span class="ei-logo">📧</span>
+      <div class="email_integration_status_bar">
+        <span class="email_integration_logo">📧</span>
         <strong>Resend</strong>
-        <span :class="['ei-badge', isConfigured ? 'ei-active' : '']">
+        <span :class="['email_integration_badge', isConfigured ? 'email_integration_active' : '']">
           {{ isConfigured ? L('active') : L('inactive') }}
         </span>
       </div>
 
       <!-- RESEND-STATE (27/08): a member sees the org's real status (same source as
            Email Studio) but not the configuration — the server already refuses it (403 not_org_owner) -->
-      <p v-if="!canManage" class="ei-desc">{{ L('managed_by_owner') }}</p>
+      <p v-if="!canManage" class="email_integration_description">{{ L('managed_by_owner') }}</p>
 
       <!-- Setup Guide (shown when not configured) -->
-      <div v-if="canManage && !isConfigured" class="ei-guide">
-        <div v-for="(step, i) in steps" :key="i" class="ei-step">
-          <div class="ei-step-num">{{ i + 1 }}</div>
+      <div v-if="canManage && !isConfigured" class="email_integration_guide">
+        <div v-for="(step, i) in steps" :key="i" class="email_integration_step">
+          <div class="email_integration_step_number">{{ i + 1 }}</div>
           <div>
             <strong>{{ step.title }}</strong>
             <p>{{ step.desc }}</p>
-            <a v-if="step.link" :href="step.link" target="_blank" rel="noopener" class="ei-link">
+            <a v-if="step.link" :href="step.link" target="_blank" rel="noopener" class="email_integration_link">
               {{ step.linkLabel }} →
             </a>
           </div>
@@ -33,55 +33,55 @@
       </div>
 
       <!-- Config Form -->
-      <div v-if="canManage" class="ei-form">
-        <div class="ei-field">
+      <div v-if="canManage" class="email_integration_form">
+        <div class="email_integration_field">
           <label>{{ L('key_label') }}</label>
-          <input v-model="form.key" type="password" :placeholder="isConfigured ? '••••••••••••' : L('key_ph')" class="fi" autocomplete="off" />
+          <input v-model="form.key" type="password" :placeholder="isConfigured ? '••••••••••••' : L('key_ph')" class="field_input" autocomplete="off" />
         </div>
-        <div class="ei-row">
-          <div class="ei-field">
+        <div class="email_integration_row">
+          <div class="email_integration_field">
             <label>{{ L('domain_label') }}</label>
-            <input v-model="form.domain" type="text" :placeholder="L('domain_ph')" class="fi" />
+            <input v-model="form.domain" type="text" :placeholder="L('domain_ph')" class="field_input" />
           </div>
-          <div class="ei-field">
+          <div class="email_integration_field">
             <label>{{ L('sender_label') }}</label>
-            <input v-model="form.sender" type="text" :placeholder="L('sender_ph')" class="fi" />
+            <input v-model="form.sender" type="text" :placeholder="L('sender_ph')" class="field_input" />
           </div>
         </div>
 
-        <div v-if="error" class="ei-error">{{ error }}</div>
-        <div v-if="success" class="ei-success">{{ success }}</div>
+        <div v-if="error" class="email_integration_error">{{ error }}</div>
+        <div v-if="success" class="email_integration_success">{{ success }}</div>
 
-        <div class="ei-actions">
-          <button class="btn-secondary" @click="testConnection" :disabled="testing || (!form.key && !isConfigured)">
+        <div class="email_integration_actions">
+          <button class="button_secondary" @click="testConnection" :disabled="testing || (!form.key && !isConfigured)">
             {{ testing ? '...' : L('test') }}
           </button>
-          <button class="btn-save" @click="saveConfig" :disabled="saving || (!form.key && !isConfigured)">
+          <button class="button_save" @click="saveConfig" :disabled="saving || (!form.key && !isConfigured)">
             {{ saving ? '...' : L('save') }}
           </button>
         </div>
       </div>
 
       <!-- Privacy note -->
-      <div v-if="canManage" class="ei-privacy">
+      <div v-if="canManage" class="email_integration_privacy">
         <span>🔒</span>
         <span>{{ L('privacy') }}</span>
       </div>
     </div>
 
     <!-- Team Permissions (shown when configured) -->
-    <div v-if="canManage && isConfigured && teamMembers.length" class="sv-section">
+    <div v-if="canManage && isConfigured && teamMembers.length" class="settings_view_section">
       <h3>{{ L('perm_title') }}</h3>
-      <p class="ei-desc">{{ L('perm_desc') }}</p>
-      <div class="ei-members">
-        <div v-for="m in teamMembers" :key="m.id" class="ei-member">
-          <div class="ei-member-info">
+      <p class="email_integration_description">{{ L('perm_desc') }}</p>
+      <div class="email_integration_members">
+        <div v-for="m in teamMembers" :key="m.id" class="email_integration_member">
+          <div class="email_integration_member_info">
             <strong>{{ m.name }}</strong>
-            <span class="ei-member-email">{{ m.email }}</span>
+            <span class="email_integration_member_email">{{ m.email }}</span>
           </div>
-          <label class="ei-toggle">
+          <label class="email_integration_toggle">
             <input type="checkbox" :checked="m.canSendEmail" @change="togglePermission(m)" />
-            <span class="ei-toggle-slider"></span>
+            <span class="email_integration_toggle_slider"></span>
           </label>
         </div>
       </div>
@@ -313,42 +313,42 @@ async function togglePermission(member) {
 </script>
 
 <style scoped>
-.ei-desc { color: var(--text-secondary); margin-bottom: 1.25rem; font-size: 0.9rem; }
-.ei-status-bar { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; background: var(--bg-secondary, #f8f9fa); border-radius: 12px; margin-bottom: 1.25rem; }
-.ei-logo { font-size: 1.5rem; }
-.ei-badge { font-size: 0.75rem; padding: 2px 10px; border-radius: 999px; background: var(--bg-tertiary, #e5e7eb); color: var(--text-secondary); }
-.ei-badge.ei-active { background: #dcfce7; color: #166534; }
+.email_integration_description { color: var(--text-secondary); margin-bottom: 1.25rem; font-size: 0.9rem; }
+.email_integration_status_bar { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; background: var(--bg-secondary, #f8f9fa); border-radius: 12px; margin-bottom: 1.25rem; }
+.email_integration_logo { font-size: 1.5rem; }
+.email_integration_badge { font-size: 0.75rem; padding: 2px 10px; border-radius: 999px; background: var(--bg-tertiary, #e5e7eb); color: var(--text-secondary); }
+.email_integration_badge.email_integration_active { background: #dcfce7; color: #166534; }
 
-.ei-guide { display: flex; flex-direction: column; gap: 1rem; margin-bottom: 1.5rem; padding: 1.25rem; background: var(--bg-secondary, #f8f9fa); border-radius: 16px; }
-.ei-step { display: flex; gap: 1rem; align-items: flex-start; }
-.ei-step-num { min-width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--primary, #6366f1); color: white; font-size: 0.8rem; font-weight: 600; }
-.ei-step p { margin: 0.25rem 0 0; font-size: 0.85rem; color: var(--text-secondary); }
-.ei-link { font-size: 0.85rem; color: var(--primary, #6366f1); text-decoration: none; }
+.email_integration_guide { display: flex; flex-direction: column; gap: 1rem; margin-bottom: 1.5rem; padding: 1.25rem; background: var(--bg-secondary, #f8f9fa); border-radius: 16px; }
+.email_integration_step { display: flex; gap: 1rem; align-items: flex-start; }
+.email_integration_step_number { min-width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--primary, #6366f1); color: white; font-size: 0.8rem; font-weight: 600; }
+.email_integration_step p { margin: 0.25rem 0 0; font-size: 0.85rem; color: var(--text-secondary); }
+.email_integration_link { font-size: 0.85rem; color: var(--primary, #6366f1); text-decoration: none; }
 
-.ei-form { display: flex; flex-direction: column; gap: 1rem; }
-.ei-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-.ei-field label { display: block; font-size: 0.8rem; font-weight: 500; margin-bottom: 0.35rem; color: var(--text-secondary); }
-.ei-actions { display: flex; gap: 0.75rem; justify-content: flex-end; }
-.btn-secondary { padding: 0.5rem 1.25rem; border-radius: 10px; border: 1px solid var(--border, #d1d5db); background: transparent; cursor: pointer; font-size: 0.85rem; }
-.btn-save { padding: 0.5rem 1.25rem; border-radius: 10px; border: none; background: var(--primary, #6366f1); color: white; cursor: pointer; font-size: 0.85rem; }
-.btn-save:disabled, .btn-secondary:disabled { opacity: 0.5; cursor: default; }
+.email_integration_form { display: flex; flex-direction: column; gap: 1rem; }
+.email_integration_row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.email_integration_field label { display: block; font-size: 0.8rem; font-weight: 500; margin-bottom: 0.35rem; color: var(--text-secondary); }
+.email_integration_actions { display: flex; gap: 0.75rem; justify-content: flex-end; }
+.button_secondary { padding: 0.5rem 1.25rem; border-radius: 10px; border: 1px solid var(--border, #d1d5db); background: transparent; cursor: pointer; font-size: 0.85rem; }
+.button_save { padding: 0.5rem 1.25rem; border-radius: 10px; border: none; background: var(--primary, #6366f1); color: white; cursor: pointer; font-size: 0.85rem; }
+.button_save:disabled, .button_secondary:disabled { opacity: 0.5; cursor: default; }
 
-.ei-error { color: #dc2626; font-size: 0.85rem; }
-.ei-success { color: #16a34a; font-size: 0.85rem; }
+.email_integration_error { color: #dc2626; font-size: 0.85rem; }
+.email_integration_success { color: #16a34a; font-size: 0.85rem; }
 
-.ei-privacy { display: flex; gap: 0.5rem; align-items: flex-start; padding: 0.75rem 1rem; background: var(--bg-secondary, #f0f4ff); border-radius: 12px; margin-top: 1rem; font-size: 0.8rem; color: var(--text-secondary); }
+.email_integration_privacy { display: flex; gap: 0.5rem; align-items: flex-start; padding: 0.75rem 1rem; background: var(--bg-secondary, #f0f4ff); border-radius: 12px; margin-top: 1rem; font-size: 0.8rem; color: var(--text-secondary); }
 
-.ei-members { display: flex; flex-direction: column; gap: 0.5rem; }
-.ei-member { display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1rem; background: var(--bg-secondary, #f8f9fa); border-radius: 12px; }
-.ei-member-info { display: flex; flex-direction: column; }
-.ei-member-email { font-size: 0.8rem; color: var(--text-secondary); }
+.email_integration_members { display: flex; flex-direction: column; gap: 0.5rem; }
+.email_integration_member { display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1rem; background: var(--bg-secondary, #f8f9fa); border-radius: 12px; }
+.email_integration_member_info { display: flex; flex-direction: column; }
+.email_integration_member_email { font-size: 0.8rem; color: var(--text-secondary); }
 
-.ei-toggle { position: relative; display: inline-block; width: 44px; height: 24px; cursor: pointer; }
-.ei-toggle input { opacity: 0; width: 0; height: 0; }
-.ei-toggle-slider { position: absolute; inset: 0; background: #d1d5db; border-radius: 999px; transition: 0.2s; }
-.ei-toggle-slider::before { content: ''; position: absolute; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: var(--bg-card); border-radius: 50%; transition: 0.2s; }
-.ei-toggle input:checked + .ei-toggle-slider { background: var(--primary, #6366f1); }
-.ei-toggle input:checked + .ei-toggle-slider::before { transform: translateX(20px); }
+.email_integration_toggle { position: relative; display: inline-block; width: 44px; height: 24px; cursor: pointer; }
+.email_integration_toggle input { opacity: 0; width: 0; height: 0; }
+.email_integration_toggle_slider { position: absolute; inset: 0; background: #d1d5db; border-radius: 999px; transition: 0.2s; }
+.email_integration_toggle_slider::before { content: ''; position: absolute; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: var(--bg-card); border-radius: 50%; transition: 0.2s; }
+.email_integration_toggle input:checked + .email_integration_toggle_slider { background: var(--primary, #6366f1); }
+.email_integration_toggle input:checked + .email_integration_toggle_slider::before { transform: translateX(20px); }
 
-@media (max-width: 640px) { .ei-row { grid-template-columns: 1fr; } }
+@media (max-width: 640px) { .email_integration_row { grid-template-columns: 1fr; } }
 </style>

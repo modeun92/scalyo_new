@@ -1,47 +1,47 @@
 <template>
-  <div class="iv-section">
-    <div class="iv-card">
-      <div class="iv-card-header">
+  <div class="iv_section">
+    <div class="iv_card">
+      <div class="iv_card_header">
         <div>
           <h2>⚡ {{ t('integ_webhook_title') }}</h2>
-          <p class="iv-card-sub">{{ t('integ_webhook_desc') }}</p>
+          <p class="iv_card_sub">{{ t('integ_webhook_desc') }}</p>
         </div>
-        <button class="btn-create-key" @click="$emit('create')">+ {{ t('integ_create_webhook') }}</button>
+        <button class="button_create_key" @click="$emit('create')">+ {{ t('integ_create_webhook') }}</button>
       </div>
 
-      <div v-if="webhooks.length === 0" class="iv-empty">
+      <div v-if="webhooks.length === 0" class="iv_empty">
         <p>{{ t('integ_no_webhooks') }}</p>
       </div>
 
-      <div v-for="wh in webhooks" :key="wh.id" class="iv-webhook-row">
-        <div class="iv-wh-info">
-          <span class="iv-key-name">{{ wh.name }}</span>
-          <div class="iv-wh-url-row">
-            <span class="iv-info-label">URL</span>
-            <code class="iv-code-sm">{{ getWebhookUrl(wh) }}</code>
-            <button class="btn-copy-sm" @click="copy(getWebhookUrl(wh))">📋</button>
+      <div v-for="wh in webhooks" :key="wh.id" class="iv_webhook_row">
+        <div class="iv_wh_info">
+          <span class="iv_key_name">{{ wh.name }}</span>
+          <div class="iv_wh_url_row">
+            <span class="iv_info_label">URL</span>
+            <code class="iv_code_small">{{ getWebhookUrl(wh) }}</code>
+            <button class="button_copy_small" @click="copy(getWebhookUrl(wh))">📋</button>
           </div>
-          <div class="iv-wh-url-row">
-            <span class="iv-info-label">Secret</span>
-            <code class="iv-code-sm">{{ wh.secret }}</code>
-            <button class="btn-copy-sm" @click="copy(wh.secret)">📋</button>
+          <div class="iv_wh_url_row">
+            <span class="iv_info_label">Secret</span>
+            <code class="iv_code_small">{{ wh.secret }}</code>
+            <button class="button_copy_small" @click="copy(wh.secret)">📋</button>
           </div>
         </div>
-        <div class="iv-key-meta">
+        <div class="iv_key_meta">
           <span>{{ wh.trigger_count || 0 }} {{ t('integ_wh_calls') }}</span>
           <span v-if="wh.last_triggered_at">
             {{ t('integ_wh_last') }}: {{ formatDate(wh.last_triggered_at) }}
           </span>
         </div>
-        <button class="btn-revoke" @click="$emit('delete', wh.id)">🗑️</button>
+        <button class="button_revoke" @click="$emit('delete', wh.id)">🗑️</button>
       </div>
 
       <!-- Instructions -->
-      <div class="iv-doc-section">
+      <div class="iv_doc_section">
         <h3>🔧 {{ t('integ_wh_howto') }}</h3>
-        <div class="iv-steps">
-          <div class="iv-step" v-for="(step, i) in 4" :key="i">
-            <span class="iv-step-num">{{ i + 1 }}</span>
+        <div class="iv_steps">
+          <div class="iv_step" v-for="(step, i) in 4" :key="i">
+            <span class="iv_step_number">{{ i + 1 }}</span>
             <div v-html="t('integ_wh_step' + (i + 1))"></div>
           </div>
         </div>

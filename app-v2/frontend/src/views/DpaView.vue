@@ -1,30 +1,30 @@
 <template>
-  <div class="legal-page">
-    <div class="legal-container">
+  <div class="legal_page">
+    <div class="legal_container">
       <h1>{{ t.dpa_title }}</h1>
-      <p class="legal-subtitle">{{ t.dpa_subtitle }}</p>
-      <p class="legal-updated">{{ t.dpa_last_updated }}</p>
-      <p class="legal-intro">{{ t.dpa_intro }}</p>
+      <p class="legal_subtitle">{{ t.dpa_subtitle }}</p>
+      <p class="legal_updated">{{ t.dpa_last_updated }}</p>
+      <p class="legal_intro">{{ t.dpa_intro }}</p>
 
       <section v-for="s in sections" :key="s">
         <h2>{{ t[`dpa_s${s}_title`] }}</h2>
         <p>{{ t[`dpa_s${s}_body`] }}</p>
         <template v-if="s === 7">
-          <ul class="dpa-subs">
+          <ul class="dpa_subs">
             <li>{{ t.dpa_s7_sub1 }}</li>
             <li>{{ t.dpa_s7_sub2 }}</li>
             <li>{{ t.dpa_s7_sub3 }}</li>
             <li>{{ t.dpa_s7_sub4 }}</li>
             <li>{{ t.dpa_s7_sub5 }}</li>
           </ul>
-          <p class="dpa-sub-footer">{{ t.dpa_s7_footer }}</p>
+          <p class="dpa_sub_footer">{{ t.dpa_s7_footer }}</p>
         </template>
       </section>
 
-      <div class="dpa-actions">
-        <button class="btn-print" @click="printPage">{{ t.dpa_print }}</button>
-        <router-link to="/cgu" class="legal-link">CGU</router-link>
-        <router-link to="/privacy" class="legal-link">Privacy</router-link>
+      <div class="dpa_actions">
+        <button class="button_print" @click="printPage">{{ t.dpa_print }}</button>
+        <router-link to="/cgu" class="legal_link">CGU</router-link>
+        <router-link to="/privacy" class="legal_link">Privacy</router-link>
       </div>
     </div>
   </div>
@@ -56,12 +56,12 @@ function printPage() {
 </script>
 
 <style scoped>
-.legal-page {
+.legal_page {
   min-height: 100vh;
   background: #f8f9fa;
   padding: 48px 24px;
 }
-.legal-container {
+.legal_container {
   max-width: 720px;
   margin: 0 auto;
   background: #fff;
@@ -75,18 +75,18 @@ h1 {
   margin-bottom: 8px;
   color: #1a1a2e;
 }
-.legal-subtitle {
+.legal_subtitle {
   font-size: 15px;
   color: #7c5cfc;
   font-weight: 500;
   margin-bottom: 4px;
 }
-.legal-updated {
+.legal_updated {
   font-size: 13px;
   color: #999;
   margin-bottom: 24px;
 }
-.legal-intro {
+.legal_intro {
   font-size: 15px;
   line-height: 1.7;
   color: #444;
@@ -108,12 +108,12 @@ section p {
   line-height: 1.75;
   color: #555;
 }
-.dpa-subs {
+.dpa_subs {
   list-style: none;
   padding: 0;
   margin: 12px 0;
 }
-.dpa-subs li {
+.dpa_subs li {
   font-size: 13px;
   color: #555;
   padding: 8px 0 8px 20px;
@@ -121,13 +121,13 @@ section p {
   margin-bottom: 6px;
   line-height: 1.5;
 }
-.dpa-sub-footer {
+.dpa_sub_footer {
   font-size: 13px;
   color: #888;
   font-style: italic;
   margin-top: 8px;
 }
-.dpa-actions {
+.dpa_actions {
   margin-top: 40px;
   padding-top: 24px;
   border-top: 1px solid #eee;
@@ -135,7 +135,7 @@ section p {
   align-items: center;
   gap: 16px;
 }
-.btn-print {
+.button_print {
   padding: 10px 24px;
   background: #7c5cfc;
   color: #fff;
@@ -145,24 +145,24 @@ section p {
   cursor: pointer;
   font-weight: 500;
 }
-.btn-print:hover {
+.button_print:hover {
   background: #6a4ce0;
 }
-.legal-link {
+.legal_link {
   font-size: 14px;
   color: #7c5cfc;
   text-decoration: none;
 }
-.legal-link:hover {
+.legal_link:hover {
   text-decoration: underline;
 }
 @media print {
-  .legal-page { padding: 0; background: #fff; }
-  .legal-container { box-shadow: none; padding: 24px; }
-  .dpa-actions { display: none; }
+  .legal_page { padding: 0; background: #fff; }
+  .legal_container { box-shadow: none; padding: 24px; }
+  .dpa_actions { display: none; }
 }
 @media (max-width: 640px) {
-  .legal-container { padding: 24px 20px; }
+  .legal_container { padding: 24px 20px; }
   h1 { font-size: 22px; }
 }
 </style>

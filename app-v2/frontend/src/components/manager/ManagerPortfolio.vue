@@ -1,31 +1,31 @@
 <template>
-  <section class="mgr-section">
+  <section class="manager_section">
     <!-- Alerts -->
     <h2>🔔 {{ t('mgr_alerts') }}</h2>
-    <div class="alerts-list">
+    <div class="alerts_list">
       <div
         v-for="n in activeAlerts"
         :key="n.id"
-        class="alert-item"
-        :class="[n.type, { 'alert-clickable': n.target_id }]"
+        class="alert_item"
+        :class="[n.type, { 'alert_clickable': n.target_id }]"
         @click="n.target_id && clientModal.open(n.target_id)"
       >
-        <span class="alert-icon">{{ n.icon }}</span>
-        <div class="alert-content">
+        <span class="alert_icon">{{ n.icon }}</span>
+        <div class="alert_content">
           <strong>{{ notifTitle(n, t) }}</strong>
           <p>{{ notifBody(n, t) }}</p>
         </div>
       </div>
-      <div v-if="!activeAlerts.length" class="empty-alerts">
+      <div v-if="!activeAlerts.length" class="empty_alerts">
         {{ t('mgr_no_alerts') }}
       </div>
     </div>
 
     <!-- Portfolio Overview -->
-    <h2 class="mt-section">💼 {{ t('mgr_portfolio_overview') }}</h2>
-    <div class="portfolio-mini">
-      <div class="pm-stat">
-        <div class="pm-donut-mini">
+    <h2 class="mt_section">💼 {{ t('mgr_portfolio_overview') }}</h2>
+    <div class="portfolio_mini">
+      <div class="performance_manager_stat">
+        <div class="performance_manager_donut_mini">
           <svg viewBox="0 0 80 80">
             <circle cx="40" cy="40" r="34" fill="none" stroke="#f3f4f6" stroke-width="7" />
             <circle
@@ -48,24 +48,24 @@
             />
           </svg>
         </div>
-        <div class="pm-legend">
-          <div><span class="dot green" /> {{ t('status_healthy') }}: <strong>{{ clients.healthyCount }}</strong></div>
-          <div><span class="dot amber" /> {{ t('status_watch') }}: <strong>{{ clients.watchCount }}</strong></div>
-          <div><span class="dot red" /> {{ t('status_critical') }}: <strong>{{ clients.criticalCount }}</strong></div>
+        <div class="performance_manager_legend">
+          <div><span class="status_dot green" /> {{ t('status_healthy') }}: <strong>{{ clients.healthyCount }}</strong></div>
+          <div><span class="status_dot amber" /> {{ t('status_watch') }}: <strong>{{ clients.watchCount }}</strong></div>
+          <div><span class="status_dot red" /> {{ t('status_critical') }}: <strong>{{ clients.criticalCount }}</strong></div>
         </div>
       </div>
 
-      <div class="pm-kpi-row">
-        <div class="pm-kpi">
-          <span class="pm-kpi-v">{{ fmtCurrency(clients.totalArr, { compact: true }) }}</span>
+      <div class="performance_manager_kpi_row">
+        <div class="performance_manager_kpi">
+          <span class="performance_manager_kpi_value">{{ fmtCurrency(clients.totalArr, { compact: true }) }}</span>
           <span>{{ t('kpi_arr') }}</span>
         </div>
-        <div class="pm-kpi">
-          <span class="pm-kpi-v red">{{ fmtCurrency(clients.arrAtRisk, { compact: true }) }}</span>
+        <div class="performance_manager_kpi">
+          <span class="performance_manager_kpi_value red">{{ fmtCurrency(clients.arrAtRisk, { compact: true }) }}</span>
           <span>{{ t('kpi_arr_at_risk') }}</span>
         </div>
-        <div class="pm-kpi">
-          <span class="pm-kpi-v">{{ clients.renewalsNext30 }}</span>
+        <div class="performance_manager_kpi">
+          <span class="performance_manager_kpi_value">{{ clients.renewalsNext30 }}</span>
           <span>{{ t('kpi_renewals_30d') }}</span>
         </div>
       </div>

@@ -1,34 +1,34 @@
 <template>
-  <div class="container mockup-wrapper anim-section" data-anim="fade-up-delay">
-    <div class="browser-chrome">
-      <div class="chrome-dots"><span /><span /><span /></div>
-      <div class="chrome-url">
-        <span class="chrome-lock">🔒</span>
+  <div class="container mockup_wrapper anim_section" data-anim="fade-up-delay">
+    <div class="browser_chrome">
+      <div class="chrome_dots"><span /><span /><span /></div>
+      <div class="chrome_url">
+        <span class="chrome_lock">🔒</span>
         app.scalyo.app
       </div>
-      <div class="chrome-live">
-        <span class="live-dot" />
+      <div class="chrome_live">
+        <span class="live_dot" />
         {{ t('demo_live') }}
       </div>
     </div>
 
-    <div class="mockup-body">
-      <div class="mock-sidebar">
-        <div class="mock-sidebar-logo"><ScalyoLogo :size="22" /><span>Scalyo</span></div>
+    <div class="mockup_body">
+      <div class="mockup_sidebar">
+        <div class="mockup_sidebar_logo"><ScalyoLogo :size="22" /><span>Scalyo</span></div>
         <div
           v-for="(tab, i) in demoTabs"
           :key="tab.key"
-          class="mock-tab"
+          class="mockup_tab"
           :class="{ active: activeDemo === i }"
           @click="$emit('demo-change', i)"
         >
-          <span class="tab-icon">{{ tab.icon }}</span>
-          <span class="tab-label hide-mobile">{{ t(tab.labelKey) }}</span>
+          <span class="tab_icon">{{ tab.icon }}</span>
+          <span class="tab_label hide_mobile">{{ t(tab.labelKey) }}</span>
         </div>
       </div>
 
-      <div class="mock-main">
-        <transition name="mock-fade" mode="out-in">
+      <div class="mockup_main">
+        <transition name="mockup_fade" mode="out-in">
           <slot :active-demo="activeDemo" />
         </transition>
       </div>

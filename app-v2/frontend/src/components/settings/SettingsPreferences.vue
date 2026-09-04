@@ -1,47 +1,47 @@
 <template>
-  <div class="sv-panel">
+  <div class="settings_view_panel">
     <!-- Language -->
-    <div class="sv-section">
+    <div class="settings_view_section">
       <h3>🌐 {{ t('stg_lang_title') }}</h3>
-      <p class="sv-note">{{ t('stg_lang_desc') }}</p>
-      <div class="lang-cards">
+      <p class="settings_view_note">{{ t('stg_lang_desc') }}</p>
+      <div class="language_cards">
         <button
           v-for="lang in langOptions"
           :key="lang.code"
-          class="lang-card"
+          class="language_card"
           :class="{ active: selectedLang === lang.code }"
           @click="changeLang(lang.code)"
         >
-          <span class="lang-flag">{{ lang.flag }}</span>
-          <span class="lang-name">{{ lang.name }}</span>
-          <span v-if="selectedLang === lang.code" class="lang-check">✓</span>
+          <span class="language_flag">{{ lang.flag }}</span>
+          <span class="language_name">{{ lang.name }}</span>
+          <span v-if="selectedLang === lang.code" class="language_check">✓</span>
         </button>
       </div>
-      <p v-if="langSaved" class="stg-saved">✓ {{ t('stg_lang_saved') }}</p>
-      <p v-if="langError" class="sv-field-error">{{ t('stg_lang_error') }}</p>
+      <p v-if="langSaved" class="settings_saved">✓ {{ t('stg_lang_saved') }}</p>
+      <p v-if="langError" class="settings_view_field_error">{{ t('stg_lang_error') }}</p>
     </div>
 
     <!-- Theme -->
-    <div class="sv-section">
+    <div class="settings_view_section">
       <h3>🌙 {{ t('stg_dark_title') }}</h3>
-      <p class="sv-note">{{ t('stg_dark_desc') }}</p>
-      <div class="theme-cards">
+      <p class="settings_view_note">{{ t('stg_dark_desc') }}</p>
+      <div class="theme_cards">
         <button
-          class="theme-card"
+          class="theme_card"
           :class="{ active: theme === 'light' }"
           @click="setTheme('light')"
         >
           ☀️ {{ t('stg_theme_light') }}
         </button>
         <button
-          class="theme-card"
+          class="theme_card"
           :class="{ active: theme === 'dark' }"
           @click="setTheme('dark')"
         >
           🌙 {{ t('stg_theme_dark') }}
         </button>
         <button
-          class="theme-card"
+          class="theme_card"
           :class="{ active: theme === 'auto' }"
           @click="setTheme('auto')"
         >

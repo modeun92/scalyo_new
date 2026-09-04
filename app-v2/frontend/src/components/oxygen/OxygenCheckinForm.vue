@@ -63,10 +63,10 @@ defineExpose({ prefill, focusFirst })
 </script>
 
 <template>
-  <div class="oxy-form" @keydown.enter.prevent="save">
-    <div v-for="f in fields" :key="f.key" class="oxy-row">
+  <div class="oxygen_form" @keydown.enter.prevent="save">
+    <div v-for="f in fields" :key="f.key" class="oxygen_row">
       <label :for="'oxy-' + f.key">{{ t(f.label) }}</label>
-      <div class="oxy-slider">
+      <div class="oxygen_slider">
         <input
           :id="'oxy-' + f.key"
           :ref="el => { if (f.key === 'energy') firstSlider = el }"
@@ -74,39 +74,39 @@ defineExpose({ prefill, focusFirst })
           :value="form[f.key]"
           @input="form[f.key] = Number($event.target.value)"
         />
-        <span class="oxy-num">{{ form[f.key] }}</span>
+        <span class="oxygen_number">{{ form[f.key] }}</span>
       </div>
     </div>
 
     <input
       v-model="form.word"
-      class="oxy-word"
+      class="oxygen_word"
       type="text"
       maxlength="80"
       :placeholder="t('oxy_word_placeholder')"
       :aria-label="t('oxy_word_label')"
     />
 
-    <button class="oxy-save" :disabled="checkins.saving" @click="save">
+    <button class="oxygen_save" :disabled="checkins.saving" @click="save">
       {{ savedFlash ? '✓ ' + t('oxy_saved') : t('oxy_save') }}
     </button>
   </div>
 </template>
 
 <style scoped>
-.oxy-row { margin-bottom: 10px; }
-.oxy-row label { display: block; font-size: 0.78rem; color: var(--text-secondary); margin-bottom: 4px; }
-.oxy-slider { display: flex; align-items: center; gap: 10px; }
-.oxy-slider input[type='range'] { flex: 1; accent-color: var(--purple); }
-.oxy-num { width: 16px; text-align: center; font-size: 0.85rem; font-weight: 700; color: var(--purple); }
+.oxygen_row { margin-bottom: 10px; }
+.oxygen_row label { display: block; font-size: 0.78rem; color: var(--text-secondary); margin-bottom: 4px; }
+.oxygen_slider { display: flex; align-items: center; gap: 10px; }
+.oxygen_slider input[type='range'] { flex: 1; accent-color: var(--purple); }
+.oxygen_number { width: 16px; text-align: center; font-size: 0.85rem; font-weight: 700; color: var(--purple); }
 
-.oxy-word { width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); background-color: var(--bg-card); color: var(--text); font-size: 0.82rem; margin: 2px 0 10px; }
-.oxy-word:focus { outline: none; border-color: var(--purple); }
+.oxygen_word { width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); background-color: var(--bg-card); color: var(--text); font-size: 0.82rem; margin: 2px 0 10px; }
+.oxygen_word:focus { outline: none; border-color: var(--purple); }
 
-.oxy-save { width: 100%; padding: 9px; border: none; border-radius: var(--radius-sm); background: var(--purple); color: #fff; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: opacity 0.15s; }
-.oxy-save:disabled { opacity: 0.6; cursor: default; }
+.oxygen_save { width: 100%; padding: 9px; border: none; border-radius: var(--radius-sm); background: var(--purple); color: #fff; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: opacity 0.15s; }
+.oxygen_save:disabled { opacity: 0.6; cursor: default; }
 
 @media (prefers-reduced-motion: reduce) {
-  .oxy-save { transition: none; }
+  .oxygen_save { transition: none; }
 }
 </style>

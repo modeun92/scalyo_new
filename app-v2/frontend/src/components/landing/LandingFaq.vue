@@ -1,18 +1,18 @@
 <template>
-  <section id="faq" class="faq-section">
+  <section id="faq" class="faq_section">
     <div class="container">
-      <div class="section-header anim-section" data-anim="fade-up">
-        <span class="section-tag">{{ t('faq_tag') }}</span>
+      <div class="section_header anim_section" data-anim="fade-up">
+        <span class="section_tag">{{ t('faq_tag') }}</span>
         <h2 v-html="t('faq_h2')"></h2>
       </div>
 
-      <div class="faq-list anim-section" data-anim="fade-up">
-        <div v-for="(item, i) in faqItems" :key="i" class="faq-item" :class="{ open: openFaq === i }" @click="openFaq = openFaq === i ? null : i">
-          <div class="faq-q">
+      <div class="faq_list anim_section" data-anim="fade-up">
+        <div v-for="(item, i) in faqItems" :key="i" class="faq_item" :class="{ open: openFaq === i }" @click="openFaq = openFaq === i ? null : i">
+          <div class="faq_q">
             <span>{{ item.q }}</span>
-            <span class="faq-toggle">{{ openFaq === i ? '\u2212' : '+' }}</span>
+            <span class="faq_toggle">{{ openFaq === i ? '\u2212' : '+' }}</span>
           </div>
-          <div class="faq-a">
+          <div class="faq_a">
             <p>{{ item.a }}</p>
           </div>
         </div>

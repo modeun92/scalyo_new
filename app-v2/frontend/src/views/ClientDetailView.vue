@@ -1,7 +1,7 @@
 <template>
   <!-- Deep link /app/clients/:id: opens the record as a pop-up on top of the portfolio.
        We keep the URL shareable (meeting, Slack) while honoring the pop-up choice. -->
-  <div class="cd-redirect">{{ t('cd_opening') }}</div>
+  <div class="cd_redirect">{{ t('cd_opening') }}</div>
 </template>
 
 <script setup>
@@ -22,5 +22,5 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.cd-redirect { padding: 40px; text-align: center; color: var(--text-muted); font-size: 0.9rem; }
+.cd_redirect { padding: 40px; text-align: center; color: var(--text-muted); font-size: 0.9rem; }
 </style>

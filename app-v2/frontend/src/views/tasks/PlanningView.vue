@@ -1,26 +1,26 @@
 <template>
-  <div class="planning-view">
+  <div class="planning_view">
     <!-- TOOLBAR -->
-    <div class="pl-toolbar">
-      <div class="pl-toolbar-left">
+    <div class="planning_toolbar">
+      <div class="planning_toolbar_left">
         <h1>📅 {{ t('pl_title') }}</h1>
-        <div class="pl-nav-btns">
-          <button class="nav-btn" @click="calPrev">‹</button>
-          <button class="nav-btn today-btn" @click="calToday">{{ t('pl_today') }}</button>
-          <button class="nav-btn" @click="calNext">›</button>
-          <span class="pl-current-date">{{ currentTitle }}</span>
+        <div class="planning_navigation_buttons">
+          <button class="nav_button" @click="calPrev">‹</button>
+          <button class="nav_button today_button" @click="calToday">{{ t('pl_today') }}</button>
+          <button class="nav_button" @click="calNext">›</button>
+          <span class="planning_current_date">{{ currentTitle }}</span>
         </div>
       </div>
-      <div class="pl-toolbar-right">
-        <div class="pl-views">
+      <div class="planning_toolbar_right">
+        <div class="planning_views">
           <button v-for="v in views" :key="v.key" :class="{ active: activeView === v.key }" @click="switchView(v.key)">{{ t(v.label) }}</button>
         </div>
-        <div class="pl-actions">
+        <div class="planning_actions">
           <!-- D-10: "Synchronize" button removed — calendar sync does not exist
                (the flow showed a fake ✓ badge without OAuth). Precedent: Integrations 10/07. -->
-          <button class="create-btn" @click="openCreate">{{ t('pl_create') }}</button>
+          <button class="create_button" @click="openCreate">{{ t('pl_create') }}</button>
           <!-- PLAN-BTN: hover label — ⚙ = calendar settings, distinct from "Create" -->
-          <button class="settings-btn" @click="settingsOpen = true" :title="t('pl_settings')" :aria-label="t('pl_settings')">⚙</button>
+          <button class="settings_button" @click="settingsOpen = true" :title="t('pl_settings')" :aria-label="t('pl_settings')">⚙</button>
         </div>
       </div>
     </div>
@@ -31,75 +31,75 @@
     </div>
 
     <!-- GANTT VIEW -->
-    <div v-if="activeView === 'gantt'" class="gantt-view">
-      <div class="gantt-toolbar-sub">
-        <div class="gz-group">
-          <span class="gz-label">Zoom:</span>
-          <button v-for="z in zoomLevels" :key="z.key" class="gz-btn" :class="{ active: ganttZoom === z.key }" @click="ganttZoom = z.key">{{ t(z.label) }}</button>
+    <div v-if="activeView === 'gantt'" class="gantt_view">
+      <div class="gantt_toolbar_sub">
+        <div class="gantt_zoom_group">
+          <span class="gantt_zoom_label">Zoom:</span>
+          <button v-for="z in zoomLevels" :key="z.key" class="gantt_zoom_button" :class="{ active: ganttZoom === z.key }" @click="ganttZoom = z.key">{{ t(z.label) }}</button>
         </div>
-        <div class="gz-group">
-          <span class="gz-label">{{ t('pl_color_by') }}:</span>
-          <select v-model="ganttColorBy" class="gz-select">
+        <div class="gantt_zoom_group">
+          <span class="gantt_zoom_label">{{ t('pl_color_by') }}:</span>
+          <select v-model="ganttColorBy" class="gantt_zoom_select">
             <option value="project">{{ t('pl_color_project') }}</option>
             <option value="status">{{ t('pl_color_status') }}</option>
             <option value="priority">{{ t('pl_color_priority') }}</option>
           </select>
         </div>
         <!-- GANTT-READ: unplaceable tasks counted honestly, never silently hidden -->
-        <div class="gz-group" v-if="noDateCount">
-          <span class="gz-label">{{ t('pl_gantt_nodates') }}: {{ noDateCount }}</span>
+        <div class="gantt_zoom_group" v-if="noDateCount">
+          <span class="gantt_zoom_label">{{ t('pl_gantt_nodates') }}: {{ noDateCount }}</span>
         </div>
       </div>
-      <div class="gantt-container" ref="ganttRef">
+      <div class="gantt_container" ref="ganttRef">
         <!-- Timeline header -->
-        <div class="g-header">
-          <div class="g-labels-h">{{ t('sm_projects_title') }}</div>
-          <div class="g-dates-h">
-            <div v-for="d in ganttDates" :key="d.key" class="g-date-col" :class="{ today: d.isToday, weekend: d.isWeekend }">
-              <span class="gdc-day">{{ d.dayName }}</span>
-              <span class="gdc-num">{{ d.num }}</span>
+        <div class="gantt_header">
+          <div class="gantt_labels_header">{{ t('sm_projects_title') }}</div>
+          <div class="gantt_dates_header">
+            <div v-for="d in ganttDates" :key="d.key" class="gantt_date_column" :class="{ today: d.isToday, weekend: d.isWeekend }">
+              <span class="gdc_day">{{ d.dayName }}</span>
+              <span class="gdc_number">{{ d.num }}</span>
             </div>
           </div>
         </div>
         <!-- Projects & tasks -->
-        <div v-for="proj in tasks.projects" :key="proj.id" class="g-project">
-          <div class="g-row g-project-row">
-            <div class="g-label"><span class="gp-dot" :style="{ background: proj.color }" /><strong>{{ proj.name }}</strong></div>
-            <div class="g-cells"><div v-for="d in ganttDates" :key="d.key" class="g-cell" :class="{ today: d.isToday, weekend: d.isWeekend }" /></div>
+        <div v-for="proj in tasks.projects" :key="proj.id" class="gantt_project">
+          <div class="gantt_row gantt_project_row">
+            <div class="gantt_label"><span class="gp_dot" :style="{ background: proj.color }" /><strong>{{ proj.name }}</strong></div>
+            <div class="gantt_cells"><div v-for="d in ganttDates" :key="d.key" class="gantt_cell" :class="{ today: d.isToday, weekend: d.isWeekend }" /></div>
           </div>
-          <div v-for="task in projectTasks(proj.id)" :key="task.id" class="g-row g-task-row">
-            <div class="g-label g-task-label"><span class="gt-dot" :class="task.status" />{{ task.title }}</div>
-            <div class="g-cells">
-              <div v-for="d in ganttDates" :key="d.key" class="g-cell" :class="{ today: d.isToday, weekend: d.isWeekend }" />
+          <div v-for="task in projectTasks(proj.id)" :key="task.id" class="gantt_row gantt_task_row">
+            <div class="gantt_label gantt_task_label"><span class="gt_dot" :class="task.status" />{{ task.title }}</div>
+            <div class="gantt_cells">
+              <div v-for="d in ganttDates" :key="d.key" class="gantt_cell" :class="{ today: d.isToday, weekend: d.isWeekend }" />
               <!-- GANTT-READ: real start→end bar positioned on the row (the old
                    FIXED-width bar was placed on the dueDate cell only) -->
-              <div v-if="ganttBarStyle(task, proj)" class="g-bar" :style="ganttBarStyle(task, proj)" :title="task.title">
-                <span class="gb-text">{{ task.title }}</span>
-                <div class="gb-prog" :style="{ width: taskProg(task) + '%' }" />
+              <div v-if="ganttBarStyle(task, proj)" class="gantt_bar" :style="ganttBarStyle(task, proj)" :title="task.title">
+                <span class="gb_text">{{ task.title }}</span>
+                <div class="gb_prog" :style="{ width: taskProg(task) + '%' }" />
               </div>
             </div>
           </div>
         </div>
         <!-- GANTT-READ: tasks without a project — previously invisible (the loop only walked
              tasks.projects); "unclassified" group, existing i18n key reused -->
-        <div v-if="unassignedTasks.length" class="g-project">
-          <div class="g-row g-project-row">
-            <div class="g-label"><span class="gp-dot" style="background: #9ca3af" /><strong>{{ t('sm_not_classified') }}</strong></div>
-            <div class="g-cells"><div v-for="d in ganttDates" :key="d.key" class="g-cell" :class="{ today: d.isToday, weekend: d.isWeekend }" /></div>
+        <div v-if="unassignedTasks.length" class="gantt_project">
+          <div class="gantt_row gantt_project_row">
+            <div class="gantt_label"><span class="gp_dot" style="background: #9ca3af" /><strong>{{ t('sm_not_classified') }}</strong></div>
+            <div class="gantt_cells"><div v-for="d in ganttDates" :key="d.key" class="gantt_cell" :class="{ today: d.isToday, weekend: d.isWeekend }" /></div>
           </div>
-          <div v-for="task in unassignedTasks" :key="task.id" class="g-row g-task-row">
-            <div class="g-label g-task-label"><span class="gt-dot" :class="task.status" />{{ task.title }}</div>
-            <div class="g-cells">
-              <div v-for="d in ganttDates" :key="d.key" class="g-cell" :class="{ today: d.isToday, weekend: d.isWeekend }" />
-              <div v-if="ganttBarStyle(task, null)" class="g-bar" :style="ganttBarStyle(task, null)" :title="task.title">
-                <span class="gb-text">{{ task.title }}</span>
-                <div class="gb-prog" :style="{ width: taskProg(task) + '%' }" />
+          <div v-for="task in unassignedTasks" :key="task.id" class="gantt_row gantt_task_row">
+            <div class="gantt_label gantt_task_label"><span class="gt_dot" :class="task.status" />{{ task.title }}</div>
+            <div class="gantt_cells">
+              <div v-for="d in ganttDates" :key="d.key" class="gantt_cell" :class="{ today: d.isToday, weekend: d.isWeekend }" />
+              <div v-if="ganttBarStyle(task, null)" class="gantt_bar" :style="ganttBarStyle(task, null)" :title="task.title">
+                <span class="gb_text">{{ task.title }}</span>
+                <div class="gb_prog" :style="{ width: taskProg(task) + '%' }" />
               </div>
             </div>
           </div>
         </div>
         <!-- Today line -->
-        <div v-if="todayLineX > 0" class="g-today-line" :style="{ left: todayLineX + 'px' }">
+        <div v-if="todayLineX > 0" class="gantt_today_line" :style="{ left: todayLineX + 'px' }">
           <span class="gtl">{{ t('pl_gantt_today') }}</span>
         </div>
       </div>
@@ -107,28 +107,28 @@
 
     <!-- SLIDE-OVER: Create/Edit Event -->
     <SlideOver :open="eventSlideOpen" :title="editingEvent ? t('pl_event_edit') : t('pl_create')" @close="eventSlideOpen = false" :width="460">
-      <form @submit.prevent="saveEvent" class="sf">
-        <div class="fg"><label>{{ t('pl_event_title') }} *</label><input v-model="eventForm.title" required class="fi" /></div>
-        <div class="fr">
-          <div class="fg"><label>{{ t('pl_event_start') }}</label><input v-model="eventForm.start" type="datetime-local" class="fi" /></div>
-          <div class="fg"><label>{{ t('pl_event_end') }}</label><input v-model="eventForm.end" type="datetime-local" class="fi" /></div>
+      <form @submit.prevent="saveEvent" class="slideover_form">
+        <div class="field_group"><label>{{ t('pl_event_title') }} *</label><input v-model="eventForm.title" required class="field_input" /></div>
+        <div class="field_row">
+          <div class="field_group"><label>{{ t('pl_event_start') }}</label><input v-model="eventForm.start" type="datetime-local" class="field_input" /></div>
+          <div class="field_group"><label>{{ t('pl_event_end') }}</label><input v-model="eventForm.end" type="datetime-local" class="field_input" /></div>
         </div>
-        <label class="fi-check"><input type="checkbox" v-model="eventForm.allDay" /> {{ t('pl_event_allday') }}</label>
-        <div class="fg"><label>{{ t('pl_event_location') }}</label><input v-model="eventForm.location" class="fi" /></div>
-        <div class="fg"><label>{{ t('pl_event_desc') }}</label><textarea v-model="eventForm.description" class="fi ta" rows="2" /></div>
-        <div class="fr">
-          <div class="fg"><label>{{ t('pl_event_client') }}</label>
-            <select v-model="eventForm.clientId" class="fi"><option value="">—</option><option v-for="c in clients.clients" :key="c.id" :value="c.id">{{ c.name }}</option></select>
+        <label class="field_input_check"><input type="checkbox" v-model="eventForm.allDay" /> {{ t('pl_event_allday') }}</label>
+        <div class="field_group"><label>{{ t('pl_event_location') }}</label><input v-model="eventForm.location" class="field_input" /></div>
+        <div class="field_group"><label>{{ t('pl_event_desc') }}</label><textarea v-model="eventForm.description" class="field_input textarea" rows="2" /></div>
+        <div class="field_row">
+          <div class="field_group"><label>{{ t('pl_event_client') }}</label>
+            <select v-model="eventForm.clientId" class="field_input"><option value="">—</option><option v-for="c in clients.clients" :key="c.id" :value="c.id">{{ c.name }}</option></select>
           </div>
-          <div class="fg"><label>{{ t('pl_event_project') }}</label>
-            <select v-model="eventForm.projectId" class="fi"><option value="">—</option><option v-for="p in tasks.projects" :key="p.id" :value="p.id">{{ p.name }}</option></select>
+          <div class="field_group"><label>{{ t('pl_event_project') }}</label>
+            <select v-model="eventForm.projectId" class="field_input"><option value="">—</option><option v-for="p in tasks.projects" :key="p.id" :value="p.id">{{ p.name }}</option></select>
           </div>
         </div>
         <!-- PLAN-RECUR: "Reminder" REMOVED (phantom field — never persisted, no planning
              notification infrastructure); recurrence hidden in EDIT mode (v1 = single occurrence) -->
-        <div class="fr" v-if="!editingEvent">
-          <div class="fg"><label>{{ t('pl_event_recurrence') }}</label>
-            <select v-model="eventForm.recurrence" class="fi">
+        <div class="field_row" v-if="!editingEvent">
+          <div class="field_group"><label>{{ t('pl_event_recurrence') }}</label>
+            <select v-model="eventForm.recurrence" class="field_input">
               <option value="none">{{ t('pl_recur_none') }}</option>
               <option value="daily">{{ t('pl_recur_daily') }}</option>
               <option value="weekly">{{ t('pl_recur_weekly') }}</option>
@@ -136,45 +136,45 @@
             </select>
           </div>
         </div>
-        <div class="fg"><label>{{ t('pl_event_color') }}</label>
-          <div class="color-row">
+        <div class="field_group"><label>{{ t('pl_event_color') }}</label>
+          <div class="color_row">
             <button v-for="c in eventColors" :key="c" type="button" class="cpick" :class="{ active: eventForm.color === c }" :style="{ background: c }" @click="eventForm.color = c" />
           </div>
         </div>
-        <div class="fa">
+        <div class="form_actions">
           <!-- PLAN-RECUR: occurrence of a series → choose single occurrence / whole series -->
           <template v-if="editingEvent && editingSeriesId">
-            <button type="button" class="btn-danger" @click="deleteEvent('one')">{{ t('pl_recur_del_one') }}</button>
-            <button type="button" class="btn-danger" @click="deleteEvent('series')">{{ t('pl_recur_del_series') }}</button>
+            <button type="button" class="button_danger" @click="deleteEvent('one')">{{ t('pl_recur_del_one') }}</button>
+            <button type="button" class="button_danger" @click="deleteEvent('series')">{{ t('pl_recur_del_series') }}</button>
           </template>
-          <button v-else-if="editingEvent" type="button" class="btn-danger" @click="deleteEvent('one')">{{ t('pl_event_delete') }}</button>
+          <button v-else-if="editingEvent" type="button" class="button_danger" @click="deleteEvent('one')">{{ t('pl_event_delete') }}</button>
           <div style="flex:1" />
-          <button type="button" class="btn-outline" @click="eventSlideOpen = false">{{ t('cancel') }}</button>
-          <button type="submit" class="btn-primary">{{ t('pl_event_save') }}</button>
+          <button type="button" class="button_outline" @click="eventSlideOpen = false">{{ t('cancel') }}</button>
+          <button type="submit" class="button_primary">{{ t('pl_event_save') }}</button>
         </div>
       </form>
     </SlideOver>
 
     <!-- SLIDE-OVER: Settings -->
     <SlideOver :open="settingsOpen" :title="t('pl_settings')" @close="settingsOpen = false">
-      <div class="sf">
-        <div class="fg"><label>{{ t('pl_settings_first_day') }}</label>
-          <select v-model="planningSettings.firstDay" class="fi"><option :value="1">{{ t('wb_mon') }}</option><option :value="0">{{ t('wb_fri') === 'Ven' ? 'Dimanche' : 'Sunday' }}</option></select>
+      <div class="slideover_form">
+        <div class="field_group"><label>{{ t('pl_settings_first_day') }}</label>
+          <select v-model="planningSettings.firstDay" class="field_input"><option :value="1">{{ t('wb_mon') }}</option><option :value="0">{{ t('wb_fri') === 'Ven' ? 'Dimanche' : 'Sunday' }}</option></select>
         </div>
-        <div class="fr">
-          <div class="fg"><label>{{ t('pl_settings_work_hours') }} ({{ t('pl_event_start') }})</label><input v-model="planningSettings.workStart" type="time" class="fi" /></div>
-          <div class="fg"><label>{{ t('pl_event_end') }}</label><input v-model="planningSettings.workEnd" type="time" class="fi" /></div>
+        <div class="field_row">
+          <div class="field_group"><label>{{ t('pl_settings_work_hours') }} ({{ t('pl_event_start') }})</label><input v-model="planningSettings.workStart" type="time" class="field_input" /></div>
+          <div class="field_group"><label>{{ t('pl_event_end') }}</label><input v-model="planningSettings.workEnd" type="time" class="field_input" /></div>
         </div>
-        <label class="fi-check"><input type="checkbox" v-model="planningSettings.hideWeekends" /> {{ t('pl_settings_hide_weekends') }}</label>
-        <div class="fg"><label>{{ t('pl_settings_density') }}</label>
-          <select v-model="planningSettings.density" class="fi">
+        <label class="field_input_check"><input type="checkbox" v-model="planningSettings.hideWeekends" /> {{ t('pl_settings_hide_weekends') }}</label>
+        <div class="field_group"><label>{{ t('pl_settings_density') }}</label>
+          <select v-model="planningSettings.density" class="field_input">
             <option value="compact">{{ t('pl_density_compact') }}</option>
             <option value="normal">{{ t('pl_density_normal') }}</option>
             <option value="comfortable">{{ t('pl_density_comfortable') }}</option>
           </select>
         </div>
-        <div class="fg"><label>{{ t('pl_settings_time_format') }}</label>
-          <select v-model="planningSettings.timeFormat" class="fi"><option value="24h">24h</option><option value="12h">12h (AM/PM)</option></select>
+        <div class="field_group"><label>{{ t('pl_settings_time_format') }}</label>
+          <select v-model="planningSettings.timeFormat" class="field_input"><option value="24h">24h</option><option value="12h">12h (AM/PM)</option></select>
         </div>
       </div>
     </SlideOver>
@@ -592,30 +592,30 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.planning-view { max-width: 1300px; }
+.planning_view { max-width: 1300px; }
 
 /* Toolbar */
-.pl-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px; }
-.pl-toolbar-left { display: flex; align-items: center; gap: 16px; }
-.pl-toolbar-left h1 { font-size: 1.3rem; font-weight: 800; white-space: nowrap; }
-.pl-nav-btns { display: flex; align-items: center; gap: 4px; }
-.nav-btn { background: var(--bg-card); border: 1px solid var(--border); padding: 6px 12px; border-radius: 8px; font-size: 0.85rem; cursor: pointer; transition: all 0.15s; color: var(--text); }
-.nav-btn:hover { border-color: var(--purple); color: var(--purple); }
-.today-btn { font-weight: 600; }
-.pl-current-date { font-size: 1rem; font-weight: 700; margin-left: 8px; text-transform: capitalize; }
-.pl-toolbar-right { display: flex; align-items: center; gap: 8px; }
-.pl-views { display: flex; gap: 1px; background: var(--border-light); border-radius: 8px; overflow: hidden; border: 1px solid var(--border); }
-.pl-views button { background: var(--bg-card); border: none; padding: 6px 12px; font-size: 0.75rem; cursor: pointer; color: var(--text-muted); font-weight: 500; transition: all 0.15s; }
-.pl-views button.active { background: var(--purple); color: #fff; font-weight: 600; }
-.pl-views button:hover:not(.active) { background: var(--bg-hover); }
-.pl-actions { display: flex; gap: 6px; }
-.create-btn { background: var(--purple); color: #fff; border: none; padding: 6px 16px; border-radius: 8px; font-size: 0.8rem; font-weight: 600; cursor: pointer; }
-.create-btn:hover { background: var(--purple-dark); }
-.settings-btn { background: var(--bg-card); border: 1px solid var(--border); padding: 6px 10px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; }
+.planning_toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px; }
+.planning_toolbar_left { display: flex; align-items: center; gap: 16px; }
+.planning_toolbar_left h1 { font-size: 1.3rem; font-weight: 800; white-space: nowrap; }
+.planning_navigation_buttons { display: flex; align-items: center; gap: 4px; }
+.nav_button { background: var(--bg-card); border: 1px solid var(--border); padding: 6px 12px; border-radius: 8px; font-size: 0.85rem; cursor: pointer; transition: all 0.15s; color: var(--text); }
+.nav_button:hover { border-color: var(--purple); color: var(--purple); }
+.today_button { font-weight: 600; }
+.planning_current_date { font-size: 1rem; font-weight: 700; margin-left: 8px; text-transform: capitalize; }
+.planning_toolbar_right { display: flex; align-items: center; gap: 8px; }
+.planning_views { display: flex; gap: 1px; background: var(--border-light); border-radius: 8px; overflow: hidden; border: 1px solid var(--border); }
+.planning_views button { background: var(--bg-card); border: none; padding: 6px 12px; font-size: 0.75rem; cursor: pointer; color: var(--text-muted); font-weight: 500; transition: all 0.15s; }
+.planning_views button.active { background: var(--purple); color: #fff; font-weight: 600; }
+.planning_views button:hover:not(.active) { background: var(--bg-hover); }
+.planning_actions { display: flex; gap: 6px; }
+.create_button { background: var(--purple); color: #fff; border: none; padding: 6px 16px; border-radius: 8px; font-size: 0.8rem; font-weight: 600; cursor: pointer; }
+.create_button:hover { background: var(--purple-dark); }
+.settings_button { background: var(--bg-card); border: 1px solid var(--border); padding: 6px 10px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; }
 
 /* FullCalendar overrides */
 .fc-wrapper { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); overflow: hidden; }
-.fc-wrapper :deep(.fc) { font-family: 'Inter', -apple-system, sans-serif; }
+.fc-wrapper :deep(.filter_count) { font-family: 'Inter', -apple-system, sans-serif; }
 .fc-wrapper :deep(.fc-timegrid-now-indicator-line) { border-color: #ef4444; border-width: 2px; }
 .fc-wrapper :deep(.fc-timegrid-now-indicator-arrow) { border-color: #ef4444; }
 .fc-wrapper :deep(.fc-day-today) { background: rgba(124, 58, 237, 0.03) !important; }
@@ -631,64 +631,64 @@ onMounted(() => {
 .fc-wrapper :deep(.fc-business-container) { background: rgba(124, 58, 237, 0.02); }
 
 /* Gantt (reused from before with improvements) */
-.gantt-view { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); overflow: hidden; }
-.gantt-toolbar-sub { display: flex; justify-content: space-between; padding: 10px 16px; border-bottom: 1px solid var(--border-light); background: var(--bg); flex-wrap: wrap; gap: 8px; }
-.gz-group { display: flex; align-items: center; gap: 6px; }
-.gz-label { font-size: 0.75rem; color: var(--text-muted); }
-.gz-btn { background: var(--bg-card); border: 1px solid var(--border); padding: 4px 12px; border-radius: 6px; font-size: 0.72rem; cursor: pointer; color: var(--text-muted); }
-.gz-btn.active { background: var(--purple); color: #fff; border-color: var(--purple); }
-.gz-select { padding: 4px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.72rem; background: var(--bg-card); }
-.gantt-container { overflow-x: auto; position: relative; }
-.g-header { display: flex; position: sticky; top: 0; z-index: 2; border-bottom: 1px solid var(--border); background: var(--bg-card); }
-.g-labels-h { width: 180px; min-width: 180px; padding: 8px 12px; font-size: 0.72rem; font-weight: 600; color: var(--text-muted); border-right: 1px solid var(--border-light); }
-.g-dates-h { display: flex; }
-.g-date-col { width: 36px; min-width: 36px; text-align: center; padding: 4px 0; border-right: 1px solid var(--border-light); }
-.g-date-col.today { background: rgba(124,58,237,0.06); }
-.g-date-col.weekend { background: var(--bg); }
-.gdc-day { font-size: 0.55rem; color: var(--text-muted); display: block; text-transform: uppercase; }
-.gdc-num { font-size: 0.68rem; font-weight: 600; display: block; }
-.g-date-col.today .gdc-num { color: var(--purple); }
-.g-project { border-bottom: 1px solid var(--border-light); }
-.g-row { display: flex; border-bottom: 1px solid var(--border-light); }
-.g-label { width: 180px; min-width: 180px; padding: 8px 12px; font-size: 0.78rem; display: flex; align-items: center; gap: 8px; border-right: 1px solid var(--border-light); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.g-task-label { padding-left: 28px; font-size: 0.72rem; color: var(--text-secondary); }
-.gp-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-.gt-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
-.gt-dot.todo { background: var(--text-muted); } .gt-dot.in_progress { background: #3b82f6; } .gt-dot.blocked { background: #ef4444; } .gt-dot.done { background: #10b981; }
-.g-cells { display: flex; position: relative; }
-.g-cell { width: 36px; min-width: 36px; height: 32px; border-right: 1px solid var(--border-light); position: relative; }
-.g-cell.today { background: rgba(124,58,237,0.04); } .g-cell.weekend { background: rgba(0,0,0,0.015); }
-.g-project-row .g-label { font-weight: 700; background: var(--bg); } .g-project-row .g-cell { background: var(--bg); }
-.g-bar { position: absolute; top: 3px; left: 0; height: 26px; border-radius: 5px; display: flex; align-items: center; padding: 0 6px; z-index: 1; min-width: 0; cursor: pointer; overflow: hidden; transition: all 0.15s; }
-.g-bar:hover { filter: brightness(1.1); box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
-.gb-text { font-size: 0.6rem; color: #fff; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; position: relative; z-index: 2; }
-.gb-prog { position: absolute; top: 0; left: 0; height: 100%; background: rgba(255,255,255,0.25); border-radius: 5px; }
-.g-today-line { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--purple); z-index: 10; pointer-events: none; }
+.gantt_view { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); overflow: hidden; }
+.gantt_toolbar_sub { display: flex; justify-content: space-between; padding: 10px 16px; border-bottom: 1px solid var(--border-light); background: var(--bg); flex-wrap: wrap; gap: 8px; }
+.gantt_zoom_group { display: flex; align-items: center; gap: 6px; }
+.gantt_zoom_label { font-size: 0.75rem; color: var(--text-muted); }
+.gantt_zoom_button { background: var(--bg-card); border: 1px solid var(--border); padding: 4px 12px; border-radius: 6px; font-size: 0.72rem; cursor: pointer; color: var(--text-muted); }
+.gantt_zoom_button.active { background: var(--purple); color: #fff; border-color: var(--purple); }
+.gantt_zoom_select { padding: 4px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.72rem; background: var(--bg-card); }
+.gantt_container { overflow-x: auto; position: relative; }
+.gantt_header { display: flex; position: sticky; top: 0; z-index: 2; border-bottom: 1px solid var(--border); background: var(--bg-card); }
+.gantt_labels_header { width: 180px; min-width: 180px; padding: 8px 12px; font-size: 0.72rem; font-weight: 600; color: var(--text-muted); border-right: 1px solid var(--border-light); }
+.gantt_dates_header { display: flex; }
+.gantt_date_column { width: 36px; min-width: 36px; text-align: center; padding: 4px 0; border-right: 1px solid var(--border-light); }
+.gantt_date_column.today { background: rgba(124,58,237,0.06); }
+.gantt_date_column.weekend { background: var(--bg); }
+.gdc_day { font-size: 0.55rem; color: var(--text-muted); display: block; text-transform: uppercase; }
+.gdc_number { font-size: 0.68rem; font-weight: 600; display: block; }
+.gantt_date_column.today .gdc_number { color: var(--purple); }
+.gantt_project { border-bottom: 1px solid var(--border-light); }
+.gantt_row { display: flex; border-bottom: 1px solid var(--border-light); }
+.gantt_label { width: 180px; min-width: 180px; padding: 8px 12px; font-size: 0.78rem; display: flex; align-items: center; gap: 8px; border-right: 1px solid var(--border-light); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gantt_task_label { padding-left: 28px; font-size: 0.72rem; color: var(--text-secondary); }
+.gp_dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.gt_dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.gt_dot.todo { background: var(--text-muted); } .gt_dot.in_progress { background: #3b82f6; } .gt_dot.blocked { background: #ef4444; } .gt_dot.done { background: #10b981; }
+.gantt_cells { display: flex; position: relative; }
+.gantt_cell { width: 36px; min-width: 36px; height: 32px; border-right: 1px solid var(--border-light); position: relative; }
+.gantt_cell.today { background: rgba(124,58,237,0.04); } .gantt_cell.weekend { background: rgba(0,0,0,0.015); }
+.gantt_project_row .gantt_label { font-weight: 700; background: var(--bg); } .gantt_project_row .gantt_cell { background: var(--bg); }
+.gantt_bar { position: absolute; top: 3px; left: 0; height: 26px; border-radius: 5px; display: flex; align-items: center; padding: 0 6px; z-index: 1; min-width: 0; cursor: pointer; overflow: hidden; transition: all 0.15s; }
+.gantt_bar:hover { filter: brightness(1.1); box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+.gb_text { font-size: 0.6rem; color: #fff; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; position: relative; z-index: 2; }
+.gb_prog { position: absolute; top: 0; left: 0; height: 100%; background: rgba(255,255,255,0.25); border-radius: 5px; }
+.gantt_today_line { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--purple); z-index: 10; pointer-events: none; }
 .gtl { position: absolute; top: -2px; left: -12px; background: var(--purple); color: #fff; font-size: 0.5rem; padding: 1px 4px; border-radius: 3px; }
 
 /* Form */
-.sf { display: flex; flex-direction: column; gap: 14px; }
-.fg { display: flex; flex-direction: column; gap: 4px; }
-.fg label { font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); }
-.fi { padding: 9px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 0.85rem; outline: none; background: var(--bg-card); width: 100%; }
-.fi:focus { border-color: var(--purple); }
-.ta { resize: vertical; }
-.fr { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.fa { display: flex; gap: 10px; align-items: center; padding-top: 8px; border-top: 1px solid var(--border-light); }
-.fi-check { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; cursor: pointer; }
-.fi-check input { accent-color: var(--purple); }
-.color-row { display: flex; gap: 6px; }
+.slideover_form { display: flex; flex-direction: column; gap: 14px; }
+.field_group { display: flex; flex-direction: column; gap: 4px; }
+.field_group label { font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); }
+.field_input { padding: 9px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 0.85rem; outline: none; background: var(--bg-card); width: 100%; }
+.field_input:focus { border-color: var(--purple); }
+.textarea { resize: vertical; }
+.field_row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.form_actions { display: flex; gap: 10px; align-items: center; padding-top: 8px; border-top: 1px solid var(--border-light); }
+.field_input_check { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; cursor: pointer; }
+.field_input_check input { accent-color: var(--purple); }
+.color_row { display: flex; gap: 6px; }
 .cpick { width: 24px; height: 24px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; }
 .cpick.active { border-color: var(--text); transform: scale(1.15); }
-.btn-primary { background: var(--purple); color: #fff; border: none; padding: 9px 18px; border-radius: var(--radius-sm); font-size: 0.85rem; font-weight: 600; cursor: pointer; }
-.btn-outline { background: var(--bg-card); color: var(--text-secondary); border: 1px solid var(--border); padding: 9px 18px; border-radius: var(--radius-sm); font-size: 0.85rem; cursor: pointer; }
-.btn-danger { background: var(--red-bg); color: var(--red); border: 1px solid var(--red-border); padding: 9px 18px; border-radius: var(--radius-sm); font-size: 0.85rem; cursor: pointer; font-weight: 600; }
+.button_primary { background: var(--purple); color: #fff; border: none; padding: 9px 18px; border-radius: var(--radius-sm); font-size: 0.85rem; font-weight: 600; cursor: pointer; }
+.button_outline { background: var(--bg-card); color: var(--text-secondary); border: 1px solid var(--border); padding: 9px 18px; border-radius: var(--radius-sm); font-size: 0.85rem; cursor: pointer; }
+.button_danger { background: var(--red-bg); color: var(--red); border: 1px solid var(--red-border); padding: 9px 18px; border-radius: var(--radius-sm); font-size: 0.85rem; cursor: pointer; font-weight: 600; }
 
 @media (max-width: 900px) {
-  .pl-toolbar { flex-direction: column; align-items: stretch; }
-  .pl-toolbar-left, .pl-toolbar-right { flex-wrap: wrap; }
-  .pl-views { overflow-x: auto; }
-  .g-label, .g-labels-h { width: 120px; min-width: 120px; }
-  .fr { grid-template-columns: 1fr; }
+  .planning_toolbar { flex-direction: column; align-items: stretch; }
+  .planning_toolbar_left, .planning_toolbar_right { flex-wrap: wrap; }
+  .planning_views { overflow-x: auto; }
+  .gantt_label, .gantt_labels_header { width: 120px; min-width: 120px; }
+  .field_row { grid-template-columns: 1fr; }
 }
 </style>

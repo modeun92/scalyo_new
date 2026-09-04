@@ -1,34 +1,34 @@
 <template>
-  <div class="sat-card">
+  <div class="satisfaction_card">
     <h3>{{ t('sat_portfolio_health') }}</h3>
-    <div class="health-list">
+    <div class="health_list">
       <!-- HEALTH-SCALE: localized score out of 10 (no more ×10 "10 /100"), avatar/hue/badge by the
            EFFECTIVE status — the same function as the Dashboard and the Portfolio -->
-      <div v-for="c in sortedClients" :key="c.id" class="hl-row hl-clickable" @click="clientModal.open(c.id)">
-        <div class="hl-left">
-          <div class="hl-av" :class="statusOf(c)">{{ c.name[0] }}</div>
-          <div class="hl-info">
+      <div v-for="c in sortedClients" :key="c.id" class="health_list_row health_list_clickable" @click="clientModal.open(c.id)">
+        <div class="health_list_left">
+          <div class="health_list_avatar" :class="statusOf(c)">{{ c.name[0] }}</div>
+          <div class="health_list_info">
             <strong>{{ c.name }}</strong>
             <span>{{ c.csm }} · {{ fmtCurrency(c.arr) }}</span>
           </div>
         </div>
-        <div class="hl-right">
-          <div class="hl-score-wrap">
-            <span class="hl-score" :class="healthTone(statusOf(c))">
+        <div class="health_list_right">
+          <div class="health_list_score_wrapper">
+            <span class="health_list_score" :class="healthTone(statusOf(c))">
               {{ fmtHealth(c.health) }}
             </span>
-            <div class="hl-bar-bg">
+            <div class="health_list_bar_background">
               <div
-                class="hl-bar"
+                class="health_list_bar"
                 :class="healthTone(statusOf(c))"
                 :style="{ width: healthPct(c.health) + '%' }"
               />
             </div>
           </div>
-          <span class="hl-status" :class="statusOf(c)">{{ t('status_' + statusOf(c)) }}</span>
+          <span class="health_list_status" :class="statusOf(c)">{{ t('status_' + statusOf(c)) }}</span>
         </div>
       </div>
-      <div v-if="!sortedClients.length" class="sat-empty">{{ t('sat_no_clients') }}</div>
+      <div v-if="!sortedClients.length" class="satisfaction_empty">{{ t('sat_no_clients') }}</div>
     </div>
   </div>
 </template>
@@ -51,10 +51,10 @@ defineProps({
 </script>
 
 <style scoped>
-.hl-clickable { cursor: pointer; transition: background .15s; border-radius: 8px; }
-.hl-clickable:hover { background: var(--bg-hover); }
+.health_list_clickable { cursor: pointer; transition: background .15s; border-radius: 8px; }
+.health_list_clickable:hover { background: var(--bg-hover); }
 /* NAV-SLOW (29/08): browser virtualization — off-screen rows are neither laid
    out nor painted (1,097 clients observed on pre-prod). Zero dependency, native scrolling;
    contain-intrinsic-size ≈ the height of one row for a stable scrollbar. */
-.hl-row { content-visibility: auto; contain-intrinsic-size: auto 56px; }
+.health_list_row { content-visibility: auto; contain-intrinsic-size: auto 56px; }
 </style>

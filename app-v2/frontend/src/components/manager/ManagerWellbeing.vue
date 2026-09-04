@@ -1,30 +1,30 @@
 <template>
-  <section class="mgr-section">
+  <section class="manager_section">
     <h2>💚 {{ t('mgr_wellbeing') }}</h2>
-    <div class="wellbeing-grid">
-      <div v-for="m in members" :key="m.id" class="member-card">
-        <div class="mc-header">
-          <div class="mc-avatar" :class="statusClass(m)">{{ m.name[0] }}</div>
-          <div class="mc-info">
+    <div class="wellbeing_grid">
+      <div v-for="m in members" :key="m.id" class="member_card">
+        <div class="masterclass_header">
+          <div class="masterclass_avatar" :class="statusClass(m)">{{ m.name[0] }}</div>
+          <div class="masterclass_info">
             <strong>{{ m.name }}</strong>
-            <span class="mc-role">{{ m.role }}</span>
+            <span class="masterclass_role">{{ m.role }}</span>
           </div>
-          <span class="mc-status-badge" :class="statusClass(m)">
+          <span class="masterclass_status_badge" :class="statusClass(m)">
             {{ statusText(m) }}
           </span>
         </div>
 
         <!-- Wellbeing bar (B-09: '—' without data, never an invented figure) -->
-        <div class="mc-metric">
-          <div class="metric-row">
-            <span class="metric-label">{{ t('mgr_wellbeing') }}</span>
-            <span class="metric-val" :class="wellbeingClass(m.wellbeingScore)">
+        <div class="masterclass_metric">
+          <div class="metric_row">
+            <span class="metric_label">{{ t('mgr_wellbeing') }}</span>
+            <span class="metric_value" :class="wellbeingClass(m.wellbeingScore)">
               {{ typeof m.wellbeingScore === 'number' ? m.wellbeingScore + '/100' : '—' }}
             </span>
           </div>
-          <div class="metric-bar">
+          <div class="metric_bar">
             <div
-              class="metric-fill"
+              class="metric_fill"
               :class="wellbeingClass(m.wellbeingScore)"
               :style="{ width: (typeof m.wellbeingScore === 'number' ? m.wellbeingScore : 0) + '%' }"
             />
@@ -32,16 +32,16 @@
         </div>
 
         <!-- Workload bar -->
-        <div class="mc-metric">
-          <div class="metric-row">
-            <span class="metric-label">{{ t('mgr_workload') }}</span>
-            <span class="metric-val" :class="workloadClass(m.workload)">
+        <div class="masterclass_metric">
+          <div class="metric_row">
+            <span class="metric_label">{{ t('mgr_workload') }}</span>
+            <span class="metric_value" :class="workloadClass(m.workload)">
               {{ typeof m.workload === 'number' ? m.workload + '%' : '—' }}
             </span>
           </div>
-          <div class="metric-bar">
+          <div class="metric_bar">
             <div
-              class="metric-fill"
+              class="metric_fill"
               :class="workloadClass(m.workload)"
               :style="{ width: (typeof m.workload === 'number' ? m.workload : 0) + '%' }"
             />
@@ -53,9 +53,9 @@
              m.weekMoods, a field that does NOT EXIST on the team store → never rendered. Removed
              without a replacement: individual mood is self-only (Oxygen);
              the team aggregate = Lot 4 (SECURITY DEFINER, n ≥ 5). -->
-        <div class="mc-row">
-          <span class="metric-label">{{ t('mgr_burnout_risk') }}</span>
-          <span class="burnout-badge" :class="m.burnoutRisk || ''">
+        <div class="masterclass_row">
+          <span class="metric_label">{{ t('mgr_burnout_risk') }}</span>
+          <span class="burnout_badge" :class="m.burnoutRisk || ''">
             {{ m.burnoutRisk ? t('mgr_burnout_' + m.burnoutRisk) : '—' }}
           </span>
         </div>

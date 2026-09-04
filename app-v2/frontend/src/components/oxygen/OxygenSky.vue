@@ -64,9 +64,9 @@ watch(() => recoveries.monthLoaded, (v) => { if (!v) recoveries.loadMonth() })
 </script>
 
 <template>
-  <div class="oxy-sky">
+  <div class="oxygen_sky">
     <svg
-      class="oxy-sky-svg"
+      class="oxygen_sky_svg"
       :viewBox="`0 0 ${COLS * CELL} ${rows * CELL}`"
       role="img" :aria-label="t('oxy_sky_title')"
     >
@@ -95,17 +95,17 @@ watch(() => recoveries.monthLoaded, (v) => { if (!v) recoveries.loadMonth() })
           v-else
           :cx="d.cx" :cy="d.cy" r="1.6"
           fill="currentColor" :fill-opacity="d.future ? 0.08 : 0.18"
-          class="oxy-sky-dot"
+          class="oxygen_sky_dot"
         >
           <title>{{ fmtDate(d.date) }}</title>
         </circle>
       </g>
     </svg>
-    <p v-if="!hasBubbles" class="oxy-sky-empty">{{ t('oxy_sky_empty') }}</p>
+    <p v-if="!hasBubbles" class="oxygen_sky_empty">{{ t('oxy_sky_empty') }}</p>
   </div>
 </template>
 
 <style scoped>
-.oxy-sky-svg { width: 100%; max-width: 340px; display: block; margin: 0 auto; color: var(--text-muted); }
-.oxy-sky-empty { text-align: center; font-size: 0.8rem; color: var(--text-muted); margin: 10px 0 0; }
+.oxygen_sky_svg { width: 100%; max-width: 340px; display: block; margin: 0 auto; color: var(--text-muted); }
+.oxygen_sky_empty { text-align: center; font-size: 0.8rem; color: var(--text-muted); margin: 10px 0 0; }
 </style>

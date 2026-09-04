@@ -1,55 +1,55 @@
 <template>
-  <div class="sv-panel">
+  <div class="settings_view_panel">
     <!-- Current Plan -->
-    <div class="sv-section">
+    <div class="settings_view_section">
       <h3>{{ t('stg_tab_billing') }}</h3>
-      <div class="billing-plan">
-        <div class="bp-current">
-          <span class="bp-badge">{{ auth.currentPlanLabel }}</span>
-          <span class="bp-price">{{ headline }}</span>
+      <div class="billing_plan">
+        <div class="billing_plan_current">
+          <span class="billing_plan_badge">{{ auth.currentPlanLabel }}</span>
+          <span class="billing_plan_price">{{ headline }}</span>
         </div>
-        <p v-if="summaryLine" class="bp-line">{{ summaryLine }}</p>
-        <p v-if="upcomingLine" class="bp-line">{{ upcomingLine }}</p>
-        <p v-if="billing.data && !billing.canViewAmounts" class="bp-note">{{ t('stg_billing_managed_by_owner') }}</p>
-        <p v-else-if="billing.data?.source === 'table'" class="bp-note">{{ t('stg_billing_indicative') }}</p>
-        <p v-else-if="billing.error" class="bp-note">{{ t('stg_billing_error') }}</p>
-        <div v-if="billing.canViewAmounts" class="plan-status-row">
-          <span class="plan-status" :class="statusClass">{{ statusLabel }}</span>
+        <p v-if="summaryLine" class="billing_plan_line">{{ summaryLine }}</p>
+        <p v-if="upcomingLine" class="billing_plan_line">{{ upcomingLine }}</p>
+        <p v-if="billing.data && !billing.canViewAmounts" class="billing_plan_note">{{ t('stg_billing_managed_by_owner') }}</p>
+        <p v-else-if="billing.data?.source === 'table'" class="billing_plan_note">{{ t('stg_billing_indicative') }}</p>
+        <p v-else-if="billing.error" class="billing_plan_note">{{ t('stg_billing_error') }}</p>
+        <div v-if="billing.canViewAmounts" class="plan_status_row">
+          <span class="plan_status" :class="statusClass">{{ statusLabel }}</span>
         </div>
-        <p v-if="billing.canViewAmounts && auth.profile?.subscription_end_date" class="bp-end-date">
+        <p v-if="billing.canViewAmounts && auth.profile?.subscription_end_date" class="billing_plan_end_date">
           {{ t('stg_sub_ends') }} {{ fmtDate(auth.profile.subscription_end_date, { year: 'numeric', month: 'long', day: 'numeric' }) }}
         </p>
         <button
           v-if="billing.canViewAmounts && auth.hasActiveSubscription"
-          class="sv-portal-btn"
+          class="settings_view_portal_button"
           :disabled="portalLoading"
           @click="openPortal"
         >
           {{ portalLoading ? t('stg_portal_loading') : t('stg_manage_sub') }}
         </button>
-        <p v-if="portalError" class="sv-field-error">{{ t('stg_portal_error') }}</p>
+        <p v-if="portalError" class="settings_view_field_error">{{ t('stg_portal_error') }}</p>
       </div>
     </div>
 
     <!-- Plans Grid — D1: owner / admin only, prices served by /api/billing in the account currency -->
-    <div v-if="billing.canViewAmounts" class="sv-section">
+    <div v-if="billing.canViewAmounts" class="settings_view_section">
       <h3>{{ t('stg_plan_title') }}</h3>
-      <p class="sv-desc">{{ t('stg_plan_desc') }}</p>
-      <div class="plan-grid">
+      <p class="settings_view_description">{{ t('stg_plan_desc') }}</p>
+      <div class="plan_grid">
         <div
           v-for="plan in plans"
           :key="plan.key"
-          class="plan-card"
+          class="plan_card"
           :class="{ featured: plan.featured, current: auth.currentPlan === plan.key }"
         >
-          <span v-if="plan.featured" class="plan-pop">{{ t('stg_plan_popular') }}</span>
+          <span v-if="plan.featured" class="plan_pop">{{ t('stg_plan_popular') }}</span>
           <h4>{{ plan.name }}</h4>
-          <p class="plan-price">{{ gridPrice(plan.key) }}<span v-if="plan.key !== 'enterprise'">/{{ t('stg_per_seat') }}</span></p>
+          <p class="plan_price">{{ gridPrice(plan.key) }}<span v-if="plan.key !== 'enterprise'">/{{ t('stg_per_seat') }}</span></p>
           <ul>
             <li v-for="f in plan.features" :key="f">{{ t(f) }}</li>
           </ul>
           <button
-            class="plan-btn"
+            class="plan_button"
             :disabled="auth.currentPlan === plan.key"
             @click="handlePlanChange(plan.url, plan.key)"
           >
@@ -57,7 +57,7 @@
           </button>
         </div>
       </div>
-      <p class="bp-note">{{ t('stg_stripe_note') }}</p>
+      <p class="billing_plan_note">{{ t('stg_stripe_note') }}</p>
     </div>
   </div>
 </template>

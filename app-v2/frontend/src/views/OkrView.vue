@@ -1,104 +1,104 @@
 <template>
-  <div class="okr-view">
-    <div class="okr-header">
+  <div class="okr_view">
+    <div class="okr_header">
       <div>
         <h1>🎯 {{ t('okr_title') }}</h1>
-        <div class="okr-global" v-if="okrs.length">
-          <span class="og-label">{{ t('okr_global') }}</span>
-          <div class="og-bar"><div class="og-fill" :style="{ width: globalProgress + '%' }" /></div>
-          <span class="og-pct">{{ globalProgress }}%</span>
+        <div class="okr_global" v-if="okrs.length">
+          <span class="okr_gauge_label">{{ t('okr_global') }}</span>
+          <div class="okr_gauge_bar"><div class="okr_gauge_fill" :style="{ width: globalProgress + '%' }" /></div>
+          <span class="okr_gauge_percent">{{ globalProgress }}%</span>
         </div>
       </div>
-      <div class="okr-actions">
-        <button class="btn-outline" @click="resetFilters">{{ t('okr_reset') }}</button>
-        <button class="btn-primary" @click="openCreate">{{ t('okr_new') }}</button>
+      <div class="okr_actions">
+        <button class="button_outline" @click="resetFilters">{{ t('okr_reset') }}</button>
+        <button class="button_primary" @click="openCreate">{{ t('okr_new') }}</button>
       </div>
     </div>
 
     <!-- Filters -->
-    <div class="okr-filters">
+    <div class="okr_filters">
       <select v-model="filterPeriod" class="fsel"><option value="all">{{ t('okr_filter_all_periods') }}</option><option v-for="p in periods" :key="p" :value="p">{{ p }}</option></select>
       <select v-model="filterOwner" class="fsel"><option value="all">{{ t('okr_filter_all_owners') }}</option><option v-for="m in team.assignableMembers" :key="m.id" :value="m.id">{{ m.name }}</option></select>
       <select v-model="filterStatus" class="fsel"><option value="all">{{ t('okr_filter_all_statuses') }}</option><option value="on_track">{{ t('okr_status_on_track') }}</option><option value="at_risk">{{ t('okr_status_at_risk') }}</option><option value="behind">{{ t('okr_status_behind') }}</option><option value="done">{{ t('okr_status_done') }}</option></select>
     </div>
 
     <!-- OKR list -->
-    <div v-if="filtered.length" class="okr-list">
-      <div v-for="okr in filtered" :key="okr.id" class="okr-card">
-        <div class="oc-header">
-          <div class="oc-left">
+    <div v-if="filtered.length" class="okr_list">
+      <div v-for="okr in filtered" :key="okr.id" class="okr_card">
+        <div class="okr_card_header">
+          <div class="okr_card_left">
             <strong>{{ okr.title }}</strong>
-            <div class="oc-meta">
-              <span class="oc-period">{{ okr.period }}</span>
-              <span class="oc-owner">{{ memberName(okr.ownerId) }}</span>
+            <div class="okr_card_meta">
+              <span class="okr_card_period">{{ okr.period }}</span>
+              <span class="okr_card_owner">{{ memberName(okr.ownerId) }}</span>
             </div>
           </div>
-          <div class="oc-right">
-            <span class="oc-status" :class="okr.status">{{ t('okr_status_' + okr.status) }}</span>
-            <span class="oc-pct">{{ okrProgress(okr) }}%</span>
+          <div class="okr_card_right">
+            <span class="okr_card_status" :class="okr.status">{{ t('okr_status_' + okr.status) }}</span>
+            <span class="okr_card_percent">{{ okrProgress(okr) }}%</span>
             <button class="rb" @click="openEdit(okr)">✏️</button>
             <button class="rb del" @click="pendingDeleteId = okr.id">🗑️</button>
           </div>
         </div>
 
         <!-- Confirmation inline suppression -->
-        <div v-if="pendingDeleteId === okr.id" class="delete-confirm">
+        <div v-if="pendingDeleteId === okr.id" class="delete_confirm">
           <span>{{ t('okr_delete_confirm') }}</span>
-          <button class="btn-sm-cancel" @click="pendingDeleteId = null">{{ t('cancel') }}</button>
-          <button class="btn-sm-delete" @click="confirmDelete(okr.id)">{{ t('delete') }}</button>
+          <button class="button_small_cancel" @click="pendingDeleteId = null">{{ t('cancel') }}</button>
+          <button class="button_small_delete" @click="confirmDelete(okr.id)">{{ t('delete') }}</button>
         </div>
 
-        <div class="oc-progress"><div class="oc-bar"><div class="oc-fill" :class="okr.status" :style="{ width: okrProgress(okr) + '%' }" /></div></div>
+        <div class="okr_card_progress"><div class="okr_card_bar"><div class="okr_card_fill" :class="okr.status" :style="{ width: okrProgress(okr) + '%' }" /></div></div>
         <!-- Key Results -->
-        <div class="kr-list">
-          <div v-for="kr in okr.keyResults" :key="kr.id" class="kr-item">
-            <div class="kr-info">
-              <span class="kr-title">{{ kr.title }}</span>
-              <span class="kr-vals">{{ kr.current }} / {{ kr.target }}</span>
+        <div class="key_result_list">
+          <div v-for="kr in okr.keyResults" :key="kr.id" class="key_result_item">
+            <div class="key_result_info">
+              <span class="key_result_title">{{ kr.title }}</span>
+              <span class="key_result_vals">{{ kr.current }} / {{ kr.target }}</span>
             </div>
-            <div class="kr-bar"><div class="kr-fill" :style="{ width: krPct(kr) + '%' }" /></div>
+            <div class="key_result_bar"><div class="key_result_fill" :style="{ width: krPct(kr) + '%' }" /></div>
           </div>
         </div>
       </div>
     </div>
 
     <!-- Empty -->
-    <div v-else class="okr-empty">
-      <div class="empty-icon">🎯</div>
+    <div v-else class="okr_empty">
+      <div class="empty_icon">🎯</div>
       <h3>{{ t('okr_empty_title') }}</h3>
       <p>{{ t('okr_empty_desc') }}</p>
-      <button class="btn-primary" @click="openCreate">{{ t('okr_new') }}</button>
+      <button class="button_primary" @click="openCreate">{{ t('okr_new') }}</button>
     </div>
 
     <!-- Slide-over -->
     <SlideOver :open="slideOpen" :title="editId ? t('okr_title') : t('okr_create_title')" @close="slideOpen = false" :width="520">
-      <form @submit.prevent="saveOkr" class="sf">
-        <div class="fg"><label>{{ t('okr_field_title') }} *</label><input v-model="form.title" required class="fi" /></div>
-        <div class="fr">
-          <div class="fg"><label>{{ t('okr_field_period') }}</label><select v-model="form.period" class="fi"><option v-for="p in periods" :key="p" :value="p">{{ p }}</option></select></div>
-          <div class="fg"><label>{{ t('okr_field_owner') }}</label><select v-model="form.ownerId" class="fi"><option v-for="m in team.assignableMembers" :key="m.id" :value="m.id">{{ m.name }}</option></select></div>
+      <form @submit.prevent="saveOkr" class="slideover_form">
+        <div class="field_group"><label>{{ t('okr_field_title') }} *</label><input v-model="form.title" required class="field_input" /></div>
+        <div class="field_row">
+          <div class="field_group"><label>{{ t('okr_field_period') }}</label><select v-model="form.period" class="field_input"><option v-for="p in periods" :key="p" :value="p">{{ p }}</option></select></div>
+          <div class="field_group"><label>{{ t('okr_field_owner') }}</label><select v-model="form.ownerId" class="field_input"><option v-for="m in team.assignableMembers" :key="m.id" :value="m.id">{{ m.name }}</option></select></div>
         </div>
-        <div class="fg"><label>{{ t('okr_field_status') }}</label>
-          <select v-model="form.status" class="fi">
+        <div class="field_group"><label>{{ t('okr_field_status') }}</label>
+          <select v-model="form.status" class="field_input">
             <option value="on_track">{{ t('okr_status_on_track') }}</option>
             <option value="at_risk">{{ t('okr_status_at_risk') }}</option>
             <option value="behind">{{ t('okr_status_behind') }}</option>
             <option value="done">{{ t('okr_status_done') }}</option>
           </select>
         </div>
-        <div class="form-section">{{ t('okr_key_results') }}</div>
-        <div v-for="(kr, i) in form.keyResults" :key="i" class="kr-edit">
-          <input v-model="kr.title" :placeholder="t('okr_kr_placeholder')" class="fi kr-title-input" />
-          <div class="kr-edit-row">
-            <div class="fg"><label>{{ t('okr_kr_target') }}</label><input v-model.number="kr.target" type="number" class="fi" /></div>
-            <div class="fg"><label>{{ t('okr_kr_current') }}</label><input v-model.number="kr.current" type="number" class="fi" /></div>
-            <button type="button" class="btn-sm-del" @click="form.keyResults.splice(i, 1)">🗑️</button>
+        <div class="form_section">{{ t('okr_key_results') }}</div>
+        <div v-for="(kr, i) in form.keyResults" :key="i" class="key_result_edit">
+          <input v-model="kr.title" :placeholder="t('okr_kr_placeholder')" class="field_input key_result_title_input" />
+          <div class="key_result_edit_row">
+            <div class="field_group"><label>{{ t('okr_kr_target') }}</label><input v-model.number="kr.target" type="number" class="field_input" /></div>
+            <div class="field_group"><label>{{ t('okr_kr_current') }}</label><input v-model.number="kr.current" type="number" class="field_input" /></div>
+            <button type="button" class="button_small_delete_icon" @click="form.keyResults.splice(i, 1)">🗑️</button>
           </div>
         </div>
-        <button type="button" class="btn-add-kr" @click="form.keyResults.push({ id: Date.now(), title: '', target: 100, current: 0 })">{{ t('okr_add_kr') }}</button>
-        <div class="fa">
-          <button type="button" class="btn-outline" @click="slideOpen = false">{{ t('cancel') }}</button>
-          <button type="submit" class="btn-primary">{{ editId ? t('save') : t('create') }}</button>
+        <button type="button" class="button_add_kr" @click="form.keyResults.push({ id: Date.now(), title: '', target: 100, current: 0 })">{{ t('okr_add_kr') }}</button>
+        <div class="form_actions">
+          <button type="button" class="button_outline" @click="slideOpen = false">{{ t('cancel') }}</button>
+          <button type="submit" class="button_primary">{{ editId ? t('save') : t('create') }}</button>
         </div>
       </form>
     </SlideOver>
@@ -181,75 +181,75 @@ function confirmDelete(id) { okrs.value = okrs.value.filter(o => o.id !== id); p
 </script>
 
 <style scoped>
-.okr-view { max-width: 900px; }
-.okr-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
-.okr-header h1 { font-size: 1.5rem; font-weight: 800; }
-.okr-actions { display: flex; gap: 8px; }
-.btn-primary { background: var(--purple); color: #fff; border: none; padding: 9px 18px; border-radius: var(--radius-sm); font-size: 0.85rem; font-weight: 600; cursor: pointer; }
-.btn-primary:hover { background: var(--purple-dark); }
-.btn-outline { background-color: var(--bg-card); color: var(--text-secondary); border: 1px solid var(--border); padding: 9px 18px; border-radius: var(--radius-sm); font-size: 0.85rem; cursor: pointer; }
-.btn-outline:hover { border-color: var(--purple); color: var(--purple); }
-.og-label { font-size: 0.78rem; color: var(--text-secondary); margin-right: 10px; }
-.okr-global { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
-.og-bar { width: 160px; height: 6px; background: var(--border-light); border-radius: 3px; overflow: hidden; }
-.og-fill { height: 100%; background: var(--purple); border-radius: 3px; transition: width 0.5s; }
-.og-pct { font-size: 0.85rem; font-weight: 700; color: var(--purple); }
-.okr-filters { display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap; }
+.okr_view { max-width: 900px; }
+.okr_header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+.okr_header h1 { font-size: 1.5rem; font-weight: 800; }
+.okr_actions { display: flex; gap: 8px; }
+.button_primary { background: var(--purple); color: #fff; border: none; padding: 9px 18px; border-radius: var(--radius-sm); font-size: 0.85rem; font-weight: 600; cursor: pointer; }
+.button_primary:hover { background: var(--purple-dark); }
+.button_outline { background-color: var(--bg-card); color: var(--text-secondary); border: 1px solid var(--border); padding: 9px 18px; border-radius: var(--radius-sm); font-size: 0.85rem; cursor: pointer; }
+.button_outline:hover { border-color: var(--purple); color: var(--purple); }
+.okr_gauge_label { font-size: 0.78rem; color: var(--text-secondary); margin-right: 10px; }
+.okr_global { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+.okr_gauge_bar { width: 160px; height: 6px; background: var(--border-light); border-radius: 3px; overflow: hidden; }
+.okr_gauge_fill { height: 100%; background: var(--purple); border-radius: 3px; transition: width 0.5s; }
+.okr_gauge_percent { font-size: 0.85rem; font-weight: 700; color: var(--purple); }
+.okr_filters { display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap; }
 .fsel { padding: 7px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 0.82rem; background-color: var(--bg-card); outline: none; cursor: pointer; }
-.okr-list { display: flex; flex-direction: column; gap: 14px; }
-.okr-card { background-color: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 20px; }
-.oc-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; gap: 12px; }
-.oc-left strong { font-size: 1rem; display: block; margin-bottom: 4px; }
-.oc-meta { display: flex; gap: 8px; }
-.oc-period { font-size: 0.72rem; color: var(--purple); background: var(--purple-bg); padding: 2px 8px; border-radius: 4px; }
-.oc-owner { font-size: 0.72rem; color: var(--text-muted); }
-.oc-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-.oc-status { font-size: 0.7rem; font-weight: 600; padding: 3px 10px; border-radius: 6px; }
-.oc-status.on_track { background: var(--green-bg); color: var(--green); }
-.oc-status.at_risk { background: var(--amber-bg); color: var(--amber); }
-.oc-status.behind { background: var(--red-bg); color: var(--red); }
-.oc-status.done { background: var(--blue-bg); color: var(--blue); }
-.oc-pct { font-size: 0.85rem; font-weight: 700; }
+.okr_list { display: flex; flex-direction: column; gap: 14px; }
+.okr_card { background-color: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 20px; }
+.okr_card_header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; gap: 12px; }
+.okr_card_left strong { font-size: 1rem; display: block; margin-bottom: 4px; }
+.okr_card_meta { display: flex; gap: 8px; }
+.okr_card_period { font-size: 0.72rem; color: var(--purple); background: var(--purple-bg); padding: 2px 8px; border-radius: 4px; }
+.okr_card_owner { font-size: 0.72rem; color: var(--text-muted); }
+.okr_card_right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.okr_card_status { font-size: 0.7rem; font-weight: 600; padding: 3px 10px; border-radius: 6px; }
+.okr_card_status.on_track { background: var(--green-bg); color: var(--green); }
+.okr_card_status.at_risk { background: var(--amber-bg); color: var(--amber); }
+.okr_card_status.behind { background: var(--red-bg); color: var(--red); }
+.okr_card_status.done { background: var(--blue-bg); color: var(--blue); }
+.okr_card_percent { font-size: 0.85rem; font-weight: 700; }
 .rb { background: none; border: none; font-size: 0.85rem; padding: 4px; border-radius: 4px; opacity: 0.4; cursor: pointer; }
 .rb:hover { opacity: 1; background: var(--bg-hover); }
 .rb.del:hover { background: var(--red-bg); }
-.delete-confirm { display: flex; align-items: center; gap: 10px; background: var(--red-bg); border: 1px solid var(--red); border-radius: var(--radius-sm); padding: 8px 12px; margin-bottom: 12px; font-size: 0.82rem; color: var(--red); font-weight: 500; }
-.delete-confirm span { flex: 1; }
-.btn-sm-cancel { background-color: var(--bg-card); border: 1px solid var(--border); color: var(--text-secondary); padding: 4px 12px; border-radius: var(--radius-sm); font-size: 0.78rem; cursor: pointer; }
-.btn-sm-delete { background: var(--red); border: none; color: #fff; padding: 4px 12px; border-radius: var(--radius-sm); font-size: 0.78rem; font-weight: 600; cursor: pointer; }
-.oc-progress { margin-bottom: 14px; }
-.oc-bar { height: 6px; background: var(--border-light); border-radius: 3px; overflow: hidden; }
-.oc-fill { height: 100%; border-radius: 3px; transition: width 0.5s; }
-.oc-fill.on_track { background: var(--green); }
-.oc-fill.at_risk { background: var(--amber); }
-.oc-fill.behind { background: var(--red); }
-.oc-fill.done { background: var(--blue); }
-.kr-list { display: flex; flex-direction: column; gap: 8px; }
-.kr-item { padding: 10px; background: var(--bg); border-radius: var(--radius-sm); }
-.kr-info { display: flex; justify-content: space-between; margin-bottom: 6px; }
-.kr-title { font-size: 0.82rem; }
-.kr-vals { font-size: 0.78rem; font-weight: 600; color: var(--text-muted); }
-.kr-bar { height: 4px; background: var(--border-light); border-radius: 2px; overflow: hidden; }
-.kr-fill { height: 100%; background: var(--purple); border-radius: 2px; transition: width 0.4s; }
-.okr-empty { text-align: center; padding: 60px 20px; background-color: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); }
-.empty-icon { font-size: 3rem; margin-bottom: 16px; }
-.okr-empty h3 { font-size: 1.2rem; font-weight: 700; margin-bottom: 8px; }
-.okr-empty p { font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 20px; }
-.sf { display: flex; flex-direction: column; gap: 14px; }
-.fg { display: flex; flex-direction: column; gap: 4px; }
-.fg label { font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); }
-.fi { padding: 9px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 0.85rem; outline: none; background-color: var(--bg-card); width: 100%; }
-.fi:focus { border-color: var(--purple); }
-.fr { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.fa { display: flex; gap: 10px; justify-content: flex-end; padding-top: 8px; border-top: 1px solid var(--border-light); }
-.form-section { font-size: 0.82rem; font-weight: 700; padding: 8px 0 0; border-top: 1px solid var(--border-light); }
-.kr-edit { background: var(--bg); border-radius: var(--radius-sm); padding: 12px; }
-.kr-title-input { margin-bottom: 8px; }
-.kr-edit-row { display: flex; gap: 8px; align-items: flex-end; }
-.kr-edit-row .fg { flex: 1; }
-.btn-sm-del { background: none; border: none; font-size: 0.85rem; cursor: pointer; padding: 8px; opacity: 0.5; }
-.btn-sm-del:hover { opacity: 1; }
-.btn-add-kr { background: var(--purple-bg); color: var(--purple); border: 1px dashed var(--purple-border); padding: 10px; border-radius: var(--radius-sm); font-size: 0.82rem; font-weight: 600; cursor: pointer; }
-.btn-add-kr:hover { background: rgba(124,58,237,0.1); }
-@media (max-width: 768px) { .fr { grid-template-columns: 1fr; } }
+.delete_confirm { display: flex; align-items: center; gap: 10px; background: var(--red-bg); border: 1px solid var(--red); border-radius: var(--radius-sm); padding: 8px 12px; margin-bottom: 12px; font-size: 0.82rem; color: var(--red); font-weight: 500; }
+.delete_confirm span { flex: 1; }
+.button_small_cancel { background-color: var(--bg-card); border: 1px solid var(--border); color: var(--text-secondary); padding: 4px 12px; border-radius: var(--radius-sm); font-size: 0.78rem; cursor: pointer; }
+.button_small_delete { background: var(--red); border: none; color: #fff; padding: 4px 12px; border-radius: var(--radius-sm); font-size: 0.78rem; font-weight: 600; cursor: pointer; }
+.okr_card_progress { margin-bottom: 14px; }
+.okr_card_bar { height: 6px; background: var(--border-light); border-radius: 3px; overflow: hidden; }
+.okr_card_fill { height: 100%; border-radius: 3px; transition: width 0.5s; }
+.okr_card_fill.on_track { background: var(--green); }
+.okr_card_fill.at_risk { background: var(--amber); }
+.okr_card_fill.behind { background: var(--red); }
+.okr_card_fill.done { background: var(--blue); }
+.key_result_list { display: flex; flex-direction: column; gap: 8px; }
+.key_result_item { padding: 10px; background: var(--bg); border-radius: var(--radius-sm); }
+.key_result_info { display: flex; justify-content: space-between; margin-bottom: 6px; }
+.key_result_title { font-size: 0.82rem; }
+.key_result_vals { font-size: 0.78rem; font-weight: 600; color: var(--text-muted); }
+.key_result_bar { height: 4px; background: var(--border-light); border-radius: 2px; overflow: hidden; }
+.key_result_fill { height: 100%; background: var(--purple); border-radius: 2px; transition: width 0.4s; }
+.okr_empty { text-align: center; padding: 60px 20px; background-color: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); }
+.empty_icon { font-size: 3rem; margin-bottom: 16px; }
+.okr_empty h3 { font-size: 1.2rem; font-weight: 700; margin-bottom: 8px; }
+.okr_empty p { font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 20px; }
+.slideover_form { display: flex; flex-direction: column; gap: 14px; }
+.field_group { display: flex; flex-direction: column; gap: 4px; }
+.field_group label { font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); }
+.field_input { padding: 9px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 0.85rem; outline: none; background-color: var(--bg-card); width: 100%; }
+.field_input:focus { border-color: var(--purple); }
+.field_row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.form_actions { display: flex; gap: 10px; justify-content: flex-end; padding-top: 8px; border-top: 1px solid var(--border-light); }
+.form_section { font-size: 0.82rem; font-weight: 700; padding: 8px 0 0; border-top: 1px solid var(--border-light); }
+.key_result_edit { background: var(--bg); border-radius: var(--radius-sm); padding: 12px; }
+.key_result_title_input { margin-bottom: 8px; }
+.key_result_edit_row { display: flex; gap: 8px; align-items: flex-end; }
+.key_result_edit_row .field_group { flex: 1; }
+.button_small_delete_icon { background: none; border: none; font-size: 0.85rem; cursor: pointer; padding: 8px; opacity: 0.5; }
+.button_small_delete_icon:hover { opacity: 1; }
+.button_add_kr { background: var(--purple-bg); color: var(--purple); border: 1px dashed var(--purple-border); padding: 10px; border-radius: var(--radius-sm); font-size: 0.82rem; font-weight: 600; cursor: pointer; }
+.button_add_kr:hover { background: rgba(124,58,237,0.1); }
+@media (max-width: 768px) { .field_row { grid-template-columns: 1fr; } }
 </style>

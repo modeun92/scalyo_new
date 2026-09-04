@@ -1,194 +1,194 @@
 <template>
   <Teleport to="body">
-    <Transition name="cm-fade">
-      <div v-if="modal.isOpen" class="cm-root" @keydown.esc="modal.close()">
-        <div class="cm-overlay" @click="modal.close()" />
+    <Transition name="client_modal_fade">
+      <div v-if="modal.isOpen" class="client_modal_root" @keydown.esc="modal.close()">
+        <div class="client_modal_overlay" @click="modal.close()" />
 
-        <div v-if="client" class="cm-window" :style="windowStyle" role="dialog" aria-modal="true">
+        <div v-if="client" class="client_modal_window" :style="windowStyle" role="dialog" aria-modal="true">
           <!-- Title bar = drag handle -->
-          <div class="cm-titlebar" @pointerdown="startDrag">
-            <div class="cm-title">
-              <span class="cm-avatar" :style="{ background: statusColor }">{{ (form.name || '?')[0] }}</span>
-              <span class="cm-name">{{ form.name || t('cd_untitled') }}</span>
-              <span class="cm-badge" :class="'st-' + effectiveStatus">{{ statusLabel }}</span>
+          <div class="client_modal_titlebar" @pointerdown="startDrag">
+            <div class="client_modal_title">
+              <span class="client_modal_avatar" :style="{ background: statusColor }">{{ (form.name || '?')[0] }}</span>
+              <span class="client_modal_name">{{ form.name || t('cd_untitled') }}</span>
+              <span class="client_modal_badge" :class="'status_' + effectiveStatus">{{ statusLabel }}</span>
             </div>
-            <button class="cm-close" @click="modal.close()" :title="t('cancel')">✕</button>
+            <button class="client_modal_close" @click="modal.close()" :title="t('cancel')">✕</button>
           </div>
 
-          <div class="cm-body">
+          <div class="client_modal_body">
             <!-- ── Editable info (everything editable, here, right now) ── -->
-            <div class="cm-grid">
-              <label class="cm-f cm-f-wide"><span>{{ t('port_field_name') }}</span>
-                <input v-model="form.name" class="cm-i" /></label>
-              <label class="cm-f"><span>{{ t('port_field_industry') }}</span>
+            <div class="client_modal_grid">
+              <label class="client_modal_f client_modal_f_wide"><span>{{ t('port_field_name') }}</span>
+                <input v-model="form.name" class="client_modal_i" /></label>
+              <label class="client_modal_f"><span>{{ t('port_field_industry') }}</span>
                 <!-- FICHE-SECTEUR (29/08): a stored value outside the list (import, other language)
                      matched no option → EMPTY select even though the data exists.
                      Dynamic option = the value shows as-is and can be reclassified. -->
-                <select v-model="form.industry" class="cm-i"><option value="">—</option>
+                <select v-model="form.industry" class="client_modal_i"><option value="">—</option>
                   <option v-if="form.industry && !industries.includes(form.industry)" :value="form.industry">{{ form.industry }}</option>
                   <option v-for="i in industries" :key="i" :value="i">{{ i }}</option></select></label>
-              <label class="cm-f"><span>{{ t('port_field_status') }}</span>
-                <select v-model="form.status" class="cm-i">
+              <label class="client_modal_f"><span>{{ t('port_field_status') }}</span>
+                <select v-model="form.status" class="client_modal_i">
                   <option value="healthy">{{ t('status_healthy') }}</option>
                   <option value="watch">{{ t('status_watch') }}</option>
                   <option value="critical">{{ t('status_critical') }}</option></select></label>
-              <label class="cm-f"><span>{{ t('cd_health') }} (0-10)</span>
-                <input v-model.number="form.health" type="number" min="0" max="10" class="cm-i" /></label>
-              <label class="cm-f"><span>NPS</span>
-                <input v-model.number="form.nps" type="number" min="-100" max="100" class="cm-i" /></label>
+              <label class="client_modal_f"><span>{{ t('cd_health') }} (0-10)</span>
+                <input v-model.number="form.health" type="number" min="0" max="10" class="client_modal_i" /></label>
+              <label class="client_modal_f"><span>NPS</span>
+                <input v-model.number="form.nps" type="number" min="-100" max="100" class="client_modal_i" /></label>
               <!-- CURRENCY-FORMAT: currency symbol of the ACCOUNT (no more hard-coded "€"), amount through the single formatter -->
-              <label class="cm-f"><span>{{ t('cd_arr') }} ({{ currencySymbol() }})</span>
-                <input v-model.number="form.arr" type="number" min="0" class="cm-i" /></label>
-              <label class="cm-f"><span>{{ t('cd_mrr') }} ({{ currencySymbol() }})</span>
-                <input v-model.number="form.mrr" type="number" min="0" class="cm-i" /></label>
-              <div class="cm-f"><span>{{ t('port_ca_signed') }}</span>
-                <div class="cm-i cm-ro">{{ fmtCurrency(signedAmount) }}</div></div>
-              <label class="cm-f"><span>{{ t('cd_renewal') }}</span>
-                <input v-model="form.renewalDate" type="date" class="cm-i" /></label>
-              <label class="cm-f"><span>{{ t('cd_csm') }}</span>
-                <select v-model="form.csmId" class="cm-i"><option value="">{{ t('cd_no_csm') }}</option>
+              <label class="client_modal_f"><span>{{ t('cd_arr') }} ({{ currencySymbol() }})</span>
+                <input v-model.number="form.arr" type="number" min="0" class="client_modal_i" /></label>
+              <label class="client_modal_f"><span>{{ t('cd_mrr') }} ({{ currencySymbol() }})</span>
+                <input v-model.number="form.mrr" type="number" min="0" class="client_modal_i" /></label>
+              <div class="client_modal_f"><span>{{ t('port_ca_signed') }}</span>
+                <div class="client_modal_i client_modal_ro">{{ fmtCurrency(signedAmount) }}</div></div>
+              <label class="client_modal_f"><span>{{ t('cd_renewal') }}</span>
+                <input v-model="form.renewalDate" type="date" class="client_modal_i" /></label>
+              <label class="client_modal_f"><span>{{ t('cd_csm') }}</span>
+                <select v-model="form.csmId" class="client_modal_i"><option value="">{{ t('cd_no_csm') }}</option>
                   <option v-for="m in team.assignableMembers" :key="m.id" :value="m.id">{{ m.name }}</option></select></label>
             </div>
 
             <!-- ── Monthly metrics (client_metrics — contract 22/07) ── -->
-            <div class="cm-section">
-              <div class="cm-section-head">
+            <div class="client_modal_section">
+              <div class="client_modal_section_header">
                 <h3>{{ t('cmet_title') }}</h3>
-                <button class="cm-mini" @click="showMetricAdd = !showMetricAdd">＋ {{ t('cmet_add') }}</button>
+                <button class="client_modal_mini" @click="showMetricAdd = !showMetricAdd">＋ {{ t('cmet_add') }}</button>
               </div>
-              <div v-if="showMetricAdd" class="cm-metric-form">
+              <div v-if="showMetricAdd" class="client_modal_metric_form">
                 <!-- P10 think-like-a-CSM: direct search (39 KPIs), tracked ones first, focus on value after selection -->
-                <div class="cm-kpi-combo">
-                  <input v-model="kpiSearch" class="cm-i" :placeholder="t('cmet_pick')"
+                <div class="client_modal_kpi_combo">
+                  <input v-model="kpiSearch" class="client_modal_i" :placeholder="t('cmet_pick')"
                     @focus="kpiListOpen = true" @input="kpiListOpen = true; metricDraft.kpiId = ''"
                     @keydown.esc="kpiListOpen = false" @blur="closeKpiListSoon" />
-                  <div v-if="kpiListOpen" class="cm-kpi-list">
-                    <button v-for="k in filteredManualKpis" :key="k.id" class="cm-kpi-opt" @mousedown.prevent="pickKpi(k)">
-                      <span v-if="isTracked(k.id)" class="cm-kpi-tracked">●</span>
-                      <span class="cm-kpi-opt-label">{{ metricLabel(k.id) }}</span>
-                      <span class="cm-kpi-unit">{{ k.unit }}</span>
+                  <div v-if="kpiListOpen" class="client_modal_kpi_list">
+                    <button v-for="k in filteredManualKpis" :key="k.id" class="client_modal_kpi_option" @mousedown.prevent="pickKpi(k)">
+                      <span v-if="isTracked(k.id)" class="client_modal_kpi_tracked">●</span>
+                      <span class="client_modal_kpi_option_label">{{ metricLabel(k.id) }}</span>
+                      <span class="client_modal_kpi_unit">{{ k.unit }}</span>
                     </button>
-                    <div v-if="!filteredManualKpis.length" class="cm-muted cm-kpi-none">—</div>
+                    <div v-if="!filteredManualKpis.length" class="client_modal_muted client_modal_kpi_none">—</div>
                   </div>
                 </div>
-                <input v-model="metricDraft.month" type="month" :max="curMonth" class="cm-i" />
-                <input ref="valueInput" v-model="metricDraft.value" type="number" step="any" class="cm-i cm-metric-val"
+                <input v-model="metricDraft.month" type="month" :max="curMonth" class="client_modal_i" />
+                <input ref="valueInput" v-model="metricDraft.value" type="number" step="any" class="client_modal_i client_modal_metric_value"
                   :placeholder="t('cmet_value')" @keydown.enter="submitMetric" />
-                <button class="btn-primary cm-note-btn" :disabled="!canSaveMetric || savingMetric" @click="submitMetric">
+                <button class="button_primary client_modal_note_button" :disabled="!canSaveMetric || savingMetric" @click="submitMetric">
                   {{ savingMetric ? '…' : t('cd_note_add') }}
                 </button>
               </div>
-              <div v-if="!trackedKpis.length" class="cm-muted">{{ t('cmet_empty') }}</div>
-              <div v-for="tk in trackedKpis" :key="tk.kpiId" class="cm-metric">
-                <button class="cm-metric-row" @click="toggleMetric(tk.kpiId)">
-                  <span class="cm-metric-chev">{{ metricOpen[tk.kpiId] ? '▾' : '▸' }}</span>
-                  <span class="cm-metric-label">{{ metricLabel(tk.kpiId) }}</span>
-                  <span class="cm-metric-last">{{ fmtKpiValue(tk.last.value, kpiFormat(tk.kpiId)) }}<em> · {{ fmtMonth(tk.last.period) }}</em></span>
+              <div v-if="!trackedKpis.length" class="client_modal_muted">{{ t('cmet_empty') }}</div>
+              <div v-for="tk in trackedKpis" :key="tk.kpiId" class="client_modal_metric">
+                <button class="client_modal_metric_row" @click="toggleMetric(tk.kpiId)">
+                  <span class="client_modal_metric_chevron">{{ metricOpen[tk.kpiId] ? '▾' : '▸' }}</span>
+                  <span class="client_modal_metric_label">{{ metricLabel(tk.kpiId) }}</span>
+                  <span class="client_modal_metric_last">{{ fmtKpiValue(tk.last.value, kpiFormat(tk.kpiId)) }}<em> · {{ fmtMonth(tk.last.period) }}</em></span>
                 </button>
-                <div v-if="metricOpen[tk.kpiId]" class="cm-metric-hist">
-                  <div v-for="p in tk.points.slice().reverse()" :key="p.id" class="cm-metric-pt">
-                    <span class="cm-metric-month">{{ fmtMonth(p.period) }}</span>
+                <div v-if="metricOpen[tk.kpiId]" class="client_modal_metric_hist">
+                  <div v-for="p in tk.points.slice().reverse()" :key="p.id" class="client_modal_metric_pt">
+                    <span class="client_modal_metric_month">{{ fmtMonth(p.period) }}</span>
                     <span>{{ fmtKpiValue(p.value, kpiFormat(tk.kpiId)) }}</span>
-                    <button class="cm-x" @click="removeMetric(p)" :title="t('cancel')">🗑️</button>
+                    <button class="client_modal_remove" @click="removeMetric(p)" :title="t('cancel')">🗑️</button>
                   </div>
                 </div>
               </div>
             </div>
 
             <!-- ── Interlocuteurs ── -->
-            <div class="cm-section">
-              <div class="cm-section-head">
+            <div class="client_modal_section">
+              <div class="client_modal_section_header">
                 <h3>{{ t('port_contacts_title') }}</h3>
-                <button class="cm-mini" @click="addContact">＋ {{ t('port_contact_add') }}</button>
+                <button class="client_modal_mini" @click="addContact">＋ {{ t('port_contact_add') }}</button>
               </div>
-              <p v-if="!form.contacts.length" class="cm-muted">{{ t('port_contacts_empty') }}</p>
-              <div v-for="(ct, i) in form.contacts" :key="i" class="cm-contact">
-                <input v-model="ct.name" :placeholder="t('port_field_contact_name')" class="cm-i" />
-                <input v-model="ct.role" :placeholder="t('port_field_contact_role')" class="cm-i" />
-                <input v-model="ct.email" :placeholder="t('port_field_contact_email')" class="cm-i" />
-                <button class="cm-x" @click="form.contacts.splice(i, 1)" :title="t('cancel')">✕</button>
+              <p v-if="!form.contacts.length" class="client_modal_muted">{{ t('port_contacts_empty') }}</p>
+              <div v-for="(ct, i) in form.contacts" :key="i" class="client_modal_contact">
+                <input v-model="ct.name" :placeholder="t('port_field_contact_name')" class="client_modal_i" />
+                <input v-model="ct.role" :placeholder="t('port_field_contact_role')" class="client_modal_i" />
+                <input v-model="ct.email" :placeholder="t('port_field_contact_email')" class="client_modal_i" />
+                <button class="client_modal_remove" @click="form.contacts.splice(i, 1)" :title="t('cancel')">✕</button>
               </div>
             </div>
 
             <!-- ── Free-form notes (FB-03 v2) — call / email / meeting / note ── -->
-            <div class="cm-section">
+            <div class="client_modal_section">
               <h3>{{ t('cd_notes') }}</h3>
-              <div class="cm-note-add">
-                <select v-model="noteKind" class="cm-i cm-note-kind">
+              <div class="client_modal_note_add">
+                <select v-model="noteKind" class="client_modal_i client_modal_note_kind">
                   <option value="note">📝 {{ t('cd_kind_note') }}</option>
                   <option value="call">📞 {{ t('cd_kind_call') }}</option>
                   <option value="email">✉️ {{ t('cd_kind_email') }}</option>
                   <option value="meeting">🤝 {{ t('cd_kind_meeting') }}</option>
                 </select>
-                <textarea v-model="noteDraft" class="cm-i cm-note-text" rows="2"
+                <textarea v-model="noteDraft" class="client_modal_i client_modal_note_text" rows="2"
                   :placeholder="t('cd_note_placeholder')" @keydown.ctrl.enter="submitNote" @keydown.meta.enter="submitNote" />
-                <button class="btn-primary cm-note-btn" :disabled="!noteDraft.trim() || savingNote" @click="submitNote">
+                <button class="button_primary client_modal_note_button" :disabled="!noteDraft.trim() || savingNote" @click="submitNote">
                   {{ savingNote ? '…' : t('cd_note_add') }}
                 </button>
               </div>
-              <div v-if="!notes.length" class="cm-muted">{{ t('cd_notes_empty') }}</div>
-              <div v-for="n in notes" :key="n.id" class="cm-note">
-                <span class="cm-note-icon">{{ kindIcon(n.kind) }}</span>
-                <div class="cm-note-main">
-                  <div class="cm-note-content">{{ n.content }}</div>
-                  <div class="cm-note-meta">{{ n.author_name || '—' }} · {{ fmtDate(n.created_at) }}</div>
+              <div v-if="!notes.length" class="client_modal_muted">{{ t('cd_notes_empty') }}</div>
+              <div v-for="n in notes" :key="n.id" class="client_modal_note">
+                <span class="client_modal_note_icon">{{ kindIcon(n.kind) }}</span>
+                <div class="client_modal_note_main">
+                  <div class="client_modal_note_content">{{ n.content }}</div>
+                  <div class="client_modal_note_meta">{{ n.author_name || '—' }} · {{ fmtDate(n.created_at) }}</div>
                 </div>
-                <button class="cm-x" @click="removeNote(n.id)" :title="t('cancel')">🗑️</button>
+                <button class="client_modal_remove" @click="removeNote(n.id)" :title="t('cancel')">🗑️</button>
               </div>
             </div>
 
             <!-- ── Create & log (copil / task linked to this client) ── -->
-            <div class="cm-section">
+            <div class="client_modal_section">
               <h3>{{ t('cd_add_title') }}</h3>
-              <div class="cm-add-row">
-                <button class="cm-add-btn" :disabled="addingCopil" @click="addCopil">
-                  <span class="cm-note-icon">📊</span>{{ addingCopil ? t('cd_opening') : t('cd_add_copil') }}
+              <div class="client_modal_add_row">
+                <button class="client_modal_add_button" :disabled="addingCopil" @click="addCopil">
+                  <span class="client_modal_note_icon">📊</span>{{ addingCopil ? t('cd_opening') : t('cd_add_copil') }}
                 </button>
-                <button class="cm-add-btn" :class="{ active: showTaskInput }" @click="showTaskInput = !showTaskInput">
-                  <span class="cm-note-icon">📝</span>{{ t('cd_add_task') }}
+                <button class="client_modal_add_button" :class="{ active: showTaskInput }" @click="showTaskInput = !showTaskInput">
+                  <span class="client_modal_note_icon">📝</span>{{ t('cd_add_task') }}
                 </button>
-                <button class="cm-add-btn" @click="goCreate('/app/quotes')">
-                  <span class="cm-note-icon">📄</span>{{ t('cd_add_quote') }}
+                <button class="client_modal_add_button" @click="goCreate('/app/quotes')">
+                  <span class="client_modal_note_icon">📄</span>{{ t('cd_add_quote') }}
                 </button>
-                <button class="cm-add-btn" @click="goCreate('/app/tasks/planning')">
-                  <span class="cm-note-icon">📅</span>{{ t('cd_add_event') }}
+                <button class="client_modal_add_button" @click="goCreate('/app/tasks/planning')">
+                  <span class="client_modal_note_icon">📅</span>{{ t('cd_add_event') }}
                 </button>
-                <button class="cm-add-btn" @click="goCreate('/app/playbooks')">
-                  <span class="cm-note-icon">📋</span>{{ t('cd_add_playbook') }}
+                <button class="client_modal_add_button" @click="goCreate('/app/playbooks')">
+                  <span class="client_modal_note_icon">📋</span>{{ t('cd_add_playbook') }}
                 </button>
               </div>
-              <div v-if="showTaskInput" class="cm-task-add">
-                <input v-model="taskDraft" class="cm-i" :placeholder="t('cd_task_placeholder')"
+              <div v-if="showTaskInput" class="client_modal_task_add">
+                <input v-model="taskDraft" class="client_modal_i" :placeholder="t('cd_task_placeholder')"
                   @keydown.enter="addQuickTask" />
-                <button class="btn-primary cm-note-btn" :disabled="!taskDraft.trim() || savingTask" @click="addQuickTask">
+                <button class="button_primary client_modal_note_button" :disabled="!taskDraft.trim() || savingTask" @click="addQuickTask">
                   {{ savingTask ? '…' : t('cd_note_add') }}
                 </button>
               </div>
             </div>
 
             <!-- ── Derived history (tasks / planning / playbooks / copils) ── -->
-            <div class="cm-section">
+            <div class="client_modal_section">
               <h3>{{ t('cd_timeline') }}</h3>
-              <div v-if="!timeline.length" class="cm-muted">{{ t('cd_tl_empty') }}</div>
-              <router-link v-for="(e, i) in timeline" :key="i" :to="e.to" class="cm-tl" @click="modal.close()">
-                <span class="cm-note-icon">{{ e.icon }}</span>
-                <span class="cm-tl-label">{{ e.label }}</span>
-                <span class="cm-tl-date">{{ e.date ? fmtDate(e.date) : '—' }}</span>
+              <div v-if="!timeline.length" class="client_modal_muted">{{ t('cd_tl_empty') }}</div>
+              <router-link v-for="(e, i) in timeline" :key="i" :to="e.to" class="client_modal_timeline" @click="modal.close()">
+                <span class="client_modal_note_icon">{{ e.icon }}</span>
+                <span class="client_modal_timeline_label">{{ e.label }}</span>
+                <span class="client_modal_timeline_date">{{ e.date ? fmtDate(e.date) : '—' }}</span>
               </router-link>
             </div>
           </div>
 
-          <div class="cm-footer">
-            <span v-if="saved" class="cm-saved">✓ {{ t('cd_saved') }}</span>
-            <button class="btn-outline" @click="modal.close()">{{ t('cancel') }}</button>
-            <button class="btn-primary" @click="saveClient">{{ t('save') }}</button>
+          <div class="client_modal_footer">
+            <span v-if="saved" class="client_modal_saved">✓ {{ t('cd_saved') }}</span>
+            <button class="button_outline" @click="modal.close()">{{ t('cancel') }}</button>
+            <button class="button_primary" @click="saveClient">{{ t('save') }}</button>
           </div>
         </div>
 
         <!-- Client introuvable -->
-        <div v-else class="cm-window cm-window--sm" :style="windowStyle" role="dialog">
-          <div class="cm-titlebar"><span class="cm-name">{{ t('cd_not_found') }}</span>
-            <button class="cm-close" @click="modal.close()">✕</button></div>
+        <div v-else class="client_modal_window client_modal_window_small" :style="windowStyle" role="dialog">
+          <div class="client_modal_titlebar"><span class="client_modal_name">{{ t('cd_not_found') }}</span>
+            <button class="client_modal_close" @click="modal.close()">✕</button></div>
         </div>
       </div>
     </Transition>
@@ -463,82 +463,82 @@ watch(() => [modal.isOpen, modal.clientId], ([open]) => {
 </script>
 
 <style scoped>
-.cm-root { position: fixed; inset: 0; z-index: 10050; }
-.cm-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.35); }
-.cm-window { position: fixed; top: 50%; left: 50%; width: min(760px, 94vw); max-height: 88vh;
+.client_modal_root { position: fixed; inset: 0; z-index: 10050; }
+.client_modal_overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.35); }
+.client_modal_window { position: fixed; top: 50%; left: 50%; width: min(760px, 94vw); max-height: 88vh;
   background: var(--card-bg, var(--bg-card)); border: 1px solid var(--border); border-radius: 16px;
   box-shadow: 0 24px 64px rgba(0,0,0,0.28); display: flex; flex-direction: column; overflow: hidden; }
-.cm-window--sm { width: 360px; }
-.cm-titlebar { display: flex; align-items: center; justify-content: space-between; gap: 12px;
+.client_modal_window_small { width: 360px; }
+.client_modal_titlebar { display: flex; align-items: center; justify-content: space-between; gap: 12px;
   padding: 14px 18px; border-bottom: 1px solid var(--border); cursor: grab; user-select: none; touch-action: none; background: var(--bg); }
-.cm-titlebar:active { cursor: grabbing; }
-.cm-title { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.cm-avatar { width: 34px; height: 34px; border-radius: 9px; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 800; flex-shrink: 0; }
-.cm-name { font-weight: 800; font-size: 1.02rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.cm-badge { font-size: 0.7rem; font-weight: 700; padding: 2px 9px; border-radius: 99px; flex-shrink: 0; }
-.st-healthy { background: rgba(16,185,129,.14); color: #10b981; }
-.st-watch { background: rgba(245,158,11,.14); color: #f59e0b; }
-.st-critical { background: rgba(239,68,68,.14); color: #ef4444; }
-.cm-close { width: 30px; height: 30px; border: none; border-radius: 8px; background: var(--bg-hover); color: var(--text-secondary); cursor: pointer; flex-shrink: 0; }
-.cm-close:hover { background: var(--border); }
-.cm-body { flex: 1 1 auto; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 22px; }
-.cm-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
-.cm-ro { display: flex; align-items: center; color: var(--text-muted, #64748b); background: var(--bg, #f8fafc); font-variant-numeric: tabular-nums; }
-.cm-f { display: flex; flex-direction: column; gap: 5px; font-size: 0.78rem; color: var(--text-secondary); }
-.cm-f-wide { grid-column: 1 / -1; }
-.cm-i { padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: 0.9rem; width: 100%; }
-.cm-section-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-.cm-section h3 { font-size: 0.9rem; font-weight: 700; margin: 0 0 10px; }
-.cm-mini, .cm-note-btn { border: none; border-radius: 8px; padding: 6px 12px; font-size: 0.8rem; cursor: pointer; }
-.cm-mini { background: var(--bg-hover); color: var(--text); }
-.cm-contact { display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 8px; margin-bottom: 8px; }
-.cm-x { border: none; background: transparent; cursor: pointer; font-size: 0.9rem; }
-.cm-note-add { display: grid; grid-template-columns: 130px 1fr auto; gap: 8px; align-items: start; margin-bottom: 14px; }
-.cm-note-text { resize: vertical; font-family: inherit; }
-.cm-note-btn { align-self: stretch; }
-.cm-note { display: flex; gap: 10px; padding: 10px 0; border-top: 1px solid var(--border); }
-.cm-note-icon { flex-shrink: 0; }
-.cm-note-main { flex: 1; min-width: 0; }
-.cm-note-content { font-size: 0.88rem; white-space: pre-wrap; }
-.cm-note-meta { font-size: 0.74rem; color: var(--text-muted); margin-top: 3px; }
-.cm-tl { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-top: 1px solid var(--border); text-decoration: none; color: var(--text); }
-.cm-tl:hover { background: var(--bg-hover); }
-.cm-tl-label { flex: 1; font-size: 0.86rem; min-width: 0; }
-.cm-tl-date { font-size: 0.76rem; color: var(--text-muted); flex-shrink: 0; }
-.cm-muted { font-size: 0.85rem; color: var(--text-muted); }
-.cm-footer { display: flex; align-items: center; justify-content: flex-end; gap: 10px; padding: 14px 18px; border-top: 1px solid var(--border); background: var(--bg); }
-.cm-saved { margin-right: auto; color: #10b981; font-size: 0.82rem; font-weight: 700; }
-.cm-fade-enter-active, .cm-fade-leave-active { transition: opacity .2s ease; }
-.cm-fade-enter-from, .cm-fade-leave-to { opacity: 0; }
-.cm-add-row { display: flex; gap: 8px; flex-wrap: wrap; }
-.cm-add-btn { display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--border);
+.client_modal_titlebar:active { cursor: grabbing; }
+.client_modal_title { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.client_modal_avatar { width: 34px; height: 34px; border-radius: 9px; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 800; flex-shrink: 0; }
+.client_modal_name { font-weight: 800; font-size: 1.02rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.client_modal_badge { font-size: 0.7rem; font-weight: 700; padding: 2px 9px; border-radius: 99px; flex-shrink: 0; }
+.status_healthy { background: rgba(16,185,129,.14); color: #10b981; }
+.status_watch { background: rgba(245,158,11,.14); color: #f59e0b; }
+.status_critical { background: rgba(239,68,68,.14); color: #ef4444; }
+.client_modal_close { width: 30px; height: 30px; border: none; border-radius: 8px; background: var(--bg-hover); color: var(--text-secondary); cursor: pointer; flex-shrink: 0; }
+.client_modal_close:hover { background: var(--border); }
+.client_modal_body { flex: 1 1 auto; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 22px; }
+.client_modal_grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.client_modal_ro { display: flex; align-items: center; color: var(--text-muted, #64748b); background: var(--bg, #f8fafc); font-variant-numeric: tabular-nums; }
+.client_modal_f { display: flex; flex-direction: column; gap: 5px; font-size: 0.78rem; color: var(--text-secondary); }
+.client_modal_f_wide { grid-column: 1 / -1; }
+.client_modal_i { padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: 0.9rem; width: 100%; }
+.client_modal_section_header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.client_modal_section h3 { font-size: 0.9rem; font-weight: 700; margin: 0 0 10px; }
+.client_modal_mini, .client_modal_note_button { border: none; border-radius: 8px; padding: 6px 12px; font-size: 0.8rem; cursor: pointer; }
+.client_modal_mini { background: var(--bg-hover); color: var(--text); }
+.client_modal_contact { display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 8px; margin-bottom: 8px; }
+.client_modal_remove { border: none; background: transparent; cursor: pointer; font-size: 0.9rem; }
+.client_modal_note_add { display: grid; grid-template-columns: 130px 1fr auto; gap: 8px; align-items: start; margin-bottom: 14px; }
+.client_modal_note_text { resize: vertical; font-family: inherit; }
+.client_modal_note_button { align-self: stretch; }
+.client_modal_note { display: flex; gap: 10px; padding: 10px 0; border-top: 1px solid var(--border); }
+.client_modal_note_icon { flex-shrink: 0; }
+.client_modal_note_main { flex: 1; min-width: 0; }
+.client_modal_note_content { font-size: 0.88rem; white-space: pre-wrap; }
+.client_modal_note_meta { font-size: 0.74rem; color: var(--text-muted); margin-top: 3px; }
+.client_modal_timeline { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-top: 1px solid var(--border); text-decoration: none; color: var(--text); }
+.client_modal_timeline:hover { background: var(--bg-hover); }
+.client_modal_timeline_label { flex: 1; font-size: 0.86rem; min-width: 0; }
+.client_modal_timeline_date { font-size: 0.76rem; color: var(--text-muted); flex-shrink: 0; }
+.client_modal_muted { font-size: 0.85rem; color: var(--text-muted); }
+.client_modal_footer { display: flex; align-items: center; justify-content: flex-end; gap: 10px; padding: 14px 18px; border-top: 1px solid var(--border); background: var(--bg); }
+.client_modal_saved { margin-right: auto; color: #10b981; font-size: 0.82rem; font-weight: 700; }
+.client_modal_fade-enter-active, .client_modal_fade-leave-active { transition: opacity .2s ease; }
+.client_modal_fade-enter-from, .client_modal_fade-leave-to { opacity: 0; }
+.client_modal_add_row { display: flex; gap: 8px; flex-wrap: wrap; }
+.client_modal_add_button { display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--border);
   border-radius: 9px; padding: 8px 13px; background: var(--bg); color: var(--text);
   font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: background .15s, border-color .15s; }
-.cm-add-btn:hover:not(:disabled) { background: var(--bg-hover); border-color: var(--primary); }
-.cm-add-btn.active { border-color: var(--primary); background: var(--bg-hover); }
-.cm-add-btn:disabled { opacity: .6; cursor: default; }
-.cm-task-add { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-top: 10px; }
+.client_modal_add_button:hover:not(:disabled) { background: var(--bg-hover); border-color: var(--primary); }
+.client_modal_add_button.active { border-color: var(--primary); background: var(--bg-hover); }
+.client_modal_add_button:disabled { opacity: .6; cursor: default; }
+.client_modal_task_add { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-top: 10px; }
 /* ── Monthly metrics (client_metrics batch 22/07) ── */
-.cm-metric-form { display: grid; grid-template-columns: 1fr auto 110px auto; gap: 6px; margin-bottom: 10px; }
-.cm-kpi-combo { position: relative; }
-.cm-kpi-list { position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 30; background: var(--card-bg, var(--bg-card)); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 12px 32px rgba(0,0,0,0.14); max-height: 260px; overflow-y: auto; padding: 4px; }
-.cm-kpi-opt { display: flex; align-items: center; gap: 7px; width: 100%; text-align: left; background: none; border: none; padding: 7px 9px; border-radius: 6px; font-size: 0.84rem; color: var(--text); cursor: pointer; }
-.cm-kpi-opt:hover { background: var(--bg-hover); }
-.cm-kpi-opt-label { flex: 1; min-width: 0; }
-.cm-kpi-tracked { color: var(--purple, #7c3aed); font-size: 0.6rem; }
-.cm-kpi-unit { font-size: 0.68rem; color: var(--text-muted); }
-.cm-kpi-none { padding: 8px; text-align: center; }
-.cm-metric { border-top: 1px solid var(--border); }
-.cm-metric-row { display: flex; align-items: center; gap: 8px; width: 100%; background: none; border: none; padding: 8px 2px; cursor: pointer; font-size: 0.86rem; color: var(--text); }
-.cm-metric-chev { font-size: 0.65rem; color: var(--text-muted); width: 12px; flex-shrink: 0; }
-.cm-metric-label { flex: 1; text-align: left; font-weight: 500; min-width: 0; }
-.cm-metric-last { font-weight: 700; font-variant-numeric: tabular-nums; flex-shrink: 0; }
-.cm-metric-last em { font-style: normal; font-weight: 400; color: var(--text-muted); font-size: 0.75rem; }
-.cm-metric-hist { padding: 0 0 8px 20px; display: flex; flex-direction: column; gap: 2px; }
-.cm-metric-pt { display: flex; align-items: center; gap: 10px; font-size: 0.8rem; padding: 2px 0; }
-.cm-metric-month { color: var(--text-muted); min-width: 90px; }
+.client_modal_metric_form { display: grid; grid-template-columns: 1fr auto 110px auto; gap: 6px; margin-bottom: 10px; }
+.client_modal_kpi_combo { position: relative; }
+.client_modal_kpi_list { position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 30; background: var(--card-bg, var(--bg-card)); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 12px 32px rgba(0,0,0,0.14); max-height: 260px; overflow-y: auto; padding: 4px; }
+.client_modal_kpi_option { display: flex; align-items: center; gap: 7px; width: 100%; text-align: left; background: none; border: none; padding: 7px 9px; border-radius: 6px; font-size: 0.84rem; color: var(--text); cursor: pointer; }
+.client_modal_kpi_option:hover { background: var(--bg-hover); }
+.client_modal_kpi_option_label { flex: 1; min-width: 0; }
+.client_modal_kpi_tracked { color: var(--purple, #7c3aed); font-size: 0.6rem; }
+.client_modal_kpi_unit { font-size: 0.68rem; color: var(--text-muted); }
+.client_modal_kpi_none { padding: 8px; text-align: center; }
+.client_modal_metric { border-top: 1px solid var(--border); }
+.client_modal_metric_row { display: flex; align-items: center; gap: 8px; width: 100%; background: none; border: none; padding: 8px 2px; cursor: pointer; font-size: 0.86rem; color: var(--text); }
+.client_modal_metric_chevron { font-size: 0.65rem; color: var(--text-muted); width: 12px; flex-shrink: 0; }
+.client_modal_metric_label { flex: 1; text-align: left; font-weight: 500; min-width: 0; }
+.client_modal_metric_last { font-weight: 700; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+.client_modal_metric_last em { font-style: normal; font-weight: 400; color: var(--text-muted); font-size: 0.75rem; }
+.client_modal_metric_hist { padding: 0 0 8px 20px; display: flex; flex-direction: column; gap: 2px; }
+.client_modal_metric_pt { display: flex; align-items: center; gap: 10px; font-size: 0.8rem; padding: 2px 0; }
+.client_modal_metric_month { color: var(--text-muted); min-width: 90px; }
 @media (max-width: 640px) {
-  .cm-note-add { grid-template-columns: 1fr; }
-  .cm-contact { grid-template-columns: 1fr 1fr; }
+  .client_modal_note_add { grid-template-columns: 1fr; }
+  .client_modal_contact { grid-template-columns: 1fr 1fr; }
 }
 </style>

@@ -1,45 +1,45 @@
 <template>
-<div class="send-modal-overlay" @click.self="$emit('close')">
-  <div class="send-modal">
-    <div class="sm-header">
+<div class="send_modal_overlay" @click.self="$emit('close')">
+  <div class="send_modal">
+    <div class="send_modal_header">
       <h3>{{ t('es_send_title') }}</h3>
-      <button class="sm-close" @click="$emit('close')">\u2715</button>
+      <button class="send_modal_close" @click="$emit('close')">\u2715</button>
     </div>
-    <div class="sm-body">
-      <div v-if="sendResult?.success" class="sm-success">
+    <div class="send_modal_body">
+      <div v-if="sendResult?.success" class="send_modal_success">
         \u2705 {{ t('es_send_success') }}
       </div>
-      <div v-else-if="sendResult?.error" class="sm-error">
+      <div v-else-if="sendResult?.error" class="send_modal_error">
         \u274c {{ sendResult.error }}
       </div>
       <template v-else>
-      <div class="sm-field">
+      <div class="send_modal_field">
         <label>{{ t('es_send_client') }}</label>
-        <select v-model="selectedClientId" class="sm-input" @change="onClientSelect">
+        <select v-model="selectedClientId" class="send_modal_input" @change="onClientSelect">
           <option value="">{{ t('es_send_client_placeholder') }}</option>
           <option v-for="c in clients" :key="c.id" :value="c.id">{{ c.name }}</option>
         </select>
       </div>
-        <div class="sm-field">
+        <div class="send_modal_field">
           <label>{{ t('es_send_to') }}</label>
-          <input v-model="sendTo" type="email" :placeholder="t('es_send_to_placeholder')" class="sm-input" />
+          <input v-model="sendTo" type="email" :placeholder="t('es_send_to_placeholder')" class="send_modal_input" />
         </div>
-        <div class="sm-field">
+        <div class="send_modal_field">
           <label>{{ t('es_send_from_name') }}</label>
-          <input v-model="sendFromName" type="text" :placeholder="auth.fullName || t('es_send_from_placeholder')" class="sm-input" />
+          <input v-model="sendFromName" type="text" :placeholder="auth.fullName || t('es_send_from_placeholder')" class="send_modal_input" />
         </div>
         
-      <div class="sm-sender-info">
+      <div class="send_modal_sender_info">
         <span>{{ t('es_send_via') }} contact@scalyo.app</span>
       </div>
-<div class="sm-preview">
+<div class="send_modal_preview">
           <strong>{{ t('es_subject') }} :</strong> {{ editSubject }}
         </div>
-        <div class="sm-preview sm-preview-body">
+        <div class="send_modal_preview send_modal_preview_body">
           <strong>{{ t('es_body') }} :</strong>
-          <p class="sm-body-text">{{ editBody.substring(0, 200) }}{{ editBody.length > 200 ? '...' : '' }}</p>
+          <p class="send_modal_body_text">{{ editBody.substring(0, 200) }}{{ editBody.length > 200 ? '...' : '' }}</p>
         </div>
-        <button class="btn-primary sm-send-btn" @click="sendEmail" :disabled="!sendTo || sending">
+        <button class="button_primary send_modal_send_button" @click="sendEmail" :disabled="!sendTo || sending">
           {{ sending ? t('es_sending') : t('es_send_btn') }}
         </button>
       </template>
@@ -132,13 +132,13 @@ async function sendEmail() {
 </script>
 
 <style scoped>
-.sm-sender-info {
+.send_modal_sender_info {
   padding: 8px 0;
   font-size: 13px;
   color: #888;
   font-style: italic;
 }
-.sm-input {
+.send_modal_input {
   width: 100%;
   padding: 10px 12px;
   border: 1px solid #ddd;
@@ -147,31 +147,31 @@ async function sendEmail() {
   background-color: var(--bg-card);
   appearance: none;
 }
-.sm-input:focus {
+.send_modal_input:focus {
   outline: none;
   border-color: #7c5cfc;
 }
 @media (max-width: 640px) {
-  .send-modal {
+  .send_modal {
     width: 95vw !important;
     max-height: 90vh;
     margin: 5vh auto;
     border-radius: 12px;
   }
-  .sm-body {
+  .send_modal_body {
     max-height: 70vh;
     overflow-y: auto;
   }
-  .sm-field input,
-  .sm-field select,
-  .sm-field textarea {
+  .send_modal_field input,
+  .send_modal_field select,
+  .send_modal_field textarea {
     font-size: 16px;
   }
-  .sm-actions {
+  .send_modal_actions {
     flex-direction: column;
     gap: 8px;
   }
-  .sm-actions button {
+  .send_modal_actions button {
     width: 100%;
   }
 }

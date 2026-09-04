@@ -1,53 +1,53 @@
 <template>
-  <div class="std-import">
+  <div class="std_import">
     <!-- STEP 1: Upload -->
-    <div v-if="step === 'upload'" class="import-drop"
+    <div v-if="step === 'upload'" class="import_drop"
       :class="{ dragover }"
       @dragover.prevent="dragover = true"
       @dragleave="dragover = false"
       @drop.prevent="onDrop"
     >
       <input ref="fileInput" type="file" accept=".csv,.xlsx,.xls,.xlsm,.json,.tsv,.txt" hidden @change="onFileSelect" />
-      <div class="drop-inner" @click="fileInput?.click()">
-        <span class="drop-icon">📁</span>
-        <p class="drop-label">{{ t('import_drop_label') }}</p>
-        <p class="drop-hint">CSV, XLSX, JSON</p>
+      <div class="drop_inner" @click="fileInput?.click()">
+        <span class="drop_icon">📁</span>
+        <p class="drop_label">{{ t('import_drop_label') }}</p>
+        <p class="drop_hint">CSV, XLSX, JSON</p>
       </div>
     </div>
 
     <!-- STEP 2: Mapping -->
-    <div v-if="step === 'mapping'" class="import-mapping">
-      <div class="mapping-header">
+    <div v-if="step === 'mapping'" class="import_mapping">
+      <div class="mapping_header">
         <h3>{{ t('import_mapping_title') }}</h3>
-        <span class="mapping-file">{{ parsed?.fileName }} — {{ parsed?.rowCount }} {{ t('import_rows') }}</span>
+        <span class="mapping_file">{{ parsed?.fileName }} — {{ parsed?.rowCount }} {{ t('import_rows') }}</span>
       </div>
-      <div class="mapping-grid">
-        <div v-for="field in fields" :key="field.key" class="mapping-row">
-          <label class="mapping-label">
+      <div class="mapping_grid">
+        <div v-for="field in fields" :key="field.key" class="mapping_row">
+          <label class="mapping_label">
             {{ t(field.label) }}
-            <span v-if="field.required" class="mapping-req">*</span>
+            <span v-if="field.required" class="mapping_req">*</span>
           </label>
-          <select v-model="mapping[field.key]" class="mapping-select">
+          <select v-model="mapping[field.key]" class="mapping_select">
             <option value="">— {{ t('import_skip') }} —</option>
             <option v-for="h in parsed?.headers" :key="h" :value="h">{{ h }}</option>
           </select>
         </div>
       </div>
-      <p v-if="mappingError" class="mapping-error">{{ mappingError }}</p>
-      <div class="mapping-actions">
-        <button class="btn-secondary" @click="reset()">{{ t('import_cancel') }}</button>
-        <button class="btn-primary" @click="goPreview()">{{ t('import_preview') }}</button>
+      <p v-if="mappingError" class="mapping_error">{{ mappingError }}</p>
+      <div class="mapping_actions">
+        <button class="button_secondary" @click="reset()">{{ t('import_cancel') }}</button>
+        <button class="button_primary" @click="goPreview()">{{ t('import_preview') }}</button>
       </div>
     </div>
 
     <!-- STEP 3: Preview -->
-    <div v-if="step === 'preview'" class="import-preview">
-      <div class="preview-header">
+    <div v-if="step === 'preview'" class="import_preview">
+      <div class="preview_header">
         <h3>{{ t('import_preview_title') }}</h3>
         <span>{{ previewRows.length }} / {{ mapped.length }} {{ t('import_rows') }}</span>
       </div>
-      <div class="preview-table-wrap">
-        <table class="preview-table">
+      <div class="preview_table_wrapper">
+        <table class="standard_import_preview_table">
           <thead>
             <tr>
               <th v-for="field in mappedFields" :key="field.key">{{ t(field.label) }}</th>
@@ -60,30 +60,30 @@
           </tbody>
         </table>
       </div>
-      <div v-if="importIssues.length" class="import-issues">
-        <div class="ii-title">{{ t('import_warn_title', { count: importIssues.length }) }}</div>
+      <div v-if="importIssues.length" class="import_issues">
+        <div class="ii_title">{{ t('import_warn_title', { count: importIssues.length }) }}</div>
         <ul>
           <li v-for="(iss, i) in importIssues.slice(0, 5)" :key="i">
             {{ t('import_warn_row', { row: iss.row, field: iss.field, value: iss.value }) }}
           </li>
         </ul>
-        <p v-if="importIssues.length > 5" class="ii-more">
+        <p v-if="importIssues.length > 5" class="ii_more">
           {{ t('import_warn_more', { count: importIssues.length - 5 }) }}
         </p>
       </div>
-      <div class="mapping-actions">
-        <button class="btn-secondary" @click="step = 'mapping'">{{ t('import_back') }}</button>
-        <button class="btn-primary" :disabled="importing" @click="doImport()">
+      <div class="mapping_actions">
+        <button class="button_secondary" @click="step = 'mapping'">{{ t('import_back') }}</button>
+        <button class="button_primary" :disabled="importing" @click="doImport()">
           {{ importing ? t('import_importing') : t('import_confirm', { count: mapped.length }) }}
         </button>
       </div>
     </div>
 
     <!-- STEP 4: Done -->
-    <div v-if="step === 'done'" class="import-done">
-      <span class="done-icon">✅</span>
+    <div v-if="step === 'done'" class="import_done">
+      <span class="done_icon">✅</span>
       <p>{{ t('import_done', { count: importedCount }) }}</p>
-      <button class="btn-secondary" @click="reset()">{{ t('import_new') }}</button>
+      <button class="button_secondary" @click="reset()">{{ t('import_new') }}</button>
     </div>
   </div>
 </template>
@@ -356,47 +356,47 @@ var reset = function () {
 </script>
 
 <style scoped>
-.std-import { max-width: 640px; margin: 0 auto; }
-.import-drop { border: 2px dashed var(--border); border-radius: var(--radius-md); padding: 48px 24px; text-align: center; cursor: pointer; transition: all 0.2s; }
-.import-drop:hover, .import-drop.dragover { border-color: var(--purple); background: var(--purple-bg); }
-.drop-icon { font-size: 2rem; display: block; margin-bottom: 8px; }
-.drop-label { font-weight: 600; color: var(--text); margin: 0 0 4px; }
-.drop-hint { font-size: 0.8rem; color: var(--text-muted); margin: 0; }
-.mapping-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 16px; }
-.mapping-header h3 { font-size: 1rem; font-weight: 700; margin: 0; }
-.mapping-file { font-size: 0.8rem; color: var(--text-muted); }
-.mapping-grid { display: flex; flex-direction: column; gap: 8px; }
-.mapping-row { display: flex; align-items: center; gap: 12px; }
-.mapping-label { width: 160px; font-size: 0.85rem; font-weight: 500; flex-shrink: 0; }
-.mapping-req { color: var(--red); }
-.mapping-select { flex: 1; padding: 7px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 0.85rem; background-color: var(--bg-card); }
-.mapping-error { color: var(--red); font-size: 0.82rem; margin-top: 12px; }
+.std_import { max-width: 640px; margin: 0 auto; }
+.import_drop { border: 2px dashed var(--border); border-radius: var(--radius-md); padding: 48px 24px; text-align: center; cursor: pointer; transition: all 0.2s; }
+.import_drop:hover, .import_drop.dragover { border-color: var(--purple); background: var(--purple-bg); }
+.drop_icon { font-size: 2rem; display: block; margin-bottom: 8px; }
+.drop_label { font-weight: 600; color: var(--text); margin: 0 0 4px; }
+.drop_hint { font-size: 0.8rem; color: var(--text-muted); margin: 0; }
+.mapping_header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 16px; }
+.mapping_header h3 { font-size: 1rem; font-weight: 700; margin: 0; }
+.mapping_file { font-size: 0.8rem; color: var(--text-muted); }
+.mapping_grid { display: flex; flex-direction: column; gap: 8px; }
+.mapping_row { display: flex; align-items: center; gap: 12px; }
+.mapping_label { width: 160px; font-size: 0.85rem; font-weight: 500; flex-shrink: 0; }
+.mapping_req { color: var(--red); }
+.mapping_select { flex: 1; padding: 7px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 0.85rem; background-color: var(--bg-card); }
+.mapping_error { color: var(--red); font-size: 0.82rem; margin-top: 12px; }
 /* IMPORT-NUM: non-blocking warning — the import is still possible, but
    the user sees exactly what was not taken in. */
 /* Theme variables (main.css): --amber #ffb020, --amber-bg, --amber-border. */
-.import-issues { margin-top: 14px; padding: 12px 14px; border-radius: 10px;
+.import_issues { margin-top: 14px; padding: 12px 14px; border-radius: 10px;
   background: var(--amber-bg); border: 1px solid var(--amber-border); }
 /* Titre en <div> et non en <p> : main.css L272 impose
    [data-theme="dark"] p { color: #cbd5e1 !important }, qu'aucune specificite ne
    peut battre. On evite la regle plutot que d'empiler un !important de plus. */
-.import-issues .ii-title { font-size: 0.82rem; font-weight: 600; margin: 0 0 6px; color: var(--amber); }
-.import-issues ul { margin: 0; padding-left: 18px; }
-.import-issues li { font-size: 0.78rem; line-height: 1.6; opacity: 0.85; }
-.import-issues .ii-more { font-size: 0.75rem; opacity: 0.65; margin: 6px 0 0; }
-.mapping-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
-.btn-primary { padding: 8px 20px; border: none; border-radius: var(--radius-sm); background: var(--purple); color: #fff; font-weight: 600; font-size: 0.85rem; cursor: pointer; transition: opacity 0.15s; }
-.btn-primary:hover { opacity: 0.9; }
-.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
-.btn-secondary { padding: 8px 20px; border: 1px solid var(--border); border-radius: var(--radius-sm); background-color: var(--bg-card); color: var(--text); font-weight: 500; font-size: 0.85rem; cursor: pointer; transition: background 0.15s; }
-.btn-secondary:hover { background: var(--bg-hover); }
-.preview-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; }
-.preview-header h3 { font-size: 1rem; font-weight: 700; margin: 0; }
-.preview-header span { font-size: 0.8rem; color: var(--text-muted); }
-.preview-table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius-sm); }
-.preview-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
-.preview-table th { text-align: left; padding: 8px 10px; background: var(--bg-hover); font-weight: 600; white-space: nowrap; border-bottom: 1px solid var(--border); }
-.preview-table td { padding: 6px 10px; border-bottom: 1px solid var(--border-light); }
-.import-done { text-align: center; padding: 48px 24px; }
-.done-icon { font-size: 2.5rem; display: block; margin-bottom: 12px; }
-.import-done p { font-size: 1rem; font-weight: 600; margin: 0 0 20px; }
+.import_issues .ii_title { font-size: 0.82rem; font-weight: 600; margin: 0 0 6px; color: var(--amber); }
+.import_issues ul { margin: 0; padding-left: 18px; }
+.import_issues li { font-size: 0.78rem; line-height: 1.6; opacity: 0.85; }
+.import_issues .ii_more { font-size: 0.75rem; opacity: 0.65; margin: 6px 0 0; }
+.mapping_actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+.button_primary { padding: 8px 20px; border: none; border-radius: var(--radius-sm); background: var(--purple); color: #fff; font-weight: 600; font-size: 0.85rem; cursor: pointer; transition: opacity 0.15s; }
+.button_primary:hover { opacity: 0.9; }
+.button_primary:disabled { opacity: 0.5; cursor: not-allowed; }
+.button_secondary { padding: 8px 20px; border: 1px solid var(--border); border-radius: var(--radius-sm); background-color: var(--bg-card); color: var(--text); font-weight: 500; font-size: 0.85rem; cursor: pointer; transition: background 0.15s; }
+.button_secondary:hover { background: var(--bg-hover); }
+.preview_header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; }
+.preview_header h3 { font-size: 1rem; font-weight: 700; margin: 0; }
+.preview_header span { font-size: 0.8rem; color: var(--text-muted); }
+.preview_table_wrapper { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius-sm); }
+.standard_import_preview_table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+.standard_import_preview_table th { text-align: left; padding: 8px 10px; background: var(--bg-hover); font-weight: 600; white-space: nowrap; border-bottom: 1px solid var(--border); }
+.standard_import_preview_table td { padding: 6px 10px; border-bottom: 1px solid var(--border-light); }
+.import_done { text-align: center; padding: 48px 24px; }
+.done_icon { font-size: 2.5rem; display: block; margin-bottom: 12px; }
+.import_done p { font-size: 1rem; font-weight: 600; margin: 0 0 20px; }
 </style>

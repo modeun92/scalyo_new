@@ -21,23 +21,23 @@ export const templates = [
 ]
 
 const catClassMap = {
-  onboarding: 'cat-blue',
-  qbr: 'cat-purple',
-  suivi: 'cat-teal',
-  risque: 'cat-red',
-  renouvellement: 'cat-amber',
-  expansion: 'cat-green',
-  nps: 'cat-pink',
-  prospection: 'cat-indigo',
-  negociation: 'cat-orange',
-  relance: 'cat-slate',
-  closing: 'cat-dark',
-  retention: 'cat-red',
-  all: 'cat-gray'
+  onboarding: 'category_blue',
+  qbr: 'category_purple',
+  suivi: 'category_teal',
+  risque: 'category_red',
+  renouvellement: 'category_amber',
+  expansion: 'category_green',
+  nps: 'category_pink',
+  prospection: 'category_indigo',
+  negociation: 'category_orange',
+  relance: 'category_slate',
+  closing: 'category_dark',
+  retention: 'category_red',
+  all: 'category_gray'
 }
 
 export function catClass(key) {
-  return catClassMap[key] || 'cat-gray'
+  return catClassMap[key] || 'category_gray'
 }
 
 // EMAIL-NEWLINES (29/08): the bodies of the default templates are HTML

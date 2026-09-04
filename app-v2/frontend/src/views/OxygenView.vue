@@ -1,62 +1,62 @@
 <template>
-  <div class="oxy-view">
+  <div class="oxygen_view">
     <!-- ── Header: Oxygen + privacy (self-only, formula visible) ── -->
     <h1>🫧 Oxygen</h1>
-    <div class="oxy-privacy">
+    <div class="oxygen_privacy">
       <span>🔒</span>
       <span>{{ t('oxy_privacy') }}</span>
     </div>
 
     <!-- ── Index of the day — "—" without a check-in (R21, never invented) ── -->
-    <section class="oxy-card oxy-index-card">
-      <div class="oxy-index-main">
-        <span class="oxy-index-big">{{ displayIndex }}</span>
-        <div class="oxy-index-meta">
+    <section class="oxygen_card oxygen_index_card">
+      <div class="oxygen_index_main">
+        <span class="oxygen_index_big">{{ displayIndex }}</span>
+        <div class="oxygen_index_meta">
           <strong>{{ t('oxy_index_label') }}</strong>
-          <span v-if="!hasIndex" class="oxy-index-hint">{{ t('oxy_index_none_hint') }}</span>
+          <span v-if="!hasIndex" class="oxygen_index_hint">{{ t('oxy_index_none_hint') }}</span>
         </div>
       </div>
-      <p v-if="engine.divergenceActive" class="oxy-div">{{ t('oxy_divergence') }}</p>
-      <button class="oxy-how" @click="showHow = !showHow">{{ t('oxy_how_title') }}</button>
-      <p v-if="showHow" class="oxy-how-body">{{ t('oxy_how_body', { load: loadStore.loadScore }) }}</p>
+      <p v-if="engine.divergenceActive" class="oxygen_div">{{ t('oxy_divergence') }}</p>
+      <button class="oxygen_how" @click="showHow = !showHow">{{ t('oxy_how_title') }}</button>
+      <p v-if="showHow" class="oxygen_how_body">{{ t('oxy_how_body', { load: loadStore.loadScore }) }}</p>
     </section>
 
     <!-- ── Load weather — real components only (pure read) ── -->
-    <section class="oxy-card">
+    <section class="oxygen_card">
       <h2>{{ t('oxy_weather_title') }}</h2>
-      <div class="oxy-weather-line">
-        <span class="oxy-load-num">{{ loadStore.loadScore }}</span>
-        <span class="oxy-load-label">{{ t('oxy_load_label') }}</span>
+      <div class="oxygen_weather_line">
+        <span class="oxygen_load_number">{{ loadStore.loadScore }}</span>
+        <span class="oxygen_load_label">{{ t('oxy_load_label') }}</span>
       </div>
-      <div class="oxy-chips">
-        <span v-for="c in componentChips" :key="c.key" class="oxy-chip" :class="{ quiet: !c.value }">
+      <div class="oxygen_chips">
+        <span v-for="c in componentChips" :key="c.key" class="oxygen_chip" :class="{ quiet: !c.value }">
           {{ c.value }} {{ t(c.label) }}
         </span>
       </div>
     </section>
 
     <!-- ── Check-in of the day — SAME component and SAME write as the dot ── -->
-    <section class="oxy-card">
+    <section class="oxygen_card">
       <h2>{{ t('oxy_checkin_title') }}</h2>
       <OxygenCheckinForm />
     </section>
 
     <!-- ── Streak + custom days off ── -->
-    <section class="oxy-card">
+    <section class="oxygen_card">
       <h2>{{ t('oxy_series_title') }}</h2>
-      <p class="oxy-streak-line">
+      <p class="oxygen_streak_line">
         {{ streakLine }}
       </p>
-      <p class="oxy-pardon-hint">{{ t('oxy_pardon_hint') }}</p>
+      <p class="oxygen_pardon_hint">{{ t('oxy_pardon_hint') }}</p>
 
-      <button class="oxy-how" @click="showOffdays = !showOffdays">⚙ {{ t('oxy_offdays_title') }}</button>
-      <div v-if="showOffdays" class="oxy-offdays">
-        <p class="oxy-offdays-hint">{{ t('oxy_offdays_hint') }}</p>
-        <div class="oxy-days-row">
+      <button class="oxygen_how" @click="showOffdays = !showOffdays">⚙ {{ t('oxy_offdays_title') }}</button>
+      <div v-if="showOffdays" class="oxygen_offdays">
+        <p class="oxygen_offdays_hint">{{ t('oxy_offdays_hint') }}</p>
+        <div class="oxygen_days_row">
           <button
             v-for="d in weekDays"
             :key="d.day"
-            class="oxy-day-toggle"
+            class="oxygen_day_toggle"
             :class="{ off: prefs.weeklyOff.includes(d.day) }"
             :aria-pressed="prefs.weeklyOff.includes(d.day)"
             @click="prefs.toggleWeeklyOff(d.day)"
@@ -64,16 +64,16 @@
             {{ d.label }}
           </button>
         </div>
-        <div class="oxy-offdates">
-          <label class="oxy-offdates-label" for="oxy-offdate">{{ t('oxy_offdays_dates_label') }}</label>
-          <div class="oxy-offdate-add">
+        <div class="oxygen_offdates">
+          <label class="oxygen_offdates_label" for="oxy-offdate">{{ t('oxy_offdays_dates_label') }}</label>
+          <div class="oxygen_offdate_add">
             <input id="oxy-offdate" v-model="newOffDate" type="date" />
-            <button class="oxy-offdate-btn" :disabled="!newOffDate" @click="addDate">{{ t('oxy_offdays_add') }}</button>
+            <button class="oxygen_offdate_button" :disabled="!newOffDate" @click="addDate">{{ t('oxy_offdays_add') }}</button>
           </div>
-          <div v-if="prefs.offDates.length" class="oxy-offdate-list">
-            <span v-for="dt in prefs.offDates" :key="dt" class="oxy-chip">
+          <div v-if="prefs.offDates.length" class="oxygen_offdate_list">
+            <span v-for="dt in prefs.offDates" :key="dt" class="oxygen_chip">
               {{ fmtDate(dt) }}
-              <button class="oxy-chip-x" :aria-label="t('oxy_close')" @click="prefs.removeOffDate(dt)">✕</button>
+              <button class="oxygen_chip_close" :aria-label="t('oxy_close')" @click="prefs.removeOffDate(dt)">✕</button>
             </span>
           </div>
         </div>
@@ -81,18 +81,18 @@
     </section>
 
     <!-- ── Closing (Lot 3b) — global overlay rendered by OxygenPulse ── -->
-    <section class="oxy-card">
+    <section class="oxygen_card">
       <h2>{{ t('oxy_ferm_title') }}</h2>
-      <p v-if="recoveries.todayClosing" class="oxy-closing-done-line">✓ {{ t('oxy_ferm_already') }}</p>
-      <button v-else class="oxy-closing-launch" @click="recoveries.openClosing('cloture')">
+      <p v-if="recoveries.todayClosing" class="oxygen_closing_done_line">✓ {{ t('oxy_ferm_already') }}</p>
+      <button v-else class="oxygen_closing_launch" @click="recoveries.openClosing('cloture')">
         🫧 {{ t('oxy_ferm_start') }}
       </button>
     </section>
 
     <!-- ── The Sky (Lot 3b) — one bubble per closed day ── -->
-    <section class="oxy-card">
+    <section class="oxygen_card">
       <h2>{{ t('oxy_sky_title') }}</h2>
-      <p class="oxy-sky-hint">{{ t('oxy_sky_hint') }}</p>
+      <p class="oxygen_sky_hint">{{ t('oxy_sky_hint') }}</p>
       <OxygenSky />
     </section>
 

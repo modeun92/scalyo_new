@@ -3,36 +3,36 @@
     <!-- Slides -->
     <transition :name="slideDirection" mode="out-in">
       <!-- Slide 0: Title -->
-      <div v-if="slide === 0" key="s0" class="kp-slide slide-title" :style="{ background: `linear-gradient(135deg, ${copil?.color || '#7c3aed'}, #1e1b4b)` }">
-        <div class="st-content">
-          <h1 class="st-name">{{ copil?.title }}</h1>
-          <p v-if="copil?.clientName" class="st-client">{{ copil.clientName }}</p>
-          <p class="st-period">{{ copil?.period }}</p>
-          <p v-if="copil?.subtitle" class="st-sub">{{ copil.subtitle }}</p>
+      <div v-if="slide === 0" key="s0" class="kpi_present_slide slide_title" :style="{ background: `linear-gradient(135deg, ${copil?.color || '#7c3aed'}, #1e1b4b)` }">
+        <div class="status_content">
+          <h1 class="status_name">{{ copil?.title }}</h1>
+          <p v-if="copil?.clientName" class="status_client">{{ copil.clientName }}</p>
+          <p class="status_period">{{ copil?.period }}</p>
+          <p v-if="copil?.subtitle" class="status_sub">{{ copil.subtitle }}</p>
         </div>
-        <div class="st-footer">Scalyo</div>
+        <div class="status_footer">Scalyo</div>
       </div>
 
       <!-- Slides 1..n: one copil block per slide -->
-      <div v-else-if="slide >= 1 && slide <= slideBlocks.length" :key="'b' + slide" class="kp-slide slide-block">
+      <div v-else-if="slide >= 1 && slide <= slideBlocks.length" :key="'b' + slide" class="kpi_present_slide slide_block">
         <ErrorBoundary><SlideBlock :block="slideBlocks[slide - 1]" :lang="copil?.lang" /></ErrorBoundary>
       </div>
 
       <!-- Slide 2: Questions -->
-      <div v-else key="s5" class="kp-slide slide-end" :style="{ background: `linear-gradient(135deg, ${copil?.color || '#7c3aed'}, #1e1b4b)` }">
+      <div v-else key="s5" class="kpi_present_slide slide_end" :style="{ background: `linear-gradient(135deg, ${copil?.color || '#7c3aed'}, #1e1b4b)` }">
         <h1>{{ t('copil_pres_questions') }}</h1>
         <p>{{ copil?.title }} · {{ copil?.period }}</p>
       </div>
     </transition>
 
     <!-- Controls bar -->
-    <div class="kp-controls" :class="{ hidden: controlsHidden }">
+    <div class="kpi_present_controls" :class="{ hidden: controlsHidden }">
       <button @click="prev" :disabled="slide === 0">‹</button>
-      <span class="kp-slide-num">{{ t('copil_pres_slide', { n: slide + 1, total: totalSlides }) }}</span>
+      <span class="kpi_present_slide_number">{{ t('copil_pres_slide', { n: slide + 1, total: totalSlides }) }}</span>
       <button @click="next" :disabled="slide >= totalSlides - 1">›</button>
-      <div class="kp-ctrl-sep" />
+      <div class="kpi_present_control_separator" />
       <button @click="toggleAuto">{{ autoPlay ? t('copil_pres_pause') : t('copil_pres_auto') }}</button>
-      <button class="kp-theme-btn" @click="darkMode = !darkMode">{{ darkMode ? '☀' : '🌙' }}</button>
+      <button class="kpi_present_theme_button" @click="darkMode = !darkMode">{{ darkMode ? '☀' : '🌙' }}</button>
       <button @click="exitPresent">{{ t('copil_pres_exit') }}</button>
     </div>
   </div>
@@ -121,50 +121,50 @@ onUnmounted(() => {
   --sb-accent: var(--purple); --sb-ok: #059669; --sb-doing: #2563eb; }
 
 /* Slides */
-.kp-slide { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 40px; }
+.kpi_present_slide { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 40px; }
 
 /* Transitions */
-.slide-left-enter-active, .slide-left-leave-active, .slide-right-enter-active, .slide-right-leave-active { transition: all 0.4s ease; }
-.slide-left-enter-from { opacity: 0; transform: translateX(80px); }
-.slide-left-leave-to { opacity: 0; transform: translateX(-80px); }
-.slide-right-enter-from { opacity: 0; transform: translateX(-80px); }
-.slide-right-leave-to { opacity: 0; transform: translateX(80px); }
+.slide_left-enter-active, .slide_left-leave-active, .slide_right-enter-active, .slide_right-leave-active { transition: all 0.4s ease; }
+.slide_left-enter-from { opacity: 0; transform: translateX(80px); }
+.slide_left-leave-to { opacity: 0; transform: translateX(-80px); }
+.slide_right-enter-from { opacity: 0; transform: translateX(-80px); }
+.slide_right-leave-to { opacity: 0; transform: translateX(80px); }
 
 /* Slide 0: Title */
-.slide-title { text-align: center; }
-.st-content { animation: fadeUp 1s ease; }
+.slide_title { text-align: center; }
+.status_content { animation: fadeUp 1s ease; }
 @keyframes fadeUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
-.st-name { font-size: 3.5rem; font-weight: 900; letter-spacing: -0.02em; margin-bottom: 12px; color: #fff; }
-.st-client { font-size: 1.5rem; font-weight: 700; color: rgba(255,255,255,0.85); margin-bottom: 8px; }
-.st-period { font-size: 1.2rem; color: rgba(255,255,255,0.6); margin-bottom: 8px; }
-.st-sub { font-size: 1rem; color: rgba(255,255,255,0.4); }
-.st-footer { position: absolute; bottom: 30px; font-size: 0.8rem; color: rgba(255,255,255,0.2); letter-spacing: 0.1em; }
+.status_name { font-size: 3.5rem; font-weight: 900; letter-spacing: -0.02em; margin-bottom: 12px; color: #fff; }
+.status_client { font-size: 1.5rem; font-weight: 700; color: rgba(255,255,255,0.85); margin-bottom: 8px; }
+.status_period { font-size: 1.2rem; color: rgba(255,255,255,0.6); margin-bottom: 8px; }
+.status_sub { font-size: 1rem; color: rgba(255,255,255,0.4); }
+.status_footer { position: absolute; bottom: 30px; font-size: 0.8rem; color: rgba(255,255,255,0.2); letter-spacing: 0.1em; }
 
-.sn-sections { display: flex; flex-direction: column; gap: 20px; max-width: 700px; width: 100%; }
-.sn-section { padding: 20px 24px; border-radius: 12px; }
-.sn-section.green { background: rgba(16,185,129,0.1); }
-.sn-section.amber { background: rgba(245,158,11,0.1); }
-.sn-section.blue { background: rgba(59,130,246,0.1); }
-.sn-section h3 { font-size: 0.9rem; font-weight: 700; margin-bottom: 10px; }
-.sn-section ul, .sn-section ol { padding-left: 20px; }
-.sn-section li { font-size: 0.9rem; line-height: 1.6; margin-bottom: 4px; }
+.sn_sections { display: flex; flex-direction: column; gap: 20px; max-width: 700px; width: 100%; }
+.sn_section { padding: 20px 24px; border-radius: 12px; }
+.sn_section.green { background: rgba(16,185,129,0.1); }
+.sn_section.amber { background: rgba(245,158,11,0.1); }
+.sn_section.blue { background: rgba(59,130,246,0.1); }
+.sn_section h3 { font-size: 0.9rem; font-weight: 700; margin-bottom: 10px; }
+.sn_section ul, .sn_section ol { padding-left: 20px; }
+.sn_section li { font-size: 0.9rem; line-height: 1.6; margin-bottom: 4px; }
 
 /* Slide 5: End */
-.slide-end { text-align: center; }
-.slide-end h1 { font-size: 4rem; font-weight: 900; color: #fff; margin-bottom: 16px; animation: fadeUp 0.8s ease; }
-.slide-end p { font-size: 1.1rem; color: rgba(255,255,255,0.4); }
+.slide_end { text-align: center; }
+.slide_end h1 { font-size: 4rem; font-weight: 900; color: #fff; margin-bottom: 16px; animation: fadeUp 0.8s ease; }
+.slide_end p { font-size: 1.1rem; color: rgba(255,255,255,0.4); }
 
 /* Controls */
-.kp-controls { position: absolute; bottom: 0; left: 0; right: 0; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 20px; background: rgba(0,0,0,0.5); backdrop-filter: blur(10px); transition: opacity 0.3s, transform 0.3s; z-index: 10; }
-.kp:not(.dark) .kp-controls { background: rgba(255,255,255,0.9); border-top: 1px solid #e5e7eb; }
-.kp-controls.hidden { opacity: 0; transform: translateY(100%); }
-.kp-controls button { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15); color: #fff; padding: 6px 16px; border-radius: 6px; font-size: 0.82rem; cursor: pointer; transition: all 0.15s; }
-.kp:not(.dark) .kp-controls button { background: var(--bg-card); border-color: #e5e7eb; color: #374151; }
-.kp-controls button:hover { background: rgba(255,255,255,0.2); }
-.kp-controls button:disabled { opacity: 0.3; cursor: not-allowed; }
-.kp-slide-num { font-size: 0.78rem; color: rgba(255,255,255,0.5); min-width: 80px; text-align: center; }
-.kp:not(.dark) .kp-slide-num { color: #9ca3af; }
-.kp-ctrl-sep { width: 1px; height: 20px; background: rgba(255,255,255,0.15); margin: 0 8px; }
-.kp-theme-btn { font-size: 1rem; }
+.kpi_present_controls { position: absolute; bottom: 0; left: 0; right: 0; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 20px; background: rgba(0,0,0,0.5); backdrop-filter: blur(10px); transition: opacity 0.3s, transform 0.3s; z-index: 10; }
+.kp:not(.dark) .kpi_present_controls { background: rgba(255,255,255,0.9); border-top: 1px solid #e5e7eb; }
+.kpi_present_controls.hidden { opacity: 0; transform: translateY(100%); }
+.kpi_present_controls button { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15); color: #fff; padding: 6px 16px; border-radius: 6px; font-size: 0.82rem; cursor: pointer; transition: all 0.15s; }
+.kp:not(.dark) .kpi_present_controls button { background: var(--bg-card); border-color: #e5e7eb; color: #374151; }
+.kpi_present_controls button:hover { background: rgba(255,255,255,0.2); }
+.kpi_present_controls button:disabled { opacity: 0.3; cursor: not-allowed; }
+.kpi_present_slide_number { font-size: 0.78rem; color: rgba(255,255,255,0.5); min-width: 80px; text-align: center; }
+.kp:not(.dark) .kpi_present_slide_number { color: #9ca3af; }
+.kpi_present_control_separator { width: 1px; height: 20px; background: rgba(255,255,255,0.15); margin: 0 8px; }
+.kpi_present_theme_button { font-size: 1rem; }
 
 </style>

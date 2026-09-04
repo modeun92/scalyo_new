@@ -79,7 +79,7 @@ export const useSnapshotStore = defineStore('snapshots', () => {
     const isPositive = lowerIsBetter ? diff < 0 : diff > 0
     const sign = diff > 0 ? '+' : ''
     const displayValue = pct !== null ? `${sign}${pct}%` : `${sign}${diff.toFixed(1)}`
-    return { value: displayValue, type: isPositive ? 'up' : lowerIsBetter ? 'down-good' : 'down', hasData: true }
+    return { value: displayValue, type: isPositive ? 'up' : lowerIsBetter ? 'down_good' : 'down', hasData: true }
   }
 
   return { snapshots, comparePeriod, saveSnapshot, getSnapshot, calcChange, loadSnapshots, periodToDays }

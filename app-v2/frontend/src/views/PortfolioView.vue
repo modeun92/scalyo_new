@@ -1,85 +1,85 @@
 <template>
   <div class="portfolio">
     <!-- B-12 : quota clients atteint -->
-    <div v-if="quotaNotice" class="quota-notice" style="display:flex;align-items:center;gap:12px;padding:10px 14px;margin-bottom:12px;background:#fff4e5;border:1px solid #ffcc80;border-radius:8px;color:#8a5a00;font-size:0.9rem;">
+    <div v-if="quotaNotice" class="quota_notice" style="display:flex;align-items:center;gap:12px;padding:10px 14px;margin-bottom:12px;background:#fff4e5;border:1px solid #ffcc80;border-radius:8px;color:#8a5a00;font-size:0.9rem;">
       <span>{{ quotaNotice }}</span>
       <button type="button" @click="quotaNotice = ''" style="margin-left:auto;background:none;border:none;cursor:pointer;color:#8a5a00;font-size:1rem;">✕</button>
     </div>
 
     <!-- HOTFIX CAP-1000: MAX_ROWS safeguard exceeded → the list is partial and we SAY SO (never silent, R21) -->
-    <div v-if="clients.truncated" class="quota-notice" style="display:flex;align-items:center;gap:12px;padding:10px 14px;margin-bottom:12px;background:#fff4e5;border:1px solid #ffcc80;border-radius:8px;color:#8a5a00;font-size:0.9rem;">
+    <div v-if="clients.truncated" class="quota_notice" style="display:flex;align-items:center;gap:12px;padding:10px 14px;margin-bottom:12px;background:#fff4e5;border:1px solid #ffcc80;border-radius:8px;color:#8a5a00;font-size:0.9rem;">
       <span>{{ t('port_partial_list', { loaded: clients.clients.length, total: clients.totalRows }) }}</span>
     </div>
 
     <!-- TEAM-METRICS (D3): CSMs unknown at import time → imported rows left UNASSIGNED + visible reporting -->
-    <div v-if="csmNotice" class="quota-notice" style="display:flex;align-items:center;gap:12px;padding:10px 14px;margin-bottom:12px;background:#fff4e5;border:1px solid #ffcc80;border-radius:8px;color:#8a5a00;font-size:0.9rem;">
+    <div v-if="csmNotice" class="quota_notice" style="display:flex;align-items:center;gap:12px;padding:10px 14px;margin-bottom:12px;background:#fff4e5;border:1px solid #ffcc80;border-radius:8px;color:#8a5a00;font-size:0.9rem;">
       <span>{{ csmNotice }}</span>
       <button type="button" @click="csmNotice = ''" style="margin-left:auto;background:none;border:none;cursor:pointer;color:#8a5a00;font-size:1rem;">✕</button>
     </div>
 
     <!-- IMPORT PANEL -->
-    <div v-if="showImport && canImport" class="import-context">
-      <span class="ic-label">{{ t('port_import_as') }}</span>
-      <div class="ic-toggle">
-        <button type="button" class="ic-btn" :class="{ active: importLifecycle === 'client' }" @click="importLifecycle = 'client'">{{ t('port_lifecycle_client') }}</button>
-        <button type="button" class="ic-btn" :class="{ active: importLifecycle === 'prospect' }" @click="importLifecycle = 'prospect'">{{ t('port_lifecycle_prospect') }}</button>
+    <div v-if="showImport && canImport" class="import_context">
+      <span class="ic_label">{{ t('port_import_as') }}</span>
+      <div class="ic_toggle">
+        <button type="button" class="ic_button" :class="{ active: importLifecycle === 'client' }" @click="importLifecycle = 'client'">{{ t('port_lifecycle_client') }}</button>
+        <button type="button" class="ic_button" :class="{ active: importLifecycle === 'prospect' }" @click="importLifecycle = 'prospect'">{{ t('port_lifecycle_prospect') }}</button>
       </div>
     </div>
     <StandardImport v-if="showImport && canImport" :fields="clientFields" :on-import="handleBulkImport" />
 
     <!-- HEADER -->
-    <div class="port-header">
+    <div class="portfolio_header">
       <h1>💼 {{ t('port_title') }}</h1>
-      <div class="port-actions">
-        <button v-if="canImport" class="btn-outline" @click="toggleImport">{{ t('import_btn_clients') }}</button>
-        <button class="btn-outline" @click="exportCsv">{{ t('port_export') }}</button>
+      <div class="portfolio_actions">
+        <button v-if="canImport" class="button_outline" @click="toggleImport">{{ t('import_btn_clients') }}</button>
+        <button class="button_outline" @click="exportCsv">{{ t('port_export') }}</button>
         <div v-if="resetStep === 0">
-          <button class="btn-danger-outline" @click="resetStep = 1">{{ t('port_reset_all') }}</button>
+          <button class="button_danger_outline" @click="resetStep = 1">{{ t('port_reset_all') }}</button>
         </div>
-        <div v-else-if="resetStep === 1" class="reset-confirm">
-          <span class="reset-msg">{{ t('port_reset_step1') }}</span>
-          <button class="btn-danger-outline" @click="resetStep = 2">{{ t('port_reset_confirm') }}</button>
-          <button class="btn-outline" @click="resetStep = 0">{{ t('sm_reset_cancel') }}</button>
+        <div v-else-if="resetStep === 1" class="reset_confirm">
+          <span class="reset_message">{{ t('port_reset_step1') }}</span>
+          <button class="button_danger_outline" @click="resetStep = 2">{{ t('port_reset_confirm') }}</button>
+          <button class="button_outline" @click="resetStep = 0">{{ t('sm_reset_cancel') }}</button>
         </div>
-        <div v-else-if="resetStep === 2" class="reset-confirm">
-          <span class="reset-msg warn">{{ t('port_reset_step2') }}</span>
-          <button class="btn-danger" @click="doResetAll">{{ t('port_reset_confirm') }}</button>
-          <button class="btn-outline" @click="resetStep = 0">{{ t('sm_reset_cancel') }}</button>
+        <div v-else-if="resetStep === 2" class="reset_confirm">
+          <span class="reset_message warn">{{ t('port_reset_step2') }}</span>
+          <button class="button_danger" @click="doResetAll">{{ t('port_reset_confirm') }}</button>
+          <button class="button_outline" @click="resetStep = 0">{{ t('sm_reset_cancel') }}</button>
         </div>
-        <button class="btn-primary" @click="openCreate">{{ activeLifecycle === 'prospects' ? t('port_add_prospect') : t('port_add') }}</button>
+        <button class="button_primary" @click="openCreate">{{ activeLifecycle === 'prospects' ? t('port_add_prospect') : t('port_add') }}</button>
       </div>
     </div>
 
     <!-- LIFECYCLE TABS -->
-    <div class="lc-tabs">
-      <button v-for="lt in lifecycleTabs" :key="lt.key" class="lc-tab" :class="{ active: activeLifecycle === lt.key }" @click="switchLifecycle(lt.key)">
-        <span class="lc-tab-ico">{{ lt.icon }}</span>{{ t(lt.label) }} <span class="lc-tab-count">{{ lt.count }}</span>
+    <div class="library_card_tabs">
+      <button v-for="lt in lifecycleTabs" :key="lt.key" class="library_card_tab" :class="{ active: activeLifecycle === lt.key }" @click="switchLifecycle(lt.key)">
+        <span class="library_card_tab_ico">{{ lt.icon }}</span>{{ t(lt.label) }} <span class="library_card_tab_count">{{ lt.count }}</span>
       </button>
     </div>
 
     <!-- KPI CARDS -->
-    <div v-if="activeLifecycle === 'clients'" class="port-kpis">
-      <div class="pkpi"><span class="pkpi-icon">📊</span><div><span class="pkpi-value">{{ clients.clientsCount }}</span><span class="pkpi-label">{{ t('port_accounts') }}</span></div></div>
-      <div class="pkpi"><span class="pkpi-icon">💰</span><div><span class="pkpi-value">{{ fmtCurrency(clients.totalArr, { compact: true }) }}</span><span class="pkpi-label">{{ t('port_arr_total') }}</span></div></div>
-      <div class="pkpi"><span class="pkpi-icon">💚</span><div><span class="pkpi-value">{{ fmtHealth(clients.avgHealth, { average: true }) }}</span><span class="pkpi-label">{{ t('port_health_avg') }}</span></div></div>
-      <div class="pkpi warn"><span class="pkpi-icon">🔴</span><div><span class="pkpi-value">{{ clients.criticalCount }}</span><span class="pkpi-label">{{ t('port_critical') }}</span></div></div>
+    <div v-if="activeLifecycle === 'clients'" class="portfolio_kpis">
+      <div class="kpi_page"><span class="kpi_page_icon">📊</span><div><span class="portfolio_kpi_page_value">{{ clients.clientsCount }}</span><span class="kpi_page_label">{{ t('port_accounts') }}</span></div></div>
+      <div class="kpi_page"><span class="kpi_page_icon">💰</span><div><span class="portfolio_kpi_page_value">{{ fmtCurrency(clients.totalArr, { compact: true }) }}</span><span class="kpi_page_label">{{ t('port_arr_total') }}</span></div></div>
+      <div class="kpi_page"><span class="kpi_page_icon">💚</span><div><span class="portfolio_kpi_page_value">{{ fmtHealth(clients.avgHealth, { average: true }) }}</span><span class="kpi_page_label">{{ t('port_health_avg') }}</span></div></div>
+      <div class="kpi_page warn"><span class="kpi_page_icon">🔴</span><div><span class="portfolio_kpi_page_value">{{ clients.criticalCount }}</span><span class="kpi_page_label">{{ t('port_critical') }}</span></div></div>
     </div>
-    <div v-else class="port-kpis">
-      <div class="pkpi"><span class="pkpi-icon">🎯</span><div><span class="pkpi-value">{{ clients.prospectsCount }}</span><span class="pkpi-label">{{ t('port_lifecycle_prospects') }}</span></div></div>
-      <div class="pkpi"><span class="pkpi-icon">✅</span><div><span class="pkpi-value">{{ clients.pipelineByStage.qualified.length }}</span><span class="pkpi-label">{{ t('port_stage_qualified') }}</span></div></div>
-      <div class="pkpi"><span class="pkpi-icon">🏆</span><div><span class="pkpi-value">{{ clients.pipelineByStage.won.length }}</span><span class="pkpi-label">{{ t('port_stage_won') }}</span></div></div>
-      <div class="pkpi"><span class="pkpi-icon">🌱</span><div><span class="pkpi-value">{{ clients.pipelineByStage.new.length }}</span><span class="pkpi-label">{{ t('port_stage_new') }}</span></div></div>
+    <div v-else class="portfolio_kpis">
+      <div class="kpi_page"><span class="kpi_page_icon">🎯</span><div><span class="portfolio_kpi_page_value">{{ clients.prospectsCount }}</span><span class="kpi_page_label">{{ t('port_lifecycle_prospects') }}</span></div></div>
+      <div class="kpi_page"><span class="kpi_page_icon">✅</span><div><span class="portfolio_kpi_page_value">{{ clients.pipelineByStage.qualified.length }}</span><span class="kpi_page_label">{{ t('port_stage_qualified') }}</span></div></div>
+      <div class="kpi_page"><span class="kpi_page_icon">🏆</span><div><span class="portfolio_kpi_page_value">{{ clients.pipelineByStage.won.length }}</span><span class="kpi_page_label">{{ t('port_stage_won') }}</span></div></div>
+      <div class="kpi_page"><span class="kpi_page_icon">🌱</span><div><span class="portfolio_kpi_page_value">{{ clients.pipelineByStage.new.length }}</span><span class="kpi_page_label">{{ t('port_stage_new') }}</span></div></div>
     </div>
 
     <!-- SEARCH & FILTERS -->
-    <div class="port-toolbar">
-      <div class="search-box">
+    <div class="portfolio_toolbar">
+      <div class="search_box">
         <span class="si">🔍</span>
         <input v-model="search" :placeholder="t('port_search')" />
       </div>
-      <div class="filter-tabs">
-        <button v-for="f in filterList" :key="f.key" class="ftab" :class="{ active: activeFilter === f.key }" @click="activeFilter = f.key">
-          {{ t(f.label) }} <span class="fc">{{ f.count }}</span>
+      <div class="filter_tabs">
+        <button v-for="f in filterList" :key="f.key" class="filter_tab" :class="{ active: activeFilter === f.key }" @click="activeFilter = f.key">
+          {{ t(f.label) }} <span class="filter_count">{{ f.count }}</span>
         </button>
       </div>
     </div>

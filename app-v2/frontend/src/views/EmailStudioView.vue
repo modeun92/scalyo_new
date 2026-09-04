@@ -1,23 +1,23 @@
 <template>
-<div class="email-studio">
-  <div class="es-header">
+<div class="email_studio">
+  <div class="email_studio_header">
     <h1>{{ t('es_title') }}</h1>
-    <p class="es-sub">{{ t('es_subtitle') }}</p>
+    <p class="email_studio_sub">{{ t('es_subtitle') }}</p>
   </div>
 
   <!-- CR-D: the store's failures are displayed (the view used to be mute) — ChatPanel C-07 pattern -->
-  <div v-if="store.lastError" class="es-error-toast">
+  <div v-if="store.lastError" class="email_studio_error_toast">
     <span>{{ t('es_err_' + store.lastError) }}</span>
-    <button class="es-error-close" @click="store.clearError()">✕</button>
+    <button class="email_studio_error_close" @click="store.clearError()">✕</button>
   </div>
 
-  <div :class="['es-email-banner', store.emailConfigured ? 'connected' : 'setup-needed']">
-    <span class="es-banner-icon">{{ store.emailConfigured ? '\u2705' : '\u26a0\ufe0f' }}</span>
-    <div class="es-banner-text">
+  <div :class="['email_studio_email_banner', store.emailConfigured ? 'connected' : 'setup_needed']">
+    <span class="email_studio_banner_icon">{{ store.emailConfigured ? '\u2705' : '\u26a0\ufe0f' }}</span>
+    <div class="email_studio_banner_text">
       <strong>{{ store.emailConfigured ? t('es_resend_connected') : t('es_resend_setup_title') }}</strong>
       <span>{{ store.emailConfigured ? t('es_resend_connected_desc') : t('es_resend_setup_desc') }}</span>
     </div>
-    <router-link v-if="!store.emailConfigured" to="/app/settings?tab=integrations" class="es-banner-link">
+    <router-link v-if="!store.emailConfigured" to="/app/settings?tab=integrations" class="email_studio_banner_link">
       {{ t('es_resend_setup_link') }}
     </router-link>
   </div>
@@ -31,7 +31,7 @@
     @result="onAiResult"
   />
 
-  <div v-if="activeTab !== 'history'" class="es-layout">
+  <div v-if="activeTab !== 'history'" class="email_studio_layout">
     <EmailTemplateList
       :active-tab="activeTab"
       :active-cat="activeCat"
@@ -57,8 +57,8 @@
   </div>
 
   <div v-else>
-    <div class="es-tabs" style="max-width: 340px; margin-bottom: 16px;">
-      <button v-for="tab in tabKeys" :key="tab.key" class="es-tab" :class="{ active: activeTab === tab.key }" @click="activeTab = tab.key">
+    <div class="email_studio_tabs" style="max-width: 340px; margin-bottom: 16px;">
+      <button v-for="tab in tabKeys" :key="tab.key" class="email_studio_tab" :class="{ active: activeTab === tab.key }" @click="activeTab = tab.key">
         {{ t(tab.label) }}
       </button>
     </div>

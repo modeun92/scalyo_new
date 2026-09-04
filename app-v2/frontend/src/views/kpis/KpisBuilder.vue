@@ -1,189 +1,189 @@
 <template>
   <div class="kb">
     <!-- TOOLBAR -->
-    <div class="kb-toolbar">
-      <router-link to="/app/kpis" class="kb-back">← {{ t('back') }}</router-link>
-      <span class="kb-title-display">{{ copil?.title || t('copil_cover_title') }}</span>
-      <div class="kb-toolbar-right">
-        <router-link v-if="copilId" :to="'/app/kpis/' + copilId + '/preview'" class="tb-btn">{{ t('copil_preview') }}</router-link>
-        <router-link v-if="copilId" :to="'/app/kpis/' + copilId + '/present'" class="tb-btn">{{ t('copil_present') }}</router-link>
-        <button v-if="copilId" class="tb-btn" :disabled="exporting" @click="exportPptx">{{ exporting ? '…' : '⬇ ' + t('copil_export_pptx') }}</button>
-        <span v-if="saved" class="tb-saved">✓ {{ t('copil_saved') }}</span>
+    <div class="kpis_builder_toolbar">
+      <router-link to="/app/kpis" class="kpis_builder_back">← {{ t('back') }}</router-link>
+      <span class="kpis_builder_title_display">{{ copil?.title || t('copil_cover_title') }}</span>
+      <div class="kpis_builder_toolbar_right">
+        <router-link v-if="copilId" :to="'/app/kpis/' + copilId + '/preview'" class="tb_button">{{ t('copil_preview') }}</router-link>
+        <router-link v-if="copilId" :to="'/app/kpis/' + copilId + '/present'" class="tb_button">{{ t('copil_present') }}</router-link>
+        <button v-if="copilId" class="tb_button" :disabled="exporting" @click="exportPptx">{{ exporting ? '…' : '⬇ ' + t('copil_export_pptx') }}</button>
+        <span v-if="saved" class="tb_saved">✓ {{ t('copil_saved') }}</span>
       </div>
     </div>
 
-    <div class="kb-layout" :class="{ 'drawer-open': drawerOpen, 'panel-open': !!activeBlock }">
+    <div class="kpis_builder_layout" :class="{ 'drawer_open': drawerOpen, 'panel_open': !!activeBlock }">
       <!-- G9-11: below 1024 px the catalog is a drawer opened by "+ Block", the inspector a side panel -->
-      <button type="button" class="kb-drawer-toggle" @click="drawerOpen = !drawerOpen">{{ drawerOpen ? t('copil_close_panel') : t('copil_add_block_cta') }}</button>
-      <div v-if="drawerOpen || activeBlock" class="kb-scrim" @click="closePanels" />
+      <button type="button" class="kpis_builder_drawer_toggle" @click="drawerOpen = !drawerOpen">{{ drawerOpen ? t('copil_close_panel') : t('copil_add_block_cta') }}</button>
+      <div v-if="drawerOpen || activeBlock" class="kpis_builder_scrim" @click="closePanels" />
       <!-- SIDEBAR: Block types -->
-      <aside class="kb-sidebar">
-        <button class="kb-metric-btn" @click="showMetricWizard = true">✨ {{ t('copil_mw_title') }}</button>
+      <aside class="kpis_builder_sidebar">
+        <button class="kpis_builder_metric_button" @click="showMetricWizard = true">✨ {{ t('copil_mw_title') }}</button>
         <h3>{{ t('copil_add_block') }}</h3>
-        <div v-for="group in blockGroups" :key="group.title" class="kb-group">
-          <span class="kb-group-title">{{ group.title }}</span>
-          <button v-for="bt in group.items" :key="bt.type" class="kb-block-btn" @click="addBlock(bt.type)">
-            <span class="kbb-icon">{{ bt.icon }}</span>
+        <div v-for="group in blockGroups" :key="group.title" class="kpis_builder_group">
+          <span class="kpis_builder_group_title">{{ group.title }}</span>
+          <button v-for="bt in group.items" :key="bt.type" class="kpis_builder_block_button" @click="addBlock(bt.type)">
+            <span class="kpis_builder_block_icon">{{ bt.icon }}</span>
             <span>{{ t('copil_bt_' + bt.type) }}</span>
           </button>
         </div>
       </aside>
 
       <!-- CANVAS -->
-      <main class="kb-canvas">
+      <main class="kpis_builder_canvas">
         <!-- Cover meta -->
-        <div class="kb-cover">
-          <div class="kb-cover-row">
-            <div class="fg full"><label>{{ t('copil_cover_title') }}</label><input v-model="meta.title" class="fi" @input="saveMeta" /></div>
+        <div class="kpis_builder_cover">
+          <div class="kpis_builder_cover_row">
+            <div class="field_group full"><label>{{ t('copil_cover_title') }}</label><input v-model="meta.title" class="field_input" @input="saveMeta" /></div>
           </div>
-          <div class="kb-cover-row">
-            <div class="fg"><label>{{ t('copil_cover_subtitle') }}</label><input v-model="meta.subtitle" class="fi" @input="saveMeta" /></div>
-            <div class="fg">
+          <div class="kpis_builder_cover_row">
+            <div class="field_group"><label>{{ t('copil_cover_subtitle') }}</label><input v-model="meta.subtitle" class="field_input" @input="saveMeta" /></div>
+            <div class="field_group">
               <label>{{ t('copil_cover_client') }}</label>
-              <select v-model="meta.clientId" class="fi" @change="onClientPick">
+              <select v-model="meta.clientId" class="field_input" @change="onClientPick">
                 <option :value="null">{{ t('copil_client_free') }}</option>
                 <option v-for="cl in clientStore.clients" :key="cl.id" :value="cl.id">{{ cl.name }}</option>
               </select>
-              <input v-if="!meta.clientId" v-model="meta.clientName" class="fi kb-client-free" :placeholder="t('copil_cover_client')" @input="saveMeta" />
+              <input v-if="!meta.clientId" v-model="meta.clientName" class="field_input kpis_builder_client_free" :placeholder="t('copil_cover_client')" @input="saveMeta" />
             </div>
           </div>
-          <div class="kb-cover-row">
-            <div class="fg"><label>{{ t('copil_cover_period') }}</label><input v-model="meta.period" class="fi" @input="saveMeta" /></div>
-            <div class="fg"><label>{{ t('copil_cover_presenter') }}</label><input v-model="meta.presenter" class="fi" @input="saveMeta" /></div>
-            <div class="fg sm"><label>{{ t('copil_cover_lang') }}</label>
-              <select v-model="meta.lang" class="fi" @change="saveMeta"><option v-for="l in DECK_LANGS" :key="l" :value="l">{{ t('copil_lang_' + l) }}</option></select>
+          <div class="kpis_builder_cover_row">
+            <div class="field_group"><label>{{ t('copil_cover_period') }}</label><input v-model="meta.period" class="field_input" @input="saveMeta" /></div>
+            <div class="field_group"><label>{{ t('copil_cover_presenter') }}</label><input v-model="meta.presenter" class="field_input" @input="saveMeta" /></div>
+            <div class="field_group small"><label>{{ t('copil_cover_lang') }}</label>
+              <select v-model="meta.lang" class="field_input" @change="saveMeta"><option v-for="l in DECK_LANGS" :key="l" :value="l">{{ t('copil_lang_' + l) }}</option></select>
             </div>
-            <div class="fg sm"><label>{{ t('copil_cover_color') }}</label>
-              <div class="color-row"><button v-for="c in colors" :key="c" type="button" class="cpick" :class="{ active: meta.color === c }" :style="{ background: c }" @click="meta.color = c; saveMeta()" /></div>
+            <div class="field_group small"><label>{{ t('copil_cover_color') }}</label>
+              <div class="color_row"><button v-for="c in colors" :key="c" type="button" class="cpick" :class="{ active: meta.color === c }" :style="{ background: c }" @click="meta.color = c; saveMeta()" /></div>
             </div>
           </div>
         </div>
 
         <!-- Blocks (G9-14: boundary = a block that crashes does not take the whole builder down) -->
         <ErrorBoundary>
-        <div v-if="copil?.blocks?.length" class="kb-blocks">
-          <div v-for="(block, i) in copil.blocks" :key="block.id" class="kb-block" :class="{ selected: selectedBlock === block.id, hidden: !block.visible }" @click="selectedBlock = block.id" draggable="true" @dragstart="onDragStart($event, i)" @dragover.prevent="onDragOver($event, i)" @dragend="onDragEnd" @drop.prevent="onDrop(i)">
-            <div class="kbb-header">
-              <span class="kbb-drag" title="Drag">⠿</span>
-              <span class="kbb-type">{{ t('copil_bt_' + block.type) }}</span>
-              <input v-model="block.title" class="kbb-title-input" :placeholder="t('copil_block_title')" @input="saveBlocks" />
-              <button v-if="i > 0" class="kbb-ctrl" @click.stop="moveBlock(i, -1)" title="↑">▲</button>
-              <button v-if="i < copil.blocks.length - 1" class="kbb-ctrl" @click.stop="moveBlock(i, 1)" title="↓">▼</button>
-              <button class="kbb-ctrl" @click.stop="toggleVisible(block)" :title="block.visible ? t('copil_hide') : t('copil_show')">{{ block.visible ? '👁' : '👁‍🗨' }}</button>
-              <button class="kbb-del" :title="t('copil_delete')" @click.stop="askDeleteBlock(block)">🗑</button>
+        <div v-if="copil?.blocks?.length" class="kpis_builder_blocks">
+          <div v-for="(block, i) in copil.blocks" :key="block.id" class="kpis_builder_block" :class="{ selected: selectedBlock === block.id, hidden: !block.visible }" @click="selectedBlock = block.id" draggable="true" @dragstart="onDragStart($event, i)" @dragover.prevent="onDragOver($event, i)" @dragend="onDragEnd" @drop.prevent="onDrop(i)">
+            <div class="kpis_builder_block_header">
+              <span class="kpis_builder_block_drag" title="Drag">⠿</span>
+              <span class="kpis_builder_block_type">{{ t('copil_bt_' + block.type) }}</span>
+              <input v-model="block.title" class="kpis_builder_block_title_input" :placeholder="t('copil_block_title')" @input="saveBlocks" />
+              <button v-if="i > 0" class="kpis_builder_block_control" @click.stop="moveBlock(i, -1)" title="↑">▲</button>
+              <button v-if="i < copil.blocks.length - 1" class="kpis_builder_block_control" @click.stop="moveBlock(i, 1)" title="↓">▼</button>
+              <button class="kpis_builder_block_control" @click.stop="toggleVisible(block)" :title="block.visible ? t('copil_hide') : t('copil_show')">{{ block.visible ? '👁' : '👁‍🗨' }}</button>
+              <button class="kpis_builder_block_delete" :title="t('copil_delete')" @click.stop="askDeleteBlock(block)">🗑</button>
             </div>
-            <div class="kbb-preview">
+            <div class="kpis_builder_block_preview">
               <!-- KPI Grid preview -->
-              <div v-if="block.type === 'kpi_grid'" class="prev-kpi-grid">
-                <div v-for="(kpi, ki) in block.data.kpis" :key="ki" class="prev-kpi" :style="{ borderLeftColor: kpi.color }">
+              <div v-if="block.type === 'kpi_grid'" class="preview_kpi_grid">
+                <div v-for="(kpi, ki) in block.data.kpis" :key="ki" class="preview_kpi" :style="{ borderLeftColor: kpi.color }">
                   <strong>{{ kpi.value || '—' }}</strong><span>{{ kpi.label || '...' }}</span>
                 </div>
               </div>
               <!-- KPI Single -->
-              <div v-else-if="block.type === 'kpi_single'" class="prev-kpi-single" :style="{ color: block.data.color }">
+              <div v-else-if="block.type === 'kpi_single'" class="preview_kpi_single" :style="{ color: block.data.color }">
                 <strong>{{ block.data.value || '—' }}</strong><span>{{ block.data.label || '...' }} {{ block.data.unit }}</span>
               </div>
               <!-- Chart Bar -->
-              <div v-else-if="block.type === 'chart_bar'" class="prev-chart">
+              <div v-else-if="block.type === 'chart_bar'" class="preview_chart">
                 <apexchart :key="'bar-' + block.id" type="bar" height="160"
                   :options="{ chart:{toolbar:{show:false},animations:{enabled:false}}, colors:block.data.datasets.map(d=>d.color||'#7c3aed'), xaxis:{categories:block.data.labels}, yaxis:{labels:{formatter:axisNum}}, dataLabels:{enabled:false}, grid:{borderColor:'#f3f4f6'}, plotOptions:{bar:{borderRadius:3}} }"
                   :series="block.data.datasets.map(d=>({name:d.label,data:d.data}))" />
               </div>
               <!-- Chart Line -->
-              <div v-else-if="block.type === 'chart_line'" class="prev-chart">
+              <div v-else-if="block.type === 'chart_line'" class="preview_chart">
                 <apexchart :key="'line-' + block.id" type="line" height="160"
                   :options="{ chart:{toolbar:{show:false},animations:{enabled:false}}, colors:block.data.datasets.map(d=>d.color||'#3b82f6'), xaxis:{categories:block.data.labels}, yaxis:{labels:{formatter:axisNum}}, stroke:{curve:'smooth',width:2}, dataLabels:{enabled:false}, grid:{borderColor:'#f3f4f6'} }"
                   :series="block.data.datasets.map(d=>({name:d.label,data:d.data}))" />
               </div>
               <!-- Chart Donut -->
-              <div v-else-if="block.type === 'chart_donut'" class="prev-chart">
+              <div v-else-if="block.type === 'chart_donut'" class="preview_chart">
                 <apexchart :key="'donut-' + block.id" type="donut" height="160"
                   :options="{ labels:block.data.labels, colors:block.data.colors, legend:{position:'bottom',fontSize:'10px'}, dataLabels:{enabled:false}, plotOptions:{pie:{donut:{size:'55%'}}} }"
                   :series="(block.data.data||[]).map(v=>Number(v)||0)" />
               </div>
               <!-- Text -->
-              <div v-else-if="block.type === 'text'" class="prev-text" :class="'sz-' + block.data.size">{{ block.data.content || '...' }}</div>
+              <div v-else-if="block.type === 'text'" class="preview_text" :class="'size_' + block.data.size">{{ block.data.content || '...' }}</div>
               <!-- Table -->
-              <div v-else-if="block.type === 'table'" class="prev-table">
+              <div v-else-if="block.type === 'table'" class="preview_table">
                 <table><thead><tr><th v-for="h in block.data.headers" :key="h">{{ h }}</th></tr></thead>
                 <tbody><tr v-for="(row, ri) in block.data.rows" :key="ri"><td v-for="(cell, ci) in row" :key="ci">{{ cell }}</td></tr></tbody></table>
               </div>
               <!-- Timeline -->
-              <div v-else-if="block.type === 'timeline'" class="prev-timeline">
-                <div v-for="(ev, ei) in block.data.events" :key="ei" class="prev-tl-item" :class="'st-' + ev.status">
-                  <span class="prev-tl-dot"></span>
-                  <div class="prev-tl-content">
+              <div v-else-if="block.type === 'timeline'" class="preview_timeline">
+                <div v-for="(ev, ei) in block.data.events" :key="ei" class="preview_timeline_item" :class="'status_' + ev.status">
+                  <span class="preview_timeline_dot"></span>
+                  <div class="preview_timeline_content">
                     <strong>{{ ev.title || '...' }}</strong>
-                    <span class="prev-tl-date">{{ ev.date }}</span>
+                    <span class="preview_timeline_date">{{ ev.date }}</span>
                     <p v-if="ev.desc">{{ ev.desc }}</p>
                   </div>
                 </div>
               </div>
               <!-- Image -->
-              <div v-else-if="block.type === 'image'" class="prev-image">
+              <div v-else-if="block.type === 'image'" class="preview_image">
                 <img v-if="imageSrc(block)" :src="imageSrc(block)" :alt="block.data.caption" />
-                <div v-else class="prev-image-placeholder">🖼 {{ t('copil_image_placeholder') }}</div>
-                <span v-if="block.data.caption" class="prev-image-caption">{{ block.data.caption }}</span>
+                <div v-else class="preview_image_placeholder">🖼 {{ t('copil_image_placeholder') }}</div>
+                <span v-if="block.data.caption" class="preview_image_caption">{{ block.data.caption }}</span>
               </div>
               <!-- Checklist -->
-              <div v-else-if="block.type === 'checklist'" class="prev-checklist">
-                <div v-for="(item, ii) in block.data.items" :key="ii" class="prev-check-item">{{ item.done ? '✅' : '⬜' }} {{ item.text || '...' }}</div>
+              <div v-else-if="block.type === 'checklist'" class="preview_checklist">
+                <div v-for="(item, ii) in block.data.items" :key="ii" class="preview_check_item">{{ item.done ? '✅' : '⬜' }} {{ item.text || '...' }}</div>
               </div>
               <!-- Quote -->
-              <div v-else-if="block.type === 'quote'" class="prev-quote">
+              <div v-else-if="block.type === 'quote'" class="preview_quote">
                 <p>"{{ block.data.text || '...' }}"</p>
                 <span>— {{ block.data.author }}</span>
               </div>
               <!-- Action plan -->
-              <div v-else-if="block.type === 'action_plan'" class="prev-actions">
-                <div v-for="(a, ai) in block.data.actions" :key="ai" class="prev-action">{{ a.what || '...' }} → {{ a.who }} ({{ a.when }})</div>
+              <div v-else-if="block.type === 'action_plan'" class="preview_actions">
+                <div v-for="(a, ai) in block.data.actions" :key="ai" class="preview_action">{{ a.what || '...' }} → {{ a.who }} ({{ a.when }})</div>
               </div>
               <!-- Divider -->
-              <hr v-else-if="block.type === 'divider'" class="prev-divider" />
+              <hr v-else-if="block.type === 'divider'" class="preview_divider" />
               <!-- Fallback -->
-              <div v-else class="prev-fallback">{{ t('copil_bt_' + block.type) }}</div>
+              <div v-else class="preview_fallback">{{ t('copil_bt_' + block.type) }}</div>
             </div>
           </div>
         </div>
-        <div v-else class="kb-no-blocks">{{ t('copil_no_blocks') }}</div>
+        <div v-else class="kpis_builder_no_blocks">{{ t('copil_no_blocks') }}</div>
         </ErrorBoundary>
       </main>
 
       <!-- INSPECTOR -->
-      <aside v-if="activeBlock" class="kb-inspector">
-        <div class="kb-insp-head"><h3>{{ t('copil_bt_' + activeBlock.type) }}</h3><button type="button" class="kb-insp-close" :title="t('copil_close_panel')" @click="selectedBlock = null">✕</button></div>
+      <aside v-if="activeBlock" class="kpis_builder_inspector">
+        <div class="kpis_builder_insp_header"><h3>{{ t('copil_bt_' + activeBlock.type) }}</h3><button type="button" class="kpis_builder_insp_close" :title="t('copil_close_panel')" @click="selectedBlock = null">✕</button></div>
 
         <!-- KPI Grid inspector -->
-        <div v-if="activeBlock.type === 'kpi_grid'" class="insp-body">
-          <div v-for="(kpi, ki) in activeBlock.data.kpis" :key="ki" class="insp-kpi">
-            <div class="fg"><label>{{ t('copil_kpi_label') }}</label><input v-model="kpi.label" class="fi" @input="saveBlocks" /></div>
-            <div class="insp-row">
-              <div class="fg"><label>{{ t('copil_kpi_value') }}</label><input v-model="kpi.value" class="fi" @input="saveBlocks" /></div>
-              <div class="fg"><label>{{ t('copil_kpi_unit') }}</label><input v-model="kpi.unit" class="fi sm" @input="saveBlocks" /></div>
+        <div v-if="activeBlock.type === 'kpi_grid'" class="inspector_body">
+          <div v-for="(kpi, ki) in activeBlock.data.kpis" :key="ki" class="inspector_kpi">
+            <div class="field_group"><label>{{ t('copil_kpi_label') }}</label><input v-model="kpi.label" class="field_input" @input="saveBlocks" /></div>
+            <div class="inspector_row">
+              <div class="field_group"><label>{{ t('copil_kpi_value') }}</label><input v-model="kpi.value" class="field_input" @input="saveBlocks" /></div>
+              <div class="field_group"><label>{{ t('copil_kpi_unit') }}</label><input v-model="kpi.unit" class="field_input small" @input="saveBlocks" /></div>
             </div>
-            <div class="fg"><label>{{ t('copil_kpi_trend') }}</label>
-              <select v-model="kpi.trend" class="fi" @change="saveBlocks"><option value="up">{{ t('copil_trend_up') }}</option><option value="stable">{{ t('copil_trend_stable') }}</option><option value="down">{{ t('copil_trend_down') }}</option></select>
+            <div class="field_group"><label>{{ t('copil_kpi_trend') }}</label>
+              <select v-model="kpi.trend" class="field_input" @change="saveBlocks"><option value="up">{{ t('copil_trend_up') }}</option><option value="stable">{{ t('copil_trend_stable') }}</option><option value="down">{{ t('copil_trend_down') }}</option></select>
             </div>
-            <button class="insp-remove" @click="activeBlock.data.kpis.splice(ki, 1); saveBlocks()">✕</button>
+            <button class="inspector_remove" @click="activeBlock.data.kpis.splice(ki, 1); saveBlocks()">✕</button>
           </div>
-          <button class="insp-add" @click="activeBlock.data.kpis.push({ label:'', value:'', unit:'', trend:'up', color:'#10b981' }); saveBlocks()">{{ t('copil_add_kpi') }}</button>
+          <button class="inspector_add" @click="activeBlock.data.kpis.push({ label:'', value:'', unit:'', trend:'up', color:'#10b981' }); saveBlocks()">{{ t('copil_add_kpi') }}</button>
         </div>
 
         <!-- KPI Single inspector -->
-        <div v-else-if="activeBlock.type === 'kpi_single'" class="insp-body">
-          <div class="fg"><label>{{ t('copil_kpi_label') }}</label><input v-model="activeBlock.data.label" class="fi" @input="saveBlocks" /></div>
-          <div class="insp-row">
-            <div class="fg"><label>{{ t('copil_kpi_value') }}</label><input v-model="activeBlock.data.value" class="fi" @input="saveBlocks" /></div>
-            <div class="fg"><label>{{ t('copil_kpi_unit') }}</label><input v-model="activeBlock.data.unit" class="fi sm" @input="saveBlocks" /></div>
+        <div v-else-if="activeBlock.type === 'kpi_single'" class="inspector_body">
+          <div class="field_group"><label>{{ t('copil_kpi_label') }}</label><input v-model="activeBlock.data.label" class="field_input" @input="saveBlocks" /></div>
+          <div class="inspector_row">
+            <div class="field_group"><label>{{ t('copil_kpi_value') }}</label><input v-model="activeBlock.data.value" class="field_input" @input="saveBlocks" /></div>
+            <div class="field_group"><label>{{ t('copil_kpi_unit') }}</label><input v-model="activeBlock.data.unit" class="field_input small" @input="saveBlocks" /></div>
           </div>
-          <div class="fg"><label>{{ t('copil_prev_value') }}</label><input v-model="activeBlock.data.previous" class="fi" @input="saveBlocks" /></div>
+          <div class="field_group"><label>{{ t('copil_prev_value') }}</label><input v-model="activeBlock.data.previous" class="field_input" @input="saveBlocks" /></div>
         </div>
 
         <!-- Text inspector -->
-        <div v-else-if="activeBlock.type === 'text'" class="insp-body">
-          <div class="fg"><label>{{ t('copil_text_content') }}</label><textarea v-model="activeBlock.data.content" class="fi ta" rows="6" @input="saveBlocks" /></div>
-          <div class="fg"><label>{{ t('copil_text_size') }}</label>
-            <select v-model="activeBlock.data.size" class="fi" @change="saveBlocks">
+        <div v-else-if="activeBlock.type === 'text'" class="inspector_body">
+          <div class="field_group"><label>{{ t('copil_text_content') }}</label><textarea v-model="activeBlock.data.content" class="field_input textarea" rows="6" @input="saveBlocks" /></div>
+          <div class="field_group"><label>{{ t('copil_text_size') }}</label>
+            <select v-model="activeBlock.data.size" class="field_input" @change="saveBlocks">
               <option value="small">{{ t('copil_size_small') }}</option><option value="normal">{{ t('copil_size_normal') }}</option>
               <option value="large">{{ t('copil_size_large') }}</option><option value="title">{{ t('copil_size_title') }}</option>
             </select>
@@ -191,126 +191,126 @@
         </div>
 
         <!-- Table inspector -->
-        <div v-else-if="activeBlock.type === 'table'" class="insp-body">
-          <div class="fg"><label>{{ t('copil_table_headers') }}</label><input :value="activeBlock.data.headers.join(' | ')" @input="activeBlock.data.headers = $event.target.value.split('|').map(s=>s.trim()); saveBlocks()" class="fi" /></div>
-          <div v-for="(row, ri) in activeBlock.data.rows" :key="ri" class="fg">
+        <div v-else-if="activeBlock.type === 'table'" class="inspector_body">
+          <div class="field_group"><label>{{ t('copil_table_headers') }}</label><input :value="activeBlock.data.headers.join(' | ')" @input="activeBlock.data.headers = $event.target.value.split('|').map(s=>s.trim()); saveBlocks()" class="field_input" /></div>
+          <div v-for="(row, ri) in activeBlock.data.rows" :key="ri" class="field_group">
             <label>{{ t('copil_table_row', { n: ri + 1 }) }}</label>
-            <input :value="row.join(' | ')" @input="activeBlock.data.rows[ri] = $event.target.value.split('|').map(s=>s.trim()); saveBlocks()" class="fi" />
+            <input :value="row.join(' | ')" @input="activeBlock.data.rows[ri] = $event.target.value.split('|').map(s=>s.trim()); saveBlocks()" class="field_input" />
           </div>
-          <button class="insp-add" @click="activeBlock.data.rows.push(activeBlock.data.headers.map(()=>'')); saveBlocks()">{{ t('copil_add_row') }}</button>
+          <button class="inspector_add" @click="activeBlock.data.rows.push(activeBlock.data.headers.map(()=>'')); saveBlocks()">{{ t('copil_add_row') }}</button>
         </div>
 
         <!-- Checklist inspector -->
-        <div v-else-if="activeBlock.type === 'checklist'" class="insp-body">
-          <div v-for="(item, ii) in activeBlock.data.items" :key="ii" class="insp-check-row">
+        <div v-else-if="activeBlock.type === 'checklist'" class="inspector_body">
+          <div v-for="(item, ii) in activeBlock.data.items" :key="ii" class="inspector_check_row">
             <input type="checkbox" v-model="item.done" @change="saveBlocks" />
-            <input v-model="item.text" class="fi" @input="saveBlocks" />
-            <button class="insp-remove" @click="activeBlock.data.items.splice(ii, 1); saveBlocks()">✕</button>
+            <input v-model="item.text" class="field_input" @input="saveBlocks" />
+            <button class="inspector_remove" @click="activeBlock.data.items.splice(ii, 1); saveBlocks()">✕</button>
           </div>
-          <button class="insp-add" @click="activeBlock.data.items.push({ text:'', done:false }); saveBlocks()">{{ t('copil_add_item') }}</button>
+          <button class="inspector_add" @click="activeBlock.data.items.push({ text:'', done:false }); saveBlocks()">{{ t('copil_add_item') }}</button>
         </div>
 
         <!-- Quote inspector -->
-        <div v-else-if="activeBlock.type === 'quote'" class="insp-body">
-          <div class="fg"><label>{{ t('copil_quote_text') }}</label><textarea v-model="activeBlock.data.text" class="fi ta" rows="3" @input="saveBlocks" /></div>
-          <div class="fg"><label>{{ t('copil_quote_author') }}</label><input v-model="activeBlock.data.author" class="fi" @input="saveBlocks" /></div>
-          <div class="fg"><label>{{ t('copil_quote_role') }}</label><input v-model="activeBlock.data.role" class="fi" @input="saveBlocks" /></div>
+        <div v-else-if="activeBlock.type === 'quote'" class="inspector_body">
+          <div class="field_group"><label>{{ t('copil_quote_text') }}</label><textarea v-model="activeBlock.data.text" class="field_input textarea" rows="3" @input="saveBlocks" /></div>
+          <div class="field_group"><label>{{ t('copil_quote_author') }}</label><input v-model="activeBlock.data.author" class="field_input" @input="saveBlocks" /></div>
+          <div class="field_group"><label>{{ t('copil_quote_role') }}</label><input v-model="activeBlock.data.role" class="field_input" @input="saveBlocks" /></div>
         </div>
 
         <!-- Action Plan inspector -->
-        <div v-else-if="activeBlock.type === 'action_plan'" class="insp-body">
-          <div v-for="(a, ai) in activeBlock.data.actions" :key="ai" class="insp-action">
-            <div class="fg"><label>{{ t('copil_action_what') }}</label><input v-model="a.what" class="fi" @input="saveBlocks" /></div>
-            <div class="insp-row">
-              <div class="fg"><label>{{ t('copil_action_who') }}</label><input v-model="a.who" class="fi" @input="saveBlocks" /></div>
-              <div class="fg"><label>{{ t('copil_action_when') }}</label><input v-model="a.when" class="fi" @input="saveBlocks" /></div>
+        <div v-else-if="activeBlock.type === 'action_plan'" class="inspector_body">
+          <div v-for="(a, ai) in activeBlock.data.actions" :key="ai" class="inspector_action">
+            <div class="field_group"><label>{{ t('copil_action_what') }}</label><input v-model="a.what" class="field_input" @input="saveBlocks" /></div>
+            <div class="inspector_row">
+              <div class="field_group"><label>{{ t('copil_action_who') }}</label><input v-model="a.who" class="field_input" @input="saveBlocks" /></div>
+              <div class="field_group"><label>{{ t('copil_action_when') }}</label><input v-model="a.when" class="field_input" @input="saveBlocks" /></div>
             </div>
-            <div class="fg"><label>{{ t('copil_action_status') }}</label>
-              <select v-model="a.status" class="fi" @change="saveBlocks">
+            <div class="field_group"><label>{{ t('copil_action_status') }}</label>
+              <select v-model="a.status" class="field_input" @change="saveBlocks">
                 <option value="todo">{{ t('copil_status_todo') }}</option><option value="progress">{{ t('copil_status_progress') }}</option><option value="done">{{ t('copil_status_done') }}</option>
               </select>
             </div>
-            <button class="insp-remove" @click="activeBlock.data.actions.splice(ai, 1); saveBlocks()">✕</button>
+            <button class="inspector_remove" @click="activeBlock.data.actions.splice(ai, 1); saveBlocks()">✕</button>
           </div>
-          <button class="insp-add" @click="activeBlock.data.actions.push({ what:'', who:'', when:'', status:'todo' }); saveBlocks()">{{ t('copil_add_action') }}</button>
+          <button class="inspector_add" @click="activeBlock.data.actions.push({ what:'', who:'', when:'', status:'todo' }); saveBlocks()">{{ t('copil_add_action') }}</button>
         </div>
 
         <!-- Timeline inspector -->
-        <div v-else-if="activeBlock.type === 'timeline'" class="insp-body">
-          <div v-for="(ev, ei) in activeBlock.data.events" :key="ei" class="insp-action">
-            <div class="insp-row">
-              <div class="fg"><label>{{ t('copil_tl_title') }}</label><input v-model="ev.title" class="fi" @input="saveBlocks" /></div>
-              <div class="fg sm"><label>{{ t('copil_tl_date') }}</label><input v-model="ev.date" class="fi" @input="saveBlocks" /></div>
+        <div v-else-if="activeBlock.type === 'timeline'" class="inspector_body">
+          <div v-for="(ev, ei) in activeBlock.data.events" :key="ei" class="inspector_action">
+            <div class="inspector_row">
+              <div class="field_group"><label>{{ t('copil_tl_title') }}</label><input v-model="ev.title" class="field_input" @input="saveBlocks" /></div>
+              <div class="field_group small"><label>{{ t('copil_tl_date') }}</label><input v-model="ev.date" class="field_input" @input="saveBlocks" /></div>
             </div>
-            <div class="fg"><label>{{ t('copil_tl_desc') }}</label><input v-model="ev.desc" class="fi" @input="saveBlocks" /></div>
-            <div class="fg"><label>{{ t('copil_action_status') }}</label>
-              <select v-model="ev.status" class="fi" @change="saveBlocks">
+            <div class="field_group"><label>{{ t('copil_tl_desc') }}</label><input v-model="ev.desc" class="field_input" @input="saveBlocks" /></div>
+            <div class="field_group"><label>{{ t('copil_action_status') }}</label>
+              <select v-model="ev.status" class="field_input" @change="saveBlocks">
                 <option value="done">{{ t('copil_status_done') }}</option>
                 <option value="progress">{{ t('copil_status_progress') }}</option>
                 <option value="todo">{{ t('copil_status_todo') }}</option>
               </select>
             </div>
-            <button class="insp-remove" @click="activeBlock.data.events.splice(ei, 1); saveBlocks()">✕</button>
+            <button class="inspector_remove" @click="activeBlock.data.events.splice(ei, 1); saveBlocks()">✕</button>
           </div>
-          <button class="insp-add" @click="activeBlock.data.events.push({ date:'', title:'', desc:'', status:'todo' }); saveBlocks()">{{ t('copil_add_event') }}</button>
+          <button class="inspector_add" @click="activeBlock.data.events.push({ date:'', title:'', desc:'', status:'todo' }); saveBlocks()">{{ t('copil_add_event') }}</button>
         </div>
 
         <!-- Image inspector -->
-        <div v-else-if="activeBlock.type === 'image'" class="insp-body">
+        <div v-else-if="activeBlock.type === 'image'" class="inspector_body">
           <!-- COPIL-IMAGE-EXPORT (D1①): file uploaded to the private copil-media bucket, exported into the PPTX -->
-          <div class="fg"><label>{{ t('copil_image_file') }}</label>
-            <input ref="imageInput" type="file" accept="image/png,image/jpeg,image/webp" class="insp-file" :disabled="uploading" @change="onImageFile" />
-            <span class="insp-hint">{{ t('copil_image_hint') }}</span>
-            <span v-if="imageError" class="insp-error">{{ imageError }}</span>
-            <span v-else-if="uploading" class="insp-hint">{{ t('copil_image_uploading') }}</span>
+          <div class="field_group"><label>{{ t('copil_image_file') }}</label>
+            <input ref="imageInput" type="file" accept="image/png,image/jpeg,image/webp" class="inspector_file" :disabled="uploading" @change="onImageFile" />
+            <span class="inspector_hint">{{ t('copil_image_hint') }}</span>
+            <span v-if="imageError" class="inspector_error">{{ imageError }}</span>
+            <span v-else-if="uploading" class="inspector_hint">{{ t('copil_image_uploading') }}</span>
           </div>
-          <button v-if="activeBlock.data.path || activeBlock.data.url" type="button" class="insp-remove-img" :disabled="uploading" @click="removeImage">{{ t('copil_image_remove') }}</button>
-          <div class="fg"><label>{{ t('copil_image_url') }}</label><input v-model="activeBlock.data.url" class="fi" placeholder="https://..." :disabled="!!activeBlock.data.path" @input="saveBlocks" /></div>
-          <div class="fg"><label>{{ t('copil_image_caption') }}</label><input v-model="activeBlock.data.caption" class="fi" @input="saveBlocks" /></div>
+          <button v-if="activeBlock.data.path || activeBlock.data.url" type="button" class="inspector_remove_image" :disabled="uploading" @click="removeImage">{{ t('copil_image_remove') }}</button>
+          <div class="field_group"><label>{{ t('copil_image_url') }}</label><input v-model="activeBlock.data.url" class="field_input" placeholder="https://..." :disabled="!!activeBlock.data.path" @input="saveBlocks" /></div>
+          <div class="field_group"><label>{{ t('copil_image_caption') }}</label><input v-model="activeBlock.data.caption" class="field_input" @input="saveBlocks" /></div>
         </div>
 
         <!-- Chart Bar inspector -->
-        <div v-else-if="activeBlock.type === 'chart_bar'" class="insp-body">
-          <div class="fg"><label>{{ t('copil_chart_labels') }}</label><input :value="activeBlock.data.labels.join(', ')" @input="activeBlock.data.labels = $event.target.value.split(',').map(s=>s.trim()); saveBlocks()" class="fi" /></div>
-          <div v-for="(ds, dsi) in activeBlock.data.datasets" :key="dsi" class="insp-action">
-            <div class="fg"><label>{{ t('copil_chart_series') }} {{ dsi + 1 }}</label><input v-model="ds.label" class="fi" @input="saveBlocks" /></div>
-            <div class="fg"><label>{{ t('copil_chart_values') }}</label><input :value="ds.data.join(', ')" @input="ds.data = $event.target.value.split(',').map(s=>Number(s.trim())||0); saveBlocks()" class="fi" /></div>
-            <div class="fg sm"><label>{{ t('copil_cover_color') }}</label><input type="color" v-model="ds.color" @input="saveBlocks" class="fi-color" /></div>
-            <button v-if="activeBlock.data.datasets.length > 1" class="insp-remove" @click="activeBlock.data.datasets.splice(dsi, 1); saveBlocks()">✕</button>
+        <div v-else-if="activeBlock.type === 'chart_bar'" class="inspector_body">
+          <div class="field_group"><label>{{ t('copil_chart_labels') }}</label><input :value="activeBlock.data.labels.join(', ')" @input="activeBlock.data.labels = $event.target.value.split(',').map(s=>s.trim()); saveBlocks()" class="field_input" /></div>
+          <div v-for="(ds, dsi) in activeBlock.data.datasets" :key="dsi" class="inspector_action">
+            <div class="field_group"><label>{{ t('copil_chart_series') }} {{ dsi + 1 }}</label><input v-model="ds.label" class="field_input" @input="saveBlocks" /></div>
+            <div class="field_group"><label>{{ t('copil_chart_values') }}</label><input :value="ds.data.join(', ')" @input="ds.data = $event.target.value.split(',').map(s=>Number(s.trim())||0); saveBlocks()" class="field_input" /></div>
+            <div class="field_group small"><label>{{ t('copil_cover_color') }}</label><input type="color" v-model="ds.color" @input="saveBlocks" class="field_input_color" /></div>
+            <button v-if="activeBlock.data.datasets.length > 1" class="inspector_remove" @click="activeBlock.data.datasets.splice(dsi, 1); saveBlocks()">✕</button>
           </div>
-          <button class="insp-add" @click="activeBlock.data.datasets.push({ label: t('copil_sample_series'), data: activeBlock.data.labels.map(()=>0), color:'#3b82f6' }); saveBlocks()">{{ t('copil_add_series') }}</button>
+          <button class="inspector_add" @click="activeBlock.data.datasets.push({ label: t('copil_sample_series'), data: activeBlock.data.labels.map(()=>0), color:'#3b82f6' }); saveBlocks()">{{ t('copil_add_series') }}</button>
         </div>
 
         <!-- Chart Line inspector -->
-        <div v-else-if="activeBlock.type === 'chart_line'" class="insp-body">
-          <div class="fg"><label>{{ t('copil_chart_labels') }}</label><input :value="activeBlock.data.labels.join(', ')" @input="activeBlock.data.labels = $event.target.value.split(',').map(s=>s.trim()); saveBlocks()" class="fi" /></div>
-          <div v-for="(ds, dsi) in activeBlock.data.datasets" :key="dsi" class="insp-action">
-            <div class="fg"><label>{{ t('copil_chart_series') }} {{ dsi + 1 }}</label><input v-model="ds.label" class="fi" @input="saveBlocks" /></div>
-            <div class="fg"><label>{{ t('copil_chart_values') }}</label><input :value="ds.data.join(', ')" @input="ds.data = $event.target.value.split(',').map(s=>Number(s.trim())||0); saveBlocks()" class="fi" /></div>
-            <div class="fg sm"><label>{{ t('copil_cover_color') }}</label><input type="color" v-model="ds.color" @input="saveBlocks" class="fi-color" /></div>
-            <button v-if="activeBlock.data.datasets.length > 1" class="insp-remove" @click="activeBlock.data.datasets.splice(dsi, 1); saveBlocks()">✕</button>
+        <div v-else-if="activeBlock.type === 'chart_line'" class="inspector_body">
+          <div class="field_group"><label>{{ t('copil_chart_labels') }}</label><input :value="activeBlock.data.labels.join(', ')" @input="activeBlock.data.labels = $event.target.value.split(',').map(s=>s.trim()); saveBlocks()" class="field_input" /></div>
+          <div v-for="(ds, dsi) in activeBlock.data.datasets" :key="dsi" class="inspector_action">
+            <div class="field_group"><label>{{ t('copil_chart_series') }} {{ dsi + 1 }}</label><input v-model="ds.label" class="field_input" @input="saveBlocks" /></div>
+            <div class="field_group"><label>{{ t('copil_chart_values') }}</label><input :value="ds.data.join(', ')" @input="ds.data = $event.target.value.split(',').map(s=>Number(s.trim())||0); saveBlocks()" class="field_input" /></div>
+            <div class="field_group small"><label>{{ t('copil_cover_color') }}</label><input type="color" v-model="ds.color" @input="saveBlocks" class="field_input_color" /></div>
+            <button v-if="activeBlock.data.datasets.length > 1" class="inspector_remove" @click="activeBlock.data.datasets.splice(dsi, 1); saveBlocks()">✕</button>
           </div>
-          <button class="insp-add" @click="activeBlock.data.datasets.push({ label: t('copil_sample_series'), data: activeBlock.data.labels.map(()=>0), color:'#10b981' }); saveBlocks()">{{ t('copil_add_series') }}</button>
+          <button class="inspector_add" @click="activeBlock.data.datasets.push({ label: t('copil_sample_series'), data: activeBlock.data.labels.map(()=>0), color:'#10b981' }); saveBlocks()">{{ t('copil_add_series') }}</button>
         </div>
 
         <!-- Chart Donut inspector -->
-        <div v-else-if="activeBlock.type === 'chart_donut'" class="insp-body">
-          <div v-for="(label, li) in activeBlock.data.labels" :key="li" class="insp-donut-row">
-            <input v-model="activeBlock.data.labels[li]" class="fi" @input="saveBlocks" />
-            <input v-model.number="activeBlock.data.data[li]" type="number" class="fi sm" @input="saveBlocks" />
-            <input type="color" v-model="activeBlock.data.colors[li]" @input="saveBlocks" class="fi-color" />
-            <button v-if="activeBlock.data.labels.length > 1" class="insp-remove-inline" @click="activeBlock.data.labels.splice(li,1); activeBlock.data.data.splice(li,1); activeBlock.data.colors.splice(li,1); saveBlocks()">✕</button>
+        <div v-else-if="activeBlock.type === 'chart_donut'" class="inspector_body">
+          <div v-for="(label, li) in activeBlock.data.labels" :key="li" class="inspector_donut_row">
+            <input v-model="activeBlock.data.labels[li]" class="field_input" @input="saveBlocks" />
+            <input v-model.number="activeBlock.data.data[li]" type="number" class="field_input small" @input="saveBlocks" />
+            <input type="color" v-model="activeBlock.data.colors[li]" @input="saveBlocks" class="field_input_color" />
+            <button v-if="activeBlock.data.labels.length > 1" class="inspector_remove_inline" @click="activeBlock.data.labels.splice(li,1); activeBlock.data.data.splice(li,1); activeBlock.data.colors.splice(li,1); saveBlocks()">✕</button>
           </div>
-          <button class="insp-add" @click="activeBlock.data.labels.push(t('copil_sample_segment')); activeBlock.data.data.push(10); activeBlock.data.colors.push('#6366f1'); saveBlocks()">{{ t('copil_add_segment') }}</button>
+          <button class="inspector_add" @click="activeBlock.data.labels.push(t('copil_sample_segment')); activeBlock.data.data.push(10); activeBlock.data.colors.push('#6366f1'); saveBlocks()">{{ t('copil_add_segment') }}</button>
         </div>
 
         <!-- Fallback -->
-        <div v-else class="insp-body"><p class="insp-hint">{{ t('copil_bt_' + activeBlock.type) }}</p></div>
+        <div v-else class="inspector_body"><p class="inspector_hint">{{ t('copil_bt_' + activeBlock.type) }}</p></div>
 
         <!-- Block controls (all types) -->
-        <div class="insp-controls">
-          <div class="fg"><label>{{ t('copil_block_width') }}</label>
-            <select v-model="activeBlock.width" class="fi" @change="saveBlocks">
+        <div class="inspector_controls">
+          <div class="field_group"><label>{{ t('copil_block_width') }}</label>
+            <select v-model="activeBlock.width" class="field_input" @change="saveBlocks">
               <option value="full">{{ t('copil_width_full') }}</option>
               <option value="half">{{ t('copil_width_half') }}</option>
               <option value="third">{{ t('copil_width_third') }}</option>
@@ -573,161 +573,161 @@ function toggleVisible(block) {
 
 <style scoped>
 .kb { max-width: 100%; }
-.kb-client-free { margin-top: 6px; }
-.kb-metric-btn { width: 100%; background: linear-gradient(135deg, var(--purple), #a78bfa); color: #fff; border: none; padding: 10px; border-radius: 10px; font-size: 0.82rem; font-weight: 700; cursor: pointer; margin-bottom: 14px; transition: opacity 0.15s; }
-.kb-metric-btn:hover { opacity: 0.9; }
+.kpis_builder_client_free { margin-top: 6px; }
+.kpis_builder_metric_button { width: 100%; background: linear-gradient(135deg, var(--purple), #a78bfa); color: #fff; border: none; padding: 10px; border-radius: 10px; font-size: 0.82rem; font-weight: 700; cursor: pointer; margin-bottom: 14px; transition: opacity 0.15s; }
+.kpis_builder_metric_button:hover { opacity: 0.9; }
 
 /* Toolbar */
-.kb-toolbar { display: flex; align-items: center; gap: 12px; padding: 10px 0; margin-bottom: 16px; flex-wrap: wrap; }
-.kb-back { font-size: 0.82rem; color: var(--text-muted); text-decoration: none; }
-.kb-back:hover { color: var(--purple); }
-.kb-title-display { font-size: 1rem; font-weight: 700; flex: 1; }
-.kb-toolbar-right { display: flex; gap: 6px; align-items: center; }
-.tb-btn { padding: 6px 14px; border-radius: 6px; font-size: 0.78rem; background: var(--bg-card); border: 1px solid var(--border); color: var(--text-secondary); text-decoration: none; }
-.tb-btn:hover { border-color: var(--purple); color: var(--purple); }
-.tb-saved { font-size: 0.75rem; color: var(--green); font-weight: 600; }
+.kpis_builder_toolbar { display: flex; align-items: center; gap: 12px; padding: 10px 0; margin-bottom: 16px; flex-wrap: wrap; }
+.kpis_builder_back { font-size: 0.82rem; color: var(--text-muted); text-decoration: none; }
+.kpis_builder_back:hover { color: var(--purple); }
+.kpis_builder_title_display { font-size: 1rem; font-weight: 700; flex: 1; }
+.kpis_builder_toolbar_right { display: flex; gap: 6px; align-items: center; }
+.tb_button { padding: 6px 14px; border-radius: 6px; font-size: 0.78rem; background: var(--bg-card); border: 1px solid var(--border); color: var(--text-secondary); text-decoration: none; }
+.tb_button:hover { border-color: var(--purple); color: var(--purple); }
+.tb_saved { font-size: 0.75rem; color: var(--green); font-weight: 600; }
 
 /* Layout */
-.kb-layout { display: grid; grid-template-columns: 200px minmax(420px, 1fr) 280px; gap: 16px; min-height: calc(100vh - 180px); position: relative; }
-.kb-drawer-toggle, .kb-scrim { display: none; }
+.kpis_builder_layout { display: grid; grid-template-columns: 200px minmax(420px, 1fr) 280px; gap: 16px; min-height: calc(100vh - 180px); position: relative; }
+.kpis_builder_drawer_toggle, .kpis_builder_scrim { display: none; }
 
 /* Sidebar */
-.kb-sidebar { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px; overflow-y: auto; }
-.kb-sidebar h3 { font-size: 0.82rem; font-weight: 700; margin-bottom: 12px; }
-.kb-group { margin-bottom: 12px; }
-.kb-group-title { font-size: 0.68rem; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 4px; }
-.kb-block-btn { display: flex; align-items: center; gap: 8px; width: 100%; padding: 7px 10px; background: var(--bg); border: 1px solid transparent; border-radius: 6px; font-size: 0.78rem; cursor: pointer; transition: all 0.15s; }
-.kb-block-btn:hover { border-color: var(--purple); background: var(--purple-bg); }
-.kbb-icon { font-size: 0.9rem; }
+.kpis_builder_sidebar { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px; overflow-y: auto; }
+.kpis_builder_sidebar h3 { font-size: 0.82rem; font-weight: 700; margin-bottom: 12px; }
+.kpis_builder_group { margin-bottom: 12px; }
+.kpis_builder_group_title { font-size: 0.68rem; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 4px; }
+.kpis_builder_block_button { display: flex; align-items: center; gap: 8px; width: 100%; padding: 7px 10px; background: var(--bg); border: 1px solid transparent; border-radius: 6px; font-size: 0.78rem; cursor: pointer; transition: all 0.15s; }
+.kpis_builder_block_button:hover { border-color: var(--purple); background: var(--purple-bg); }
+.kpis_builder_block_icon { font-size: 0.9rem; }
 
 /* Canvas */
-.kb-canvas { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 20px; overflow-y: auto; }
+.kpis_builder_canvas { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 20px; overflow-y: auto; }
 
 /* Cover */
-.kb-cover { background: var(--bg); border-radius: var(--radius-sm); padding: 16px; margin-bottom: 20px; }
-.kb-cover-row { display: flex; gap: 12px; margin-bottom: 10px; }
-.kb-cover-row:last-child { margin-bottom: 0; }
-.fg { display: flex; flex-direction: column; gap: 3px; flex: 1; }
-.fg.full { flex: 2; }
-.fg.sm { flex: 0 0 auto; }
-.fg label { font-size: 0.7rem; font-weight: 600; color: var(--text-muted); }
-.fi { padding: 7px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.82rem; outline: none; background: var(--bg-card); width: 100%; }
-.fi:focus { border-color: var(--purple); }
-.fi.sm { width: 60px; }
-.ta { resize: vertical; }
-.color-row { display: flex; gap: 5px; }
+.kpis_builder_cover { background: var(--bg); border-radius: var(--radius-sm); padding: 16px; margin-bottom: 20px; }
+.kpis_builder_cover_row { display: flex; gap: 12px; margin-bottom: 10px; }
+.kpis_builder_cover_row:last-child { margin-bottom: 0; }
+.field_group { display: flex; flex-direction: column; gap: 3px; flex: 1; }
+.field_group.full { flex: 2; }
+.field_group.small { flex: 0 0 auto; }
+.field_group label { font-size: 0.7rem; font-weight: 600; color: var(--text-muted); }
+.field_input { padding: 7px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.82rem; outline: none; background: var(--bg-card); width: 100%; }
+.field_input:focus { border-color: var(--purple); }
+.field_input.small { width: 60px; }
+.textarea { resize: vertical; }
+.color_row { display: flex; gap: 5px; }
 .cpick { width: 22px; height: 22px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; }
 .cpick.active { border-color: var(--text); transform: scale(1.15); }
 
 /* Blocks */
-.kb-blocks { display: flex; flex-direction: column; gap: 12px; }
-.kb-block { border: 2px solid var(--border-light); border-radius: var(--radius-sm); overflow: hidden; cursor: pointer; transition: all 0.15s; }
-.kb-block:hover { border-color: var(--border); }
-.kb-block.selected { border-color: var(--purple); box-shadow: 0 0 0 2px rgba(124,58,237,0.1); }
+.kpis_builder_blocks { display: flex; flex-direction: column; gap: 12px; }
+.kpis_builder_block { border: 2px solid var(--border-light); border-radius: var(--radius-sm); overflow: hidden; cursor: pointer; transition: all 0.15s; }
+.kpis_builder_block:hover { border-color: var(--border); }
+.kpis_builder_block.selected { border-color: var(--purple); box-shadow: 0 0 0 2px rgba(124,58,237,0.1); }
 /* flex-wrap: below ~1300 px the controls move to a 2nd line instead of overflowing (🗑 cut off) */
-.kbb-header { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; padding: 8px 12px; background: var(--bg); border-bottom: 1px solid var(--border-light); }
-.kbb-drag { cursor: grab; color: var(--text-muted); font-size: 0.85rem; }
-.kbb-type { font-size: 0.65rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; }
-.kbb-title-input { flex: 1 1 140px; min-width: 0; border: none; background: transparent; font-size: 0.82rem; font-weight: 600; outline: none; }
-.kbb-del { background: none; border: none; cursor: pointer; font-size: 0.8rem; opacity: 0.3; }
-.kbb-del:hover { opacity: 1; }
-.kbb-preview { padding: 14px; min-height: 40px; }
+.kpis_builder_block_header { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; padding: 8px 12px; background: var(--bg); border-bottom: 1px solid var(--border-light); }
+.kpis_builder_block_drag { cursor: grab; color: var(--text-muted); font-size: 0.85rem; }
+.kpis_builder_block_type { font-size: 0.65rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; }
+.kpis_builder_block_title_input { flex: 1 1 140px; min-width: 0; border: none; background: transparent; font-size: 0.82rem; font-weight: 600; outline: none; }
+.kpis_builder_block_delete { background: none; border: none; cursor: pointer; font-size: 0.8rem; opacity: 0.3; }
+.kpis_builder_block_delete:hover { opacity: 1; }
+.kpis_builder_block_preview { padding: 14px; min-height: 40px; }
 
 /* Previews */
-.prev-kpi-grid { display: flex; gap: 10px; flex-wrap: wrap; }
-.prev-kpi { border-left: 3px solid var(--green); padding: 8px 12px; background: var(--bg); border-radius: 6px; min-width: 80px; }
-.prev-kpi strong { display: block; font-size: 1.1rem; font-weight: 800; }
-.prev-kpi span { font-size: 0.7rem; color: var(--text-muted); }
-.prev-kpi-single { text-align: center; padding: 12px; }
-.prev-kpi-single strong { font-size: 2rem; font-weight: 800; display: block; }
-.prev-kpi-single span { font-size: 0.82rem; }
-.prev-chart { text-align: center; padding: 20px; color: var(--text-muted); font-size: 0.85rem; background: var(--bg); border-radius: 6px; }
-.prev-text { font-size: 0.85rem; line-height: 1.6; color: var(--text-secondary); white-space: pre-wrap; }
-.prev-text.sz-small { font-size: 0.75rem; }
-.prev-text.sz-large { font-size: 1.1rem; }
-.prev-text.sz-title { font-size: 1.4rem; font-weight: 800; color: var(--text); }
-.prev-table table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
-.prev-table th { padding: 6px 10px; background: var(--bg); text-align: left; font-weight: 600; border-bottom: 1px solid var(--border); }
-.prev-table td { padding: 6px 10px; border-bottom: 1px solid var(--border-light); }
-.prev-checklist { display: flex; flex-direction: column; gap: 4px; }
-.prev-check-item { font-size: 0.82rem; }
-.prev-quote { text-align: center; font-style: italic; padding: 12px; }
-.prev-quote p { font-size: 0.95rem; margin-bottom: 6px; }
-.prev-quote span { font-size: 0.75rem; color: var(--text-muted); }
-.prev-actions { display: flex; flex-direction: column; gap: 4px; font-size: 0.8rem; }
-.prev-action { padding: 4px 8px; background: var(--bg); border-radius: 4px; }
-.prev-divider { border: none; border-top: 1px solid var(--border); margin: 8px 0; }
-.prev-fallback { text-align: center; color: var(--text-muted); font-size: 0.82rem; }
-.kb-no-blocks { text-align: center; padding: 40px; color: var(--text-muted); font-size: 0.88rem; }
+.preview_kpi_grid { display: flex; gap: 10px; flex-wrap: wrap; }
+.preview_kpi { border-left: 3px solid var(--green); padding: 8px 12px; background: var(--bg); border-radius: 6px; min-width: 80px; }
+.preview_kpi strong { display: block; font-size: 1.1rem; font-weight: 800; }
+.preview_kpi span { font-size: 0.7rem; color: var(--text-muted); }
+.preview_kpi_single { text-align: center; padding: 12px; }
+.preview_kpi_single strong { font-size: 2rem; font-weight: 800; display: block; }
+.preview_kpi_single span { font-size: 0.82rem; }
+.preview_chart { text-align: center; padding: 20px; color: var(--text-muted); font-size: 0.85rem; background: var(--bg); border-radius: 6px; }
+.preview_text { font-size: 0.85rem; line-height: 1.6; color: var(--text-secondary); white-space: pre-wrap; }
+.preview_text.size_small { font-size: 0.75rem; }
+.preview_text.size_large { font-size: 1.1rem; }
+.preview_text.size_title { font-size: 1.4rem; font-weight: 800; color: var(--text); }
+.preview_table table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+.preview_table th { padding: 6px 10px; background: var(--bg); text-align: left; font-weight: 600; border-bottom: 1px solid var(--border); }
+.preview_table td { padding: 6px 10px; border-bottom: 1px solid var(--border-light); }
+.preview_checklist { display: flex; flex-direction: column; gap: 4px; }
+.preview_check_item { font-size: 0.82rem; }
+.preview_quote { text-align: center; font-style: italic; padding: 12px; }
+.preview_quote p { font-size: 0.95rem; margin-bottom: 6px; }
+.preview_quote span { font-size: 0.75rem; color: var(--text-muted); }
+.preview_actions { display: flex; flex-direction: column; gap: 4px; font-size: 0.8rem; }
+.preview_action { padding: 4px 8px; background: var(--bg); border-radius: 4px; }
+.preview_divider { border: none; border-top: 1px solid var(--border); margin: 8px 0; }
+.preview_fallback { text-align: center; color: var(--text-muted); font-size: 0.82rem; }
+.kpis_builder_no_blocks { text-align: center; padding: 40px; color: var(--text-muted); font-size: 0.88rem; }
 
 /* Timeline preview */
-.prev-timeline { display: flex; flex-direction: column; gap: 0; padding-left: 12px; border-left: 2px solid var(--border); }
-.prev-tl-item { display: flex; gap: 10px; padding: 6px 0; position: relative; }
-.prev-tl-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--border); flex-shrink: 0; margin-top: 4px; margin-left: -17px; }
-.prev-tl-item.st-done .prev-tl-dot { background: var(--green); }
-.prev-tl-item.st-progress .prev-tl-dot { background: var(--purple); }
-.prev-tl-item.st-todo .prev-tl-dot { background: var(--border); }
-.prev-tl-content strong { font-size: 0.82rem; display: block; }
-.prev-tl-date { font-size: 0.7rem; color: var(--text-muted); }
-.prev-tl-content p { font-size: 0.75rem; color: var(--text-secondary); margin: 2px 0 0; }
+.preview_timeline { display: flex; flex-direction: column; gap: 0; padding-left: 12px; border-left: 2px solid var(--border); }
+.preview_timeline_item { display: flex; gap: 10px; padding: 6px 0; position: relative; }
+.preview_timeline_dot { width: 10px; height: 10px; border-radius: 50%; background: var(--border); flex-shrink: 0; margin-top: 4px; margin-left: -17px; }
+.preview_timeline_item.status_done .preview_timeline_dot { background: var(--green); }
+.preview_timeline_item.status_progress .preview_timeline_dot { background: var(--purple); }
+.preview_timeline_item.status_todo .preview_timeline_dot { background: var(--border); }
+.preview_timeline_content strong { font-size: 0.82rem; display: block; }
+.preview_timeline_date { font-size: 0.7rem; color: var(--text-muted); }
+.preview_timeline_content p { font-size: 0.75rem; color: var(--text-secondary); margin: 2px 0 0; }
 
 /* Image preview */
-.prev-image { text-align: center; }
-.prev-image img { max-width: 100%; max-height: 200px; border-radius: 6px; object-fit: contain; }
-.prev-image-placeholder { padding: 30px; color: var(--text-muted); background: var(--bg); border-radius: 6px; font-size: 0.85rem; }
-.prev-image-caption { display: block; font-size: 0.72rem; color: var(--text-muted); margin-top: 6px; }
+.preview_image { text-align: center; }
+.preview_image img { max-width: 100%; max-height: 200px; border-radius: 6px; object-fit: contain; }
+.preview_image_placeholder { padding: 30px; color: var(--text-muted); background: var(--bg); border-radius: 6px; font-size: 0.85rem; }
+.preview_image_caption { display: block; font-size: 0.72rem; color: var(--text-muted); margin-top: 6px; }
 
 /* Block hidden state */
-.kb-block.hidden { opacity: 0.45; }
-.kb-block.hidden .kbb-preview { display: none; }
+.kpis_builder_block.hidden { opacity: 0.45; }
+.kpis_builder_block.hidden .kpis_builder_block_preview { display: none; }
 
 /* Block controls */
-.kbb-ctrl { background: none; border: none; cursor: pointer; font-size: 0.55rem; color: var(--text-muted); padding: 2px 3px; opacity: 0.4; }
-.kbb-ctrl:hover { opacity: 1; color: var(--purple); }
+.kpis_builder_block_control { background: none; border: none; cursor: pointer; font-size: 0.55rem; color: var(--text-muted); padding: 2px 3px; opacity: 0.4; }
+.kpis_builder_block_control:hover { opacity: 1; color: var(--purple); }
 
 /* Inspector */
-.kb-inspector { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 16px; overflow-y: auto; }
-.kb-inspector h3 { font-size: 0.85rem; font-weight: 700; margin-bottom: 14px; }
-.kb-insp-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.kb-insp-close { display: none; background: none; border: none; cursor: pointer; font-size: 0.9rem; color: var(--text-muted); padding: 2px 6px; }
-.kb-insp-close:hover { color: var(--text); }
-.insp-body { display: flex; flex-direction: column; gap: 12px; }
-.insp-row { display: flex; gap: 8px; }
-.insp-row .fg { flex: 1; }
-.insp-kpi { border: 1px solid var(--border-light); border-radius: 6px; padding: 10px; position: relative; }
-.insp-action { border: 1px solid var(--border-light); border-radius: 6px; padding: 10px; position: relative; margin-bottom: 8px; }
-.insp-remove { position: absolute; top: 6px; right: 6px; background: none; border: none; font-size: 0.75rem; color: var(--text-muted); cursor: pointer; }
-.insp-remove:hover { color: var(--red); }
-.insp-add { background: var(--purple-bg); color: var(--purple); border: 1px dashed var(--purple-border); padding: 8px; border-radius: 6px; font-size: 0.78rem; font-weight: 600; cursor: pointer; text-align: center; }
-.insp-add:hover { background: rgba(124,58,237,0.1); }
-.insp-check-row { display: flex; align-items: center; gap: 8px; }
-.insp-check-row input[type="checkbox"] { accent-color: var(--purple); }
-.insp-check-row .fi { flex: 1; }
-.insp-hint { font-size: 0.78rem; color: var(--text-muted); }
-.insp-error { font-size: 0.78rem; color: var(--red); }
-.insp-file { font-size: 0.78rem; }
-.insp-remove-img { background: var(--red-bg); color: var(--red); border: none; padding: 7px 10px; border-radius: 6px; font-size: 0.78rem; font-weight: 600; cursor: pointer; }
-.insp-remove-img:disabled { opacity: 0.5; cursor: not-allowed; }
-.insp-controls { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border-light); }
-.insp-donut-row { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
-.insp-donut-row .fi { flex: 1; }
-.insp-donut-row .fi.sm { width: 60px; flex: 0 0 60px; }
-.fi-color { width: 32px; height: 32px; border: 1px solid var(--border); border-radius: 6px; padding: 2px; cursor: pointer; flex-shrink: 0; }
-.insp-remove-inline { background: none; border: none; font-size: 0.75rem; color: var(--text-muted); cursor: pointer; flex-shrink: 0; }
-.insp-remove-inline:hover { color: var(--red); }
+.kpis_builder_inspector { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 16px; overflow-y: auto; }
+.kpis_builder_inspector h3 { font-size: 0.85rem; font-weight: 700; margin-bottom: 14px; }
+.kpis_builder_insp_header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.kpis_builder_insp_close { display: none; background: none; border: none; cursor: pointer; font-size: 0.9rem; color: var(--text-muted); padding: 2px 6px; }
+.kpis_builder_insp_close:hover { color: var(--text); }
+.inspector_body { display: flex; flex-direction: column; gap: 12px; }
+.inspector_row { display: flex; gap: 8px; }
+.inspector_row .field_group { flex: 1; }
+.inspector_kpi { border: 1px solid var(--border-light); border-radius: 6px; padding: 10px; position: relative; }
+.inspector_action { border: 1px solid var(--border-light); border-radius: 6px; padding: 10px; position: relative; margin-bottom: 8px; }
+.inspector_remove { position: absolute; top: 6px; right: 6px; background: none; border: none; font-size: 0.75rem; color: var(--text-muted); cursor: pointer; }
+.inspector_remove:hover { color: var(--red); }
+.inspector_add { background: var(--purple-bg); color: var(--purple); border: 1px dashed var(--purple-border); padding: 8px; border-radius: 6px; font-size: 0.78rem; font-weight: 600; cursor: pointer; text-align: center; }
+.inspector_add:hover { background: rgba(124,58,237,0.1); }
+.inspector_check_row { display: flex; align-items: center; gap: 8px; }
+.inspector_check_row input[type="checkbox"] { accent-color: var(--purple); }
+.inspector_check_row .field_input { flex: 1; }
+.inspector_hint { font-size: 0.78rem; color: var(--text-muted); }
+.inspector_error { font-size: 0.78rem; color: var(--red); }
+.inspector_file { font-size: 0.78rem; }
+.inspector_remove_image { background: var(--red-bg); color: var(--red); border: none; padding: 7px 10px; border-radius: 6px; font-size: 0.78rem; font-weight: 600; cursor: pointer; }
+.inspector_remove_image:disabled { opacity: 0.5; cursor: not-allowed; }
+.inspector_controls { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border-light); }
+.inspector_donut_row { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+.inspector_donut_row .field_input { flex: 1; }
+.inspector_donut_row .field_input.small { width: 60px; flex: 0 0 60px; }
+.field_input_color { width: 32px; height: 32px; border: 1px solid var(--border); border-radius: 6px; padding: 2px; cursor: pointer; flex-shrink: 0; }
+.inspector_remove_inline { background: none; border: none; font-size: 0.75rem; color: var(--text-muted); cursor: pointer; flex-shrink: 0; }
+.inspector_remove_inline:hover { color: var(--red); }
 
 /* 1024-1300 px: the inspector narrows to let the canvas breathe */
-@media (max-width: 1300px) { .kb-layout { grid-template-columns: 180px minmax(380px, 1fr) 240px; gap: 12px; } }
+@media (max-width: 1300px) { .kpis_builder_layout { grid-template-columns: 180px minmax(380px, 1fr) 240px; gap: 12px; } }
 /* G9-11 — < 1024 px: single column; catalog as a drawer, inspector as a side panel */
 @media (max-width: 1024px) {
-  .kb-layout { grid-template-columns: 1fr; }
-  .kb-drawer-toggle { display: inline-flex; position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 62; background: var(--purple); color: #fff; border: none; padding: 10px 18px; border-radius: 999px; font-size: 0.85rem; font-weight: 700; cursor: pointer; box-shadow: 0 8px 24px rgba(0,0,0,0.25); }
-  .kb-scrim { display: block; position: fixed; inset: 0; background: rgba(15,23,42,0.35); z-index: 60; }
-  .kb-sidebar { display: none; position: fixed; left: 0; right: 0; bottom: 0; max-height: 70vh; z-index: 61; border-radius: 16px 16px 0 0; box-shadow: 0 -12px 40px rgba(0,0,0,0.25); padding-bottom: 72px; }
-  .kb-layout.drawer-open .kb-sidebar { display: block; }
-  .kb-inspector { display: none; position: fixed; top: 0; right: 0; bottom: 0; width: min(360px, 92vw); z-index: 61; border-radius: 0; box-shadow: -12px 0 40px rgba(0,0,0,0.25); }
-  .kb-layout.panel-open .kb-inspector { display: block; }
-  .kb-insp-close { display: inline-block; }
+  .kpis_builder_layout { grid-template-columns: 1fr; }
+  .kpis_builder_drawer_toggle { display: inline-flex; position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 62; background: var(--purple); color: #fff; border: none; padding: 10px 18px; border-radius: 999px; font-size: 0.85rem; font-weight: 700; cursor: pointer; box-shadow: 0 8px 24px rgba(0,0,0,0.25); }
+  .kpis_builder_scrim { display: block; position: fixed; inset: 0; background: rgba(15,23,42,0.35); z-index: 60; }
+  .kpis_builder_sidebar { display: none; position: fixed; left: 0; right: 0; bottom: 0; max-height: 70vh; z-index: 61; border-radius: 16px 16px 0 0; box-shadow: 0 -12px 40px rgba(0,0,0,0.25); padding-bottom: 72px; }
+  .kpis_builder_layout.drawer_open .kpis_builder_sidebar { display: block; }
+  .kpis_builder_inspector { display: none; position: fixed; top: 0; right: 0; bottom: 0; width: min(360px, 92vw); z-index: 61; border-radius: 0; box-shadow: -12px 0 40px rgba(0,0,0,0.25); }
+  .kpis_builder_layout.panel_open .kpis_builder_inspector { display: block; }
+  .kpis_builder_insp_close { display: inline-block; }
 }
-@media (max-width: 768px) { .kb-cover-row { flex-direction: column; } }
+@media (max-width: 768px) { .kpis_builder_cover_row { flex-direction: column; } }
 </style>

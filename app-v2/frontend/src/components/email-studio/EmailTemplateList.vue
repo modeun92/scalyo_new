@@ -1,10 +1,10 @@
 <template>
-  <div class="es-left">
-    <div class="es-tabs">
+  <div class="email_studio_left">
+    <div class="email_studio_tabs">
       <button
         v-for="tab in tabs"
         :key="tab.key"
-        class="es-tab"
+        class="email_studio_tab"
         :class="{ active: activeTab === tab.key }"
         @click="$emit('update:activeTab', tab.key)"
       >
@@ -12,16 +12,16 @@
       </button>
     </div>
 
-    <div class="es-search">
+    <div class="email_studio_search">
       <span>🔍</span>
       <input v-model="localSearch" :placeholder="t('es_search')" />
     </div>
 
-    <div class="es-cats">
+    <div class="email_studio_categories">
       <button
         v-for="cat in categoryKeys"
         :key="cat"
-        class="es-cat"
+        class="email_studio_category"
         :class="{ active: activeCat === cat, [catClass(cat)]: true }"
         @click="$emit('update:activeCat', activeCat === cat ? 'all' : cat)"
       >
@@ -29,15 +29,15 @@
       </button>
     </div>
 
-    <div class="es-list">
+    <div class="email_studio_list">
       <div
         v-for="tpl in filteredTemplates"
         :key="tpl.id"
-        class="es-item"
+        class="email_studio_item"
         :class="{ active: selectedId === tpl.id }"
         @click="$emit('update:selectedId', tpl.id)"
       >
-        <span class="esi-cat" :class="catClass(tpl.categoryKey)">
+        <span class="esi_category" :class="catClass(tpl.categoryKey)">
           {{ t('es_cat_' + tpl.categoryKey) }}
         </span>
         <!-- CR-D: custom templates = stored name, defaults = i18n key -->

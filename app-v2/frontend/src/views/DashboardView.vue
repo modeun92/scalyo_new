@@ -9,7 +9,7 @@
 
 <AiInsightPanel module="dashboard" :title="t('ai_dashboard_title')" :button-label="t('ai_dashboard_btn')" :message="t('ai_dashboard_prompt')" />
 
-<div class="dash-columns">
+<div class="dashboard_columns">
 <!-- COUNT-353-352: displayed total = clientsOnly, same base as healthy/watch/critical -->
 <DashWatchAccounts :watch-accounts="watchAccounts" :healthy-arc="healthyArc" :watch-arc="watchArc" :critical-arc="criticalArc" :circumference="circumference" :total-clients="clients.clientsOnly.length" :healthy-count="clients.healthyCount" :watch-count="clients.watchCount" :critical-count="clients.criticalCount" />
 <DashMyTasks :filtered-tasks="filteredTasks" :task-tabs="taskTabs" :active-tab="activeTaskTab" :clients-map="clientsMap" @tab-change="activeTaskTab = $event" />
@@ -171,6 +171,6 @@ const clientsMap = computed(() => { const map = {}; clients.clients.forEach(c =>
 
 <style scoped>
 .dashboard { max-width: 1200px; }
-.dash-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 8px; }
-@media (max-width: 768px) { .dash-columns { grid-template-columns: 1fr; } }
+.dashboard_columns { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 8px; }
+@media (max-width: 768px) { .dashboard_columns { grid-template-columns: 1fr; } }
 </style>

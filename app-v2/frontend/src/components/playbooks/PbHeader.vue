@@ -1,11 +1,11 @@
 <template>
-  <div class="pb-header">
+  <div class="playbook_header">
     <div>
       <h1>📋 {{ t('pb_title') }}</h1>
-      <span class="pb-counter">{{ playbookCount }} {{ t('pb_label') }}</span>
+      <span class="playbook_counter">{{ playbookCount }} {{ t('pb_label') }}</span>
     </div>
-    <div class="pb-actions">
-      <div class="search-box">
+    <div class="playbook_actions">
+      <div class="search_box">
         <span>🔍</span>
         <input
           :value="search"
@@ -13,7 +13,7 @@
           :placeholder="t('search')"
         />
       </div>
-      <button class="btn-primary" @click="$emit('openTemplates')">
+      <button class="button_primary" @click="$emit('openTemplates')">
         {{ t('pb_add') }}
       </button>
     </div>

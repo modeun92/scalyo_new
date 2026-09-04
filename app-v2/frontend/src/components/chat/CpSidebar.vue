@@ -1,46 +1,46 @@
 <template>
-  <aside class="cp-sidebar">
-    <div class="cp-sidebar-header">
-      <span class="cp-sidebar-title">{{ t('chat_channels') }}</span>
-      <button v-if="canCreateChannel" class="cp-sidebar-add" :title="t('chat_add_channel')" @click="$emit('create-channel')">+</button>
-      <button v-if="showClose" class="cp-sidebar-close" @click="$emit('close')">✕</button>
+  <aside class="chat_panel_sidebar">
+    <div class="chat_panel_sidebar_header">
+      <span class="chat_panel_sidebar_title">{{ t('chat_channels') }}</span>
+      <button v-if="canCreateChannel" class="chat_panel_sidebar_add" :title="t('chat_add_channel')" @click="$emit('create-channel')">+</button>
+      <button v-if="showClose" class="chat_panel_sidebar_close" @click="$emit('close')">✕</button>
     </div>
 
-    <div class="cp-sidebar-list">
+    <div class="chat_panel_sidebar_list">
       <div
         v-for="ch in channelList"
         :key="ch.id"
-        class="cp-sidebar-item"
+        class="chat_panel_sidebar_item"
         :class="{ active: store.activeChannel === ch.id }"
         @click="$emit('select', ch.id)"
       >
-        <span class="cp-ch-icon">#</span>
-        <span class="cp-ch-name">{{ ch.name }}</span>
-        <span v-if="store.unreadCounts[ch.id]" class="cp-badge">{{ store.unreadCounts[ch.id] }}</span>
+        <span class="chat_panel_ch_icon">#</span>
+        <span class="chat_panel_ch_name">{{ ch.name }}</span>
+        <span v-if="store.unreadCounts[ch.id]" class="chat_panel_badge">{{ store.unreadCounts[ch.id] }}</span>
       </div>
     </div>
 
     <!-- DM contract 13/07 (replaces the D2/G9-19 decision): real 1-to-1 DMs,
          type='dm' channels + participant RLS. List = members of the org (RPC get_org_member_names). -->
-    <div v-if="dmMembers.length" class="cp-sidebar-section">{{ t('chat_direct') }}</div>
-    <div v-if="dmMembers.length" class="cp-sidebar-list cp-dm-list">
+    <div v-if="dmMembers.length" class="chat_panel_sidebar_section">{{ t('chat_direct') }}</div>
+    <div v-if="dmMembers.length" class="chat_panel_sidebar_list chat_panel_dm_list">
       <div
         v-for="m in dmMembers"
         :key="m.id"
-        class="cp-sidebar-item"
+        class="chat_panel_sidebar_item"
         :class="{ active: activeDmUser === m.id }"
         @click="$emit('open-dm', m.id)"
       >
-        <span class="cp-dm-avatar">{{ m.name.charAt(0) }}</span>
-        <span class="cp-ch-name">{{ m.name }}</span>
-        <span v-if="dmUnread(m.id)" class="cp-badge">{{ dmUnread(m.id) }}</span>
+        <span class="chat_panel_dm_avatar">{{ m.name.charAt(0) }}</span>
+        <span class="chat_panel_ch_name">{{ m.name }}</span>
+        <span v-if="dmUnread(m.id)" class="chat_panel_badge">{{ dmUnread(m.id) }}</span>
       </div>
     </div>
 
-    <div class="cp-sidebar-footer">
-      <span class="cp-user-dot"></span>
-      <span class="cp-user-name">{{ userName }}</span>
-      <span class="cp-user-status">{{ t('chat_online') }}</span>
+    <div class="chat_panel_sidebar_footer">
+      <span class="chat_panel_user_dot"></span>
+      <span class="chat_panel_user_name">{{ userName }}</span>
+      <span class="chat_panel_user_status">{{ t('chat_online') }}</span>
     </div>
   </aside>
 </template>
@@ -84,26 +84,26 @@ function dmUnread(userId) {
 </script>
 
 <style scoped>
-.cp-sidebar { width: 220px; border-right: 1px solid var(--border); display: flex; flex-direction: column; background: var(--bg); }
-.cp-sidebar-header { display: flex; align-items: center; gap: 6px; padding: 12px 14px; border-bottom: 1px solid var(--border-light); }
-.cp-sidebar-title { font-size: 13px; font-weight: 600; color: var(--text); flex: 1; }
-.cp-sidebar-add { width: 24px; height: 24px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-white); cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; color: var(--text-secondary); }
-.cp-sidebar-add:hover { background: var(--bg-hover); }
-.cp-sidebar-close { background: none; border: none; cursor: pointer; font-size: 13px; color: var(--text-muted); padding: 2px; }
-.cp-sidebar-section { font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--text-muted); padding: 12px 14px 4px; letter-spacing: 0.5px; }
-.cp-sidebar-list { display: flex; flex-direction: column; }
-.cp-sidebar-item { display: flex; align-items: center; gap: 8px; padding: 6px 14px; cursor: pointer; transition: background 0.12s; }
-.cp-sidebar-item:hover { background: var(--bg-hover); }
-.cp-sidebar-item.active { background: var(--purple-bg); }
-.cp-ch-icon { font-size: 14px; color: var(--text-muted); width: 18px; text-align: center; }
-.cp-ch-name { font-size: 13px; color: var(--text-secondary); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.cp-sidebar-item.active .cp-ch-name { color: var(--purple); font-weight: 500; }
-.cp-badge { background: var(--purple); color: #fff; font-size: 10px; padding: 1px 5px; border-radius: 8px; min-width: 16px; text-align: center; }
-.cp-sidebar-section { padding: 12px 14px 4px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-secondary); }
-.cp-dm-list { flex: 0 0 auto; }
-.cp-dm-avatar { width: 18px; height: 18px; border-radius: 50%; background: #ede9fe; color: #7c3aed; font-size: 10px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.cp-sidebar-footer { margin-top: auto; padding: 10px 14px; border-top: 1px solid var(--border-light); display: flex; align-items: center; gap: 6px; }
-.cp-user-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
-.cp-user-name { font-size: 12px; font-weight: 500; color: var(--text); }
-.cp-user-status { font-size: 11px; color: var(--text-muted); }
+.chat_panel_sidebar { width: 220px; border-right: 1px solid var(--border); display: flex; flex-direction: column; background: var(--bg); }
+.chat_panel_sidebar_header { display: flex; align-items: center; gap: 6px; padding: 12px 14px; border-bottom: 1px solid var(--border-light); }
+.chat_panel_sidebar_title { font-size: 13px; font-weight: 600; color: var(--text); flex: 1; }
+.chat_panel_sidebar_add { width: 24px; height: 24px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-white); cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; color: var(--text-secondary); }
+.chat_panel_sidebar_add:hover { background: var(--bg-hover); }
+.chat_panel_sidebar_close { background: none; border: none; cursor: pointer; font-size: 13px; color: var(--text-muted); padding: 2px; }
+.chat_panel_sidebar_section { font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--text-muted); padding: 12px 14px 4px; letter-spacing: 0.5px; }
+.chat_panel_sidebar_list { display: flex; flex-direction: column; }
+.chat_panel_sidebar_item { display: flex; align-items: center; gap: 8px; padding: 6px 14px; cursor: pointer; transition: background 0.12s; }
+.chat_panel_sidebar_item:hover { background: var(--bg-hover); }
+.chat_panel_sidebar_item.active { background: var(--purple-bg); }
+.chat_panel_ch_icon { font-size: 14px; color: var(--text-muted); width: 18px; text-align: center; }
+.chat_panel_ch_name { font-size: 13px; color: var(--text-secondary); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chat_panel_sidebar_item.active .chat_panel_ch_name { color: var(--purple); font-weight: 500; }
+.chat_panel_badge { background: var(--purple); color: #fff; font-size: 10px; padding: 1px 5px; border-radius: 8px; min-width: 16px; text-align: center; }
+.chat_panel_sidebar_section { padding: 12px 14px 4px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-secondary); }
+.chat_panel_dm_list { flex: 0 0 auto; }
+.chat_panel_dm_avatar { width: 18px; height: 18px; border-radius: 50%; background: #ede9fe; color: #7c3aed; font-size: 10px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.chat_panel_sidebar_footer { margin-top: auto; padding: 10px 14px; border-top: 1px solid var(--border-light); display: flex; align-items: center; gap: 6px; }
+.chat_panel_user_dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
+.chat_panel_user_name { font-size: 12px; font-weight: 500; color: var(--text); }
+.chat_panel_user_status { font-size: 11px; color: var(--text-muted); }
 </style>

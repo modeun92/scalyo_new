@@ -2,9 +2,9 @@
   <div ref="rootEl" class="landing">
     <!-- SEO-I18N: a suggestion, not a redirect. The label is in the proposed
          language, read from landing.js — no hard-coded text. -->
-    <div v-if="suggestedLang" class="lang-hint">
-      <button type="button" class="lang-hint-go" @click="acceptSuggestion">{{ suggestionText }}</button>
-      <button type="button" class="lang-hint-x" :aria-label="suggestionDismiss" :title="suggestionDismiss" @click="dismissSuggestion">&times;</button>
+    <div v-if="suggestedLang" class="language_hint">
+      <button type="button" class="language_hint_go" @click="acceptSuggestion">{{ suggestionText }}</button>
+      <button type="button" class="language_hint_close" :aria-label="suggestionDismiss" :title="suggestionDismiss" @click="dismissSuggestion">&times;</button>
     </div>
 
     <LandingNavbar
@@ -261,7 +261,7 @@ onUnmounted(() => {
 <style src="@/assets/landing.css"></style>
 
 <style scoped>
-.lang-hint {
+.language_hint {
   position: fixed;
   right: 16px;
   bottom: 16px;
@@ -276,8 +276,8 @@ onUnmounted(() => {
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.28);
   backdrop-filter: blur(8px);
 }
-.lang-hint-go,
-.lang-hint-x {
+.language_hint_go,
+.language_hint_close {
   background: none;
   border: 0;
   color: #fff;
@@ -285,17 +285,17 @@ onUnmounted(() => {
   font: inherit;
   line-height: 1;
 }
-.lang-hint-go { font-size: 14px; font-weight: 600; padding: 6px 2px; }
-.lang-hint-go:hover { text-decoration: underline; }
-.lang-hint-x {
+.language_hint_go { font-size: 14px; font-weight: 600; padding: 6px 2px; }
+.language_hint_go:hover { text-decoration: underline; }
+.language_hint_close {
   font-size: 18px;
   width: 26px;
   height: 26px;
   border-radius: 50%;
   opacity: 0.6;
 }
-.lang-hint-x:hover { opacity: 1; background: rgba(255, 255, 255, 0.12); }
+.language_hint_close:hover { opacity: 1; background: rgba(255, 255, 255, 0.12); }
 @media (max-width: 640px) {
-  .lang-hint { right: 12px; bottom: 12px; }
+  .language_hint { right: 12px; bottom: 12px; }
 }
 </style>

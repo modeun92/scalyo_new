@@ -1,25 +1,25 @@
 <template>
-  <div class="nova-container">
-    <div class="nova-header">
+  <div class="nova_container">
+    <div class="nova_header">
       <h3>💚 {{ t('wb_nova_title') }}</h3>
       <button v-if="store.novaMessages.length" @click="store.clearNovaHistory()" style="background:none;border:none;color:var(--text-muted);font-size:0.75rem;cursor:pointer;">{{ t('wb_nova_clear') }}</button>
     </div>
-    <div class="nova-messages" ref="messagesEl">
-      <div v-for="msg in store.novaMessages" :key="msg.id" class="nova-msg" :class="msg.role">
-        <div class="nova-msg-av">{{ msg.role === 'user' ? '👤' : '💚' }}</div>
-        <div class="nova-msg-body" v-html="sanitizeHtml(msg.content === '__error__' ? t('wb_nova_error') : msg.content)" />
+    <div class="nova_messages" ref="messagesEl">
+      <div v-for="msg in store.novaMessages" :key="msg.id" class="nova_message" :class="msg.role">
+        <div class="nova_message_avatar">{{ msg.role === 'user' ? '👤' : '💚' }}</div>
+        <div class="nova_message_body" v-html="sanitizeHtml(msg.content === '__error__' ? t('wb_nova_error') : msg.content)" />
       </div>
-      <div v-if="store.novaLoading" class="nova-msg assistant">
-        <div class="nova-msg-av">💚</div>
-        <div class="nova-msg-body"><div class="nova-thinking"><span /><span /><span /></div></div>
+      <div v-if="store.novaLoading" class="nova_message assistant">
+        <div class="nova_message_avatar">💚</div>
+        <div class="nova_message_body"><div class="nova_thinking"><span /><span /><span /></div></div>
       </div>
     </div>
     <div v-if="!store.novaMessages.length && !store.novaLoading" style="display:flex;flex-wrap:wrap;gap:8px;padding:12px 16px;">
-      <button v-for="s in suggestions" :key="s" class="nova-sug" @click="send(t(s))">{{ t(s) }}</button>
+      <button v-for="s in suggestions" :key="s" class="nova_suggestion" @click="send(t(s))">{{ t(s) }}</button>
     </div>
-    <div class="nova-input">
+    <div class="nova_input">
       <input v-model="input" :placeholder="t('wb_nova_placeholder')" @keydown.enter="send(input)" :disabled="store.novaLoading" />
-      <button class="nova-send" @click="send(input)" :disabled="!input.trim() || store.novaLoading">➡</button>
+      <button class="nova_send" @click="send(input)" :disabled="!input.trim() || store.novaLoading">➡</button>
     </div>
   </div>
 </template>

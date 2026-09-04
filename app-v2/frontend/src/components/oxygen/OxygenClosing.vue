@@ -164,73 +164,73 @@ onUnmounted(() => {
 
 <template>
   <Teleport to="body">
-    <div class="oxy-closing" role="dialog" aria-modal="true" :aria-label="t('oxy_ferm_title')">
-      <button class="oxy-closing-x" :aria-label="t('oxy_close')" @click="stopBreath(); emitClose()">✕</button>
-      <p class="oxy-closing-esc">{{ t('oxy_ferm_esc_hint') }}</p>
+    <div class="oxygen_closing" role="dialog" aria-modal="true" :aria-label="t('oxy_ferm_title')">
+      <button class="oxygen_closing_close" :aria-label="t('oxy_close')" @click="stopBreath(); emitClose()">✕</button>
+      <p class="oxygen_closing_esc">{{ t('oxy_ferm_esc_hint') }}</p>
 
       <!-- ── Step 1: real progress of the day (zero input) ── -->
-      <section v-if="step === 1" class="oxy-closing-step">
-        <span class="oxy-closing-stepnum">{{ t('oxy_ferm_step', { n: 1 }) }}</span>
+      <section v-if="step === 1" class="oxygen_closing_step">
+        <span class="oxygen_closing_stepnum">{{ t('oxy_ferm_step', { n: 1 }) }}</span>
         <h2>{{ t('oxy_ferm_progress_title') }}</h2>
-        <ul v-if="progressItems.length" class="oxy-closing-list">
+        <ul v-if="progressItems.length" class="oxygen_closing_list">
           <li v-for="(it, i) in progressItems" :key="i">{{ t(it.key, it.params) }}</li>
         </ul>
-        <p v-else class="oxy-closing-soft">{{ t('oxy_ferm_progress_none') }}</p>
-        <button class="oxy-closing-btn" @click="next">{{ t('oxy_ferm_next') }}</button>
+        <p v-else class="oxygen_closing_soft">{{ t('oxy_ferm_progress_none') }}</p>
+        <button class="oxygen_closing_button" @click="next">{{ t('oxy_ferm_next') }}</button>
       </section>
 
       <!-- ── Step 2: one word (same database row as the check-in) ── -->
-      <section v-else-if="step === 2" class="oxy-closing-step">
-        <span class="oxy-closing-stepnum">{{ t('oxy_ferm_step', { n: 2 }) }}</span>
+      <section v-else-if="step === 2" class="oxygen_closing_step">
+        <span class="oxygen_closing_stepnum">{{ t('oxy_ferm_step', { n: 2 }) }}</span>
         <h2>{{ t('oxy_ferm_word_title') }}</h2>
         <template v-if="hasCheckin">
-          <p class="oxy-closing-soft">{{ t('oxy_ferm_word_hint') }}</p>
+          <p class="oxygen_closing_soft">{{ t('oxy_ferm_word_hint') }}</p>
           <input
-            v-model="word" class="oxy-closing-word" type="text" maxlength="80"
+            v-model="word" class="oxygen_closing_word" type="text" maxlength="80"
             :placeholder="t('oxy_word_placeholder')" :aria-label="t('oxy_word_label')"
             @keydown.enter.prevent="next"
           />
         </template>
         <template v-else>
-          <p class="oxy-closing-soft">{{ t('oxy_ferm_checkin_first') }}</p>
-          <div class="oxy-closing-checkin"><OxygenCheckinForm autofocus /></div>
+          <p class="oxygen_closing_soft">{{ t('oxy_ferm_checkin_first') }}</p>
+          <div class="oxygen_closing_checkin"><OxygenCheckinForm autofocus /></div>
         </template>
-        <button class="oxy-closing-btn" @click="next">{{ t('oxy_ferm_next') }}</button>
+        <button class="oxygen_closing_button" @click="next">{{ t('oxy_ferm_next') }}</button>
       </section>
 
       <!-- ── Step 3: 90 s breathing — cyclic sighing, never blocking ── -->
-      <section v-else-if="step === 3" class="oxy-closing-step oxy-closing-breath">
-        <span v-if="!isMicro" class="oxy-closing-stepnum">{{ t('oxy_ferm_step', { n: 3 }) }}</span>
+      <section v-else-if="step === 3" class="oxygen_closing_step oxygen_closing_breath">
+        <span v-if="!isMicro" class="oxygen_closing_stepnum">{{ t('oxy_ferm_step', { n: 3 }) }}</span>
         <h2>{{ t('oxy_ferm_breath_title') }}</h2>
-        <div class="oxy-breath-stage">
-          <div class="oxy-breath-bubble" :class="{ still: reducedMotion }" aria-hidden="true"></div>
+        <div class="oxygen_breath_stage">
+          <div class="oxygen_breath_bubble" :class="{ still: reducedMotion }" aria-hidden="true"></div>
         </div>
-        <p class="oxy-closing-soft">{{ t('oxy_ferm_breath_hint') }}</p>
-        <p class="oxy-breath-count" aria-live="polite">{{ breathLeft }}s</p>
-        <button class="oxy-closing-skip" @click="skipBreath">{{ t('oxy_ferm_breath_skip') }}</button>
+        <p class="oxygen_closing_soft">{{ t('oxy_ferm_breath_hint') }}</p>
+        <p class="oxygen_breath_count" aria-live="polite">{{ breathLeft }}s</p>
+        <button class="oxygen_closing_skip" @click="skipBreath">{{ t('oxy_ferm_breath_skip') }}</button>
       </section>
 
       <!-- ── Step 4: tomorrow is ready (real derived data, zero input) ── -->
-      <section v-else-if="step === 4" class="oxy-closing-step">
-        <span class="oxy-closing-stepnum">{{ t('oxy_ferm_step', { n: 4 }) }}</span>
+      <section v-else-if="step === 4" class="oxygen_closing_step">
+        <span class="oxygen_closing_stepnum">{{ t('oxy_ferm_step', { n: 4 }) }}</span>
         <h2>{{ t('oxy_ferm_tomorrow_title') }}</h2>
-        <ul v-if="engine.tomorrowTop3.length" class="oxy-closing-list">
+        <ul v-if="engine.tomorrowTop3.length" class="oxygen_closing_list">
           <li v-for="(it, i) in engine.tomorrowTop3" :key="i">{{ t(it.key, it.params) }}</li>
         </ul>
-        <p v-else class="oxy-closing-soft">{{ t('oxy_ferm_tomorrow_none') }}</p>
-        <button class="oxy-closing-btn" :disabled="closing || recoveries.saving" @click="next">
+        <p v-else class="oxygen_closing_soft">{{ t('oxy_ferm_tomorrow_none') }}</p>
+        <button class="oxygen_closing_button" :disabled="closing || recoveries.saving" @click="next">
           {{ t('oxy_ferm_finish') }}
         </button>
       </section>
 
       <!-- ── Final screen ── -->
-      <section v-else class="oxy-closing-step oxy-closing-done">
+      <section v-else class="oxygen_closing_step oxygen_closing_done">
         <template v-if="isMicro">
           <h2>{{ t('oxy_micro_done') }}</h2>
         </template>
         <template v-else>
           <h2>{{ closeError === 'already' ? t('oxy_ferm_already') : t('oxy_ferm_done_title') }}</h2>
-          <svg v-if="todayBubble" class="oxy-closing-bubble-svg" viewBox="0 0 80 80" aria-hidden="true">
+          <svg v-if="todayBubble" class="oxygen_closing_bubble_svg" viewBox="0 0 80 80" aria-hidden="true">
             <circle
               cx="40" cy="40" :r="todayBubble.r"
               :fill="`hsl(${todayBubble.hue} ${todayBubble.sat}% ${todayBubble.light}%)`"
@@ -248,8 +248,8 @@ onUnmounted(() => {
               :r="d.s" fill="#fff" fill-opacity="0.55"
             />
           </svg>
-          <p class="oxy-closing-soft">{{ t('oxy_ferm_done_hint') }}</p>
-          <button class="oxy-closing-btn" @click="emitClose">{{ t('oxy_close') }}</button>
+          <p class="oxygen_closing_soft">{{ t('oxy_ferm_done_hint') }}</p>
+          <button class="oxygen_closing_button" @click="emitClose">{{ t('oxy_close') }}</button>
         </template>
       </section>
     </div>
@@ -257,41 +257,41 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-.oxy-closing {
+.oxygen_closing {
   position: fixed; inset: 0; z-index: 9000;
   background: linear-gradient(180deg, var(--bg-card) 0%, var(--purple-bg) 100%);
   display: flex; align-items: center; justify-content: center;
 }
-.oxy-closing-x { position: absolute; top: 18px; right: 22px; background: none; border: none; font-size: 1.1rem; color: var(--text-muted); cursor: pointer; padding: 6px; }
-.oxy-closing-x:hover { color: var(--text); }
-.oxy-closing-esc { position: absolute; top: 24px; left: 24px; font-size: 0.72rem; color: var(--text-muted); margin: 0; }
+.oxygen_closing_close { position: absolute; top: 18px; right: 22px; background: none; border: none; font-size: 1.1rem; color: var(--text-muted); cursor: pointer; padding: 6px; }
+.oxygen_closing_close:hover { color: var(--text); }
+.oxygen_closing_esc { position: absolute; top: 24px; left: 24px; font-size: 0.72rem; color: var(--text-muted); margin: 0; }
 
-.oxy-closing-step { max-width: 520px; width: 100%; padding: 0 24px; text-align: center; }
-.oxy-closing-stepnum { display: block; font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 10px; }
-.oxy-closing-step h2 { font-size: 1.35rem; font-weight: 700; color: var(--text); margin: 0 0 16px; }
-.oxy-closing-soft { font-size: 0.88rem; color: var(--text-secondary); line-height: 1.55; margin: 0 0 18px; }
-.oxy-closing-list { list-style: none; padding: 0; margin: 0 0 20px; }
-.oxy-closing-list li { font-size: 0.95rem; color: var(--text); padding: 8px 0; border-bottom: 1px solid var(--border); }
-.oxy-closing-list li:last-child { border-bottom: none; }
+.oxygen_closing_step { max-width: 520px; width: 100%; padding: 0 24px; text-align: center; }
+.oxygen_closing_stepnum { display: block; font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 10px; }
+.oxygen_closing_step h2 { font-size: 1.35rem; font-weight: 700; color: var(--text); margin: 0 0 16px; }
+.oxygen_closing_soft { font-size: 0.88rem; color: var(--text-secondary); line-height: 1.55; margin: 0 0 18px; }
+.oxygen_closing_list { list-style: none; padding: 0; margin: 0 0 20px; }
+.oxygen_closing_list li { font-size: 0.95rem; color: var(--text); padding: 8px 0; border-bottom: 1px solid var(--border); }
+.oxygen_closing_list li:last-child { border-bottom: none; }
 
-.oxy-closing-btn { padding: 11px 26px; border: none; border-radius: 999px; background: var(--purple); color: #fff; font-size: 0.9rem; font-weight: 600; cursor: pointer; }
-.oxy-closing-btn:disabled { opacity: 0.6; cursor: default; }
-.oxy-closing-skip { display: block; margin: 14px auto 0; background: none; border: none; font-size: 0.78rem; color: var(--text-muted); text-decoration: underline; cursor: pointer; }
-.oxy-closing-skip:hover { color: var(--text-secondary); }
+.oxygen_closing_button { padding: 11px 26px; border: none; border-radius: 999px; background: var(--purple); color: #fff; font-size: 0.9rem; font-weight: 600; cursor: pointer; }
+.oxygen_closing_button:disabled { opacity: 0.6; cursor: default; }
+.oxygen_closing_skip { display: block; margin: 14px auto 0; background: none; border: none; font-size: 0.78rem; color: var(--text-muted); text-decoration: underline; cursor: pointer; }
+.oxygen_closing_skip:hover { color: var(--text-secondary); }
 
-.oxy-closing-word { width: 100%; padding: 11px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-card); color: var(--text); font-size: 0.95rem; margin: 0 0 18px; text-align: center; }
-.oxy-closing-word:focus { outline: none; border-color: var(--purple); }
-.oxy-closing-checkin { text-align: left; margin-bottom: 16px; }
+.oxygen_closing_word { width: 100%; padding: 11px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-card); color: var(--text); font-size: 0.95rem; margin: 0 0 18px; text-align: center; }
+.oxygen_closing_word:focus { outline: none; border-color: var(--purple); }
+.oxygen_closing_checkin { text-align: left; margin-bottom: 16px; }
 
 /* Respiration — cyclic sighing ~3 cycles/min : 2 inspirations + longue expiration */
-.oxy-breath-stage { display: flex; align-items: center; justify-content: center; height: 220px; margin-bottom: 8px; }
-.oxy-breath-bubble {
+.oxygen_breath_stage { display: flex; align-items: center; justify-content: center; height: 220px; margin-bottom: 8px; }
+.oxygen_breath_bubble {
   width: 110px; height: 110px; border-radius: 50%;
   background: radial-gradient(circle at 38% 34%, hsl(225 60% 62% / 0.9), hsl(255 50% 45% / 0.75));
   box-shadow: 0 0 40px 6px hsl(240 55% 55% / 0.35);
   animation: oxy-breathe 20s ease-in-out infinite;
 }
-.oxy-breath-bubble.still { animation: none; }
+.oxygen_breath_bubble.still { animation: none; }
 @keyframes oxy-breathe {
   0%   { transform: scale(1); }
   14%  { transform: scale(1.32); }   /* 1re inspiration nasale */
@@ -299,11 +299,11 @@ onUnmounted(() => {
   30%  { transform: scale(1.5); }    /* 2e inspiration courte */
   100% { transform: scale(1); }      /* longue expiration */
 }
-.oxy-breath-count { font-size: 1.1rem; font-weight: 700; color: var(--purple); margin: 0; font-variant-numeric: tabular-nums; }
+.oxygen_breath_count { font-size: 1.1rem; font-weight: 700; color: var(--purple); margin: 0; font-variant-numeric: tabular-nums; }
 
-.oxy-closing-done .oxy-closing-bubble-svg { width: 130px; height: 130px; margin: 6px auto 14px; display: block; }
+.oxygen_closing_done .oxygen_closing_bubble_svg { width: 130px; height: 130px; margin: 6px auto 14px; display: block; }
 
 @media (prefers-reduced-motion: reduce) {
-  .oxy-breath-bubble { animation: none; }
+  .oxygen_breath_bubble { animation: none; }
 }
 </style>

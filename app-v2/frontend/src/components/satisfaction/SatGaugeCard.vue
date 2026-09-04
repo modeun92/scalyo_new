@@ -1,8 +1,8 @@
 <template>
-  <div class="sat-card gauge-card">
+  <div class="satisfaction_card gauge_card">
     <!-- Gauge -->
-    <div class="gauge-wrap">
-      <svg viewBox="0 0 200 200" class="gauge-svg">
+    <div class="gauge_wrapper">
+      <svg viewBox="0 0 200 200" class="gauge_svg">
         <circle cx="100" cy="100" r="85" fill="none" stroke="#f3f4f6" stroke-width="14" />
         <!-- HEALTH-SCALE: score out of 10 (gauge = percentage of the scale); color = theme variable
              via style (var() is not guaranteed inside an SVG stroke=/fill= attribute) -->
@@ -11,7 +11,7 @@
           :style="{ stroke: gaugeColor }" stroke-width="14"
           :stroke-dasharray="gaugeArc + ' 534.07'"
           stroke-dashoffset="0" stroke-linecap="round"
-          transform="rotate(-90 100 100)" class="gauge-progress"
+          transform="rotate(-90 100 100)" class="gauge_progress"
         />
         <text x="100" y="92" text-anchor="middle" font-size="42" font-weight="800" :style="{ fill: gaugeColor }">
           {{ fmtHealth(globalScore, { suffix: false, average: true }) }}
@@ -25,29 +25,29 @@
     <!-- Distribution -->
     <div class="distrib">
       <h3>{{ t('sat_distribution') }}</h3>
-      <div class="distrib-bars">
+      <div class="distrib_bars">
         <div class="dbar">
-          <div class="dbar-header">
-            <span class="dot green" /> {{ t('sat_healthy') }}<strong>{{ healthyCount }}</strong>
+          <div class="dbar_header">
+            <span class="status_dot green" /> {{ t('sat_healthy') }}<strong>{{ healthyCount }}</strong>
           </div>
-          <div class="dbar-track">
-            <div class="dbar-fill green" :style="{ width: pct(healthyCount, totalClients) + '%' }" />
+          <div class="dbar_track">
+            <div class="dbar_fill green" :style="{ width: pct(healthyCount, totalClients) + '%' }" />
           </div>
         </div>
         <div class="dbar">
-          <div class="dbar-header">
-            <span class="dot amber" /> {{ t('sat_watch') }}<strong>{{ watchCount }}</strong>
+          <div class="dbar_header">
+            <span class="status_dot amber" /> {{ t('sat_watch') }}<strong>{{ watchCount }}</strong>
           </div>
-          <div class="dbar-track">
-            <div class="dbar-fill amber" :style="{ width: pct(watchCount, totalClients) + '%' }" />
+          <div class="dbar_track">
+            <div class="dbar_fill amber" :style="{ width: pct(watchCount, totalClients) + '%' }" />
           </div>
         </div>
         <div class="dbar">
-          <div class="dbar-header">
-            <span class="dot red" /> {{ t('sat_risk') }}<strong>{{ criticalCount }}</strong>
+          <div class="dbar_header">
+            <span class="status_dot red" /> {{ t('sat_risk') }}<strong>{{ criticalCount }}</strong>
           </div>
-          <div class="dbar-track">
-            <div class="dbar-fill red" :style="{ width: pct(criticalCount, totalClients) + '%' }" />
+          <div class="dbar_track">
+            <div class="dbar_fill red" :style="{ width: pct(criticalCount, totalClients) + '%' }" />
           </div>
         </div>
       </div>

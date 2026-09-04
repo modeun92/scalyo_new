@@ -1,12 +1,12 @@
 <template>
-  <div class="arr-row">
-    <div class="arr-card">
-      <span class="arr-label">{{ t('sat_arr_total') }}</span>
-      <span class="arr-value">{{ fmtCurrency(totalArr) }}</span>
+  <div class="arr_row">
+    <div class="arr_card">
+      <span class="arr_label">{{ t('sat_arr_total') }}</span>
+      <span class="arr_value">{{ fmtCurrency(totalArr) }}</span>
     </div>
-    <div class="arr-card risk">
-      <span class="arr-label">{{ t('sat_arr_at_risk') }}</span>
-      <span class="arr-value red">{{ fmtCurrency(arrAtRisk) }}</span>
+    <div class="arr_card risk">
+      <span class="arr_label">{{ t('sat_arr_at_risk') }}</span>
+      <span class="arr_value red">{{ fmtCurrency(arrAtRisk) }}</span>
     </div>
   </div>
 </template>

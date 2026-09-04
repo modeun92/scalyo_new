@@ -1,8 +1,8 @@
 <template>
-  <div class="kpis-view">
-    <div class="kpis-header">
-      <div><h1>📊 {{ t('kpis_title') }}</h1><p class="kpis-sub">{{ t('kpis_subtitle') }}</p></div>
-      <button class="btn-primary" @click="createNew">{{ t('kpis_new') }}</button>
+  <div class="kpis_view">
+    <div class="kpis_header">
+      <div><h1>📊 {{ t('kpis_title') }}</h1><p class="kpis_sub">{{ t('kpis_subtitle') }}</p></div>
+      <button class="button_primary" @click="createNew">{{ t('kpis_new') }}</button>
     </div>
 
     <AiInsightPanel
@@ -14,32 +14,32 @@
     />
 
     <!-- Decks COPIL -->
-    <div v-if="store.copils.length" class="copil-grid">
-      <div v-for="c in store.copils" :key="c.id" class="copil-card">
-        <div class="cc-band" :style="{ background: c.color || '#7c3aed' }" />
-        <div class="cc-body" @click="openBuilder(c.id)">
-          <strong class="cc-title">{{ c.title || t('copil_untitled') }}</strong>
-          <div class="cc-meta">
-            <span v-if="c.clientName" class="cc-client">{{ c.clientName }}</span>
-            <span v-if="c.period" class="cc-period">{{ c.period }}</span>
+    <div v-if="store.copils.length" class="copil_grid">
+      <div v-for="c in store.copils" :key="c.id" class="copil_card">
+        <div class="copil_card_band" :style="{ background: c.color || '#7c3aed' }" />
+        <div class="copil_card_body" @click="openBuilder(c.id)">
+          <strong class="copil_card_title">{{ c.title || t('copil_untitled') }}</strong>
+          <div class="copil_card_meta">
+            <span v-if="c.clientName" class="copil_card_client">{{ c.clientName }}</span>
+            <span v-if="c.period" class="copil_card_period">{{ c.period }}</span>
           </div>
-          <span class="cc-blocks">{{ t('copil_blocks_n', { n: (c.blocks || []).length }) }}</span>
+          <span class="copil_card_blocks">{{ t('copil_blocks_n', { n: (c.blocks || []).length }) }}</span>
         </div>
-        <div class="cc-actions">
-          <button class="cca-btn present" @click.stop="present(c.id)" :title="t('copil_present_btn')">▶ {{ t('copil_present_btn') }}</button>
-          <button class="cca-btn" @click.stop="openBuilder(c.id)" :title="t('copil_edit')">✏️</button>
-          <button class="cca-btn" @click.stop="duplicate(c.id)" :title="t('copil_duplicate')">⧉</button>
-          <button class="cca-btn del" @click.stop="remove(c)" :title="t('copil_delete')">🗑️</button>
+        <div class="copil_card_actions">
+          <button class="cca_button present" @click.stop="present(c.id)" :title="t('copil_present_btn')">▶ {{ t('copil_present_btn') }}</button>
+          <button class="cca_button" @click.stop="openBuilder(c.id)" :title="t('copil_edit')">✏️</button>
+          <button class="cca_button" @click.stop="duplicate(c.id)" :title="t('copil_duplicate')">⧉</button>
+          <button class="cca_button del" @click.stop="remove(c)" :title="t('copil_delete')">🗑️</button>
         </div>
       </div>
     </div>
 
     <!-- Empty -->
-    <div v-else class="kpis-empty">
-      <div class="empty-icon">📊</div>
+    <div v-else class="kpis_empty">
+      <div class="empty_icon">📊</div>
       <h3>{{ t('kpis_empty_title') }}</h3>
       <p>{{ t('kpis_empty_desc') }}</p>
-      <button class="btn-primary" @click="createNew">{{ t('kpis_create_first') }}</button>
+      <button class="button_primary" @click="createNew">{{ t('kpis_create_first') }}</button>
     </div>
 
     <!-- NO-CONFIRM: deletion confirmed inside the product (ConfirmDialog), never a native confirm() -->
@@ -83,32 +83,32 @@ async function confirmDelete() {
 </script>
 
 <style scoped>
-.kpis-view { max-width: 1000px; }
-.kpis-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
-.kpis-header h1 { font-size: 1.5rem; font-weight: 800; }
-.kpis-sub { font-size: 0.85rem; color: var(--text-secondary); margin-top: 4px; }
-.btn-primary { background: var(--purple); color: #fff; border: none; padding: 9px 18px; border-radius: var(--radius-sm); font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
-.btn-primary:hover { background: var(--purple-dark); }
+.kpis_view { max-width: 1000px; }
+.kpis_header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
+.kpis_header h1 { font-size: 1.5rem; font-weight: 800; }
+.kpis_sub { font-size: 0.85rem; color: var(--text-secondary); margin-top: 4px; }
+.button_primary { background: var(--purple); color: #fff; border: none; padding: 9px 18px; border-radius: var(--radius-sm); font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+.button_primary:hover { background: var(--purple-dark); }
 
-.copil-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
-.copil-card { background-color: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); overflow: hidden; display: flex; flex-direction: column; transition: box-shadow 0.2s, transform 0.2s; }
-.copil-card:hover { box-shadow: 0 6px 24px rgba(0,0,0,0.08); transform: translateY(-2px); }
-.cc-band { height: 6px; }
-.cc-body { padding: 16px 18px 10px; cursor: pointer; flex: 1; }
-.cc-title { font-size: 1.02rem; font-weight: 700; display: block; margin-bottom: 8px; }
-.cc-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
-.cc-client { font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); background: var(--bg); padding: 2px 10px; border-radius: 6px; }
-.cc-period { font-size: 0.75rem; color: var(--purple); background: var(--purple-bg); padding: 2px 10px; border-radius: 6px; }
-.cc-blocks { font-size: 0.72rem; color: var(--text-muted); }
-.cc-actions { display: flex; align-items: center; gap: 4px; padding: 10px 12px; border-top: 1px solid var(--border-light); }
-.cca-btn { background: none; border: none; font-size: 0.82rem; padding: 5px 8px; border-radius: 6px; cursor: pointer; opacity: 0.7; transition: all 0.15s; color: var(--text-secondary); }
-.cca-btn:hover { opacity: 1; background: var(--bg-hover); }
-.cca-btn.present { opacity: 1; color: var(--purple); font-weight: 600; margin-right: auto; }
-.cca-btn.present:hover { background: var(--purple-bg); }
-.cca-btn.del:hover { background: var(--red-bg); }
+.copil_grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+.copil_card { background-color: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); overflow: hidden; display: flex; flex-direction: column; transition: box-shadow 0.2s, transform 0.2s; }
+.copil_card:hover { box-shadow: 0 6px 24px rgba(0,0,0,0.08); transform: translateY(-2px); }
+.copil_card_band { height: 6px; }
+.copil_card_body { padding: 16px 18px 10px; cursor: pointer; flex: 1; }
+.copil_card_title { font-size: 1.02rem; font-weight: 700; display: block; margin-bottom: 8px; }
+.copil_card_meta { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+.copil_card_client { font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); background: var(--bg); padding: 2px 10px; border-radius: 6px; }
+.copil_card_period { font-size: 0.75rem; color: var(--purple); background: var(--purple-bg); padding: 2px 10px; border-radius: 6px; }
+.copil_card_blocks { font-size: 0.72rem; color: var(--text-muted); }
+.copil_card_actions { display: flex; align-items: center; gap: 4px; padding: 10px 12px; border-top: 1px solid var(--border-light); }
+.cca_button { background: none; border: none; font-size: 0.82rem; padding: 5px 8px; border-radius: 6px; cursor: pointer; opacity: 0.7; transition: all 0.15s; color: var(--text-secondary); }
+.cca_button:hover { opacity: 1; background: var(--bg-hover); }
+.cca_button.present { opacity: 1; color: var(--purple); font-weight: 600; margin-right: auto; }
+.cca_button.present:hover { background: var(--purple-bg); }
+.cca_button.del:hover { background: var(--red-bg); }
 
-.kpis-empty { text-align: center; padding: 60px 20px; background-color: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); }
-.empty-icon { font-size: 3rem; margin-bottom: 16px; }
-.kpis-empty h3 { font-size: 1.2rem; font-weight: 700; margin-bottom: 8px; }
-.kpis-empty p { font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 20px; }
+.kpis_empty { text-align: center; padding: 60px 20px; background-color: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); }
+.empty_icon { font-size: 3rem; margin-bottom: 16px; }
+.kpis_empty h3 { font-size: 1.2rem; font-weight: 700; margin-bottom: 8px; }
+.kpis_empty p { font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 20px; }
 </style>

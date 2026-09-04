@@ -1,27 +1,27 @@
 <template>
-  <div v-if="open" class="modal-overlay" @click.self="$emit('close')">
-    <div class="modal-card">
+  <div v-if="open" class="modal_overlay" @click.self="$emit('close')">
+    <div class="modal_card">
       <h3>🔑 {{ t('integ_create_key') }}</h3>
-      <div class="modal-form">
-        <div class="fg">
+      <div class="modal_form">
+        <div class="field_group">
           <label>{{ t('integ_key_name') }}</label>
-          <input v-model="name" type="text" class="modal-input" placeholder="Ex: HubSpot, Zapier..." />
+          <input v-model="name" type="text" class="modal_input" placeholder="Ex: HubSpot, Zapier..." />
         </div>
-        <div class="fg">
+        <div class="field_group">
           <label>{{ t('integ_key_scopes') }}</label>
-          <div class="scope-toggles">
-            <label class="scope-toggle">
+          <div class="scope_toggles">
+            <label class="scope_toggle">
               <input type="checkbox" v-model="scopes" value="read" /> {{ t('integ_scope_read') }}
             </label>
-            <label class="scope-toggle">
+            <label class="scope_toggle">
               <input type="checkbox" v-model="scopes" value="write" /> {{ t('integ_scope_write') }}
             </label>
           </div>
         </div>
       </div>
-      <div class="modal-actions">
-        <button class="btn-cancel" @click="$emit('close')">{{ t('cancel') }}</button>
-        <button class="btn-save" @click="doCreate" :disabled="!name || scopes.length === 0">
+      <div class="modal_actions">
+        <button class="button_cancel" @click="$emit('close')">{{ t('cancel') }}</button>
+        <button class="button_save" @click="doCreate" :disabled="!name || scopes.length === 0">
           {{ t('integ_generate_key') }}
         </button>
       </div>

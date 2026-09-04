@@ -1,7 +1,7 @@
 <template>
   <div class="playbooks">
-    <div v-if="!canAccessPlaybooks" class="pb-upsell">
-      <div class="empty-icon">🔒</div>
+    <div v-if="!canAccessPlaybooks" class="playbook_upsell">
+      <div class="empty_icon">🔒</div>
 
     <AiInsightPanel
       module="playbook"
@@ -12,7 +12,7 @@
 
       <h3>{{ t('pb_plan_required', { plan: 'Growth' }) }}</h3>
       <p>{{ t('pb_empty_desc') }}</p>
-      <button class="btn-primary" @click="$router.push('/app/settings')">{{ t('pb_upgrade') }}</button>
+      <button class="button_primary" @click="$router.push('/app/settings')">{{ t('pb_upgrade') }}</button>
     </div>
     <template v-else>
     <PbHeader
@@ -33,7 +33,7 @@
       :successRate="store.successRate"
     />
 
-    <div v-if="filteredPlaybooks.length" class="pb-list">
+    <div v-if="filteredPlaybooks.length" class="playbook_list">
       <PbCard
         v-for="pb in filteredPlaybooks"
         :key="pb.id"

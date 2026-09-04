@@ -1,13 +1,13 @@
 <template>
-  <section class="why-section anim-section" data-anim="fade-up">
+  <section class="why_section anim_section" data-anim="fade-up">
     <div class="container">
-      <div class="section-header">
+      <div class="section_header">
         <h2>{{ t('sell_title') }}</h2>
-        <p class="section-sub">{{ t('sell_subtitle') }}</p>
+        <p class="section_sub">{{ t('sell_subtitle') }}</p>
       </div>
-      <div class="sell-grid">
-        <div v-for="(s, i) in sellingPoints" :key="i" class="sell-card">
-          <span class="sell-icon emoji-3d">{{ s.icon }}</span>
+      <div class="sell_grid">
+        <div v-for="(s, i) in sellingPoints" :key="i" class="sell_card">
+          <span class="sell_icon emoji_3d">{{ s.icon }}</span>
           <h4>{{ s.label }}</h4>
           <p>{{ s.desc }}</p>
         </div>

@@ -1,9 +1,9 @@
 <template>
-  <div class="empty-state">
-    <div class="empty-state-icon">{{ icon }}</div>
-    <h2 class="empty-state-title">{{ t(titleKey) }}</h2>
-    <p class="empty-state-desc">{{ t(descKey) }}</p>
-    <button v-if="ctaKey && ctaAction" class="empty-state-cta" @click="ctaAction">
+  <div class="empty_state">
+    <div class="empty_state_icon">{{ icon }}</div>
+    <h2 class="empty_state_title">{{ t(titleKey) }}</h2>
+    <p class="empty_state_description">{{ t(descKey) }}</p>
+    <button v-if="ctaKey && ctaAction" class="empty_state_cta" @click="ctaAction">
       {{ t(ctaKey) }}
     </button>
   </div>
@@ -22,7 +22,7 @@ const { t } = useI18n()
 </script>
 
 <style scoped>
-.empty-state {
+.empty_state {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -31,23 +31,23 @@ const { t } = useI18n()
   text-align: center;
   min-height: 40vh;
 }
-.empty-state-icon {
+.empty_state_icon {
   font-size: 4rem;
   margin-bottom: 1.5rem;
 }
-.empty-state-title {
+.empty_state_title {
   font-size: 1.25rem;
   font-weight: 600;
   color: var(--text-primary, #1a1a2e);
   margin-bottom: 0.5rem;
 }
-.empty-state-desc {
+.empty_state_description {
   font-size: 0.95rem;
   color: var(--text-secondary, #6b7280);
   max-width: 400px;
   margin-bottom: 1.5rem;
 }
-.empty-state-cta {
+.empty_state_cta {
   padding: 0.65rem 1.5rem;
   border-radius: 8px;
   background: var(--primary, #6366f1);
@@ -58,5 +58,5 @@ const { t } = useI18n()
   cursor: pointer;
   transition: opacity 0.2s;
 }
-.empty-state-cta:hover { opacity: 0.85; }
+.empty_state_cta:hover { opacity: 0.85; }
 </style>

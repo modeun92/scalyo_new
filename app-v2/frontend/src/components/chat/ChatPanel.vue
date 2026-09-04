@@ -1,5 +1,5 @@
 <template>
-  <div class="cp-wrapper">
+  <div class="chat_panel_chat_panel_wrapper">
     <CpSidebar
       :show-close="showClose"
       @select="handleSelect"
@@ -7,11 +7,11 @@
       @open-dm="handleOpenDm"
       @close="$emit('close')"
     />
-    <div class="cp-main">
+    <div class="chat_panel_main">
       <!-- C-07: the store's failures are displayed (the panel used to be mute) -->
-      <div v-if="store.lastError" class="cp-error-toast">
+      <div v-if="store.lastError" class="chat_panel_error_toast">
         <span>{{ t('chat_err_' + store.lastError) }}</span>
-        <button class="cp-error-close" @click="store.clearError()">✕</button>
+        <button class="chat_panel_error_close" @click="store.clearError()">✕</button>
       </div>
       <CpMessages
         @rename-channel="handleRenameChannel"
@@ -74,7 +74,7 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.cp-wrapper {
+.chat_panel_chat_panel_wrapper {
   display: flex;
   width: 100%;
   height: 100%;
@@ -82,13 +82,13 @@ onUnmounted(() => {
   overflow: hidden;
   background: var(--bg-white);
 }
-.cp-main {
+.chat_panel_main {
   flex: 1;
   display: flex;
   flex-direction: column;
   min-width: 0;
 }
-.cp-error-toast {
+.chat_panel_error_toast {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -98,7 +98,7 @@ onUnmounted(() => {
   font-size: 12px;
   border-bottom: 1px solid var(--border-light);
 }
-.cp-error-close {
+.chat_panel_error_close {
   background: none;
   border: none;
   cursor: pointer;

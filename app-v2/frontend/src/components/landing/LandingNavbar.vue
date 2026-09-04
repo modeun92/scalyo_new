@@ -1,43 +1,43 @@
 <template>
   <nav class="nav" :class="{ scrolled }">
-    <div class="nav-inner">
-      <router-link :to="homePath" class="logo-link">
+    <div class="nav_inner">
+      <router-link :to="homePath" class="logo_link">
         <ScalyoLogo :size="34" />
-        <span class="logo-text">Scalyo</span>
+        <span class="logo_text">Scalyo</span>
       </router-link>
 
-      <div class="nav-links hide-mobile">
+      <div class="nav_links hide_mobile">
         <a href="#features" @click.prevent="scrollTo('features')">{{ t('nav_features') }}</a>
         <a href="#roi" @click.prevent="scrollTo('roi')">{{ t('nav_roi') }}</a>
         <a href="#pricing" @click.prevent="scrollTo('pricing')">{{ t('nav_pricing') }}</a>
         <a href="#faq" @click.prevent="scrollTo('faq')">{{ t('nav_faq') }}</a>
       </div>
 
-      <div class="nav-right hide-mobile">
-        <div class="lang-switch">
+      <div class="nav_right hide_mobile">
+        <div class="language_switch">
           <button v-for="l in langs" :key="l.code" :class="{ active: locale === l.code }" @click="$emit('locale-change', l.code)">{{ l.label }}</button>
         </div>
-        <a :href="appUrl + '/login'" class="btn-ghost-sm">{{ t('nav_login') }}</a>
-        <a href="#pricing" class="btn-primary-sm" @click.prevent="scrollTo('pricing')">{{ t('nav_cta') }}</a>
+        <a :href="appUrl + '/login'" class="button_ghost_small">{{ t('nav_login') }}</a>
+        <a href="#pricing" class="button_primary_small" @click.prevent="scrollTo('pricing')">{{ t('nav_cta') }}</a>
       </div>
 
-      <button class="burger hide-desktop" @click="mobileMenu = !mobileMenu" aria-label="Menu">
+      <button class="burger hide_desktop" @click="mobileMenu = !mobileMenu" aria-label="Menu">
         <span /><span /><span />
       </button>
     </div>
 
     <!-- Mobile menu -->
-    <transition name="slide-down">
-      <div v-if="mobileMenu" class="mobile-menu">
+    <transition name="slide_down">
+      <div v-if="mobileMenu" class="mobile_menu">
         <a href="#features" @click.prevent="scrollTo('features')">{{ t('nav_features') }}</a>
         <a href="#roi" @click.prevent="scrollTo('roi')">{{ t('nav_roi') }}</a>
         <a href="#pricing" @click.prevent="scrollTo('pricing')">{{ t('nav_pricing') }}</a>
         <a href="#faq" @click.prevent="scrollTo('faq')">{{ t('nav_faq') }}</a>
-        <div class="lang-switch">
+        <div class="language_switch">
           <button v-for="l in langs" :key="l.code" :class="{ active: locale === l.code }" @click="$emit('locale-change', l.code)">{{ l.label }}</button>
         </div>
-        <a href="#pricing" class="btn-primary-sm" @click.prevent="scrollTo('pricing')">{{ t('nav_cta') }}</a>
-        <a :href="appUrl + '/login'" class="btn-ghost-sm">{{ t('nav_login') }}</a>
+        <a href="#pricing" class="button_primary_small" @click.prevent="scrollTo('pricing')">{{ t('nav_cta') }}</a>
+        <a :href="appUrl + '/login'" class="button_ghost_small">{{ t('nav_login') }}</a>
       </div>
     </transition>
   </nav>

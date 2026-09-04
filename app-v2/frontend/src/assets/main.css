@@ -100,16 +100,16 @@ img { max-width: 100%; display: block; }
 .fade-enter-active, .fade-leave-active { transition: opacity 0.2s ease; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
 
-.slide-right-enter-active, .slide-right-leave-active { transition: transform 0.3s ease, opacity 0.3s ease; }
-.slide-right-enter-from { transform: translateX(100%); opacity: 0; }
-.slide-right-leave-to { transform: translateX(100%); opacity: 0; }
+.slide_right-enter-active, .slide_right-leave-active { transition: transform 0.3s ease, opacity 0.3s ease; }
+.slide_right-enter-from { transform: translateX(100%); opacity: 0; }
+.slide_right-leave-to { transform: translateX(100%); opacity: 0; }
 
-.slide-up-enter-active, .slide-up-leave-active { transition: transform 0.2s ease, opacity 0.2s ease; }
-.slide-up-enter-from { transform: translateY(10px); opacity: 0; }
-.slide-up-leave-to { transform: translateY(-10px); opacity: 0; }
+.slide_up-enter-active, .slide_up-leave-active { transition: transform 0.2s ease, opacity 0.2s ease; }
+.slide_up-enter-from { transform: translateY(10px); opacity: 0; }
+.slide_up-leave-to { transform: translateY(-10px); opacity: 0; }
 
 /* ═══ SHARED BUTTONS — base definition (BTN-BASE, 03/09/2026) ═══
-   `.btn-primary` / `.btn-outline` had NO base rule in main.css. Their base lived in TWO
+   `.button_primary` / `.button_outline` had NO base rule in main.css. Their base lived in TWO
    kinds of stylesheet, neither of which is always loaded:
      1. landing.css — imported UNSCOPED by LandingPage.vue (`<style src=…>` with no
         `scoped`), so it is a GLOBAL sheet that stays in the document for the whole SPA
@@ -129,131 +129,131 @@ img { max-width: 100%; display: block; }
    landing page. `:not(:where(.landing *))` has ZERO specificity and hands the landing page
    back to landing.css untouched. Net effect: one identical app button on every entry path.
    The per-surface copies are now redundant (same values) and can be deleted incrementally. */
-body .btn-primary:not(:where(.landing *)) {
+body .button_primary:not(:where(.landing *)) {
   background: var(--purple); color: #fff; border: none; padding: 9px 18px;
   border-radius: var(--radius-sm); font-size: 0.85rem; font-weight: 600;
   cursor: pointer; transition: all 0.2s;
 }
-body .btn-primary:not(:where(.landing *)):hover:not(:disabled) { background: var(--purple-dark); }
-body .btn-primary:not(:where(.landing *)):disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-body .btn-outline:not(:where(.landing *)) {
+body .button_primary:not(:where(.landing *)):hover:not(:disabled) { background: var(--purple-dark); }
+body .button_primary:not(:where(.landing *)):disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+body .button_outline:not(:where(.landing *)) {
   background-color: var(--bg-card); color: var(--text-secondary); border: 1px solid var(--border);
   padding: 9px 18px; border-radius: var(--radius-sm); font-size: 0.85rem;
   font-weight: 500; cursor: pointer; transition: all 0.2s;
 }
-body .btn-outline:not(:where(.landing *)):hover { border-color: var(--purple); color: var(--purple); }
-body .btn-outline:not(:where(.landing *)):disabled { opacity: 0.5; cursor: not-allowed; }
+body .button_outline:not(:where(.landing *)):hover { border-color: var(--purple); color: var(--purple); }
+body .button_outline:not(:where(.landing *)):disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* Destructive buttons. No landing.css conflict, so a plain selector is enough. */
-.btn-danger {
+.button_danger {
   background: var(--red); color: #fff; border: none; padding: 9px 18px;
   border-radius: var(--radius-sm); font-size: 0.85rem; font-weight: 600;
   cursor: pointer; transition: all 0.2s;
 }
-.btn-danger:hover { background: #dc2626; }
-.btn-danger:disabled { opacity: 0.5; cursor: not-allowed; }
-.btn-danger-outline {
+.button_danger:hover { background: #dc2626; }
+.button_danger:disabled { opacity: 0.5; cursor: not-allowed; }
+.button_danger_outline {
   background: none; color: var(--red); border: 1px solid var(--red); padding: 9px 18px;
   border-radius: var(--radius-sm); font-size: 0.85rem; font-weight: 600;
   cursor: pointer; transition: all 0.2s;
 }
-.btn-danger-outline:hover { background: var(--red-bg); }
+.button_danger_outline:hover { background: var(--red-bg); }
 /* Discreet "customize" affordance (dashboard / manager / satisfaction headers). */
-.btn-customize {
+.button_customize {
   background-color: var(--bg-card); border: 1px solid var(--border); padding: 6px 14px;
   border-radius: var(--radius-sm); color: var(--text-muted); font-size: 0.78rem;
   cursor: pointer; transition: all 0.15s;
 }
-.btn-customize:hover { border-color: var(--purple); color: var(--purple); }
+.button_customize:hover { border-color: var(--purple); color: var(--purple); }
 
 /* ═══ SHARED FORM PRIMITIVES (BTN-BASE, 03/09/2026) ═══
-   Same story as the buttons: `.fg` (145 uses) and `.fi` (152 uses) were defined only in
+   Same story as the buttons: `.field_group` (145 uses) and `.field_input` (152 uses) were defined only in
    portfolio/playbooks/quotes/roadmap/settings.css, yet the heaviest consumers are views
-   that import NO stylesheet at all — KpisBuilder alone has 42 `.fg` and 45 `.fi`. Those
+   that import NO stylesheet at all — KpisBuilder alone has 42 `.field_group` and 45 `.field_input`. Those
    forms only looked right if the session had already loaded one of those sheets.
    sf = slide-over form · fg = field group · fi = field input · fr = field row
    fa = form actions · fc = filter count · ta = textarea */
-.sf { display: flex; flex-direction: column; gap: 16px; }
-.fg { display: flex; flex-direction: column; gap: 4px; }
-.fg label { font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); }
-.fi {
+.slideover_form { display: flex; flex-direction: column; gap: 16px; }
+.field_group { display: flex; flex-direction: column; gap: 4px; }
+.field_group label { font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); }
+.field_input {
   width: 100%; padding: 9px 12px; border: 1px solid var(--border);
   border-radius: var(--radius-sm); font-size: 0.85rem; background-color: var(--bg-card);
   outline: none; transition: border-color 0.15s;
 }
-.fi:focus { border-color: var(--purple); }
-.fi:disabled { background: var(--bg); color: var(--text-muted); }
-.fr { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.fa {
+.field_input:focus { border-color: var(--purple); }
+.field_input:disabled { background: var(--bg); color: var(--text-muted); }
+.field_row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.form_actions {
   display: flex; gap: 10px; justify-content: flex-end;
   padding-top: 8px; border-top: 1px solid var(--border-light);
 }
-.ta { resize: vertical; }
+.textarea { resize: vertical; }
 
 /* ═══ SHARED FILTER / SEARCH PRIMITIVES (BTN-BASE, 03/09/2026) ═══ */
-.filter-tabs { display: flex; flex-wrap: wrap; gap: 4px; }
-.ftab {
+.filter_tabs { display: flex; flex-wrap: wrap; gap: 4px; }
+.filter_tab {
   background: var(--bg); border: none; padding: 7px 14px; border-radius: 8px;
   font-size: 0.8rem; font-weight: 500; color: var(--text-muted);
   cursor: pointer; transition: all 0.15s;
 }
-.ftab:hover:not(.active) { background: var(--bg-hover); color: var(--text); }
-.ftab.active { background: var(--purple-bg); color: var(--purple); font-weight: 600; }
-.fc { font-size: 0.68rem; margin-left: 4px; background: rgba(0,0,0,0.06); padding: 1px 5px; border-radius: 4px; }
-.ftab.active .fc { background: rgba(124,58,237,0.12); }
-.filter-select {
+.filter_tab:hover:not(.active) { background: var(--bg-hover); color: var(--text); }
+.filter_tab.active { background: var(--purple-bg); color: var(--purple); font-weight: 600; }
+.filter_count { font-size: 0.68rem; margin-left: 4px; background: rgba(0,0,0,0.06); padding: 1px 5px; border-radius: 4px; }
+.filter_tab.active .filter_count { background: rgba(124,58,237,0.12); }
+.filter_select {
   padding: 8px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm);
   background-color: var(--bg-card); color: var(--text); font-size: 0.82rem;
   cursor: pointer; outline: none;
 }
-.filter-select:focus { border-color: var(--purple); }
-.search-box {
+.filter_select:focus { border-color: var(--purple); }
+.search_box {
   display: flex; align-items: center; gap: 8px; padding: 0 12px;
   background-color: var(--bg-card); border: 1px solid var(--border);
   border-radius: var(--radius-sm); flex: 1; min-width: 200px; max-width: 320px;
 }
-.search-box input {
+.search_box input {
   border: none; outline: none; background: transparent;
   padding: 9px 0; font-size: 0.85rem; width: 100%;
 }
 
 /* Empty-state glyph — shared by Playbooks, Quotes, KPIs, OKR, Email Studio. */
-.empty-icon { font-size: 3rem; margin-bottom: 16px; }
+.empty_icon { font-size: 3rem; margin-bottom: 16px; }
 
 /* Page-header KPI tile — was defined identically in playbooks.css and portfolio.css. */
-.pkpi {
+.kpi_page {
   display: flex; align-items: center; gap: 12px; padding: 16px;
   background-color: var(--bg-card); border: 1px solid var(--border);
   border-radius: var(--radius-md); transition: all 0.2s;
 }
-.pkpi:hover { box-shadow: var(--shadow-sm); transform: translateY(-1px); }
-.pkpi-icon { font-size: 1.4rem; }
+.kpi_page:hover { box-shadow: var(--shadow-sm); transform: translateY(-1px); }
+.kpi_page_icon { font-size: 1.4rem; }
 
 /* Two-column form rows collapse on narrow screens. Previously this lived only in
-   portfolio.css and quotes.css, so the same `.fr` stayed two-up on mobile in
+   portfolio.css and quotes.css, so the same `.field_row` stayed two-up on mobile in
    PlanningView, KanbanView, OkrView and RoadmapMilestonePanel. */
 @media (max-width: 768px) {
-  .fr { grid-template-columns: 1fr; }
+  .field_row { grid-template-columns: 1fr; }
 }
 
 /* ═══ DESIGN 3A — PUNCH (global overrides, id-level specificity) ═══ */
 /* BTN-BASE: `:is(#app, body)` keeps the (1,1,0) specificity that lets this beat the
-   per-surface `.btn-primary` (0,1,0) loaded after main.css, while ALSO matching content
+   per-surface `.button_primary` (0,1,0) loaded after main.css, while ALSO matching content
    teleported out of #app (ClientModal, SlideOver, OxygenClosing all `<Teleport to="body">`).
    With the old `#app` prefix the signature gradient stopped at the teleport boundary, so a
    modal's primary button was flat purple while every other primary button was a gradient. */
-:is(#app, body) .btn-primary {
+:is(#app, body) .button_primary {
   background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 45%, #c026d3 100%);
   box-shadow: 0 6px 20px rgba(124, 58, 237, 0.42);
 }
-:is(#app, body) .btn-primary:hover:not(:disabled) { box-shadow: 0 10px 30px rgba(192, 38, 211, 0.5); transform: translateY(-1px); }
-#app .nav-item.active { background: linear-gradient(90deg, rgba(139,92,246,0.2), rgba(255,77,141,0.1)); box-shadow: inset 3px 0 0 var(--purple); }
+:is(#app, body) .button_primary:hover:not(:disabled) { box-shadow: 0 10px 30px rgba(192, 38, 211, 0.5); transform: translateY(-1px); }
+#app .nav_item.active { background: linear-gradient(90deg, rgba(139,92,246,0.2), rgba(255,77,141,0.1)); box-shadow: inset 3px 0 0 var(--purple); }
 /* Cards: a more present violet glow */
-#app .kpi-card, #app .copil-card, #app .plan-card { box-shadow: 0 4px 20px rgba(60,30,140,0.09); }
+#app .kpi_card, #app .copil_card, #app .plan_card { box-shadow: 0 4px 20px rgba(60,30,140,0.09); }
 /* Signature gradient text (headings, offer figures) */
-.text-spectrum { background: var(--gradient-spectrum); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent; }
+.text_spectrum { background: var(--gradient-spectrum); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent; }
 /* Card with a signature gradient border */
-.card-spectrum { border: 2px solid transparent; background: linear-gradient(var(--bg-card), var(--bg-card)) padding-box, var(--gradient-spectrum) border-box; }
+.card_spectrum { border: 2px solid transparent; background: linear-gradient(var(--bg-card), var(--bg-card)) padding-box, var(--gradient-spectrum) border-box; }
 
 /* ═══ SKELETON LOADER ═══ */
 .skeleton { background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%); background-size: 200% 100%; animation: skeleton-pulse 1.5s infinite; border-radius: var(--radius-sm); }
@@ -317,75 +317,68 @@ body .btn-outline:not(:where(.landing *)):disabled { opacity: 0.5; cursor: not-a
 
 /* --- Base --- */
 [data-theme="dark"] body { background: #0f172a !important; color: #f1f5f9 !important; }
-[data-theme="dark"] .app-layout, [data-theme="dark"] .main-content,
-[data-theme="dark"] .auth-page, [data-theme="dark"] main,
-[data-theme="dark"] .page-content, [data-theme="dark"] .view-content { background: #0f172a !important; }
+[data-theme="dark"] .app_layout, [data-theme="dark"] .main_content,
+[data-theme="dark"] .auth_page, [data-theme="dark"] main,
+[data-theme="dark"] .page_content, [data-theme="dark"] .view_content { background: #0f172a !important; }
 
 /* --- Cards/panels (ALL known classes) --- */
-[data-theme="dark"] .mgr-section,
-[data-theme="dark"] .mkpi,
-[data-theme="dark"] .pkpi,
-[data-theme="dark"] .sat-card,
-[data-theme="dark"] .arr-card,
-[data-theme="dark"] .sv-section,
-[data-theme="dark"] .ig-card,
-[data-theme="dark"] .ig-modal,
-[data-theme="dark"] .imp-modal,
-[data-theme="dark"] .imp-mapping-panel,
-[data-theme="dark"] .imp-rejected,
-[data-theme="dark"] .es-left,
-[data-theme="dark"] .es-right,
-[data-theme="dark"] .send-modal,
-[data-theme="dark"] .es-kpi,
-[data-theme="dark"] .es-history-head,
-[data-theme="dark"] .es-history-row,
-[data-theme="dark"] .pb-card,
-[data-theme="dark"] .pb-empty,
-[data-theme="dark"] .rm-card,
-[data-theme="dark"] .rm-empty,
-[data-theme="dark"] .rmk,
-[data-theme="dark"] .rmt-node,
-[data-theme="dark"] .qt-card,
-[data-theme="dark"] .qt-empty,
-[data-theme="dark"] .qtk,
-[data-theme="dark"] .tpl-card,
-[data-theme="dark"] .modal-box,
-[data-theme="dark"] .modal-head,
-[data-theme="dark"] .so-panel,
-[data-theme="dark"] .table-wrap,
-[data-theme="dark"] .search-box,
-[data-theme="dark"] .auth-card,
-[data-theme="dark"] .sv-panel,
+[data-theme="dark"] .manager_section,
+[data-theme="dark"] .kpi_manager,
+[data-theme="dark"] .kpi_page,
+[data-theme="dark"] .satisfaction_card,
+[data-theme="dark"] .arr_card,
+[data-theme="dark"] .settings_view_section,
+[data-theme="dark"] .integration_card,
+[data-theme="dark"] .integration_modal,
+[data-theme="dark"] .import_modal,
+[data-theme="dark"] .import_mapping_panel,
+[data-theme="dark"] .import_rejected,
+[data-theme="dark"] .email_studio_left,
+[data-theme="dark"] .email_studio_right,
+[data-theme="dark"] .send_modal,
+[data-theme="dark"] .email_studio_kpi,
+[data-theme="dark"] .email_studio_history_header,
+[data-theme="dark"] .email_studio_history_row,
+[data-theme="dark"] .playbook_card,
+[data-theme="dark"] .playbook_empty,
+[data-theme="dark"] .roadmap_card,
+[data-theme="dark"] .roadmap_empty,
+[data-theme="dark"] .kpi_roadmap,
+[data-theme="dark"] .roadmap_timeline_node,
+[data-theme="dark"] .quote_card,
+[data-theme="dark"] .quote_empty,
+[data-theme="dark"] .kpi_quote,
+[data-theme="dark"] .template_card,
+[data-theme="dark"] .modal_box,
+[data-theme="dark"] .modal_header,
+[data-theme="dark"] .main_slide_over_panel,
+[data-theme="dark"] .table_wrapper,
+[data-theme="dark"] .search_box,
+[data-theme="dark"] .auth_card,
+[data-theme="dark"] .settings_view_panel,
 [data-theme="dark"] .card,
 [data-theme="dark"] .panel,
-[data-theme="dark"] .content-card,
-[data-theme="dark"] .stg-section,
-[data-theme="dark"] .settings-card,
-[data-theme="dark"] .coach-content,
-[data-theme="dark"] .coach-panel,
-[data-theme="dark"] .dashboard-card,
-[data-theme="dark"] .kpi-card,
-[data-theme="dark"] .client-card,
-[data-theme="dark"] .task-card,
-[data-theme="dark"] .portfolio-card,
-[data-theme="dark"] .wellbeing-card,
-[data-theme="dark"] .import-panel,
-[data-theme="dark"] .email-panel,
-[data-theme="dark"] .playbook-card,
-[data-theme="dark"] .roadmap-card,
-[data-theme="dark"] .okr-card,
-[data-theme="dark"] .quote-card,
-[data-theme="dark"] .integration-card,
+[data-theme="dark"] .content_card,
+[data-theme="dark"] .settings_section,
+[data-theme="dark"] .coach_content,
+[data-theme="dark"] .coach_panel,
+[data-theme="dark"] .kpi_card,
+[data-theme="dark"] .client_card,
+[data-theme="dark"] .task_card,
+[data-theme="dark"] .portfolio_card,
+[data-theme="dark"] .wellbeing_card,
+[data-theme="dark"] .import_panel,
+[data-theme="dark"] .email_panel,
+[data-theme="dark"] .okr_card,
 [data-theme="dark"] .modal,
-[data-theme="dark"] .modal-content,
-[data-theme="dark"] .dropdown-menu,
+[data-theme="dark"] .modal_content,
+[data-theme="dark"] .dropdown_menu,
 [data-theme="dark"] .topbar,
-[data-theme="dark"] .coach-message,
-[data-theme="dark"] .coach-bubble,
-[data-theme="dark"] .ai-message,
-[data-theme="dark"] .message-bubble,
-[data-theme="dark"] .empty-state,
-[data-theme="dark"] .btn-customize {
+[data-theme="dark"] .coach_message,
+[data-theme="dark"] .coach_bubble,
+[data-theme="dark"] .message_bubble,
+[data-theme="dark"] .empty_state,
+[data-theme="dark"] .button_customize {
   background: #1e293b !important;
   border-color: #334155 !important;
   color: #f1f5f9 !important;
@@ -397,7 +390,7 @@ body .btn-outline:not(:where(.landing *)):disabled { opacity: 0.5; cursor: not-a
 [data-theme="dark"] .sidebar li, [data-theme="dark"] .sidebar p { color: #94a3b8 !important; }
 [data-theme="dark"] .sidebar a:hover, [data-theme="dark"] .sidebar a.active,
 [data-theme="dark"] .sidebar .router-link-active { color: #f1f5f9 !important; background: #1e293b !important; }
-[data-theme="dark"] .sidebar h4, [data-theme="dark"] .sidebar .section-title { color: #64748b !important; text-transform: uppercase; }
+[data-theme="dark"] .sidebar h4, [data-theme="dark"] .sidebar .section_title { color: #64748b !important; text-transform: uppercase; }
 
 /* --- Text hierarchy --- */
 /* SEO-I18N / LANDING-DARK: the landing page is a self-contained marketing surface, on a
@@ -409,8 +402,8 @@ body .btn-outline:not(:where(.landing *)):disabled { opacity: 0.5; cursor: not-a
 [data-theme="dark"] h4:not(:where(.landing *)), [data-theme="dark"] h5:not(:where(.landing *)), [data-theme="dark"] h6:not(:where(.landing *)) { color: #f1f5f9 !important; }
 [data-theme="dark"] p:not(:where(.landing *)) { color: #cbd5e1 !important; }
 [data-theme="dark"] label:not(:where(.landing *)), [data-theme="dark"] small:not(:where(.landing *)) { color: #94a3b8 !important; }
-[data-theme="dark"] .sv-note, [data-theme="dark"] .subtitle,
-[data-theme="dark"] .text-muted { color: #94a3b8 !important; }
+[data-theme="dark"] .settings_view_note, [data-theme="dark"] .subtitle,
+[data-theme="dark"] .text_muted { color: #94a3b8 !important; }
 
 /* --- Inputs --- */
 [data-theme="dark"] input:not(:where(.landing *)), [data-theme="dark"] select:not(:where(.landing *)), [data-theme="dark"] textarea:not(:where(.landing *)) {
@@ -420,31 +413,31 @@ body .btn-outline:not(:where(.landing *)):disabled { opacity: 0.5; cursor: not-a
   border-color: #8b5cf6 !important; box-shadow: 0 0 0 3px rgba(139,92,246,0.2) !important; }
 
 /* --- Buttons --- */
-[data-theme="dark"] .btn-outline:not(:where(.landing *)),
-[data-theme="dark"] .btn-plan,
-[data-theme="dark"] .btn-danger-outline,
-[data-theme="dark"] .sv-btn-secondary,
-[data-theme="dark"] .sv-portal-btn,
-[data-theme="dark"] .ig-btn-secondary,
-[data-theme="dark"] .ig-btn-danger,
-[data-theme="dark"] .imp-module-btn,
-[data-theme="dark"] .rmt-add,
-[data-theme="dark"] .theme-card,
-[data-theme="dark"] .lang-card {
+[data-theme="dark"] .button_outline:not(:where(.landing *)),
+[data-theme="dark"] .button_plan,
+[data-theme="dark"] .button_danger_outline,
+[data-theme="dark"] .settings_view_button_secondary,
+[data-theme="dark"] .settings_view_portal_button,
+[data-theme="dark"] .integration_button_secondary,
+[data-theme="dark"] .integration_button_danger,
+[data-theme="dark"] .import_module_button,
+[data-theme="dark"] .roadmap_timeline_add,
+[data-theme="dark"] .theme_card,
+[data-theme="dark"] .language_card {
   background: transparent !important; border-color: #475569 !important; color: #cbd5e1 !important; }
-[data-theme="dark"] .btn-outline:not(:where(.landing *)):hover,
-[data-theme="dark"] .btn-plan:hover,
-[data-theme="dark"] .btn-danger-outline:hover,
-[data-theme="dark"] .sv-btn-secondary:hover,
-[data-theme="dark"] .sv-portal-btn:hover,
-[data-theme="dark"] .ig-btn-secondary:hover,
-[data-theme="dark"] .ig-btn-danger:hover,
-[data-theme="dark"] .imp-module-btn:hover,
-[data-theme="dark"] .rmt-add:hover,
-[data-theme="dark"] .theme-card:hover,
-[data-theme="dark"] .lang-card:hover {
+[data-theme="dark"] .button_outline:not(:where(.landing *)):hover,
+[data-theme="dark"] .button_plan:hover,
+[data-theme="dark"] .button_danger_outline:hover,
+[data-theme="dark"] .settings_view_button_secondary:hover,
+[data-theme="dark"] .settings_view_portal_button:hover,
+[data-theme="dark"] .integration_button_secondary:hover,
+[data-theme="dark"] .integration_button_danger:hover,
+[data-theme="dark"] .import_module_button:hover,
+[data-theme="dark"] .roadmap_timeline_add:hover,
+[data-theme="dark"] .theme_card:hover,
+[data-theme="dark"] .language_card:hover {
   background: #334155 !important; color: #f1f5f9 !important; }
-[data-theme="dark"] .theme-card.active, [data-theme="dark"] .lang-card.active {
+[data-theme="dark"] .theme_card.active, [data-theme="dark"] .language_card.active {
   border-color: #8b5cf6 !important; background: rgba(139,92,246,0.12) !important; }
 
 /* --- Tables --- */
@@ -460,16 +453,16 @@ body .btn-outline:not(:where(.landing *)):disabled { opacity: 0.5; cursor: not-a
 /* --- Links --- */
 [data-theme="dark"] a:not([class*="btn"]):not(.sidebar a):not(:where(.landing *)) { color: #8b5cf6 !important; }
 [data-theme="dark"] a:not([class*="btn"]):not(.sidebar a):not(:where(.landing *)):hover { color: #a78bfa !important; }
-[data-theme="dark"] .text-danger { color: #f87171 !important; }
+[data-theme="dark"] .text_danger { color: #f87171 !important; }
 
 /* --- Misc --- */
 [data-theme="dark"] hr { border-color: #334155 !important; }
-[data-theme="dark"] .modal-overlay { background: rgba(0,0,0,0.7) !important; }
+[data-theme="dark"] .modal_overlay { background: rgba(0,0,0,0.7) !important; }
 [data-theme="dark"] .badge, [data-theme="dark"] .tag { background: #334155 !important; color: #94a3b8 !important; }
 [data-theme="dark"] code { background: #334155 !important; color: #a78bfa !important; }
 [data-theme="dark"] ::-webkit-scrollbar-track { background: #0f172a; }
 [data-theme="dark"] ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
 
 /* --- Filter selects --- */
-[data-theme="dark"] .filter-select, [data-theme="dark"] .filter-select select {
+[data-theme="dark"] .filter_select, [data-theme="dark"] .filter_select select {
   background: #1e293b !important; color: #cbd5e1 !important; border-color: #475569 !important; }

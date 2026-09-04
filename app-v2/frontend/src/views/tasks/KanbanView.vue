@@ -1,66 +1,66 @@
 <template>
-  <div class="kanban-view">
-    <div class="kb-header">
+  <div class="kanban_view">
+    <div class="kpis_builder_header">
       <h1>📋 {{ t('sm_kanban_title') }}</h1>
-      <div class="kb-header-actions">
+      <div class="kpis_builder_header_actions">
         <div v-if="resetStep === 0">
-          <button class="btn-danger-outline" @click="resetStep = 1">{{ t('sm_reset_all') }}</button>
+          <button class="button_danger_outline" @click="resetStep = 1">{{ t('sm_reset_all') }}</button>
         </div>
-        <div v-else-if="resetStep === 1" class="reset-confirm">
-          <span class="reset-msg">{{ t('sm_reset_step1') }}</span>
-          <button class="btn-danger-outline" @click="resetStep = 2">{{ t('sm_reset_confirm') }}</button>
-          <button class="btn-outline" @click="resetStep = 0">{{ t('sm_reset_cancel') }}</button>
+        <div v-else-if="resetStep === 1" class="reset_confirm">
+          <span class="reset_message">{{ t('sm_reset_step1') }}</span>
+          <button class="button_danger_outline" @click="resetStep = 2">{{ t('sm_reset_confirm') }}</button>
+          <button class="button_outline" @click="resetStep = 0">{{ t('sm_reset_cancel') }}</button>
         </div>
-        <div v-else-if="resetStep === 2" class="reset-confirm">
-          <span class="reset-msg warn">{{ t('sm_reset_step2') }}</span>
-          <button class="btn-danger" @click="doResetAll">{{ t('sm_reset_confirm') }}</button>
-          <button class="btn-outline" @click="resetStep = 0">{{ t('sm_reset_cancel') }}</button>
+        <div v-else-if="resetStep === 2" class="reset_confirm">
+          <span class="reset_message warn">{{ t('sm_reset_step2') }}</span>
+          <button class="button_danger" @click="doResetAll">{{ t('sm_reset_confirm') }}</button>
+          <button class="button_outline" @click="resetStep = 0">{{ t('sm_reset_cancel') }}</button>
         </div>
-        <button class="btn-primary" @click="openCreate">{{ t('sm_new_task') }}</button>
+        <button class="button_primary" @click="openCreate">{{ t('sm_new_task') }}</button>
       </div>
     </div>
 
-    <div class="kb-board">
-      <div v-for="col in columns" :key="col.key" class="kb-col" :class="col.key">
-        <div class="kbc-header">
-          <span class="kbc-dot" :class="col.key" />
+    <div class="kpis_builder_board">
+      <div v-for="col in columns" :key="col.key" class="kpis_builder_column" :class="col.key">
+        <div class="kanban_column_header">
+          <span class="kanban_column_dot" :class="col.key" />
           <strong>{{ t(col.label) }}</strong>
-          <span class="kbc-count">{{ colTasks(col.key).length }}</span>
+          <span class="kanban_column_count">{{ colTasks(col.key).length }}</span>
         </div>
-        <div class="kbc-body" @dragover.prevent="onDragOver($event)" @drop="onDrop($event, col.key)" :class="{ 'drag-over': dragOverCol === col.key }">
+        <div class="kanban_column_body" @dragover.prevent="onDragOver($event)" @drop="onDrop($event, col.key)" :class="{ 'drag_over': dragOverCol === col.key }">
           <div
             v-for="task in colTasks(col.key)"
             :key="task.id"
-            class="kb-card"
-            :class="'prio-' + priorityLevel(task.priority)"
+            class="kpis_builder_card"
+            :class="'priority_' + priorityLevel(task.priority)"
             draggable="true"
             @dragstart="onDragStart($event, task)"
             @dragend="dragOverCol = null"
             @click="openEdit(task)"
           >
-            <div class="kcard-top">
+            <div class="kanban_card_top">
               <strong>{{ task.title }}</strong>
-              <span class="prio-badge" :class="'pb-' + priorityLevel(task.priority)">{{ priorityLabel(task.priority) }}</span>
+              <span class="priority_badge" :class="'playbook_' + priorityLevel(task.priority)">{{ priorityLabel(task.priority) }}</span>
             </div>
-            <div class="kcard-meta">
-              <span v-if="task.clientId" class="kcard-client">{{ clientName(task.clientId) }}</span>
-              <span v-if="task.projectId" class="kcard-project" :style="{ borderColor: projectColor(task.projectId) }">{{ projectName(task.projectId) }}</span>
+            <div class="kanban_card_meta">
+              <span v-if="task.clientId" class="kanban_card_client">{{ clientName(task.clientId) }}</span>
+              <span v-if="task.projectId" class="kanban_card_project" :style="{ borderColor: projectColor(task.projectId) }">{{ projectName(task.projectId) }}</span>
             </div>
-            <div class="kcard-footer">
-              <div class="kcard-assignee-wrap">
-                <span class="kcard-avatar">{{ assigneeName(task.assignee)?.[0] || '?' }}</span>
-                <span class="kcard-assignee">{{ assigneeName(task.assignee) }}</span>
+            <div class="kanban_card_footer">
+              <div class="kanban_card_assignee_wrapper">
+                <span class="kanban_card_avatar">{{ assigneeName(task.assignee)?.[0] || '?' }}</span>
+                <span class="kanban_card_assignee">{{ assigneeName(task.assignee) }}</span>
               </div>
-              <span class="kcard-due" :class="{ late: isOverdue(task) }">{{ task.dueDate ? fmtDate(task.dueDate) : '' }}</span>
+              <span class="kanban_card_due" :class="{ late: isOverdue(task) }">{{ task.dueDate ? fmtDate(task.dueDate) : '' }}</span>
             </div>
-            <div v-if="task.subtasks?.length" class="kcard-subtasks">
-              <div class="kcard-sub-bar"><div class="kcard-sub-fill" :style="{ width: (task.subtasks.filter(s => s.done).length / task.subtasks.length * 100) + '%' }" /></div>
+            <div v-if="task.subtasks?.length" class="kanban_card_subtasks">
+              <div class="kanban_card_sub_bar"><div class="kanban_card_sub_fill" :style="{ width: (task.subtasks.filter(s => s.done).length / task.subtasks.length * 100) + '%' }" /></div>
               <span>{{ task.subtasks.filter(s => s.done).length }}/{{ task.subtasks.length }}</span>
             </div>
           </div>
           <!-- Drop zone -->
           <div
-            class="kb-dropzone"
+            class="kpis_builder_dropzone"
             @dragover.prevent
             @drop="onDrop($event, col.key)"
           >
@@ -72,36 +72,36 @@
 
     <!-- Slide-over new/edit task -->
     <SlideOver :open="slideOpen" :title="editId ? t('edit') : t('sm_new_task')" @close="slideOpen = false">
-      <form @submit.prevent="saveTask" class="sf">
-        <div class="fg"><label>{{ t('sm_task_title') }} *</label><input v-model="form.title" required class="fi" /></div>
-        <div class="fg"><label>{{ t('sm_task_desc') }}</label><textarea v-model="form.description" class="fi ta" rows="2" /></div>
-        <div class="fr">
-          <div class="fg"><label>{{ t('sm_task_project') }}</label>
-            <select v-model="form.projectId" class="fi"><option :value="null">—</option><option v-for="p in tasks.projects" :key="p.id" :value="p.id">{{ p.name }}</option></select>
+      <form @submit.prevent="saveTask" class="slideover_form">
+        <div class="field_group"><label>{{ t('sm_task_title') }} *</label><input v-model="form.title" required class="field_input" /></div>
+        <div class="field_group"><label>{{ t('sm_task_desc') }}</label><textarea v-model="form.description" class="field_input textarea" rows="2" /></div>
+        <div class="field_row">
+          <div class="field_group"><label>{{ t('sm_task_project') }}</label>
+            <select v-model="form.projectId" class="field_input"><option :value="null">—</option><option v-for="p in tasks.projects" :key="p.id" :value="p.id">{{ p.name }}</option></select>
           </div>
-          <div class="fg"><label>{{ t('sm_task_client') }}</label>
-            <select v-model="form.clientId" class="fi"><option :value="null">—</option><option v-for="c in clients.clients" :key="c.id" :value="c.id">{{ c.name }}</option></select>
+          <div class="field_group"><label>{{ t('sm_task_client') }}</label>
+            <select v-model="form.clientId" class="field_input"><option :value="null">—</option><option v-for="c in clients.clients" :key="c.id" :value="c.id">{{ c.name }}</option></select>
           </div>
         </div>
-        <div class="fr">
-          <div class="fg"><label>{{ t('sm_task_assignee') }}</label>
-            <select v-model="form.assignee" class="fi"><option value="">—</option><option v-for="m in team.assignableMembers" :key="m.id" :value="m.id">{{ m.name }}</option></select>
+        <div class="field_row">
+          <div class="field_group"><label>{{ t('sm_task_assignee') }}</label>
+            <select v-model="form.assignee" class="field_input"><option value="">—</option><option v-for="m in team.assignableMembers" :key="m.id" :value="m.id">{{ m.name }}</option></select>
           </div>
-          <div class="fg"><label>{{ t('sm_task_due') }}</label><input v-model="form.dueDate" type="date" class="fi" /></div>
+          <div class="field_group"><label>{{ t('sm_task_due') }}</label><input v-model="form.dueDate" type="date" class="field_input" /></div>
         </div>
-        <div class="fg"><label>{{ t('sm_task_priority') }}</label>
-          <select v-model="form.priority" class="fi">
+        <div class="field_group"><label>{{ t('sm_task_priority') }}</label>
+          <select v-model="form.priority" class="field_input">
             <option value="urgent_important">{{ t('sm_priority_urgent_important') }}</option>
             <option value="important">{{ t('sm_priority_important') }}</option>
             <option value="urgent">{{ t('sm_priority_urgent') }}</option>
             <option value="not_urgent">{{ t('sm_priority_not_urgent') }}</option>
           </select>
         </div>
-        <div class="fa">
-          <button v-if="editId" type="button" class="btn-danger" @click="deleteTask">{{ t('delete') }}</button>
+        <div class="form_actions">
+          <button v-if="editId" type="button" class="button_danger" @click="deleteTask">{{ t('delete') }}</button>
           <div style="flex:1" />
-          <button type="button" class="btn-outline" @click="slideOpen = false">{{ t('cancel') }}</button>
-          <button type="submit" class="btn-primary">{{ editId ? t('save') : t('create') }}</button>
+          <button type="button" class="button_outline" @click="slideOpen = false">{{ t('cancel') }}</button>
+          <button type="submit" class="button_primary">{{ editId ? t('save') : t('create') }}</button>
         </div>
       </form>
     </SlideOver>
@@ -190,84 +190,84 @@ function deleteTask() {
 </script>
 
 <style scoped>
-.kanban-view { max-width: 1200px; }
-.kb-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-.kb-header h1 { font-size: 1.5rem; font-weight: 800; }
-.btn-primary { background: var(--purple); color: #fff; border: none; padding: 9px 18px; border-radius: var(--radius-sm); font-size: 0.85rem; font-weight: 600; cursor: pointer; }
-.btn-primary:hover { background: var(--purple-dark); }
-.btn-outline { background: var(--bg-card); color: var(--text-secondary); border: 1px solid var(--border); padding: 9px 18px; border-radius: var(--radius-sm); font-size: 0.85rem; cursor: pointer; }
-.btn-danger { background: var(--red-bg); color: var(--red); border: 1px solid var(--red-border); padding: 9px 18px; border-radius: var(--radius-sm); font-size: 0.85rem; cursor: pointer; font-weight: 600; }
+.kanban_view { max-width: 1200px; }
+.kpis_builder_header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.kpis_builder_header h1 { font-size: 1.5rem; font-weight: 800; }
+.button_primary { background: var(--purple); color: #fff; border: none; padding: 9px 18px; border-radius: var(--radius-sm); font-size: 0.85rem; font-weight: 600; cursor: pointer; }
+.button_primary:hover { background: var(--purple-dark); }
+.button_outline { background: var(--bg-card); color: var(--text-secondary); border: 1px solid var(--border); padding: 9px 18px; border-radius: var(--radius-sm); font-size: 0.85rem; cursor: pointer; }
+.button_danger { background: var(--red-bg); color: var(--red); border: 1px solid var(--red-border); padding: 9px 18px; border-radius: var(--radius-sm); font-size: 0.85rem; cursor: pointer; font-weight: 600; }
 
-.kb-board { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; align-items: start; }
-.kb-col { border-radius: var(--radius-md); min-height: 300px; }
-.kb-col.todo { background: var(--bg-hover); }
-.kb-col.in_progress { background: var(--amber-bg); }
-.kb-col.blocked { background: var(--red-bg); }
-.kb-col.done { background: var(--green-bg); }
-.kbc-header { display: flex; align-items: center; gap: 8px; padding: 14px 14px 10px; }
-.kbc-dot { width: 8px; height: 8px; border-radius: 50%; }
-.kbc-dot.todo { background: var(--text-muted); }
-.kbc-dot.in_progress { background: var(--blue); }
-.kbc-dot.blocked { background: var(--red); }
-.kbc-dot.done { background: var(--green); }
-.kbc-header strong { font-size: 0.82rem; }
-.kbc-count { font-size: 0.68rem; background: rgba(0,0,0,0.06); padding: 1px 6px; border-radius: 4px; color: var(--text-muted); }
-.kbc-body { padding: 0 10px 14px; }
+.kpis_builder_board { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; align-items: start; }
+.kpis_builder_column { border-radius: var(--radius-md); min-height: 300px; }
+.kpis_builder_column.todo { background: var(--bg-hover); }
+.kpis_builder_column.in_progress { background: var(--amber-bg); }
+.kpis_builder_column.blocked { background: var(--red-bg); }
+.kpis_builder_column.done { background: var(--green-bg); }
+.kanban_column_header { display: flex; align-items: center; gap: 8px; padding: 14px 14px 10px; }
+.kanban_column_dot { width: 8px; height: 8px; border-radius: 50%; }
+.kanban_column_dot.todo { background: var(--text-muted); }
+.kanban_column_dot.in_progress { background: var(--blue); }
+.kanban_column_dot.blocked { background: var(--red); }
+.kanban_column_dot.done { background: var(--green); }
+.kanban_column_header strong { font-size: 0.82rem; }
+.kanban_column_count { font-size: 0.68rem; background: rgba(0,0,0,0.06); padding: 1px 6px; border-radius: 4px; color: var(--text-muted); }
+.kanban_column_body { padding: 0 10px 14px; }
 
-.kb-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; margin-bottom: 8px; cursor: grab; transition: all 0.15s; }
-.kb-card:hover { box-shadow: var(--shadow-sm); transform: translateY(-1px); }
-.kb-card:active { cursor: grabbing; }
+.kpis_builder_card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; margin-bottom: 8px; cursor: grab; transition: all 0.15s; }
+.kpis_builder_card:hover { box-shadow: var(--shadow-sm); transform: translateY(-1px); }
+.kpis_builder_card:active { cursor: grabbing; }
 /* Card priority border */
-.kb-card.prio-critical { border-left: 3px solid var(--red); }
-.kb-card.prio-high { border-left: 3px solid var(--amber); }
-.kb-card.prio-medium { border-left: 3px solid var(--amber); }
-.kb-card.prio-low { border-left: 3px solid var(--green); }
+.kpis_builder_card.priority_critical { border-left: 3px solid var(--red); }
+.kpis_builder_card.priority_high { border-left: 3px solid var(--amber); }
+.kpis_builder_card.priority_medium { border-left: 3px solid var(--amber); }
+.kpis_builder_card.priority_low { border-left: 3px solid var(--green); }
 
-.kcard-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; gap: 6px; }
-.kcard-top strong { font-size: 0.82rem; flex: 1; }
+.kanban_card_top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; gap: 6px; }
+.kanban_card_top strong { font-size: 0.82rem; flex: 1; }
 
 /* Priority badge */
-.prio-badge { font-size: 0.6rem; font-weight: 700; padding: 2px 7px; border-radius: 99px; white-space: nowrap; flex-shrink: 0; }
-.pb-critical { background: var(--red-bg); color: var(--red); }
-.pb-high { background: var(--amber-bg); color: var(--amber); }
-.pb-medium { background: var(--amber-bg); color: var(--amber); }
-.pb-low { background: var(--green-bg); color: var(--green); }
+.priority_badge { font-size: 0.6rem; font-weight: 700; padding: 2px 7px; border-radius: 99px; white-space: nowrap; flex-shrink: 0; }
+.playbook_critical { background: var(--red-bg); color: var(--red); }
+.playbook_high { background: var(--amber-bg); color: var(--amber); }
+.playbook_medium { background: var(--amber-bg); color: var(--amber); }
+.playbook_low { background: var(--green-bg); color: var(--green); }
 
-.kcard-meta { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 6px; }
-.kcard-client { font-size: 0.68rem; color: var(--purple); background: var(--purple-bg); padding: 1px 6px; border-radius: 4px; }
-.kcard-project { font-size: 0.68rem; padding: 1px 6px; border-radius: 4px; border: 1px solid; }
-.kcard-footer { display: flex; justify-content: space-between; align-items: center; }
-.kcard-assignee-wrap { display: flex; align-items: center; gap: 5px; }
-.kcard-avatar { width: 18px; height: 18px; border-radius: 50%; background: var(--purple); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 0.55rem; font-weight: 700; flex-shrink: 0; }
-.kcard-assignee { font-size: 0.7rem; color: var(--text-muted); }
-.kcard-due { font-size: 0.7rem; color: var(--text-muted); }
-.kcard-due.late { color: var(--red); font-weight: 600; }
-.kcard-subtasks { display: flex; align-items: center; gap: 6px; font-size: 0.68rem; color: var(--text-muted); margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--border-light); }
-.kcard-sub-bar { flex: 1; height: 3px; background: var(--border-light); border-radius: 2px; overflow: hidden; }
-.kcard-sub-fill { height: 100%; background: var(--green); border-radius: 2px; }
+.kanban_card_meta { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 6px; }
+.kanban_card_client { font-size: 0.68rem; color: var(--purple); background: var(--purple-bg); padding: 1px 6px; border-radius: 4px; }
+.kanban_card_project { font-size: 0.68rem; padding: 1px 6px; border-radius: 4px; border: 1px solid; }
+.kanban_card_footer { display: flex; justify-content: space-between; align-items: center; }
+.kanban_card_assignee_wrapper { display: flex; align-items: center; gap: 5px; }
+.kanban_card_avatar { width: 18px; height: 18px; border-radius: 50%; background: var(--purple); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 0.55rem; font-weight: 700; flex-shrink: 0; }
+.kanban_card_assignee { font-size: 0.7rem; color: var(--text-muted); }
+.kanban_card_due { font-size: 0.7rem; color: var(--text-muted); }
+.kanban_card_due.late { color: var(--red); font-weight: 600; }
+.kanban_card_subtasks { display: flex; align-items: center; gap: 6px; font-size: 0.68rem; color: var(--text-muted); margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--border-light); }
+.kanban_card_sub_bar { flex: 1; height: 3px; background: var(--border-light); border-radius: 2px; overflow: hidden; }
+.kanban_card_sub_fill { height: 100%; background: var(--green); border-radius: 2px; }
 
-.kb-dropzone { min-height: 40px; border: 2px dashed transparent; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; transition: all 0.2s; font-size: 0.78rem; color: var(--text-muted); }
-.kb-dropzone:hover { border-color: var(--purple-border); background: var(--purple-bg); }
-.kbc-body.drag-over { background: var(--purple-bg); border: 2px dashed var(--purple-border); border-radius: var(--radius-sm); }
+.kpis_builder_dropzone { min-height: 40px; border: 2px dashed transparent; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; transition: all 0.2s; font-size: 0.78rem; color: var(--text-muted); }
+.kpis_builder_dropzone:hover { border-color: var(--purple-border); background: var(--purple-bg); }
+.kanban_column_body.drag_over { background: var(--purple-bg); border: 2px dashed var(--purple-border); border-radius: var(--radius-sm); }
 
-.sf { display: flex; flex-direction: column; gap: 14px; }
-.fg { display: flex; flex-direction: column; gap: 4px; }
-.fg label { font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); }
-.fi { padding: 9px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 0.85rem; outline: none; background: var(--bg-card); width: 100%; }
-.fi:focus { border-color: var(--purple); }
-.ta { resize: vertical; }
-.fr { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.fa { display: flex; gap: 10px; align-items: center; padding-top: 8px; border-top: 1px solid var(--border-light); }
+.slideover_form { display: flex; flex-direction: column; gap: 14px; }
+.field_group { display: flex; flex-direction: column; gap: 4px; }
+.field_group label { font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); }
+.field_input { padding: 9px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 0.85rem; outline: none; background: var(--bg-card); width: 100%; }
+.field_input:focus { border-color: var(--purple); }
+.textarea { resize: vertical; }
+.field_row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.form_actions { display: flex; gap: 10px; align-items: center; padding-top: 8px; border-top: 1px solid var(--border-light); }
 
-.kb-header-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.reset-confirm { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.reset-msg { font-size: 0.82rem; color: var(--text-secondary); }
-.reset-msg.warn { color: var(--red); font-weight: 600; }
-.btn-danger { background: #ef4444; color: #fff; border: none; padding: 9px 18px; border-radius: var(--radius-sm); font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
-.btn-danger:hover { background: #dc2626; }
-.btn-danger-outline { background: none; color: #ef4444; border: 1px solid #ef4444; padding: 9px 18px; border-radius: var(--radius-sm); font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
-.btn-danger-outline:hover { background: var(--red-bg); }
+.kpis_builder_header_actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.reset_confirm { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.reset_message { font-size: 0.82rem; color: var(--text-secondary); }
+.reset_message.warn { color: var(--red); font-weight: 600; }
+.button_danger { background: #ef4444; color: #fff; border: none; padding: 9px 18px; border-radius: var(--radius-sm); font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+.button_danger:hover { background: #dc2626; }
+.button_danger_outline { background: none; color: #ef4444; border: 1px solid #ef4444; padding: 9px 18px; border-radius: var(--radius-sm); font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+.button_danger_outline:hover { background: var(--red-bg); }
 
-@media (max-width: 900px) { .kb-board { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 600px) { .kb-board { grid-template-columns: 1fr; } .fr { grid-template-columns: 1fr; } }
+@media (max-width: 900px) { .kpis_builder_board { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 600px) { .kpis_builder_board { grid-template-columns: 1fr; } .field_row { grid-template-columns: 1fr; } }
 </style>

@@ -1,40 +1,40 @@
 <template>
-  <div class="team-view">
-    <div class="team-header">
+  <div class="team_view">
+    <div class="team_header">
       <h2>{{ t('team_title') }}</h2>
-      <div v-if="org" class="seat-badge">{{ seats.used }} / {{ seatsCap }} {{ t('team_seats') }}</div>
+      <div v-if="org" class="seat_badge">{{ seats.used }} / {{ seatsCap }} {{ t('team_seats') }}</div>
     </div>
 
-    <div v-if="loading" class="team-loading"><span class="spinner" /></div>
+    <div v-if="loading" class="team_loading"><span class="spinner" /></div>
 
     <template v-else>
       <!-- Invite form (owner/admin only) -->
-      <div v-if="canInvite" class="invite-section">
+      <div v-if="canInvite" class="invite_section">
         <h3>{{ t('team_invite_title') }}</h3>
-        <div class="invite-form">
-          <input v-model="inviteEmail" type="email" class="fi" :placeholder="t('team_invite_email_ph')" />
-          <select v-model="inviteRole" class="fi fi-select">
+        <div class="invite_form">
+          <input v-model="inviteEmail" type="email" class="field_input" :placeholder="t('team_invite_email_ph')" />
+          <select v-model="inviteRole" class="field_input field_input_select">
             <option v-for="r in availableRoles" :key="r" :value="r">{{ t('role_' + r) }}</option>
           </select>
-          <button class="btn-primary" :disabled="sending || !inviteEmail.trim()" @click="sendInvite">
-            <span v-if="sending" class="spinner-sm" /><span v-else>{{ t('team_invite_send') }}</span>
+          <button class="button_primary" :disabled="sending || !inviteEmail.trim()" @click="sendInvite">
+            <span v-if="sending" class="spinner_small" /><span v-else>{{ t('team_invite_send') }}</span>
           </button>
         </div>
-        <div v-if="inviteMsg" class="invite-msg" :class="inviteMsgType">{{ inviteMsg }}</div>
+        <div v-if="inviteMsg" class="invite_message" :class="inviteMsgType">{{ inviteMsg }}</div>
       </div>
 
       <!-- Members list -->
       <div class="section">
         <h3>{{ t('team_members_title') }} ({{ members.length }})</h3>
-        <div class="table-wrap">
-          <table class="team-table">
+        <div class="table_wrapper">
+          <table class="team_table">
             <thead><tr><th>{{ t('team_col_name') }}</th><th>{{ t('team_col_role') }}</th><th>{{ t('team_col_joined') }}</th><th></th></tr></thead>
             <tbody>
               <tr v-for="m in members" :key="m.id">
                 <td>{{ memberLabel(m) }}</td>
-                <td><span class="role-tag" :class="'role-' + m.role">{{ t('role_' + m.role) }}</span></td>
+                <td><span class="role_tag" :class="'role_' + m.role">{{ t('role_' + m.role) }}</span></td>
                 <td>{{ formatDate(m.joined_at) }}</td>
-                <td><button v-if="canRemove(m)" class="btn-remove" @click="askRemoveMember(m)">{{ t('team_remove') }}</button></td>
+                <td><button v-if="canRemove(m)" class="button_remove" @click="askRemoveMember(m)">{{ t('team_remove') }}</button></td>
               </tr>
             </tbody>
           </table>
@@ -44,17 +44,17 @@
       <!-- Pending invitations -->
       <div v-if="invitations.length > 0" class="section">
         <h3>{{ t('team_pending_title') }} ({{ invitations.length }})</h3>
-        <div class="table-wrap">
-          <table class="team-table">
+        <div class="table_wrapper">
+          <table class="team_table">
             <thead><tr><th>{{ t('team_col_email') }}</th><th>{{ t('team_col_role') }}</th><th>{{ t('team_col_expires') }}</th><th></th></tr></thead>
             <tbody>
               <tr v-for="inv in invitations" :key="inv.id">
                 <td>{{ inv.email }}</td>
-                <td><span class="role-tag" :class="'role-' + inv.role">{{ t('role_' + inv.role) }}</span></td>
-                <td>{{ formatDate(inv.expires_at) }} <span v-if="isExpired(inv)" class="badge-expired">{{ t('team_expired_badge') }}</span></td>
-                <td class="cell-actions">
-                  <button v-if="inv.token" class="btn-copy" @click="copyInviteLink(inv)">{{ copiedId === inv.id ? t('team_link_copied') : t('team_copy_link') }}</button>
-                  <button v-if="canRevokeInvitations" class="btn-remove" @click="askRevokeInvitation(inv)">{{ t('team_revoke') }}</button>
+                <td><span class="role_tag" :class="'role_' + inv.role">{{ t('role_' + inv.role) }}</span></td>
+                <td>{{ formatDate(inv.expires_at) }} <span v-if="isExpired(inv)" class="badge_expired">{{ t('team_expired_badge') }}</span></td>
+                <td class="cell_actions">
+                  <button v-if="inv.token" class="button_copy" @click="copyInviteLink(inv)">{{ copiedId === inv.id ? t('team_link_copied') : t('team_copy_link') }}</button>
+                  <button v-if="canRevokeInvitations" class="button_remove" @click="askRevokeInvitation(inv)">{{ t('team_revoke') }}</button>
                 </td>
               </tr>
             </tbody>
@@ -265,44 +265,44 @@ function formatDate(d) { return d ? fmtDate(d) : '' }
 </script>
 
 <style scoped>
-.team-view { max-width: 800px; margin: 0 auto; padding: 32px 20px; }
-.team-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; }
-.team-header h2 { font-size: 1.3rem; font-weight: 800; }
-.seat-badge { background: #f3f4f6; padding: 6px 14px; border-radius: 20px; font-size: 0.82rem; font-weight: 600; color: var(--text-primary); }
-.team-loading { text-align: center; padding: 60px 0; }
+.team_view { max-width: 800px; margin: 0 auto; padding: 32px 20px; }
+.team_header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; }
+.team_header h2 { font-size: 1.3rem; font-weight: 800; }
+.seat_badge { background: #f3f4f6; padding: 6px 14px; border-radius: 20px; font-size: 0.82rem; font-weight: 600; color: var(--text-primary); }
+.team_loading { text-align: center; padding: 60px 0; }
 .section { margin-bottom: 32px; }
 .section h3 { font-size: 0.95rem; font-weight: 700; margin-bottom: 12px; color: var(--text-primary); }
-.invite-section { background: #faf5ff; border: 1px solid #e9d5ff; border-radius: 12px; padding: 20px; margin-bottom: 28px; }
-.invite-section h3 { margin-bottom: 12px; }
-.invite-form { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-.invite-form .fi { flex: 1; min-width: 180px; }
-.fi { padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 0.88rem; outline: none; }
-.fi:focus { border-color: #7c3aed; }
-.fi-select { max-width: 140px; }
-.invite-msg { font-size: 0.82rem; margin-top: 8px; padding: 8px 12px; border-radius: 6px; }
-.invite-msg.success { background: #f0fdf4; color: #166534; }
-.invite-msg.error { background: #fef2f2; color: #dc2626; }
-.invite-msg.warn { background: #fffbeb; color: #92400e; }
-.table-wrap { overflow-x: auto; }
-.team-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
-.team-table th { text-align: left; padding: 10px 12px; border-bottom: 2px solid var(--border-color); color: #6b7280; font-weight: 600; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; }
-.team-table td { padding: 12px; border-bottom: 1px solid #f3f4f6; }
-.role-tag { padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; }
-.role-owner { background: #7c3aed; color: #fff; }
-.role-admin { background: #dbeafe; color: #1d4ed8; }
-.role-member { background: #f3f4f6; color: var(--text-primary); }
-.role-viewer { background: #fef3c7; color: #92400e; }
-.badge-expired { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; padding: 2px 8px; border-radius: 10px; font-size: 0.7rem; font-weight: 600; margin-left: 6px; }
-.btn-primary { background: #7c3aed; color: #fff; border: none; padding: 10px 18px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; white-space: nowrap; }
-.btn-primary:hover:not(:disabled) { background: #6d28d9; }
-.btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
-.btn-remove { background: none; border: 1px solid #fecaca; color: #dc2626; padding: 4px 12px; border-radius: 6px; font-size: 0.78rem; cursor: pointer; }
-.btn-remove:hover { background: #fef2f2; }
-.cell-actions { white-space: nowrap; }
-.btn-copy { background: none; border: 1px solid #ddd6fe; color: #7c3aed; padding: 4px 12px; border-radius: 6px; font-size: 0.78rem; cursor: pointer; margin-right: 6px; }
-.btn-copy:hover { background: #faf5ff; }
+.invite_section { background: #faf5ff; border: 1px solid #e9d5ff; border-radius: 12px; padding: 20px; margin-bottom: 28px; }
+.invite_section h3 { margin-bottom: 12px; }
+.invite_form { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.invite_form .field_input { flex: 1; min-width: 180px; }
+.field_input { padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 0.88rem; outline: none; }
+.field_input:focus { border-color: #7c3aed; }
+.field_input_select { max-width: 140px; }
+.invite_message { font-size: 0.82rem; margin-top: 8px; padding: 8px 12px; border-radius: 6px; }
+.invite_message.success { background: #f0fdf4; color: #166534; }
+.invite_message.error { background: #fef2f2; color: #dc2626; }
+.invite_message.warn { background: #fffbeb; color: #92400e; }
+.table_wrapper { overflow-x: auto; }
+.team_table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+.team_table th { text-align: left; padding: 10px 12px; border-bottom: 2px solid var(--border-color); color: #6b7280; font-weight: 600; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; }
+.team_table td { padding: 12px; border-bottom: 1px solid #f3f4f6; }
+.role_tag { padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; }
+.role_owner { background: #7c3aed; color: #fff; }
+.role_admin { background: #dbeafe; color: #1d4ed8; }
+.role_member { background: #f3f4f6; color: var(--text-primary); }
+.role_viewer { background: #fef3c7; color: #92400e; }
+.badge_expired { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; padding: 2px 8px; border-radius: 10px; font-size: 0.7rem; font-weight: 600; margin-left: 6px; }
+.button_primary { background: #7c3aed; color: #fff; border: none; padding: 10px 18px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.button_primary:hover:not(:disabled) { background: #6d28d9; }
+.button_primary:disabled { opacity: 0.4; cursor: not-allowed; }
+.button_remove { background: none; border: 1px solid #fecaca; color: #dc2626; padding: 4px 12px; border-radius: 6px; font-size: 0.78rem; cursor: pointer; }
+.button_remove:hover { background: #fef2f2; }
+.cell_actions { white-space: nowrap; }
+.button_copy { background: none; border: 1px solid #ddd6fe; color: #7c3aed; padding: 4px 12px; border-radius: 6px; font-size: 0.78rem; cursor: pointer; margin-right: 6px; }
+.button_copy:hover { background: #faf5ff; }
 .spinner { width: 18px; height: 18px; border: 2px solid rgba(124,58,237,0.2); border-top-color: #7c3aed; border-radius: 50%; animation: spin 0.7s linear infinite; display: inline-block; }
-.spinner-sm { width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; display: inline-block; }
+.spinner_small { width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; display: inline-block; }
 @keyframes spin { to { transform: rotate(360deg); } }
-@media (max-width: 640px) { .invite-form { flex-direction: column; } .invite-form .fi { min-width: 100%; } }
+@media (max-width: 640px) { .invite_form { flex-direction: column; } .invite_form .field_input { min-width: 100%; } }
 </style>

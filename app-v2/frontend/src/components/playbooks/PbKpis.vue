@@ -1,34 +1,34 @@
 <template>
-  <div class="pb-kpis">
-    <div class="pkpi">
-      <span class="pkpi-icon">▶️</span>
+  <div class="playbook_kpis">
+    <div class="kpi_page">
+      <span class="kpi_page_icon">▶️</span>
       <div>
-        <span class="pkpi-val">{{ activeCount }}</span>
-        <span class="pkpi-lbl">{{ t('pb_kpi_active') }}</span>
+        <span class="kpi_page_value">{{ activeCount }}</span>
+        <span class="playbooks_kpi_page_label">{{ t('pb_kpi_active') }}</span>
       </div>
     </div>
-    <div class="pkpi">
-      <span class="pkpi-icon">✅</span>
+    <div class="kpi_page">
+      <span class="kpi_page_icon">✅</span>
       <div>
-        <span class="pkpi-val">{{ doneMonth }}</span>
-        <span class="pkpi-lbl">{{ t('pb_kpi_done_month') }}</span>
+        <span class="kpi_page_value">{{ doneMonth }}</span>
+        <span class="playbooks_kpi_page_label">{{ t('pb_kpi_done_month') }}</span>
       </div>
     </div>
-    <div class="pkpi">
-      <span class="pkpi-icon">⏱️</span>
+    <div class="kpi_page">
+      <span class="kpi_page_icon">⏱️</span>
       <div>
-        <span class="pkpi-val">
+        <span class="kpi_page_value">
           {{ avgDuration || '—' }}
           <small v-if="avgDuration">{{ t('pb_days') }}</small>
         </span>
-        <span class="pkpi-lbl">{{ t('pb_kpi_avg_duration') }}</span>
+        <span class="playbooks_kpi_page_label">{{ t('pb_kpi_avg_duration') }}</span>
       </div>
     </div>
-    <div class="pkpi">
-      <span class="pkpi-icon">🎯</span>
+    <div class="kpi_page">
+      <span class="kpi_page_icon">🎯</span>
       <div>
-        <span class="pkpi-val">{{ successRate }}%</span>
-        <span class="pkpi-lbl">{{ t('pb_kpi_success') }}</span>
+        <span class="kpi_page_value">{{ successRate }}%</span>
+        <span class="playbooks_kpi_page_label">{{ t('pb_kpi_success') }}</span>
       </div>
     </div>
   </div>

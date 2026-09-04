@@ -1,50 +1,50 @@
 <template>
-  <section id="roi" class="roi-section">
+  <section id="roi" class="roi_section">
     <div class="container">
-      <div class="section-header anim-section" data-anim="fade-up">
-        <span class="section-tag">{{ t('roi_tag') }}</span>
+      <div class="section_header anim_section" data-anim="fade-up">
+        <span class="section_tag">{{ t('roi_tag') }}</span>
         <h2 v-html="t('roi_h2')"></h2>
-        <p class="section-sub">{{ t('roi_sub') }}</p>
+        <p class="section_sub">{{ t('roi_sub') }}</p>
       </div>
 
-      <div class="roi-grid anim-section" data-anim="fade-up">
-        <div class="roi-sliders">
-          <div class="roi-field">
+      <div class="roi_grid anim_section" data-anim="fade-up">
+        <div class="roi_sliders">
+          <div class="roi_field">
             <label>{{ t('roi_lbl_csm') }}: <strong>{{ roiCsms }}</strong></label>
             <input type="range" v-model.number="roiCsms" min="1" max="50" />
           </div>
-          <div class="roi-field">
+          <div class="roi_field">
             <label>{{ t('roi_lbl_acc') }}: <strong>{{ roiAcc }}</strong></label>
             <input type="range" v-model.number="roiAcc" min="5" max="200" />
           </div>
-          <div class="roi-field">
+          <div class="roi_field">
             <label>{{ t('roi_lbl_arr') }}: <strong>{{ fmtArr }}</strong></label>
             <input type="range" v-model.number="roiArr" :min="cur.arr.min" :max="cur.arr.max" :step="cur.arr.step" />
           </div>
-          <div class="roi-field">
+          <div class="roi_field">
             <label>{{ t('roi_lbl_churn') }}: <strong>{{ roiChurn }}%</strong></label>
             <input type="range" v-model.number="roiChurn" min="1" max="30" />
           </div>
         </div>
 
-        <div class="roi-results">
-        <div class="roi-main-result">
-          <div class="roi-big">{{ roiSaved }}</div>
-          <div class="roi-desc">{{ t('roi_saved') }}</div>
+        <div class="roi_results">
+        <div class="roi_main_result">
+          <div class="roi_big">{{ roiSaved }}</div>
+          <div class="roi_description">{{ t('roi_saved') }}</div>
         </div>
-        <div class="roi-details">
-          <div class="roi-detail">
-            <div class="roi-dl">{{ t('roi_time') }}</div>
-            <div class="roi-dv green">{{ roiTimeSaved }}{{ t('roi_time_unit') }}</div>
+        <div class="roi_details">
+          <div class="roi_detail">
+            <div class="roi_dl">{{ t('roi_time') }}</div>
+            <div class="roi_dv green">{{ roiTimeSaved }}{{ t('roi_time_unit') }}</div>
           </div>
-          <div class="roi-detail">
-            <div class="roi-dl">{{ t('roi_multiplier') }}</div>
-            <div class="roi-dv purple">x{{ roiMultiplier }}</div>
+          <div class="roi_detail">
+            <div class="roi_dl">{{ t('roi_multiplier') }}</div>
+            <div class="roi_dv purple">x{{ roiMultiplier }}</div>
           </div>
         </div>
-        <div class="roi-plan">
-          <div class="roi-plan-label">{{ t('roi_recommendation') }}</div>
-          <div class="roi-plan-value">{{ roiRecommendedPlan }}</div>
+        <div class="roi_plan">
+          <div class="roi_plan_label">{{ t('roi_recommendation') }}</div>
+          <div class="roi_plan_value">{{ roiRecommendedPlan }}</div>
         </div>
       </div>
       </div>

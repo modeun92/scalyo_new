@@ -4,7 +4,7 @@
        composer, formatTime, zero role gating) has been removed.
        The .chat-layout class is kept: AppLayout relies on it
        (.main-content:has(.chat-layout) { padding: 0 } + height). -->
-  <div class="chat-layout">
+  <div class="chat_layout">
     <ErrorBoundary>
       <ChatPanel :show-close="false" />
     </ErrorBoundary>

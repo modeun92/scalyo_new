@@ -1,7 +1,7 @@
 <template>
-  <div :class="['base-field', { error: !!error, disabled }]">
-    <label v-if="label" class="field-label">{{ label }}</label>
-    <div class="field-wrap">
+  <div :class="['base_field', { error: !!error, disabled }]">
+    <label v-if="label" class="field_label">{{ label }}</label>
+    <div class="field_wrapper">
       <slot name="prefix" />
       <component
         :is="multiline ? 'textarea' : 'input'"
@@ -10,14 +10,14 @@
         :placeholder="placeholder"
         :disabled="disabled"
         :rows="rows"
-        class="field-input"
+        class="base_input_field_input"
         v-bind="$attrs"
         @input="$emit('update:modelValue', $event.target.value)"
       />
       <slot name="suffix" />
     </div>
-    <p v-if="error" class="field-error">{{ error }}</p>
-    <p v-else-if="hint" class="field-hint">{{ hint }}</p>
+    <p v-if="error" class="field_error">{{ error }}</p>
+    <p v-else-if="hint" class="field_hint">{{ hint }}</p>
   </div>
 </template>
 
@@ -37,24 +37,24 @@ defineEmits(['update:modelValue'])
 </script>
 
 <style scoped>
-.base-field { display: flex; flex-direction: column; gap: 4px; }
-.field-label { font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); }
-.field-wrap {
+.base_field { display: flex; flex-direction: column; gap: 4px; }
+.field_label { font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); }
+.field_wrapper {
   display: flex; align-items: center; gap: 8px;
   background: var(--bg-white, #fff); border: 1px solid var(--border);
   border-radius: var(--radius-sm); padding: 0 12px; transition: all var(--transition);
 }
-.field-wrap:focus-within { border-color: var(--purple); box-shadow: 0 0 0 3px var(--purple-bg); }
-.base-field.error .field-wrap { border-color: var(--red); }
-.base-field.error .field-wrap:focus-within { box-shadow: 0 0 0 3px var(--red-bg); }
-.base-field.disabled .field-wrap { opacity: 0.5; cursor: not-allowed; }
-.field-input {
+.field_wrapper:focus-within { border-color: var(--purple); box-shadow: 0 0 0 3px var(--purple-bg); }
+.base_field.error .field_wrapper { border-color: var(--red); }
+.base_field.error .field_wrapper:focus-within { box-shadow: 0 0 0 3px var(--red-bg); }
+.base_field.disabled .field_wrapper { opacity: 0.5; cursor: not-allowed; }
+.base_input_field_input {
   flex: 1; border: none; outline: none; background: transparent;
   font-size: 0.85rem; color: var(--text); padding: 10px 0;
   font-family: inherit; resize: vertical;
 }
-.field-input::placeholder { color: var(--text-muted); }
-textarea.field-input { padding: 10px 0; }
-.field-error { font-size: 0.75rem; color: var(--red); }
-.field-hint { font-size: 0.75rem; color: var(--text-muted); }
+.base_input_field_input::placeholder { color: var(--text-muted); }
+textarea.base_input_field_input { padding: 10px 0; }
+.field_error { font-size: 0.75rem; color: var(--red); }
+.field_hint { font-size: 0.75rem; color: var(--text-muted); }
 </style>

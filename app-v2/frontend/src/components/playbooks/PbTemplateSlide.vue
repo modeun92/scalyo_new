@@ -5,24 +5,24 @@
     @close="$emit('close')"
     :width="520"
   >
-    <div class="tpl-list">
-      <div v-for="tpl in templates" :key="tpl.id" class="tpl-card">
-        <div class="tpl-header">
+    <div class="template_list">
+      <div v-for="tpl in templates" :key="tpl.id" class="template_card">
+        <div class="template_header">
           <span
-            class="tpl-icon"
+            class="template_icon"
             :style="{ background: tpl.color + '15', color: tpl.color }"
           >{{ tpl.icon }}</span>
-          <div class="tpl-info">
+          <div class="template_info">
             <strong>{{ t('pb_template_' + tpl.key) }}</strong>
             <p>{{ t('pb_template_' + tpl.key + '_desc') }}</p>
           </div>
         </div>
-        <div class="tpl-meta">
+        <div class="template_meta">
           <span>{{ tpl.steps.length }} {{ t('pb_steps') }}</span>
           <span>~{{ tpl.avgDays }} {{ t('pb_avg_days') }}</span>
         </div>
         <button
-          class="btn-outline tpl-use"
+          class="button_outline template_use"
           @click="$emit('selectTemplate', tpl)"
         >{{ t('pb_use_template') }}</button>
       </div>

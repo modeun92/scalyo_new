@@ -1,14 +1,14 @@
 <template>
-  <div class="pb-filters">
+  <div class="playbook_filters">
     <button
       v-for="f in filterTabs"
       :key="f.key"
-      class="ftab"
+      class="filter_tab"
       :class="{ active: activeFilter === f.key }"
       @click="$emit('update:activeFilter', f.key)"
     >
       {{ t(f.label) }}
-      <span class="fc">{{ f.count }}</span>
+      <span class="filter_count">{{ f.count }}</span>
     </button>
   </div>
 </template>

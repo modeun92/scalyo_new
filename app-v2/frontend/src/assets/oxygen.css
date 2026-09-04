@@ -4,61 +4,61 @@
    that was kept (WbEmergency) deliberately keeps its safety red.
    Dark/light inherited from main.css through the variables. Slow motion. */
 
-.oxy-view { max-width: 800px; margin: 0 auto; padding: 0 16px; }
-.oxy-view h1 { margin-bottom: 12px; }
-.oxy-view h2 { font-size: 0.95rem; font-weight: 700; color: var(--text); margin-bottom: 12px; }
+.oxygen_view { max-width: 800px; margin: 0 auto; padding: 0 16px; }
+.oxygen_view h1 { margin-bottom: 12px; }
+.oxygen_view h2 { font-size: 0.95rem; font-weight: 700; color: var(--text); margin-bottom: 12px; }
 
-.oxy-privacy { display: flex; align-items: center; gap: 8px; padding: 10px 16px; background: var(--purple-bg); border: 1px solid var(--purple-border); border-radius: var(--radius-md); font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 24px; }
+.oxygen_privacy { display: flex; align-items: center; gap: 8px; padding: 10px 16px; background: var(--purple-bg); border: 1px solid var(--purple-border); border-radius: var(--radius-md); font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 24px; }
 
-.oxy-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 20px; margin-bottom: 20px; }
+.oxygen_card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 20px; margin-bottom: 20px; }
 
 /* ── Index of the day ── */
-.oxy-index-main { display: flex; align-items: baseline; gap: 14px; }
-.oxy-index-big { font-size: 2.6rem; font-weight: 800; color: var(--purple); line-height: 1; }
-.oxy-index-meta { display: flex; flex-direction: column; gap: 2px; }
-.oxy-index-meta strong { font-size: 0.9rem; color: var(--text); }
-.oxy-index-hint { font-size: 0.78rem; color: var(--text-muted); }
-.oxy-div { font-size: 0.78rem; color: var(--text-secondary); background: var(--purple-bg); border-radius: var(--radius-sm); padding: 8px 10px; margin: 12px 0 0; line-height: 1.45; }
+.oxygen_index_main { display: flex; align-items: baseline; gap: 14px; }
+.oxygen_index_big { font-size: 2.6rem; font-weight: 800; color: var(--purple); line-height: 1; }
+.oxygen_index_meta { display: flex; flex-direction: column; gap: 2px; }
+.oxygen_index_meta strong { font-size: 0.9rem; color: var(--text); }
+.oxygen_index_hint { font-size: 0.78rem; color: var(--text-muted); }
+.oxygen_div { font-size: 0.78rem; color: var(--text-secondary); background: var(--purple-bg); border-radius: var(--radius-sm); padding: 8px 10px; margin: 12px 0 0; line-height: 1.45; }
 
 /* ── Load weather ── */
-.oxy-weather-line { display: flex; align-items: baseline; gap: 8px; margin-bottom: 12px; }
-.oxy-load-num { font-size: 1.6rem; font-weight: 800; color: var(--text); }
-.oxy-load-label { font-size: 0.78rem; color: var(--text-muted); }
-.oxy-chips { display: flex; flex-wrap: wrap; gap: 8px; }
-.oxy-chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px; border-radius: 999px; border: 1px solid var(--border); background: var(--bg-hover); font-size: 0.76rem; color: var(--text-secondary); }
-.oxy-chip.quiet { opacity: 0.55; }
-.oxy-chip-x { background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: 0.7rem; padding: 0 2px; }
-.oxy-chip-x:hover { color: var(--text); }
+.oxygen_weather_line { display: flex; align-items: baseline; gap: 8px; margin-bottom: 12px; }
+.oxygen_load_number { font-size: 1.6rem; font-weight: 800; color: var(--text); }
+.oxygen_load_label { font-size: 0.78rem; color: var(--text-muted); }
+.oxygen_chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.oxygen_chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px; border-radius: 999px; border: 1px solid var(--border); background: var(--bg-hover); font-size: 0.76rem; color: var(--text-secondary); }
+.oxygen_chip.quiet { opacity: 0.55; }
+.oxygen_chip_close { background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: 0.7rem; padding: 0 2px; }
+.oxygen_chip_close:hover { color: var(--text); }
 
 /* ── Streak + days off ── */
-.oxy-streak-line { font-size: 0.9rem; font-weight: 600; color: var(--text); margin: 0 0 4px; }
-.oxy-pardon-hint { font-size: 0.75rem; color: var(--text-muted); margin: 0 0 10px; }
-.oxy-offdays { margin-top: 10px; }
-.oxy-offdays-hint { font-size: 0.78rem; color: var(--text-secondary); margin: 0 0 10px; line-height: 1.5; }
-.oxy-days-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
-.oxy-day-toggle { padding: 6px 10px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--bg-card); color: var(--text); font-size: 0.78rem; font-weight: 600; cursor: pointer; transition: all 0.3s ease; }
-.oxy-day-toggle.off { opacity: 0.45; text-decoration: line-through; background: var(--bg-hover); }
-.oxy-offdates-label { display: block; font-size: 0.78rem; color: var(--text-secondary); margin-bottom: 6px; }
-.oxy-offdate-add { display: flex; gap: 8px; margin-bottom: 10px; }
-.oxy-offdate-add input[type='date'] { padding: 6px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-card); color: var(--text); font-size: 0.8rem; }
-.oxy-offdate-btn { padding: 6px 14px; border: none; border-radius: var(--radius-sm); background: var(--purple); color: #fff; font-size: 0.78rem; font-weight: 600; cursor: pointer; }
-.oxy-offdate-btn:disabled { opacity: 0.5; cursor: default; }
-.oxy-offdate-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.oxygen_streak_line { font-size: 0.9rem; font-weight: 600; color: var(--text); margin: 0 0 4px; }
+.oxygen_pardon_hint { font-size: 0.75rem; color: var(--text-muted); margin: 0 0 10px; }
+.oxygen_offdays { margin-top: 10px; }
+.oxygen_offdays_hint { font-size: 0.78rem; color: var(--text-secondary); margin: 0 0 10px; line-height: 1.5; }
+.oxygen_days_row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+.oxygen_day_toggle { padding: 6px 10px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--bg-card); color: var(--text); font-size: 0.78rem; font-weight: 600; cursor: pointer; transition: all 0.3s ease; }
+.oxygen_day_toggle.off { opacity: 0.45; text-decoration: line-through; background: var(--bg-hover); }
+.oxygen_offdates_label { display: block; font-size: 0.78rem; color: var(--text-secondary); margin-bottom: 6px; }
+.oxygen_offdate_add { display: flex; gap: 8px; margin-bottom: 10px; }
+.oxygen_offdate_add input[type='date'] { padding: 6px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-card); color: var(--text); font-size: 0.8rem; }
+.oxygen_offdate_button { padding: 6px 14px; border: none; border-radius: var(--radius-sm); background: var(--purple); color: #fff; font-size: 0.78rem; font-weight: 600; cursor: pointer; }
+.oxygen_offdate_button:disabled { opacity: 0.5; cursor: default; }
+.oxygen_offdate_list { display: flex; flex-wrap: wrap; gap: 6px; }
 
 /* ── Communs ── */
-.oxy-how { background: none; border: none; padding: 0; font-size: 0.72rem; color: var(--text-muted); text-decoration: underline; cursor: pointer; margin-top: 10px; }
-.oxy-how:hover { color: var(--text-secondary); }
-.oxy-how-body { font-size: 0.72rem; color: var(--text-muted); line-height: 1.5; margin: 6px 0 0; }
+.oxygen_how { background: none; border: none; padding: 0; font-size: 0.72rem; color: var(--text-muted); text-decoration: underline; cursor: pointer; margin-top: 10px; }
+.oxygen_how:hover { color: var(--text-secondary); }
+.oxygen_how_body { font-size: 0.72rem; color: var(--text-muted); line-height: 1.5; margin: 6px 0 0; }
 
 @media (max-width: 768px) {
-  .oxy-index-big { font-size: 2.1rem; }
+  .oxygen_index_big { font-size: 2.1rem; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .oxy-day-toggle { transition: none; }
+  .oxygen_day_toggle { transition: none; }
 }
 
 /* ── Lot 3b: Closing (page card) + the Sky ── */
-.oxy-ferm-launch { padding: 10px 18px; border: none; border-radius: 999px; background: var(--purple); color: #fff; font-size: 0.85rem; font-weight: 600; cursor: pointer; }
-.oxy-ferm-launch:hover { opacity: 0.92; }
-.oxy-ferm-done-line { font-size: 0.85rem; color: var(--text-secondary); margin: 0; }
-.oxy-ciel-hint { font-size: 0.78rem; color: var(--text-muted); margin: 0 0 12px; }
+.oxygen_ferm_launch { padding: 10px 18px; border: none; border-radius: 999px; background: var(--purple); color: #fff; font-size: 0.85rem; font-weight: 600; cursor: pointer; }
+.oxygen_ferm_launch:hover { opacity: 0.92; }
+.oxygen_ferm_done_line { font-size: 0.85rem; color: var(--text-secondary); margin: 0; }
+.oxygen_ciel_hint { font-size: 0.78rem; color: var(--text-muted); margin: 0 0 12px; }

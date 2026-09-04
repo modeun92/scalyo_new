@@ -1,41 +1,41 @@
 <template>
-  <Transition name="so-slide">
-    <div v-if="open" class="so-overlay" @click.self="$emit('close')">
-      <div class="so-panel">
-        <div class="so-head">
+  <Transition name="slide_over_slide">
+    <div v-if="open" class="roadmap_slide_over_overlay" @click.self="$emit('close')">
+      <div class="main_slide_over_panel">
+        <div class="roadmap_slide_over_header">
           <h3>{{ t('rm_new') }}</h3>
-          <button class="so-close" @click="$emit('close')">✕</button>
+          <button class="roadmap_slide_over_close" @click="$emit('close')">✕</button>
         </div>
-        <div class="so-body">
-          <p class="so-section-label">{{ t('rm_select_template') }}</p>
-          <div class="tpl-grid">
+        <div class="roadmap_slide_over_body">
+          <p class="slide_over_section_label">{{ t('rm_select_template') }}</p>
+          <div class="template_grid">
             <div
               v-for="tpl in TEMPLATES"
               :key="tpl.id"
-              class="tpl-card"
+              class="template_card"
               :class="{ selected: selectedTpl === tpl.id }"
               :style="{ borderColor: selectedTpl === tpl.id ? tpl.color : '' }"
               @click="selectedTpl = tpl.id"
             >
-              <span class="tpl-icon">{{ tpl.icon }}</span>
+              <span class="template_icon">{{ tpl.icon }}</span>
               <div>
                 <strong>{{ t('rm_tpl_' + tpl.key) }}</strong>
                 <p>{{ t('rm_tpl_' + tpl.key + '_desc') }}</p>
               </div>
             </div>
           </div>
-          <div class="so-divider">{{ t('rm_or_blank') }}</div>
-          <div class="fg">
+          <div class="slide_over_divider">{{ t('rm_or_blank') }}</div>
+          <div class="field_group">
             <label>{{ t('rm_roadmap_name') }} *</label>
-            <input v-model="form.name" class="fi" :placeholder="t('rm_roadmap_name_ph')" />
+            <input v-model="form.name" class="field_input" :placeholder="t('rm_roadmap_name_ph')" />
           </div>
-          <div class="fg mt">
+          <div class="field_group mt">
             <label>{{ t('rm_start_date') }}</label>
-            <input v-model="form.startDate" type="date" class="fi" />
+            <input v-model="form.startDate" type="date" class="field_input" />
           </div>
-          <div class="so-actions">
-            <button class="btn-outline" @click="$emit('close')">{{ t('cancel') }}</button>
-            <button class="btn-primary" @click="doCreate" :disabled="!form.name">{{ t('rm_create') }}</button>
+          <div class="slide_over_actions">
+            <button class="button_outline" @click="$emit('close')">{{ t('cancel') }}</button>
+            <button class="button_primary" @click="doCreate" :disabled="!form.name">{{ t('rm_create') }}</button>
           </div>
         </div>
       </div>

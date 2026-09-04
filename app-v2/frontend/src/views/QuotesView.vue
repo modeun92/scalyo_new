@@ -1,15 +1,15 @@
 <template>
-  <div class="quotes-view">
-    <div class="qt-header">
-      <div><h1>📄 {{ t('qt_title') }}</h1><p class="qt-sub">{{ t('qt_subtitle') }}</p></div>
-      <div class="qt-actions">
-        <button class="btn-outline" @click="configOpen = true">{{ t('qt_config') }}</button>
-        <button class="btn-primary" @click="slideOpen = true">{{ t('qt_new') }}</button>
+  <div class="quotes_view">
+    <div class="quote_header">
+      <div><h1>📄 {{ t('qt_title') }}</h1><p class="quote_sub">{{ t('qt_subtitle') }}</p></div>
+      <div class="quote_actions">
+        <button class="button_outline" @click="configOpen = true">{{ t('qt_config') }}</button>
+        <button class="button_primary" @click="slideOpen = true">{{ t('qt_new') }}</button>
       </div>
     </div>
 
     <!-- Country banner -->
-    <div v-if="billingCountry" class="qt-country-banner">
+    <div v-if="billingCountry" class="quote_country_banner">
       <span>{{ laws.flag }} {{ laws.name }}</span>
       <!-- QUOTE-VAT (27/08): the field is called taxRate — "laws.tva" never existed -->
       <span>{{ t('qt_field_tax') }}: {{ laws.taxRate }}% ({{ laws.taxName }})</span>
@@ -17,47 +17,47 @@
     </div>
 
     <!-- KPIs -->
-    <div class="qt-kpis">
-      <div class="qtk"><span class="qtk-val">{{ quotes.length }}</span><span class="qtk-lbl">{{ t('qt_total') }}</span></div>
-      <div class="qtk"><span class="qtk-val">{{ conversionRate }}%</span><span class="qtk-lbl">{{ t('qt_conversion') }}</span></div>
+    <div class="quote_kpis">
+      <div class="kpi_quote"><span class="kpi_quote_value">{{ quotes.length }}</span><span class="kpi_quote_label">{{ t('qt_total') }}</span></div>
+      <div class="kpi_quote"><span class="kpi_quote_value">{{ conversionRate }}%</span><span class="kpi_quote_label">{{ t('qt_conversion') }}</span></div>
       <!-- CURRENCY-FORMAT: a quote follows the currency of ITS billing country (ISO code from countryLaws), formatted to the locale -->
-      <div class="qtk"><span class="qtk-val green">{{ fmtCurrency(wonAmount, { currency: laws.currency }) }}</span><span class="qtk-lbl">{{ t('qt_won') }}</span></div>
+      <div class="kpi_quote"><span class="kpi_quote_value green">{{ fmtCurrency(wonAmount, { currency: laws.currency }) }}</span><span class="kpi_quote_label">{{ t('qt_won') }}</span></div>
     </div>
 
     <!-- Filters -->
-    <div class="qt-filters">
-      <button v-for="f in filters" :key="f.key" class="ftab" :class="{ active: activeFilter === f.key }" @click="activeFilter = f.key">{{ t(f.label) }}</button>
+    <div class="quote_filters">
+      <button v-for="f in filters" :key="f.key" class="filter_tab" :class="{ active: activeFilter === f.key }" @click="activeFilter = f.key">{{ t(f.label) }}</button>
     </div>
 
     <!-- List -->
-    <div v-if="filtered.length" class="qt-list">
-      <div v-for="q in filtered" :key="q.id" class="qt-card">
-        <div class="qtc-left">
+    <div v-if="filtered.length" class="quote_list">
+      <div v-for="q in filtered" :key="q.id" class="quote_card">
+        <div class="quote_card_left">
           <strong>{{ q.title }}</strong>
-          <span class="qtc-client qtc-client-link" v-if="q.clientId" @click="clientModal.open(q.clientId)">{{ clientName(q.clientId) }}</span>
-          <span class="qtc-client" v-else>{{ clientName(q.clientId) }}</span>
-          <span class="qtc-company" v-if="q.company">{{ q.company }}</span>
+          <span class="quote_card_client quote_card_client_link" v-if="q.clientId" @click="clientModal.open(q.clientId)">{{ clientName(q.clientId) }}</span>
+          <span class="quote_card_client" v-else>{{ clientName(q.clientId) }}</span>
+          <span class="quote_card_company" v-if="q.company">{{ q.company }}</span>
         </div>
-        <div class="qtc-right">
-          <span class="qtc-amount">{{ fmtCurrency(q.amount, { currency: quoteCurrency(q) }) }}</span>
-          <select class="qtc-status" :class="q.status" :value="q.status" @change="changeStatus(q, $event.target.value)" :title="t('qt_field_status')">
+        <div class="quote_card_right">
+          <span class="quote_card_amount">{{ fmtCurrency(q.amount, { currency: quoteCurrency(q) }) }}</span>
+          <select class="quote_card_status" :class="q.status" :value="q.status" @change="changeStatus(q, $event.target.value)" :title="t('qt_field_status')">
             <option value="draft">{{ t('qt_filter_draft') }}</option>
             <option value="sent">{{ t('qt_filter_sent') }}</option>
             <option value="won">{{ t('qt_filter_won') }}</option>
             <option value="lost">{{ t('qt_filter_lost') }}</option>
           </select>
-          <button class="btn-pdf" @click="handlePdf(q)" :title="t('qt_download_pdf')">📄</button>
-          <button class="btn-delete" @click="deleteQuote(q.id)" :title="t('qt_delete')">🗑</button>
+          <button class="button_pdf" @click="handlePdf(q)" :title="t('qt_download_pdf')">📄</button>
+          <button class="button_delete" @click="deleteQuote(q.id)" :title="t('qt_delete')">🗑</button>
         </div>
       </div>
     </div>
 
     <!-- Empty -->
-    <div v-else class="qt-empty">
-      <div class="empty-icon">📄</div>
+    <div v-else class="quote_empty">
+      <div class="empty_icon">📄</div>
       <h3>{{ t('qt_empty_title') }}</h3>
       <p>{{ t('qt_empty_note') }}</p>
-      <button class="btn-primary" @click="slideOpen = true">{{ t('qt_new') }}</button>
+      <button class="button_primary" @click="slideOpen = true">{{ t('qt_new') }}</button>
     </div>
 
     <!-- Create Modal -->
@@ -168,8 +168,8 @@ async function createQuote() {
 </script>
 
 <style scoped>
-.qtc-client-link { cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
-.qtc-client-link:hover { color: var(--primary); }
-/* Quote status bug: the badge becomes a selector; keeps the colored pill (.qtc-status.*) */
-select.qtc-status { cursor: pointer; border: 1px solid var(--border); font-family: inherit; line-height: 1.2; }
+.quote_card_client_link { cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+.quote_card_client_link:hover { color: var(--primary); }
+/* Quote status bug: the badge becomes a selector; keeps the colored pill (.quote_card_status.*) */
+select.quote_card_status { cursor: pointer; border: 1px solid var(--border); font-family: inherit; line-height: 1.2; }
 </style>

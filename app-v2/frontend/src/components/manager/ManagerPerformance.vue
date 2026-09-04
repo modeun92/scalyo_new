@@ -1,27 +1,27 @@
 <template>
-  <section class="mgr-section">
+  <section class="manager_section">
     <h2>📊 {{ t('mgr_performance') }}</h2>
-    <div class="perf-table">
-      <div class="perf-header">
+    <div class="performance_table">
+      <div class="performance_header">
         <span>CSM</span>
         <span>{{ t('mgr_clients_managed') }}</span>
         <span>{{ t('mgr_arr_managed') }}</span>
         <span>{{ t('kpi_health') }}</span>
       </div>
-      <div v-for="m in members" :key="m.id" class="perf-row">
-        <div class="perf-name">
-          <div class="perf-avatar" :class="m.statusLabel === 'overloaded' ? 'overloaded' : m.statusLabel ? 'healthy' : ''">{{ m.name[0] }}</div>
+      <div v-for="m in members" :key="m.id" class="performance_row">
+        <div class="performance_name">
+          <div class="performance_avatar" :class="m.statusLabel === 'overloaded' ? 'overloaded' : m.statusLabel ? 'healthy' : ''">{{ m.name[0] }}</div>
           <div>
             <strong>{{ m.name }}</strong>
-            <span class="perf-role">{{ m.role }}</span>
+            <span class="performance_role">{{ m.role }}</span>
           </div>
         </div>
         <!-- TEAM-METRICS (29/08): accounts and ARR DERIVED from the clients store by csm_id
              (m.clientCount/m.arrManaged from the team store are null by B-09 design) -->
-        <span class="perf-val">{{ clientCountFor(m.id) }}</span>
-        <span class="perf-val">{{ fmtCurrency(arrManagedFor(m.id), { compact: true }) }}</span>
-        <span class="perf-val">
-          <span class="health-pill" :class="avgHealthClass(m.id)">
+        <span class="performance_value">{{ clientCountFor(m.id) }}</span>
+        <span class="performance_value">{{ fmtCurrency(arrManagedFor(m.id), { compact: true }) }}</span>
+        <span class="performance_value">
+          <span class="health_pill" :class="avgHealthClass(m.id)">
             {{ avgHealthForCsm(m.id) }}
           </span>
         </span>

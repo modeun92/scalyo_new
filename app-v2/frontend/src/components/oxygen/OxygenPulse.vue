@@ -105,45 +105,45 @@ function onSaved() {
 </script>
 
 <template>
-  <div ref="rootRef" class="oxy-pulse">
+  <div ref="rootRef" class="oxygen_pulse">
     <!-- NEUTRAL dot (decision by Lidia 28/07): NO health data visible in the
          topbar — neither index nor state, identical rendering for everyone all day long.
          The index only appears on a deliberate click, inside the popover. -->
-    <button class="oxy-pill" :class="{ 'oxy-halo': microHalo }" title="Oxygen" :aria-label="t('oxy_pulse_cta')" @click="toggle">
-      <span class="oxy-icon" aria-hidden="true">🫧</span>
+    <button class="oxygen_pill" :class="{ 'oxygen_halo': microHalo }" title="Oxygen" :aria-label="t('oxy_pulse_cta')" @click="toggle">
+      <span class="oxygen_icon" aria-hidden="true">🫧</span>
     </button>
 
     <transition name="fade">
-      <div v-if="open" class="oxy-popover">
-        <div class="oxy-head">
+      <div v-if="open" class="oxygen_popover">
+        <div class="oxygen_header">
           <strong>{{ t('oxy_checkin_title') }}</strong>
-          <button class="oxy-close" :aria-label="t('oxy_close')" @click="open = false">✕</button>
+          <button class="oxygen_close" :aria-label="t('oxy_close')" @click="open = false">✕</button>
         </div>
 
         <OxygenCheckinForm autofocus @saved="onSaved" />
 
-        <div class="oxy-index-line">
-          <span class="oxy-index-num">{{ displayIndex }}</span>
-          <span class="oxy-index-label">{{ t('oxy_index_label') }}</span>
+        <div class="oxygen_index_line">
+          <span class="oxygen_index_number">{{ displayIndex }}</span>
+          <span class="oxygen_index_label">{{ t('oxy_index_label') }}</span>
         </div>
 
-        <p v-if="streakText" class="oxy-streak">{{ streakText }}</p>
-        <p v-if="engine.divergenceActive" class="oxy-div">{{ t('oxy_divergence') }}</p>
-        <div v-if="microHalo" class="oxy-micro-card">
-          <p class="oxy-micro-prompt">{{ t('oxy_micro_prompt') }}</p>
-          <div class="oxy-micro-actions">
-            <button class="oxy-micro-go" @click="startMicro">{{ t('oxy_micro_go') }}</button>
-            <button class="oxy-micro-later" @click="recoveries.dismissMicroToday()">{{ t('oxy_micro_dismiss') }}</button>
+        <p v-if="streakText" class="oxygen_streak">{{ streakText }}</p>
+        <p v-if="engine.divergenceActive" class="oxygen_div">{{ t('oxy_divergence') }}</p>
+        <div v-if="microHalo" class="oxygen_micro_card">
+          <p class="oxygen_micro_prompt">{{ t('oxy_micro_prompt') }}</p>
+          <div class="oxygen_micro_actions">
+            <button class="oxygen_micro_go" @click="startMicro">{{ t('oxy_micro_go') }}</button>
+            <button class="oxygen_micro_later" @click="recoveries.dismissMicroToday()">{{ t('oxy_micro_dismiss') }}</button>
           </div>
         </div>
 
-        <p v-if="closingDone" class="oxy-evening-note">✓ {{ t('oxy_ferm_done_badge') }}</p>
-        <button v-else-if="eveningReady" class="oxy-evening-btn" @click="startClosing">
+        <p v-if="closingDone" class="oxygen_evening_note">✓ {{ t('oxy_ferm_done_badge') }}</p>
+        <button v-else-if="eveningReady" class="oxygen_evening_button" @click="startClosing">
           🌙 {{ t('oxy_pulse_ready') }}
         </button>
 
-        <button class="oxy-how" @click="showHow = !showHow">{{ t('oxy_how_title') }}</button>
-        <p v-if="showHow" class="oxy-how-body">{{ t('oxy_how_body', { load: loadStore.loadScore }) }}</p>
+        <button class="oxygen_how" @click="showHow = !showHow">{{ t('oxy_how_title') }}</button>
+        <p v-if="showHow" class="oxygen_how_body">{{ t('oxy_how_body', { load: loadStore.loadScore }) }}</p>
       </div>
     </transition>
 
@@ -152,49 +152,49 @@ function onSaved() {
 </template>
 
 <style scoped>
-.oxy-pulse { position: relative; }
+.oxygen_pulse { position: relative; }
 
 /* ── Pastille ── */
-.oxy-pill { display: flex; align-items: center; padding: 5px 11px; border-radius: 999px; border: 1px solid var(--border); background-color: var(--bg-card); cursor: pointer; transition: background 0.15s; }
-.oxy-pill:hover { background: var(--bg-hover); }
-.oxy-icon { font-size: 0.95rem; line-height: 1; }
+.oxygen_pill { display: flex; align-items: center; padding: 5px 11px; border-radius: 999px; border: 1px solid var(--border); background-color: var(--bg-card); cursor: pointer; transition: background 0.15s; }
+.oxygen_pill:hover { background: var(--bg-hover); }
+.oxygen_icon { font-size: 0.95rem; line-height: 1; }
 
 /* ── Popover (pattern notif-dropdown) ── */
-.oxy-popover { position: absolute; top: 100%; right: 0; margin-top: 8px; width: 320px; background-color: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); box-shadow: var(--shadow-lg); z-index: 200; padding: 16px; }
-.oxy-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-.oxy-head strong { font-size: 0.9rem; }
-.oxy-close { background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: 0.85rem; padding: 2px 6px; }
-.oxy-close:hover { color: var(--text); }
+.oxygen_popover { position: absolute; top: 100%; right: 0; margin-top: 8px; width: 320px; background-color: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); box-shadow: var(--shadow-lg); z-index: 200; padding: 16px; }
+.oxygen_header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.oxygen_header strong { font-size: 0.9rem; }
+.oxygen_close { background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: 0.85rem; padding: 2px 6px; }
+.oxygen_close:hover { color: var(--text); }
 
-.oxy-index-line { display: flex; align-items: baseline; gap: 8px; margin-top: 12px; }
-.oxy-index-num { font-size: 1.4rem; font-weight: 800; color: var(--purple); }
-.oxy-index-label { font-size: 0.75rem; color: var(--text-muted); }
+.oxygen_index_line { display: flex; align-items: baseline; gap: 8px; margin-top: 12px; }
+.oxygen_index_number { font-size: 1.4rem; font-weight: 800; color: var(--purple); }
+.oxygen_index_label { font-size: 0.75rem; color: var(--text-muted); }
 
-.oxy-streak { font-size: 0.75rem; color: var(--text-secondary); margin: 6px 0 0; }
-.oxy-div { font-size: 0.78rem; color: var(--text-secondary); background: var(--purple-bg); border-radius: var(--radius-sm); padding: 8px 10px; margin: 8px 0 0; line-height: 1.45; }
-.oxy-evening-note { font-size: 0.75rem; color: var(--text-muted); margin: 6px 0 0; }
+.oxygen_streak { font-size: 0.75rem; color: var(--text-secondary); margin: 6px 0 0; }
+.oxygen_div { font-size: 0.78rem; color: var(--text-secondary); background: var(--purple-bg); border-radius: var(--radius-sm); padding: 8px 10px; margin: 8px 0 0; line-height: 1.45; }
+.oxygen_evening_note { font-size: 0.75rem; color: var(--text-muted); margin: 6px 0 0; }
 
-.oxy-how { background: none; border: none; padding: 0; margin-top: 10px; font-size: 0.72rem; color: var(--text-muted); text-decoration: underline; cursor: pointer; }
-.oxy-how:hover { color: var(--text-secondary); }
-.oxy-how-body { font-size: 0.72rem; color: var(--text-muted); line-height: 1.5; margin: 6px 0 0; }
+.oxygen_how { background: none; border: none; padding: 0; margin-top: 10px; font-size: 0.72rem; color: var(--text-muted); text-decoration: underline; cursor: pointer; }
+.oxygen_how:hover { color: var(--text-secondary); }
+.oxygen_how_body { font-size: 0.72rem; color: var(--text-muted); line-height: 1.5; margin: 6px 0 0; }
 
 @media (max-width: 768px) {
-  .oxy-popover { position: fixed; left: 16px; right: 16px; top: calc(var(--topbar-height) + 8px); width: auto; }
+  .oxygen_popover { position: fixed; left: 16px; right: 16px; top: calc(var(--topbar-height) + 8px); width: auto; }
 }
 /* Lot 3b — micro halo: constant accent, NO health data (neutrality) */
-.oxy-pill.oxy-halo { box-shadow: 0 0 0 3px var(--purple-bg), 0 0 10px 2px rgba(124, 58, 237, 0.3); }
+.oxygen_pill.oxygen_halo { box-shadow: 0 0 0 3px var(--purple-bg), 0 0 10px 2px rgba(124, 58, 237, 0.3); }
 
-.oxy-micro-card { background: var(--purple-bg); border-radius: var(--radius-sm); padding: 10px 12px; margin-top: 10px; }
-.oxy-micro-prompt { font-size: 0.8rem; color: var(--text); margin: 0 0 8px; }
-.oxy-micro-actions { display: flex; gap: 8px; }
-.oxy-micro-go { flex: 1; padding: 7px 10px; border: none; border-radius: var(--radius-sm); background: var(--purple); color: #fff; font-size: 0.78rem; font-weight: 600; cursor: pointer; }
-.oxy-micro-later { background: none; border: none; font-size: 0.75rem; color: var(--text-muted); cursor: pointer; }
-.oxy-micro-later:hover { color: var(--text-secondary); }
+.oxygen_micro_card { background: var(--purple-bg); border-radius: var(--radius-sm); padding: 10px 12px; margin-top: 10px; }
+.oxygen_micro_prompt { font-size: 0.8rem; color: var(--text); margin: 0 0 8px; }
+.oxygen_micro_actions { display: flex; gap: 8px; }
+.oxygen_micro_go { flex: 1; padding: 7px 10px; border: none; border-radius: var(--radius-sm); background: var(--purple); color: #fff; font-size: 0.78rem; font-weight: 600; cursor: pointer; }
+.oxygen_micro_later { background: none; border: none; font-size: 0.75rem; color: var(--text-muted); cursor: pointer; }
+.oxygen_micro_later:hover { color: var(--text-secondary); }
 
-.oxy-evening-btn { width: 100%; margin-top: 10px; padding: 8px 10px; border: 1px solid var(--purple); border-radius: var(--radius-sm); background: none; color: var(--purple); font-size: 0.8rem; font-weight: 600; cursor: pointer; }
-.oxy-evening-btn:hover { background: var(--purple-bg); }
+.oxygen_evening_button { width: 100%; margin-top: 10px; padding: 8px 10px; border: 1px solid var(--purple); border-radius: var(--radius-sm); background: none; color: var(--purple); font-size: 0.8rem; font-weight: 600; cursor: pointer; }
+.oxygen_evening_button:hover { background: var(--purple-bg); }
 
 @media (prefers-reduced-motion: reduce) {
-  .oxy-pill { transition: none; }
+  .oxygen_pill { transition: none; }
 }
 </style>
