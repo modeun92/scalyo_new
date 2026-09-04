@@ -31,7 +31,7 @@ import { useTaskStore } from '@/stores/tasks'
 import { useSnapshotStore } from '@/stores/snapshots'
 import { useQuoteStore } from '@/stores/quotes'
 import { useClientMetricsStore } from '@/stores/clientMetrics'
-import { KPI_CATALOG, KPI_CATEGORIES } from '@/data/kpiCatalog'
+import { KPI_CATALOG, KPI_CATEGORIES } from '@/config/kpis'
 import KpiCustomizer from '@/components/KpiCustomizer.vue'
 import DashHeader from '@/components/dashboard/DashHeader.vue'
 import DashKpiSection from '@/components/dashboard/DashKpiSection.vue'
@@ -77,7 +77,7 @@ const beginningArr = computed(() => {
 })
 
 
-// Catalog-based KPI config (source: kpiCatalog.js)
+// Catalog-based KPI config (source: config/kpis.js)
 const catalogMap = Object.fromEntries(KPI_CATALOG.map(k => [k.id, k]))
 const categoryMap = Object.fromEntries(KPI_CATEGORIES.map(c => [c.id, c]))
 const DATA_SOURCES = computed(() => ({
@@ -128,7 +128,7 @@ const lowerIsBetter = !!cat.inverse
 const change = currentValue != null ? snapStore.calcChange(id, currentValue, snapStore.comparePeriod, lowerIsBetter) : null
 const rule = WARN_RULES[id]
 const warn = rule && currentValue != null ? (rule.above != null ? currentValue > rule.above : rule.below != null ? currentValue < rule.below : false) : false
-const label = locale.value === 'en' ? (cat.labelEN || cat.label) : locale.value === 'ko' ? (cat.labelKO || cat.label) : cat.label
+const label = t(cat.label) // KPI-I18N (04/09): the catalog carries the i18n key
 // B-06: calcChange contract = {value,type,hasData} — the badge displays value ("+X%") and is colored by type (the old mapping read non-existent label/class → empty, always-neutral badge)
 return { id, icon: catIcon, label, display, warn, change: change?.value ?? null, changeLabel: change?.value ?? '', changeClass: change?.type ?? 'neutral' }
 }).filter(Boolean)

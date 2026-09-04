@@ -13,7 +13,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { KPI_CATALOG } from '@/data/kpiCatalog'
+import { KPI_CATALOG } from '@/config/kpis'
 
 const props = defineProps({
   kpiId: { type: String, required: true },
@@ -29,12 +29,9 @@ import { fmtCurrency, kpiUnit } from '@/lib/formatters'
 
 const meta = computed(() => KPI_CATALOG.find(k => k.id === props.kpiId))
 
-const localLabel = computed(() => {
-  if (!meta.value) return props.kpiId
-  if (locale.value === 'en') return meta.value.labelEN || meta.value.label
-  if (locale.value === 'ko') return meta.value.labelKO || meta.value.label
-  return meta.value.label
-})
+// KPI-I18N (04/09): the catalog carries an i18n KEY, t() resolves it — no more
+// per-component locale ladder over labelEN / labelKO. Unknown id → the id itself.
+const localLabel = computed(() => meta.value ? t(meta.value.label) : props.kpiId)
 
 const isPercent = computed(() => meta.value?.format === 'percentage')
 

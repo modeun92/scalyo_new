@@ -58,7 +58,7 @@ import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { suggestBlock, buildMetricBlock } from '@/utils/smartVisual.js'
 import { useClientMetricsStore } from '@/stores/clientMetrics'
-import { KPI_CATALOG } from '@/data/kpiCatalog'
+import { KPI_CATALOG } from '@/config/kpis'
 import { fmtMonth, kpiUnit } from '@/lib/formatters'
 
 const { t, locale } = useI18n({ useScope: 'global' })
@@ -73,9 +73,8 @@ const clientKpis = computed(() => {
   if (!props.clientId) return []
   return KPI_CATALOG.filter(k => k.source === 'manual' && metricsStore.seriesFor(props.clientId, k.id).length)
 })
-function kpiLabel(k) {
-  return locale.value === 'en' ? (k.labelEN || k.label) : locale.value === 'ko' ? (k.labelKO || k.label) : k.label
-}
+// KPI-I18N (04/09): k.label is an i18n key, not a French string.
+function kpiLabel(k) { return t(k.label) }
 // Pre-fills the form with the real monthly series (last 12 months max).
 // hint forced: ≥ 2 points → line chart, 1 point → KPI card (independent of the label
 // language — isTemporalLabels does not recognize Korean months).

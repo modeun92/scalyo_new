@@ -210,12 +210,12 @@ import { useNotificationStore } from '@/stores/notifications'
 import { useQuoteStore } from '@/stores/quotes'
 import { useCreatePrefillStore } from '@/stores/createPrefill'
 import { useClientMetricsStore, currentMonth } from '@/stores/clientMetrics'
-import { KPI_CATALOG } from '@/data/kpiCatalog'
+import { KPI_CATALOG } from '@/config/kpis'
 import { supabase } from '@/lib/supabase'
 import { fmtDate, fmtKpiValue, fmtMonth, fmtCurrency, currencySymbol, kpiUnit } from '@/lib/formatters'
 import { notifTitle } from '@/lib/notifText'
 
-const { t, locale } = useI18n({ useScope: 'global' })
+const { t } = useI18n({ useScope: 'global' })
 const router = useRouter()
 const modal = useClientModalStore()
 const notesStore = useClientNotesStore()
@@ -326,10 +326,11 @@ function closeKpiListSoon() { setTimeout(() => { kpiListOpen.value = false }, 15
 const canSaveMetric = computed(() =>
   metricDraft.kpiId && metricDraft.month && metricDraft.value !== '' && !Number.isNaN(Number(metricDraft.value)))
 function kpiFormat(id) { return KPI_BY_ID[id]?.format || 'number' }
+// KPI-I18N (04/09): k.label is an i18n key. An id absent from the catalog (a KPI retired
+// after a client measurement was written) still renders as its raw id — never blank.
 function metricLabel(id) {
   const k = KPI_BY_ID[id]
-  if (!k) return id
-  return locale.value === 'en' ? (k.labelEN || k.label) : locale.value === 'ko' ? (k.labelKO || k.label) : k.label
+  return k ? t(k.label) : id
 }
 function toggleMetric(id) { metricOpen[id] = !metricOpen[id] }
 async function submitMetric() {

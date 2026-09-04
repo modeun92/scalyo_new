@@ -84,9 +84,10 @@ broke something visible. Do not relax one without saying so explicitly.
    synced **by hand**: change both.
 4. **Code in English, product content in the user's language.** See the table in
    [docs/CODE_STYLE.md](docs/CODE_STYLE.md#language-policy). Never translate i18n values,
-   AI prompts, email bodies, KPI catalog labels, public FR pages, **persisted French enum
+   AI prompts, email bodies, public FR pages, **persisted French enum
    values** (`kind = 'cloture'`, `category = 'renouvellement'`, CSV import aliases) or
-   public SEO slugs.
+   public SEO slugs. A label that reaches the screen belongs in i18n — including the KPI
+   library's (`kpilib_<id>` / `kpilibcat_<id>`), which `config/kpis.js` references by key.
 5. **No `t()` in a store.** Stores return i18n keys plus params; views render them.
    Outside a component, use `i18n.global`, never `useI18n()`.
 6. **`fetchAllRows` for any complete read.** PostgREST truncates at 1000 rows with no
@@ -102,7 +103,7 @@ broke something visible. Do not relax one without saying so explicitly.
    (`user_profiles.currency`), not of the language. Zero conversion. The offered codes live
    once in `src/config/currencies.js`; the account picks one in Settings → Preferences
    (`stores/profile.setCurrency`). A KPI's unit suffix comes from `formatters.kpiUnit`,
-   never from a literal in `data/kpiCatalog.js`.
+   never from a literal in `config/kpis.js`.
 10. **No native `confirm()`.** Use the shared `ConfirmDialog`.
 11. **Partial updates must be partial-safe.** A field absent from the input is not sent.
     Insert defaults live in the `add*` functions, not in the mapper.

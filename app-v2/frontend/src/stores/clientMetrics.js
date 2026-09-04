@@ -3,7 +3,7 @@ import { ref, computed } from 'vue'
 import { supabase } from '@/lib/supabase'
 import { withWrite } from '@/lib/supabaseWrite'
 import { useAuthStore } from '@/stores/auth'
-import { KPI_CATALOG } from '@/data/kpiCatalog'
+import { KPI_CATALOG } from '@/config/kpis'
 
 // Manual KPIs batch (contract approved 22/07): MONTHLY measurements entered per client
 // for the catalog KPIs without an automatic source (source:'manual').

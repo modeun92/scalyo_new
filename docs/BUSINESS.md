@@ -75,7 +75,9 @@ a sales CRM. The software's economics start where the pipeline ends.
 
 ## 2. Who the buyer is, from the taxonomies and the permission matrix
 
-`src/data/kpiCatalog.js` carries 64 KPIs, each tagged with the roles and sectors it serves.
+`src/config/kpis.js` carries 53 KPIs in 11 categories, each tagged with the roles and
+sectors it serves. (An earlier count of "64" here summed the 53 KPIs and the 11 category
+rows.) Their labels live in i18n under `kpilib_<id>` / `kpilibcat_<id>`.
 Counting the tags is the cleanest available description of the target user:
 
 | Role tag | KPIs |
@@ -97,7 +99,7 @@ Counting the tags is the cleanest available description of the target user:
 
 The KPI categories are weighted the same way: `revenue` 9, `retention` 7, `acquisition` 6,
 `satisfaction` 5, `activation` 5, `team` 5, `expansion` 4, `support` 3, `engagement` 3,
-`ecommerce` 3, `projects` 3. Ten of the 64 are marked `inverse: true` — lower is better —
+`ecommerce` 3, `projects` 3. Ten of the 53 are marked `inverse: true` — lower is better —
 and every one of those is a churn, risk or cost metric.
 
 `ROLES` in `plans.config.js` defines four levels with a full read/write matrix over eleven

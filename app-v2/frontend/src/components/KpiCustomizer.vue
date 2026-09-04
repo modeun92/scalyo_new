@@ -56,7 +56,7 @@
 <script setup>
 import { ref, reactive, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { KPI_CATALOG, KPI_CATEGORIES } from '@/data/kpiCatalog'
+import { KPI_CATALOG, KPI_CATEGORIES } from '@/config/kpis'
 import SlideOver from '@/components/SlideOver.vue'
 // CURRENCY-ACCOUNT (04/09): the unit shown next to a monetary KPI is the ACCOUNT symbol.
 import { kpiUnit } from '@/lib/formatters'
@@ -70,7 +70,7 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'update:modelValue'])
 
-const { t, locale } = useI18n({ useScope: 'global' })
+const { t } = useI18n({ useScope: 'global' })
 
 const search = ref('')
 const roleFilter = ref('all')
@@ -95,8 +95,13 @@ const filteredKpis = computed(() => {
   let list = KPI_CATALOG
   if (roleFilter.value !== 'all') list = list.filter(k => k.roles?.includes(roleFilter.value))
   if (search.value) {
-    const q = search.value.toLowerCase()
-    list = list.filter(k => k.label.toLowerCase().includes(q) || k.labelEN?.toLowerCase().includes(q) || k.id.includes(q))
+    // KPI-I18N (04/09): the catalog no longer carries a FR + EN string to match against, so the
+    // search runs on the label AS DISPLAYED plus the id. The id keeps a French UI findable by its
+    // English name ("churn" finds "Taux de Churn"), which is what matching labelEN used to give.
+    // normTxt: accent-insensitive, so "recurrent" matches "Récurrent" — the old lowercase-only
+    // filter returned nothing for an accented label typed without its accent.
+    const q = normTxt(search.value)
+    list = list.filter(k => normTxt(kpiLabel(k.id)).includes(q) || k.id.includes(q))
   }
   return list
 })
@@ -107,18 +112,14 @@ const filteredCategories = computed(() => {
 
 function catKpis(catId) { return filteredKpis.value.filter(k => k.cat === catId) }
 
-function catLabel(cat) {
-  if (locale.value === 'en') return cat.labelEN
-  if (locale.value === 'ko') return cat.labelKO
-  return cat.labelFR
-}
+// KPI-I18N (04/09): both the KPI and its category carry an i18n key; t() resolves it.
+function normTxt(s) { return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '') }
+
+function catLabel(cat) { return t(cat.label) }
 
 function kpiLabel(id) {
   const kpi = KPI_CATALOG.find(k => k.id === id)
-  if (!kpi) return id
-  if (locale.value === 'en') return kpi.labelEN || kpi.label
-  if (locale.value === 'ko') return kpi.labelKO || kpi.label
-  return kpi.label
+  return kpi ? t(kpi.label) : id
 }
 
 function toggleKpi(id) {

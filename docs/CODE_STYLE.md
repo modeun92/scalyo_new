@@ -13,12 +13,11 @@ identifiers, CSS class names, file names and internal keys.
 
 | Kind | Where |
 |---|---|
-| UI strings | `src/i18n/fr.js`, `src/i18n/fr-content.js`, `landing.js`, `legal.js`, `dpa.js` |
+| UI strings | `src/i18n/fr.js`, `src/i18n/fr-content.js`, `landing.js`, `legal.js`, `dpa.js` — **including the KPI library labels** (`kpilib_<id>` / `kpilibcat_<id>`), which used to be a `label`/`labelEN`/`labelKO` table inside the catalog file and were therefore invisible to `check-i18n.mjs` |
 | AI system prompts | `functions/api/_prompts/*`, the inlined wellbeing prompt in `_modules/index.js` and `ai.js` |
 | Email template bodies | `src/i18n/*-content.js`, and the `[Entreprise]` / `[ENTREPRISE]` substitution tokens |
 | Email/notification fallbacks | the hard-coded FR `title` / `body` in `stores/notifications.js`, kept as legacy fallbacks behind the locale-agnostic payload |
 | Public French pages | `public/presse/`, the FR blog articles, the FR landing at `/` |
-| KPI catalog labels | `label` in `src/data/kpiCatalog.js` (paired with `labelEN` / `labelKO`) |
 | Persisted enum values | `oxygen_recoveries.kind = 'cloture'`, `email_templates.category` (`renouvellement`, `suivi`, `risque`, `relance`, `negociation`, `prospection`), CSV import aliases in `src/config/importFields.js` |
 | Public asset and URL slugs | `og-reduire-churn-saas.png`, `scalyo-portefeuille-health-scores.webp`, `/presse/`, `reduire-churn-saas.md` — renaming these would break live SEO URLs |
 
