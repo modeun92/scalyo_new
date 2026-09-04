@@ -14,7 +14,7 @@
         <div class="field_group"><label>{{ t('sm_firstname') }}</label><input v-model="form.firstName" class="field_input" /></div>
         <div class="field_group"><label>{{ t('sm_country') }}</label>
           <select v-model="form.country" class="field_input">
-            <option v-for="c in countryLaws.allCountries" :key="c.code" :value="c.code">{{ c.flag }} {{ c.name }}</option>
+            <option v-for="c in countryLaws.allCountries" :key="c.code" :value="c.code">{{ c.flag }} {{ t(c.nameKey) }}</option>
           </select>
         </div>
         <div class="field_group"><label>{{ t('sm_company') }}</label><input v-model="form.company" class="field_input" /></div>
@@ -93,7 +93,7 @@
         <div class="legal_item"><span class="li_label">{{ t('country_law_hours_week') }}</span><span>{{ laws.hoursPerWeek }}h</span></div>
         <div class="legal_item"><span class="li_label">{{ t('country_law_vacation') }}</span><span>{{ laws.vacationDays }} {{ t('sm_vacation_days').split('/')[0] }}</span></div>
         <div class="legal_item"><span class="li_label">{{ t('country_law_holidays') }}</span><span>{{ laws.publicHolidays }}</span></div>
-        <div class="legal_item"><span class="li_label">{{ t('country_law_tax') }}</span><span>{{ laws.taxRate }}% ({{ t(laws.taxNameKey) }})</span></div>
+        <div class="legal_item"><span class="li_label">{{ t('country_law_tax') }}</span><span>{{ laws.taxRate }}% ({{ t('country_law_tax_name') }})</span></div>
       </div>
       <div class="legal_rights">
         <strong>{{ t('country_law_rights_title') }}</strong>

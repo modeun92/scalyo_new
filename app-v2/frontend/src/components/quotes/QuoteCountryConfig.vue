@@ -4,12 +4,12 @@
       <div class="field_group">
         <label>{{ t('country_law_country') }}</label>
         <select v-model="country" class="field_input" @change="$emit('update:country', country)">
-          <option v-for="c in countries" :key="c.code" :value="c.code">{{ c.flag }} {{ c.name }}</option>
+          <option v-for="c in countries" :key="c.code" :value="c.code">{{ c.flag }} {{ t(c.nameKey) }}</option>
         </select>
       </div>
       <div class="quote_law_info">
         <!-- QUOTE-VAT (27/08): the store's real fields — taxRate and currency (ISO code) -->
-        <div class="qli_row"><span>{{ t('country_law_tax') }}</span><strong>{{ laws.taxRate }}% ({{ t(laws.taxNameKey) }})</strong></div>
+        <div class="qli_row"><span>{{ t('country_law_tax') }}</span><strong>{{ laws.taxRate }}% ({{ t('country_law_tax_name') }})</strong></div>
         <div class="qli_row"><span>{{ t('country_law_currency') }}</span><strong>{{ laws.currencySymbol }} ({{ laws.currency }})</strong></div>
         <div class="qli_row"><span>{{ t('country_law_legal_number') }}</span><strong>{{ legalLabel }}</strong></div>
       </div>

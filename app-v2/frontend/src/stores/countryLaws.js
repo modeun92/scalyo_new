@@ -1,9 +1,18 @@
-// COUNTRY-LAWS-I18N (04/09): nameKey / privacyKey / taxNameKey are i18n KEYS, not text.
-// These three fields used to hold prose in ONE language per country - French for FR/BE/CH/CA,
+// COUNTRY-LAWS-I18N (04/09): nameKey and privacyKey are i18n KEYS, not text.
+// These fields used to hold prose in ONE language per country - French for FR/BE/CH/CA,
 // English for US, Korean for KR - and were rendered raw whatever the interface language was.
 // An English user reading a quote got 'RGPD (Reglement General sur la Protection des Donnees)',
 // and the KR row proved the shape could not work: name was '한국 (Coree du Sud)', Korean AND French
 // in a single string, correct in neither locale. Views render them with t() (R25 s3: no t() here).
+//
+// The tax NAME is not here and is NOT a property of the country: it follows the ACCOUNT'S REGION,
+// which is the one thing that decides how this product words anything. One key, `country_law_tax_name`
+// (TVA / VAT / 부가가치세), overridden in exactly two regional packs — fr-CA says TPS/TVQ, en-CA says
+// GST (src/i18n/regional.js). `taxNameKey` and the eighteen `country_law_tax_<CC>` keys are gone.
+//
+// Note what is NOT coupled to that: `currency` below, and the account currency, are set on their own
+// (R25 §9 — currency is a property of the account, never of the language). An en-GB account billing
+// in euros is a normal account, not a contradiction.
 //
 // Everything else in this table is language-independent on purpose: flag, ISO currency, tax rate,
 // statutory hours, the national number FORMAT.
@@ -25,7 +34,7 @@ const LAWS = {
     laborLaw: 'Code du travail',
     hoursPerWeek: 35, hoursPerDay: 7, workDaysPerWeek: 5,
     vacationDays: 25, publicHolidays: 11,
-    taxRate: 20, taxNameKey: 'country_law_tax_FR',
+    taxRate: 20,
     legalMentions: 'Mentions légales obligatoires (SIRET, RCS, capital social)',
     legalNumberFormat: '000 000 000 00000',
     dataRights: ['Consentement explicite', "Droit à l'oubli", 'Portabilité des données', 'DPO obligatoire > 250 salariés'],
@@ -38,7 +47,7 @@ const LAWS = {
     laborLaw: 'Code du bien-être au travail (loi 1996)',
     hoursPerWeek: 38, hoursPerDay: 7.6, workDaysPerWeek: 5,
     vacationDays: 20, publicHolidays: 10,
-    taxRate: 21, taxNameKey: 'country_law_tax_BE',
+    taxRate: 21,
     legalMentions: 'Numéro BCE obligatoire',
     legalNumberFormat: 'BE 0000.000.000',
     dataRights: ['CCT (Conventions Collectives de Travail)', 'GDPR complet', 'DPO recommandé'],
@@ -51,7 +60,7 @@ const LAWS = {
     laborLaw: 'Code des Obligations (CO)',
     hoursPerWeek: 42, hoursPerDay: 8.4, workDaysPerWeek: 5,
     vacationDays: 20, publicHolidays: 9,
-    taxRate: 8.1, taxNameKey: 'country_law_tax_CH',
+    taxRate: 8.1,
     legalMentions: 'Numéro IDE obligatoire',
     legalNumberFormat: 'CHE-000.000.000',
     dataRights: ['Conformité similaire RGPD', "Pas d'amende administrative directe", 'Responsabilité pénale individuelle'],
@@ -64,7 +73,7 @@ const LAWS = {
     laborLaw: 'Code canadien du travail',
     hoursPerWeek: 40, hoursPerDay: 8, workDaysPerWeek: 5,
     vacationDays: 10, publicHolidays: 9,
-    taxRate: 5, taxNameKey: 'country_law_tax_CA',
+    taxRate: 5,
     legalMentions: "Numéro d'entreprise du Québec",
     legalNumberFormat: '000000000',
     dataRights: ['Consentement valide', 'Responsable protection vie privée', 'Loi 25 Québec: amendes significatives'],
@@ -77,7 +86,7 @@ const LAWS = {
     laborLaw: 'FLSA (Fair Labor Standards Act)',
     hoursPerWeek: 40, hoursPerDay: 8, workDaysPerWeek: 5,
     vacationDays: 0, publicHolidays: 11,
-    taxRate: 0, taxNameKey: 'country_law_tax_US',
+    taxRate: 0,
     legalMentions: 'Varies by state',
     legalNumberFormat: '00-0000000',
     dataRights: ['Opt-out of data sale (CCPA)', 'No uniform federal protection', 'Rights vary by state'],
@@ -90,7 +99,7 @@ const LAWS = {
     laborLaw: '근로기준법 (Labour Standards Act)',
     hoursPerWeek: 40, hoursPerDay: 8, workDaysPerWeek: 5,
     vacationDays: 15, publicHolidays: 15,
-    taxRate: 10, taxNameKey: 'country_law_tax_KR',
+    taxRate: 10,
     legalMentions: '사업자등록번호 필수',
     legalNumberFormat: '000-00-00000',
     dataRights: ['주 52시간 최대 (40h + 12h 초과근무)', '명시적 동의 필수', '매출의 최대 3% 벌금'],

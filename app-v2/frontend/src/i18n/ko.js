@@ -1034,6 +1034,12 @@ export default {
   stg_lang_title: '인터페이스 언어',
   stg_lang_desc: 'Scalyo 사용 언어를 선택하세요.',
   stg_lang_saved: '언어 저장됨',
+  // REGIONAL-I18N (04/09): 언어만으로는 부족합니다 — 같은 언어라도 국가별 표현이 다릅니다.
+  // 여기서 선택한 국가가 그 표현 변형을 결정합니다 (src/i18n/regional.js).
+  stg_region_title: '표현 기준 국가',
+  stg_region_desc: '어느 국가의 표현을 사용할지 선택합니다. 언어는 그대로이고 어휘와 말투만 달라집니다.',
+  stg_region_saved: '국가 저장됨',
+  stg_region_error: '국가를 저장하지 못했습니다. 연결을 확인한 후 다시 시도해 주세요.',
   stg_currency_title: '계정 통화',
   stg_currency_desc: 'ARR, MRR, 파이프라인, KPI, 내보내기 등 제품의 모든 금액이 표시되는 통화입니다.',
   stg_currency_no_conversion: '환율 변환은 없습니다. 기호만 바뀌며 이미 입력된 금액은 그대로 유지됩니다.',
@@ -1077,6 +1083,7 @@ export default {
   country_law_overtime: '초과근무 수당률',
   country_law_currency: '통화',
   country_law_tax: '적용 세율',
+  country_law_tax_name: '부가가치세',
   country_law_legal_number: '필수 법정 번호',
   country_law_legal_siret: 'SIRET 번호',
   country_law_legal_bce: 'BCE 번호',
@@ -2477,6 +2484,7 @@ export default {
   country_law_country_CA: '캐나다',
   country_law_country_CH: '스위스',
   country_law_country_FR: '프랑스',
+  country_law_country_GB: '영국',
   country_law_country_KR: '대한민국',
   country_law_country_US: '미국',
   country_law_privacy_BE: 'GDPR (EU 일반 개인정보 보호법)',
@@ -2485,12 +2493,6 @@ export default {
   country_law_privacy_FR: 'GDPR (EU 일반 개인정보 보호법)',
   country_law_privacy_KR: '개인정보 보호법 (PIPA)',
   country_law_privacy_US: 'CCPA/CPRA (캘리포니아) — 연방 통합 법률 없음',
-  country_law_tax_BE: '부가가치세 (TVA)',
-  country_law_tax_CA: '상품서비스세 (GST)',
-  country_law_tax_CH: '부가가치세 (TVA)',
-  country_law_tax_FR: '부가가치세 (TVA)',
-  country_law_tax_KR: '부가가치세',
-  country_law_tax_US: '판매세 (주별 상이)',
 
   // UNIT-SUFFIX-I18N (04/09): day / hour suffix of a KPI value — were a { fr, en, ko } map
   // inside lib/formatters.js, the one place the language policy says they must not live.

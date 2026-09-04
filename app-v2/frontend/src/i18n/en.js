@@ -1071,6 +1071,12 @@ export default {
   stg_lang_title: 'Interface language',
   stg_lang_desc: 'Choose the language in which you want to use Scalyo.',
   stg_lang_saved: 'Language saved',
+  // REGIONAL-I18N (04/09): the language alone is not enough — a quote is a "soumission" in Quebec
+  // and an "offre" in Switzerland. The country picked here selects those variants.
+  stg_region_title: 'Country of expression',
+  stg_region_desc: 'The country whose wording you want: the language stays the same, only the phrasing changes (colour / color, organisation / organization).',
+  stg_region_saved: 'Country saved',
+  stg_region_error: 'Could not save your country. Check your connection and try again.',
   stg_currency_title: 'Account currency',
   stg_currency_desc: 'The currency every amount in the product is displayed in: ARR, MRR, pipeline, KPIs and exports.',
   stg_currency_no_conversion: 'No conversion: only the symbol changes, amounts already entered keep their value.',
@@ -1114,6 +1120,7 @@ export default {
   country_law_overtime: 'Overtime rate',
   country_law_currency: 'Currency',
   country_law_tax: 'Applicable tax rate',
+  country_law_tax_name: 'VAT',
   country_law_legal_number: 'Required legal number',
   country_law_legal_siret: 'SIRET Number',
   country_law_legal_bce: 'BCE Number',
@@ -2476,6 +2483,7 @@ export default {
   country_law_country_CA: 'Canada',
   country_law_country_CH: 'Switzerland',
   country_law_country_FR: 'France',
+  country_law_country_GB: 'United Kingdom',
   country_law_country_KR: 'South Korea',
   country_law_country_US: 'United States',
   country_law_privacy_BE: 'GDPR (General Data Protection Regulation)',
@@ -2484,12 +2492,6 @@ export default {
   country_law_privacy_FR: 'GDPR (General Data Protection Regulation)',
   country_law_privacy_KR: 'PIPA (Personal Information Protection Act)',
   country_law_privacy_US: 'CCPA/CPRA (California) — no uniform federal law',
-  country_law_tax_BE: 'VAT',
-  country_law_tax_CA: 'GST',
-  country_law_tax_CH: 'VAT',
-  country_law_tax_FR: 'VAT',
-  country_law_tax_KR: 'VAT',
-  country_law_tax_US: 'Sales Tax (varies by state)',
 
   // UNIT-SUFFIX-I18N (04/09): day / hour suffix of a KPI value — were a { fr, en, ko } map
   // inside lib/formatters.js, the one place the language policy says they must not live.

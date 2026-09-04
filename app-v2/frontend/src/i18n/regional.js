@@ -35,7 +35,7 @@ export const REGIONAL_MESSAGES = {
   },
 
   // Switzerland (Suisse romande) — French. A quote is an `offre`, not a `devis`, and a mobile is a
-  // `natel`. The VAT label stays `TVA` (country_law_tax_CH already carries the Swiss rate).
+  // `natel`. The tax label stays `TVA`, so this pack does not override it.
   'fr-CH': {
     sidebar_quotes: 'Offres',
     qt_title: 'Offres & Propositions',
@@ -74,6 +74,7 @@ export const REGIONAL_MESSAGES = {
     qt_download_pdf: 'Télécharger la soumission PDF',
     qt_delete: 'Supprimer cette soumission',
     qt_field_tax: 'Taxes TPS/TVQ (%)',
+    country_law_tax_name: 'TPS/TVQ',
     cd_add_quote: 'Soumission',
     cd_tl_quote: 'Soumission : {title} ({status})',
     chat_share_quote: 'Partager une soumission',
@@ -100,6 +101,14 @@ export const REGIONAL_MESSAGES = {
     chat_channels: 'Canaux',
     chat_err_init_failed: "Le clavardage n'a pas pu démarrer. Rechargez la page.",
     pl_settings_hide_weekends: 'Masquer les fins de semaine',
+  },
+
+  // Canada — English. A one-key pack, and the only reason en-CA exists as a locale at all: the
+  // federal tax is the GST, where every other English region of the product says VAT. Canadian
+  // English otherwise keeps the -ize endings, so it is closer to the base file than to en-GB and
+  // deliberately does NOT alias it.
+  'en-CA': {
+    country_law_tax_name: 'GST',
   },
 
   // United Kingdom — English. The base English file is US-spelled; this pack is the -ise / -our
@@ -132,8 +141,8 @@ export const REGIONAL_MESSAGES = {
 
 // A country that reads ANOTHER country's pack rather than owning a copy of it. An alias is not a
 // second pack: `en-IE` resolves to the exact same object as `en-GB`, so a wording fixed once is
-// fixed for all of them. Canada in English is deliberately absent — Canadian English keeps the
-// -ize endings, so it is closer to the base file than to en-GB and falls back to `en`.
+// fixed for all of them. Canada in English is deliberately NOT aliased to en-GB — Canadian English
+// keeps the -ize endings, so it owns the one-key pack above and falls back to `en` for the rest.
 export const REGIONAL_ALIASES = {
   'en-IE': 'en-GB',
   'en-AU': 'en-GB',

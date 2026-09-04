@@ -34,7 +34,8 @@ tables existed and are gone:
 |---|---|
 | `SettingsIntegrations.vue` — 28 keys x 3 with its own `L()` **and its own locale** | `integration_resend_*`, `t()` |
 | `config/integrations.js` — 49 objects (`label`, `setupSteps`) | `integration_category_*`, `integration_capability_*`, `integration_description_*`, `integration_field_*`, `integration_steps_*` |
-| `stores/countryLaws.js` — country / privacy regime / tax name | `country_law_country_*`, `country_law_privacy_*`, `country_law_tax_*` |
+| `stores/countryLaws.js` — country / privacy regime | `country_law_country_*`, `country_law_privacy_*` |
+| `stores/countryLaws.js` — tax name (`taxNameKey`) | one key, `country_law_tax_name` (`TVA` / `VAT` / `부가가치세`), overridden in two regional packs: `fr-CA` → `TPS/TVQ`, `en-CA` → `GST`. It follows the **account's region**, not the invoiced country — and not the currency, which is set independently (R25 §9). The eighteen `country_law_tax_<CC>` keys are gone. |
 | `functions/api/_config/metrics.js` — 7 metrics x label + description | `metric_*_label` / `metric_*_description` |
 | `functions/api/_i18n/messages.js` — 40 server keys x 3 | moved into `src/i18n/*`; **the file is deleted** |
 | `lib/formatters.js` — `DAY_SUFFIX` / `HOUR_SUFFIX` | `unit_day_suffix` / `unit_hour_suffix` |

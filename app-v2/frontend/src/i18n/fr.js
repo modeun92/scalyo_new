@@ -1704,6 +1704,12 @@ export default {
   stg_lang_title: 'Langue de l\'interface',
   stg_lang_desc: 'Choisissez la langue dans laquelle vous souhaitez utiliser Scalyo.',
   stg_lang_saved: 'Langue sauvegardée',
+  // REGIONAL-I18N (04/09): la langue ne suffit pas — un devis est une « soumission » au Québec
+  // et une « offre » en Suisse. Le pays choisi ici décide de ces variantes (src/i18n/regional.js).
+  stg_region_title: "Pays d'expression",
+  stg_region_desc: 'Le pays dont vous voulez les expressions : la langue reste la même, seules les tournures changent (devis / offre / soumission).',
+  stg_region_saved: 'Pays enregistré',
+  stg_region_error: "Impossible d'enregistrer le pays. Vérifiez votre connexion et réessayez.",
   stg_currency_title: 'Devise du compte',
   stg_currency_desc: 'La devise dans laquelle tous les montants du produit sont affichés : ARR, MRR, pipeline, KPI et exports.',
   stg_currency_no_conversion: 'Aucune conversion : seul le symbole change, les montants déjà saisis gardent leur valeur.',
@@ -1747,6 +1753,7 @@ export default {
   country_law_overtime: 'Taux heures supplémentaires',
   country_law_currency: 'Devise',
   country_law_tax: 'TVA applicable',
+  country_law_tax_name: 'TVA',
   country_law_legal_number: 'Numéro légal obligatoire',
   country_law_legal_siret: 'N° SIRET',
   country_law_legal_bce: 'N° BCE',
@@ -2532,6 +2539,7 @@ export default {
   country_law_country_CA: 'Canada',
   country_law_country_CH: 'Suisse',
   country_law_country_FR: 'France',
+  country_law_country_GB: 'Royaume-Uni',
   country_law_country_KR: 'Corée du Sud',
   country_law_country_US: 'États-Unis',
   country_law_privacy_BE: 'RGPD (Règlement Général sur la Protection des Données)',
@@ -2540,12 +2548,6 @@ export default {
   country_law_privacy_FR: 'RGPD (Règlement Général sur la Protection des Données)',
   country_law_privacy_KR: 'PIPA (loi coréenne sur la protection des données personnelles)',
   country_law_privacy_US: 'CCPA/CPRA (Californie) — pas de loi fédérale uniforme',
-  country_law_tax_BE: 'TVA',
-  country_law_tax_CA: 'TPS',
-  country_law_tax_CH: 'TVA',
-  country_law_tax_FR: 'TVA',
-  country_law_tax_KR: 'TVA',
-  country_law_tax_US: 'Sales Tax (variable selon l\'État)',
 
   // UNIT-SUFFIX-I18N (04/09): day / hour suffix of a KPI value — were a { fr, en, ko } map
   // inside lib/formatters.js, the one place the language policy says they must not live.

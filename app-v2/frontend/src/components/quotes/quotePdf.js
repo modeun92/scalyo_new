@@ -36,7 +36,7 @@ export function downloadPdf(q, laws, billingCountry, t, clientName) {
   doc.setFont('helvetica', 'normal')
   doc.text(t('qt_create_date') + ' : ' + q.createdAt, 20, 55)
   doc.text(t('qt_field_status') + ' : ' + t('qt_filter_' + q.status), 20, 62)
-  doc.text(t(l.nameKey) + ' — ' + t(l.taxNameKey) + ' ' + l.taxRate + '%', 20, 72)
+  doc.text(t(l.nameKey) + ' — ' + t('country_law_tax_name') + ' ' + l.taxRate + '%', 20, 72)
 
   doc.line(20, 78, 190, 78)
 

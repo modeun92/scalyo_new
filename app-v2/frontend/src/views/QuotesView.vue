@@ -12,7 +12,7 @@
     <div v-if="billingCountry" class="quote_country_banner">
       <span>{{ laws.flag }} {{ t(laws.nameKey) }}</span>
       <!-- QUOTE-VAT (27/08): the field is called taxRate — "laws.tva" never existed -->
-      <span>{{ t('qt_field_tax') }}: {{ laws.taxRate }}% ({{ t(laws.taxNameKey) }})</span>
+      <span>{{ t('qt_field_tax') }}: {{ laws.taxRate }}% ({{ t('country_law_tax_name') }})</span>
       <span>{{ t('country_law_currency') }}: {{ laws.currencySymbol }}</span>
     </div>
 
