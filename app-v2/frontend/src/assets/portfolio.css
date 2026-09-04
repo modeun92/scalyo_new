@@ -10,39 +10,10 @@
 .port-actions { display: flex; gap: 8px; }
 
 /* Buttons */
-.btn-primary {
-  background: var(--purple); color: #fff; border: none; padding: 9px 18px;
-  border-radius: var(--radius-sm); font-size: 0.85rem; font-weight: 600; transition: all 0.2s;
-}
-.btn-primary:hover { background: var(--purple-dark); transform: translateY(-1px); }
-.btn-outline {
-  background-color: var(--bg-card); color: var(--text-secondary); border: 1px solid var(--border);
-  padding: 9px 18px; border-radius: var(--radius-sm); font-size: 0.85rem;
-  font-weight: 500; transition: all 0.2s;
-}
-.btn-outline:hover { border-color: var(--purple); color: var(--purple); }
-.btn-danger {
-  background: #ef4444; color: #fff; border: none; padding: 9px 18px;
-  border-radius: var(--radius-sm); font-size: 0.85rem; font-weight: 600;
-  cursor: pointer; transition: all 0.2s;
-}
-.btn-danger:hover { background: #dc2626; }
-.btn-danger-outline {
-  background: none; color: #ef4444; border: 1px solid #ef4444; padding: 9px 18px;
-  border-radius: var(--radius-sm); font-size: 0.85rem; font-weight: 600;
-  cursor: pointer; transition: all 0.2s;
-}
-.btn-danger-outline:hover { background: var(--red-bg); }
 
 /* KPIs */
 .port-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; }
-.pkpi {
-  background-color: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md);
-  padding: 16px; display: flex; align-items: center; gap: 12px; transition: all 0.2s;
-}
-.pkpi:hover { box-shadow: var(--shadow-sm); transform: translateY(-1px); }
 .pkpi.warn { border-left: 3px solid var(--red); }
-.pkpi-icon { font-size: 1.4rem; }
 .pkpi-value { font-size: 1.35rem; font-weight: 800; display: block; }
 .pkpi-label { font-size: 0.72rem; color: var(--text-secondary); }
 
@@ -50,28 +21,7 @@
 .port-toolbar {
   display: flex; gap: 14px; margin-bottom: 20px; flex-wrap: wrap; align-items: center;
 }
-.search-box {
-  display: flex; align-items: center; gap: 8px; background-color: var(--bg-card);
-  border: 1px solid var(--border); border-radius: var(--radius-sm);
-  padding: 0 12px; flex: 1; min-width: 200px; max-width: 320px;
-}
 .si { font-size: 0.9rem; }
-.search-box input {
-  border: none; outline: none; padding: 9px 0; font-size: 0.85rem;
-  width: 100%; background: transparent;
-}
-.filter-tabs { display: flex; gap: 4px; flex-wrap: wrap; }
-.ftab {
-  background: var(--bg); border: none; padding: 7px 14px; border-radius: 8px;
-  font-size: 0.8rem; font-weight: 500; color: var(--text-muted); transition: all 0.15s;
-}
-.ftab.active { background: var(--purple-bg); color: var(--purple); font-weight: 600; }
-.ftab:hover:not(.active) { background: var(--bg-hover); color: var(--text); }
-.fc {
-  font-size: 0.68rem; margin-left: 4px; background: rgba(0,0,0,0.06);
-  padding: 1px 5px; border-radius: 4px;
-}
-.ftab.active .fc { background: rgba(124,58,237,0.12); }
 
 /* Table */
 .table-wrap {
@@ -139,23 +89,9 @@
 .empty p { font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 20px; }
 
 /* Form */
-.sf { display: flex; flex-direction: column; gap: 16px; }
-.fg { display: flex; flex-direction: column; gap: 4px; }
-.fg label { font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); }
-.fi {
-  padding: 9px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm);
-  font-size: 0.85rem; outline: none; transition: border-color 0.15s;
-  background-color: var(--bg-card); width: 100%;
-}
-.fi:focus { border-color: var(--purple); }
-.fr { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .fdiv {
   font-size: 0.78rem; font-weight: 700; color: var(--text); padding: 8px 0 0;
   border-top: 1px solid var(--border-light); margin-top: 4px;
-}
-.fa {
-  display: flex; gap: 10px; justify-content: flex-end; padding-top: 8px;
-  border-top: 1px solid var(--border-light);
 }
 
 /* Reset confirm */
@@ -172,7 +108,6 @@
   .hide-sm { display: none !important; }
   .port-kpis { grid-template-columns: repeat(2, 1fr); }
   .th, .tr { grid-template-columns: 2fr 1fr 0.8fr; }
-  .fr { grid-template-columns: 1fr; }
   .port-actions { width: 100%; justify-content: flex-end; }
 }
 

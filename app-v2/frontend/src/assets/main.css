@@ -108,12 +108,145 @@ img { max-width: 100%; display: block; }
 .slide-up-enter-from { transform: translateY(10px); opacity: 0; }
 .slide-up-leave-to { transform: translateY(-10px); opacity: 0; }
 
-/* ═══ DESIGN 3A — PUNCH (global overrides by #app specificity) ═══ */
-#app .btn-primary {
+/* ═══ SHARED BUTTONS — base definition (BTN-BASE, 03/09/2026) ═══
+   `.btn-primary` / `.btn-outline` had NO base rule in main.css. Their base lived in TWO
+   kinds of stylesheet, neither of which is always loaded:
+     1. landing.css — imported UNSCOPED by LandingPage.vue (`<style src=…>` with no
+        `scoped`), so it is a GLOBAL sheet that stays in the document for the whole SPA
+        session once the landing page has been visited;
+     2. the per-surface sheets (portfolio.css, playbooks.css, quotes.css, settings.css,
+        roadmap.css, emailStudio.css…), each imported by exactly ONE view.
+   DashboardView imports no stylesheet at all. So the button a user saw depended on how
+   they got there:
+     • arrive at "/" then log in and navigate to /app/dashboard → landing.css is still in
+       the document → overlays picked up the MARKETING button (12px 28px, radius 12px);
+     • hard refresh on /app/dashboard → landing.css never loads → the classes matched
+       NOTHING → bare browser buttons.
+   That is the reported "good the first time, unstyled after a refresh" on the globally
+   mounted overlays (ClientModal, KpiCustomizer).
+   The base is hoisted here, into the only always-loaded stylesheet, at (0,1,1) via the
+   `body` prefix so it also beats the landing.css leak (0,1,0) everywhere OUTSIDE the
+   landing page. `:not(:where(.landing *))` has ZERO specificity and hands the landing page
+   back to landing.css untouched. Net effect: one identical app button on every entry path.
+   The per-surface copies are now redundant (same values) and can be deleted incrementally. */
+body .btn-primary:not(:where(.landing *)) {
+  background: var(--purple); color: #fff; border: none; padding: 9px 18px;
+  border-radius: var(--radius-sm); font-size: 0.85rem; font-weight: 600;
+  cursor: pointer; transition: all 0.2s;
+}
+body .btn-primary:not(:where(.landing *)):hover:not(:disabled) { background: var(--purple-dark); }
+body .btn-primary:not(:where(.landing *)):disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+body .btn-outline:not(:where(.landing *)) {
+  background-color: var(--bg-card); color: var(--text-secondary); border: 1px solid var(--border);
+  padding: 9px 18px; border-radius: var(--radius-sm); font-size: 0.85rem;
+  font-weight: 500; cursor: pointer; transition: all 0.2s;
+}
+body .btn-outline:not(:where(.landing *)):hover { border-color: var(--purple); color: var(--purple); }
+body .btn-outline:not(:where(.landing *)):disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Destructive buttons. No landing.css conflict, so a plain selector is enough. */
+.btn-danger {
+  background: var(--red); color: #fff; border: none; padding: 9px 18px;
+  border-radius: var(--radius-sm); font-size: 0.85rem; font-weight: 600;
+  cursor: pointer; transition: all 0.2s;
+}
+.btn-danger:hover { background: #dc2626; }
+.btn-danger:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-danger-outline {
+  background: none; color: var(--red); border: 1px solid var(--red); padding: 9px 18px;
+  border-radius: var(--radius-sm); font-size: 0.85rem; font-weight: 600;
+  cursor: pointer; transition: all 0.2s;
+}
+.btn-danger-outline:hover { background: var(--red-bg); }
+/* Discreet "customize" affordance (dashboard / manager / satisfaction headers). */
+.btn-customize {
+  background-color: var(--bg-card); border: 1px solid var(--border); padding: 6px 14px;
+  border-radius: var(--radius-sm); color: var(--text-muted); font-size: 0.78rem;
+  cursor: pointer; transition: all 0.15s;
+}
+.btn-customize:hover { border-color: var(--purple); color: var(--purple); }
+
+/* ═══ SHARED FORM PRIMITIVES (BTN-BASE, 03/09/2026) ═══
+   Same story as the buttons: `.fg` (145 uses) and `.fi` (152 uses) were defined only in
+   portfolio/playbooks/quotes/roadmap/settings.css, yet the heaviest consumers are views
+   that import NO stylesheet at all — KpisBuilder alone has 42 `.fg` and 45 `.fi`. Those
+   forms only looked right if the session had already loaded one of those sheets.
+   sf = slide-over form · fg = field group · fi = field input · fr = field row
+   fa = form actions · fc = filter count · ta = textarea */
+.sf { display: flex; flex-direction: column; gap: 16px; }
+.fg { display: flex; flex-direction: column; gap: 4px; }
+.fg label { font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); }
+.fi {
+  width: 100%; padding: 9px 12px; border: 1px solid var(--border);
+  border-radius: var(--radius-sm); font-size: 0.85rem; background-color: var(--bg-card);
+  outline: none; transition: border-color 0.15s;
+}
+.fi:focus { border-color: var(--purple); }
+.fi:disabled { background: var(--bg); color: var(--text-muted); }
+.fr { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.fa {
+  display: flex; gap: 10px; justify-content: flex-end;
+  padding-top: 8px; border-top: 1px solid var(--border-light);
+}
+.ta { resize: vertical; }
+
+/* ═══ SHARED FILTER / SEARCH PRIMITIVES (BTN-BASE, 03/09/2026) ═══ */
+.filter-tabs { display: flex; flex-wrap: wrap; gap: 4px; }
+.ftab {
+  background: var(--bg); border: none; padding: 7px 14px; border-radius: 8px;
+  font-size: 0.8rem; font-weight: 500; color: var(--text-muted);
+  cursor: pointer; transition: all 0.15s;
+}
+.ftab:hover:not(.active) { background: var(--bg-hover); color: var(--text); }
+.ftab.active { background: var(--purple-bg); color: var(--purple); font-weight: 600; }
+.fc { font-size: 0.68rem; margin-left: 4px; background: rgba(0,0,0,0.06); padding: 1px 5px; border-radius: 4px; }
+.ftab.active .fc { background: rgba(124,58,237,0.12); }
+.filter-select {
+  padding: 8px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background-color: var(--bg-card); color: var(--text); font-size: 0.82rem;
+  cursor: pointer; outline: none;
+}
+.filter-select:focus { border-color: var(--purple); }
+.search-box {
+  display: flex; align-items: center; gap: 8px; padding: 0 12px;
+  background-color: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); flex: 1; min-width: 200px; max-width: 320px;
+}
+.search-box input {
+  border: none; outline: none; background: transparent;
+  padding: 9px 0; font-size: 0.85rem; width: 100%;
+}
+
+/* Empty-state glyph — shared by Playbooks, Quotes, KPIs, OKR, Email Studio. */
+.empty-icon { font-size: 3rem; margin-bottom: 16px; }
+
+/* Page-header KPI tile — was defined identically in playbooks.css and portfolio.css. */
+.pkpi {
+  display: flex; align-items: center; gap: 12px; padding: 16px;
+  background-color: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius-md); transition: all 0.2s;
+}
+.pkpi:hover { box-shadow: var(--shadow-sm); transform: translateY(-1px); }
+.pkpi-icon { font-size: 1.4rem; }
+
+/* Two-column form rows collapse on narrow screens. Previously this lived only in
+   portfolio.css and quotes.css, so the same `.fr` stayed two-up on mobile in
+   PlanningView, KanbanView, OkrView and RoadmapMilestonePanel. */
+@media (max-width: 768px) {
+  .fr { grid-template-columns: 1fr; }
+}
+
+/* ═══ DESIGN 3A — PUNCH (global overrides, id-level specificity) ═══ */
+/* BTN-BASE: `:is(#app, body)` keeps the (1,1,0) specificity that lets this beat the
+   per-surface `.btn-primary` (0,1,0) loaded after main.css, while ALSO matching content
+   teleported out of #app (ClientModal, SlideOver, OxygenClosing all `<Teleport to="body">`).
+   With the old `#app` prefix the signature gradient stopped at the teleport boundary, so a
+   modal's primary button was flat purple while every other primary button was a gradient. */
+:is(#app, body) .btn-primary {
   background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 45%, #c026d3 100%);
   box-shadow: 0 6px 20px rgba(124, 58, 237, 0.42);
 }
-#app .btn-primary:hover:not(:disabled) { box-shadow: 0 10px 30px rgba(192, 38, 211, 0.5); transform: translateY(-1px); }
+:is(#app, body) .btn-primary:hover:not(:disabled) { box-shadow: 0 10px 30px rgba(192, 38, 211, 0.5); transform: translateY(-1px); }
 #app .nav-item.active { background: linear-gradient(90deg, rgba(139,92,246,0.2), rgba(255,77,141,0.1)); box-shadow: inset 3px 0 0 var(--purple); }
 /* Cards: a more present violet glow */
 #app .kpi-card, #app .copil-card, #app .plan-card { box-shadow: 0 4px 20px rgba(60,30,140,0.09); }

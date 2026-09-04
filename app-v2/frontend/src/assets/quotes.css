@@ -11,16 +11,6 @@
 .qt-actions { display: flex; gap: 8px; }
 
 /* Buttons */
-.btn-primary {
-  background: var(--purple); color: #fff; border: none; padding: 9px 18px;
-  border-radius: var(--radius-sm); font-size: 0.85rem; font-weight: 600; cursor: pointer;
-}
-.btn-primary:hover { background: var(--purple-dark); }
-.btn-outline {
-  background-color: var(--bg-card); color: var(--text-secondary); border: 1px solid var(--border);
-  padding: 9px 18px; border-radius: var(--radius-sm); font-size: 0.85rem; cursor: pointer;
-}
-.btn-outline:hover { border-color: var(--purple); color: var(--purple); }
 
 /* Country banner */
 .qt-country-banner {
@@ -44,12 +34,6 @@
 
 /* Filters */
 .qt-filters { display: flex; gap: 4px; margin-bottom: 20px; }
-.ftab {
-  background: var(--bg); border: none; padding: 7px 14px; border-radius: 8px;
-  font-size: 0.8rem; font-weight: 500; color: var(--text-muted);
-  cursor: pointer; transition: all 0.15s;
-}
-.ftab.active { background: var(--purple-bg); color: var(--purple); font-weight: 600; }
 
 /* Quote list */
 .qt-list { display: flex; flex-direction: column; gap: 8px; }
@@ -110,25 +94,10 @@
   text-align: center; padding: 60px 20px; background-color: var(--bg-card);
   border: 1px solid var(--border); border-radius: var(--radius-md);
 }
-.empty-icon { font-size: 3rem; margin-bottom: 16px; }
 .qt-empty h3 { font-size: 1.2rem; font-weight: 700; margin-bottom: 8px; }
 .qt-empty p { font-size: 0.82rem; color: var(--text-muted); margin-bottom: 20px; }
 
 /* Form */
-.sf { display: flex; flex-direction: column; gap: 14px; }
-.fg { display: flex; flex-direction: column; gap: 4px; }
-.fg label { font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); }
-.fi {
-  padding: 9px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm);
-  font-size: 0.85rem; outline: none; background-color: var(--bg-card); width: 100%;
-}
-.fi:focus { border-color: var(--purple); }
-.ta { resize: vertical; }
-.fr { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.fa {
-  display: flex; gap: 10px; justify-content: flex-end; padding-top: 8px;
-  border-top: 1px solid var(--border-light);
-}
 .calc-ttc {
   flex-direction: row; justify-content: space-between; align-items: center;
   padding: 12px; background: var(--purple-bg); border-radius: var(--radius-sm);
@@ -152,5 +121,4 @@
 /* Responsive */
 @media (max-width: 768px) {
   .qt-kpis { grid-template-columns: 1fr; }
-  .fr { grid-template-columns: 1fr; }
 }

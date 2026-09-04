@@ -30,31 +30,9 @@
 
 /* Forms */
 .sv-form { display: flex; flex-direction: column; gap: 14px; }
-.fg { display: flex; flex-direction: column; gap: 4px; }
-.fg label { font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); }
-.fi {
-  padding: 9px 12px; border: 1px solid var(--border);
-  border-radius: var(--radius-sm); font-size: 0.85rem;
-  outline: none; background-color: var(--bg-card); width: 100%;
-}
-.fi:focus { border-color: var(--purple); }
-.fi:disabled { background: var(--bg); color: var(--text-muted); }
 .fi-hint { font-size: 0.7rem; color: var(--text-muted); }
 
 /* Buttons */
-.btn-primary {
-  background: var(--purple); color: #fff; border: none;
-  padding: 9px 18px; border-radius: var(--radius-sm);
-  font-size: 0.85rem; font-weight: 600; cursor: pointer;
-  align-self: flex-start; transition: all 0.15s;
-}
-.btn-primary:hover { background: var(--purple-dark); }
-.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
-.btn-danger {
-  background: var(--red); color: #fff; border: none;
-  padding: 9px 18px; border-radius: var(--radius-sm);
-  font-size: 0.85rem; font-weight: 600; cursor: pointer;
-}
 .btn-save {
   background: var(--purple); color: #fff; border: none;
   padding: 9px 18px; border-radius: var(--radius-sm);
@@ -264,3 +242,9 @@
 .sv-portal-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .bp-end-date { font-size: 0.8rem; color: var(--text-muted); margin-top: 8px; }
+
+/* BTN-BASE: the shared button now lives in main.css. Settings keeps ONE deliberate
+   deviation — its save buttons sit in a flex column and must not stretch full width.
+   Scoped to .settings-view: (0,2,0) beats the main.css base (0,1,1) and, unlike the
+   old global copy, cannot follow the user to another page once settings.css loads. */
+.settings-view .btn-primary { align-self: flex-start; }
