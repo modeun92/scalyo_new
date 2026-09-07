@@ -29,7 +29,7 @@
         :class="{ warn: kpi.warn }"
       >
         <span class="kpi_icon">{{ kpi.icon }}</span>
-        <div class="kpi_value">{{ kpi.display }}</div>
+        <div class="kpi_value" :title="kpi.full">{{ kpi.display }}</div>
         <div class="kpi_label">{{ kpi.label }}</div>
         <div v-if="kpi.change !== null" class="kpi_change" :class="kpi.changeClass">
           {{ kpi.changeLabel }}

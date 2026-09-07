@@ -11,8 +11,27 @@
 	who will be terminated or who to choose to terminate shall be managed and visible
 
 4. ARR in dashboard shall be compressed
+	in dashboard, the total ARR is shown but it is too long.
 	when the number is too much then hard to see
-	$1.64K / $633.7M / $55.73B
+	ex) $1.64K / $633.7M / $55.73B could be better
+	=> (fixed) : lib/formatters.fmtCurrency already had a compact mode (9 screens use it),
+	   but fmtKpiValue - what the dashboard tiles call - never exposed it. PortfolioView
+	   showed 634 M€ while the dashboard showed 633 700 000 € for the SAME figure. The tile
+	   is a 160px grid cell at 1.4rem, so a real ARR overflowed it.
+	   - lib/formatters.fmtKpiValue(v, format, { compact }) : forwards to fmtCurrency, and
+	     compacts 'number'/'integer' too (same tile, same overflow). NOT the other formats:
+	     a percentage, score, ratio, day or hour count is small by construction.
+	   - DashboardView : tiles pass compact:true, and keep `full` = the exact figure
+	   - DashKpiSection : :title="kpi.full" - compacting is not the only place the number
+	     exists; null when both forms match, so no useless tooltip
+	   - KO-COMPACT-UNIT : Korean groups by 만 (10^4), so Intl's 천 below 10 000 is not used
+	     ("₩1.64천" is not written in Korean, and the same range rounded 9 999 UP to "₩1만" -
+	     a number displayed larger than it is). Below 만 the figure is spelled out (₩9,999).
+	   ex) $1.64K / $634M / $55.7B · ₩4.5만 / ₩6.34억 / ₩5.57조 · 45 k€ / 634 M€ / 55,7 Md€
+	   NOT changed on purpose: 3 significant digits, not the 4 of the example above ($634M,
+	   not $633.7M) - it is the rule the 9 other compact call sites already share, and Korean
+	   needs it (the default turns 82 000 into "8만"). No cap at 억 either: 조 is correct
+	   Korean, so 5 573 000 000 000 reads ₩5.57조 (the same amount is 55,730억).
 
 5. currency unit changing
 	right now, it is only euro but it is not good.

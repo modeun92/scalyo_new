@@ -122,14 +122,18 @@ const currentValue = DATA_SOURCES.value[id] ?? null
 // HEALTH-SCALE: a score carries its scale at render time ("6,4/10", "4,2/7") — the catalog
 // declared it (unit) but the tile did not display it, hence "6,4" with no frame of reference.
 const unit = kpi.format === 'score' && kpi.unit && currentValue != null ? kpi.unit : ''
-const display = fmtKpiValue(currentValue, kpi.format) + unit
+// KPI-TILE-COMPACT (04/09): the tile shows the short form ("1,64 M€"), `full` keeps the exact
+// figure for the title tooltip — compacting must not be the only place the number exists. `full`
+// is null when the two are identical (small values, '—') so the tile carries no useless tooltip.
+const display = fmtKpiValue(currentValue, kpi.format, { compact: true }) + unit
+const exact = fmtKpiValue(currentValue, kpi.format) + unit
 const lowerIsBetter = !!kpi.inverse
 const change = currentValue != null ? snapStore.calcChange(id, currentValue, snapStore.comparePeriod, lowerIsBetter) : null
 const rule = WARN_RULES[id]
 const warn = rule && currentValue != null ? (rule.above != null ? currentValue > rule.above : rule.below != null ? currentValue < rule.below : false) : false
 const label = t(kpi.label) // KPI-I18N (04/09): the catalog carries the i18n key
 // B-06: calcChange contract = {value,type,hasData} — the badge displays value ("+X%") and is colored by type (the old mapping read non-existent label/class → empty, always-neutral badge)
-return { id, icon: categoryIcon, label, display, warn, change: change?.value ?? null, changeLabel: change?.value ?? '', changeClass: change?.type ?? 'neutral' }
+return { id, icon: categoryIcon, label, display, full: exact === display ? null : exact, warn, change: change?.value ?? null, changeLabel: change?.value ?? '', changeClass: change?.type ?? 'neutral' }
 }).filter(Boolean)
 })
 

@@ -75,6 +75,24 @@ function numberFormat(loc, opts) {
   return f
 }
 
+// KO-COMPACT-UNIT (04/09): Korean groups by 만 (10⁴), not by 10³, so its real reading units are
+// 만 / 억 / 조. Intl still emits 천 below 10 000 — "₩1.64천", which no Korean writes; the figure is
+// spelled out there (₩1,640). Worse, the same range rounds 9 999 UP to "₩1만": a number displayed
+// larger than it is, which is the one thing a KPI tile must never do. So compact notation is
+// simply not used below 만 in Korean — the standard form is at most six characters (₩9,999) and
+// fits the tile anyway. Latin locales are untouched: their 천-equivalent (K) is idiomatic.
+//
+// The unit above 억 is 조 (10¹²), which is what Intl emits on its own — Korean business figures
+// are commonly quoted in 억원, but the rollover is correct Korean and the product does not cap it.
+// Note the consequence, shared with every other locale (en gives "$1T" for the same amount):
+// compact rounds BEFORE choosing the unit, so 999 900 000 000 reads "₩1조", not "9,999억".
+//
+// Returns how a compact-requested value must ACTUALLY be rendered in this locale.
+function compactMode(n, loc) {
+  if (!loc.startsWith('ko')) return 'compact'
+  return Math.abs(n) < 1e4 ? 'standard' : 'compact'
+}
+
 // CURRENCY-FORMAT (25/08): the ONLY monetary formatter in the product. `currency` (ISO code) is
 // only passed when the amount has its own currency — a quote follows the billing country —
 // otherwise it is the ACCOUNT currency. `compact` = "118 k€" / "144 M€" for tight tables.
@@ -83,14 +101,15 @@ export function fmtCurrency(v, { compact = false, currency = null, decimals = 0 
   if (v == null || v === '' || Number.isNaN(n)) return '—'
   // compact: 3 significant digits, otherwise Korean (units 만/억 = 10⁴/10⁸) rounds 82,000 to "8만"
   // and 144 M to "1억" — production evidence 26/08. "1.5 k€" rather than "2 k€" in FR by the same rule.
-  const opts = compact
+  const loc = localeTag()
+  const opts = compact && compactMode(n, loc) === 'compact'
     ? { style: 'currency', notation: 'compact', maximumSignificantDigits: 3 }
     : { style: 'currency', notation: 'standard', maximumFractionDigits: decimals }
   try {
-    return numberFormat(localeTag(), { ...opts, currency: currency || accountCurrency() }).format(n)
+    return numberFormat(loc, { ...opts, currency: currency || accountCurrency() }).format(n)
   } catch (_) {
     // invalid currency (database or parameter) → EUR rendering, never a crash
-    return numberFormat(localeTag(), { ...opts, currency: DEFAULT_CURRENCY }).format(n)
+    return numberFormat(loc, { ...opts, currency: DEFAULT_CURRENCY }).format(n)
   }
 }
 
@@ -145,18 +164,31 @@ export function fmtNumber(v, opts = {}) {
 // UNIT-SUFFIX-I18N (04/09): the day/hour suffixes were a { fr, en, ko } map right here — a
 // translation table inside the formatter module. They are i18n keys now (unit_day_suffix /
 // unit_hour_suffix), reached through i18n.global because this is not a component (R25 §5).
-
-export function fmtKpiValue(v, format) {
+//
+// KPI-TILE-COMPACT (04/09): `compact` short-forms only the two formats that can run to nine
+// digits — money and counts ("1,64 M€", "1,23 M" instead of "1 640 000 €"). The dashboard tile is
+// a 160px grid cell with a 1.4rem value, so a real ARR overflowed it and the reader saw a number
+// they could not take in at a glance. It is NOT applied to the other formats on purpose: a
+// percentage, a score, a ratio, a day or an hour count is small by construction, and compacting
+// one would only cost precision. Callers that have room (the client record, the copil wizard)
+// keep the standard notation — this is a display option, never the stored value.
+export function fmtKpiValue(v, format, { compact = false } = {}) {
   if (v == null || v === '' || Number.isNaN(Number(v))) return '—'
   const n = Number(v)
   const loc = localeTag()
-  if (format === 'currency') return fmtCurrency(n) // ACCOUNT currency (A-11)
+  if (format === 'currency') return fmtCurrency(n, { compact }) // ACCOUNT currency (A-11)
   if (format === 'percentage' || format === 'percent') return numberFormat(loc, { maximumFractionDigits: 1 }).format(n) + '%'
   if (format === 'score' || format === 'decimal') return numberFormat(loc, { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(n)
   if (format === 'ratio') return numberFormat(loc, { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(n) + 'x'
   if (format === 'days') return String(Math.round(n)) + i18n.global.t('unit_day_suffix')
   if (format === 'hours') return numberFormat(loc, { maximumFractionDigits: 1 }).format(n) + i18n.global.t('unit_hour_suffix')
-  if (format === 'number' || format === 'integer') return numberFormat(loc, { maximumFractionDigits: 0 }).format(n)
+  if (format === 'number' || format === 'integer') {
+    // Same 3-significant-digit rule as fmtCurrency, and for the same reason: Korean compact units
+    // are 만/억 (10⁴/10⁸), so the default precision turns 82,000 into "8만".
+    return compact && compactMode(n, loc) === 'compact'
+      ? numberFormat(loc, { notation: 'compact', maximumSignificantDigits: 3 }).format(n)
+      : numberFormat(loc, { maximumFractionDigits: 0 }).format(n)
+  }
   return String(v)
 }
 
