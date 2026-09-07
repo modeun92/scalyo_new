@@ -1,0 +1,39 @@
+Organization - Company
+	Plan
+	Persons (by id)
+	Clients (by id)
+
+Client - Company
+	Organizations (by id)
+	Persons (by id)
+
+Administrator - Person
+Manager - Person
+Employee - Person
+	
+
+Company
+	id
+	Company Name
+	Country
+	Main Currency
+
+Person
+	id
+	company-id
+	First-Name
+	Last-Name
+	Title (Dr./Mr./Ms./Mrs./Mx./None)
+	Language with Region
+	Position
+	Phone Number
+	Email Address
+
+Chat
+	Messages
+
+Message
+	From	person-id
+	To		person-id
+	written-at
+	read-at

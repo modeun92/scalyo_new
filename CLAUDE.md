@@ -47,7 +47,21 @@ docs/             the documentation set — see below
 ```
 
 Three migrations also live under `app-v2/frontend/supabase/migrations/`.
-`app-v2/frontend/_migrations/001_user_profiles.sql` is superseded.
+
+**`supabase/migrations/` is canonical for RLS and for changes — NOT for schema** (verified
+07/09/2026). Only **8 of the 35 tables** the code touches have a `CREATE TABLE` anywhere in
+the repo (`chat_channels`, `chat_messages`, `chat_channel_members`, `client_notes`,
+`client_metrics`, `quotes`, `sent_emails`, `user_profiles`); the other 27 — `profiles`,
+`clients`, `organizations`, `tasks`, `copils` among them — were created in the Supabase
+dashboard and exist here only as `ALTER`s and RLS policies. A checkout cannot rebuild the
+database. `docs/SCHEMA_FROM_CODE.sql` reconstructs the rest from the CRUD call sites, with
+every inferred column marked as such.
+
+`app-v2/frontend/_migrations/001_user_profiles.sql` is described as superseded but is **not
+dead**: it is the only definition of `user_profiles`, which `stores/profile.setCurrency`,
+`functions/api/billing.js` and `_services/context.service.js` all still query, and which
+carries the `currency` column rule 9 depends on. `profiles` and `user_profiles` are two
+different live tables — identity/plan/trial vs AI-context/currency.
 
 ## Documentation map — read the right one before you edit
 
@@ -58,6 +72,7 @@ Three migrations also live under `app-v2/frontend/supabase/migrations/`.
 | routing, stores, components, i18n, formatting | [docs/FRONTEND.md](docs/FRONTEND.md) |
 | any `/api/*` endpoint or shared service | [docs/BACKEND_API.md](docs/BACKEND_API.md) |
 | tables, RLS, RPCs, migrations | [docs/DATABASE.md](docs/DATABASE.md) |
+| what the columns actually are | [docs/SCHEMA_FROM_CODE.sql](docs/SCHEMA_FROM_CODE.sql) — reference, **not** a migration |
 | a product feature | [docs/MODULES.md](docs/MODULES.md) |
 | plans, seats, roles, gating, Stripe | [docs/BILLING_AND_PLANS.md](docs/BILLING_AND_PLANS.md) |
 | secrets, GDPR, AI residency, Oxygen privacy | [docs/SECURITY_AND_PRIVACY.md](docs/SECURITY_AND_PRIVACY.md) |
