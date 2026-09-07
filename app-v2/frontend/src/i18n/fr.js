@@ -456,7 +456,7 @@ export default {
   stg_tab_billing: 'Facturation',
   stg_tab_notif: 'Notifications',
   stg_tab_appearance: 'Apparence',
-  stg_tab_delete: '⚠️ Supprimer mon compte',
+  stg_tab_export: 'Export',
   stg_account_info: 'Informations du compte',
   stg_display_name: 'Nom affiché',
   stg_email: 'Email',

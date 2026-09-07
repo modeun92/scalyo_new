@@ -1384,7 +1384,7 @@ export default {
   stg_tab_billing: '결제',
   stg_tab_notif: '알림',
   stg_tab_appearance: '외관',
-  stg_tab_delete: '⚠️ 계정 삭제',
+  stg_tab_export: '내보내기',
   stg_account_info: '계정 정보',
   stg_display_name: '표시 이름',
   stg_email: '이메일',

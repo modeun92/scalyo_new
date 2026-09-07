@@ -11,7 +11,7 @@
         v-for="tab in tabs"
         :key="tab.key"
         class="settings_view_tab"
-        :class="{ active: activeTab === tab.key, danger: tab.danger }"
+        :class="{ active: activeTab === tab.key }"
         @click="activeTab = tab.key"
       >
         {{ t(tab.label) }}
@@ -19,19 +19,61 @@
     </div>
 
     <!-- Profile -->
-    <SettingsProfile
-      v-if="activeTab === 'profile'"
-      :local-profile="profile"
-      :local-pwd="pwd"
-      :profile-saving="profileSaving"
-      :profile-saved="profileSaved"
-      :profile-error="profileError"
-      :pwd-saving="pwdSaving"
-      :pwd-saved="pwdSaved"
-      :pwd-error-key="pwdErrorKey"
-      @save="saveProfile"
-      @change-pwd="changePassword"
-    />
+    <template v-if="activeTab === 'profile'">
+      <SettingsProfile
+        :local-profile="profile"
+        :local-pwd="pwd"
+        :profile-saving="profileSaving"
+        :profile-saved="profileSaved"
+        :profile-error="profileError"
+        :pwd-saving="pwdSaving"
+        :pwd-saved="pwdSaved"
+        :pwd-error-key="pwdErrorKey"
+        @save="saveProfile"
+        @change-pwd="changePassword"
+      />
+
+      <!-- Delete Account (RGPD Art. 17) — LAST block of the Profile tab.
+           Kept in SettingsView and NOT pushed into SettingsProfile.vue: the whole delete
+           flow (confirm step, email match, the /api/account/delete call, handleDelete)
+           already lives here, and moving the markup alone would have meant threading five
+           props and three emits through the child for a block that renders below it
+           anyway. Its own panel, after the profile panel, so it reads as a separate
+           destructive zone rather than a fourth field group. -->
+      <div class="settings_view_panel">
+        <div class="settings_view_section danger_section">
+          <h3>{{ t('stg_delete_title') }}</h3>
+          <p>{{ t('stg_delete_warning') }}</p>
+          <div v-if="!deleteConfirmStep" class="delete_action">
+            <button class="button_danger" @click="deleteConfirmStep = true">
+              {{ t('stg_delete_btn') }}
+            </button>
+          </div>
+          <div v-else class="delete_confirm">
+            <p class="delete_confirm_message">{{ t('stg_delete_confirm_msg') }}</p>
+            <input
+              v-model="deleteEmail"
+              type="email"
+              :placeholder="auth.user?.email"
+              class="settings_view_input"
+            />
+            <div class="delete_confirm_actions">
+              <button
+                class="button_danger"
+                :disabled="deleteEmail !== auth.user?.email || deleteLoading"
+                @click="handleDelete"
+              >
+                {{ deleteLoading ? t('stg_delete_loading') : t('stg_delete_confirm_btn') }}
+              </button>
+              <button class="settings_view_button_ghost" @click="cancelDelete">
+                {{ t('stg_delete_cancel') }}
+              </button>
+            </div>
+            <p v-if="deleteError" class="settings_view_field_error">{{ t('stg_delete_error') }}</p>
+          </div>
+        </div>
+      </div>
+    </template>
 
     <!-- Team -->
     <SettingsTeam v-else-if="activeTab === 'team'" />
@@ -74,9 +116,11 @@
       </div>
     </div>
 
-    <!-- Data & Account Deletion -->
-    <div v-else-if="activeTab === 'delete'" class="settings_view_panel">
-      <!-- Export Data (RGPD Art. 20) -->
+    <!-- Export (RGPD Art. 20) — was the tail of a tab labelled "Delete my account";
+         deletion moved to the bottom of the Profile tab, so this stands alone under its
+         own name. Key renamed 'delete' -> 'export' with it: a tab key that still said
+         'delete' is the kind of thing the next person greps for and mis-edits. -->
+    <div v-else-if="activeTab === 'export'" class="settings_view_panel">
       <div class="settings_view_section">
         <h3>{{ t('stg_export_title') }}</h3>
         <p class="settings_view_description">{{ t('stg_export_desc') }}</p>
@@ -89,39 +133,6 @@
         </button>
         <p v-if="exportError" class="settings_view_field_error">{{ t('stg_export_error') }}</p>
         <p v-if="exportSuccess" class="settings_view_field_success">{{ t('stg_export_success') }}</p>
-      </div>
-
-      <!-- Delete Account (RGPD Art. 17) -->
-      <div class="settings_view_section danger_section">
-        <h3>{{ t('stg_delete_title') }}</h3>
-        <p>{{ t('stg_delete_warning') }}</p>
-        <div v-if="!deleteConfirmStep" class="delete_action">
-          <button class="button_danger" @click="deleteConfirmStep = true">
-            {{ t('stg_delete_btn') }}
-          </button>
-        </div>
-        <div v-else class="delete_confirm">
-          <p class="delete_confirm_message">{{ t('stg_delete_confirm_msg') }}</p>
-          <input
-            v-model="deleteEmail"
-            type="email"
-            :placeholder="auth.user?.email"
-            class="settings_view_input"
-          />
-          <div class="delete_confirm_actions">
-            <button
-              class="button_danger"
-              :disabled="deleteEmail !== auth.user?.email || deleteLoading"
-              @click="handleDelete"
-            >
-              {{ deleteLoading ? t('stg_delete_loading') : t('stg_delete_confirm_btn') }}
-            </button>
-            <button class="settings_view_button_ghost" @click="cancelDelete">
-              {{ t('stg_delete_cancel') }}
-            </button>
-          </div>
-          <p v-if="deleteError" class="settings_view_field_error">{{ t('stg_delete_error') }}</p>
-        </div>
       </div>
     </div>
   </div>
@@ -153,7 +164,9 @@ const tabs = [
   { key: 'integrations', label: 'stg_tab_integrations' },
   { key: 'notifications', label: 'stg_tab_notif' },
   { key: 'appearance', label: 'stg_tab_appearance' },
-  { key: 'delete', label: 'stg_tab_delete', danger: true }
+  // The danger flag went with the delete section: this tab is a data download now, and a
+  // red tab for it read as "something destructive lives here".
+  { key: 'export', label: 'stg_tab_export' }
 ]
 
 // E-04: init from the REAL profile (the old code read auth.user?.displayName,
