@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { supabase } from '@/lib/supabase'
+import { supabase, hasStoredSession } from '@/lib/supabase'
+import { isIdleExpired, touchActivity, clearActivity } from '@/lib/sessionIdle'
 import { baseLanguage, isSupportedRegion, resolveLocale, BASE_REGION } from '@/i18n/regional'
 async function loadAllStores() {
 try {
@@ -119,6 +120,18 @@ async function init() {
 loading.value = true
 error.value = null
 try {
+// IDLE-5H (07/09/2026): the idle verdict is read BEFORE getSession(), never after.
+// getSession() refreshes an expired access token as a side effect, so checking
+// afterwards hands a five-hour-abandoned session a brand new token and only then
+// throws it away — the pointless refresh shows up in the auth log and, worse, is
+// enough to make the session look alive to a second tab reading the same storage.
+if (hasStoredSession() && isIdleExpired()) {
+console.info('[idle] session expired (>5h without interaction) — signing out')
+clearActivity()
+clearSupabaseStorage()
+await resetGoTrueClient()
+user.value = null; profile.value = null; org.value = null; session.value = null
+} else {
 const sessionResult = await Promise.race([
 supabase.auth.getSession(),
 new Promise((_, reject) => setTimeout(() => reject(new Error('Session retrieval timeout (10s)')), 10000))
@@ -141,6 +154,7 @@ await fetchProfile(sess.user.id)
 // pending (zero cost on a nominal boot), and checks the targeted email before replaying.
 try { await acceptPendingInvite(sess.access_token) } catch (e) { console.error('init — acceptPendingInvite:', e?.message || e) }
 await loadAllStores()
+}
 }
 } catch (e) {
 console.error('Auth init timeout/failure:', e.message || e)
@@ -249,6 +263,10 @@ new Promise((_, reject) => setTimeout(() => reject(new Error('login_timeout')), 
 const { data, error: err } = signInResult
 if (err) { error.value = err.message; return { success: false, error: err.message } }
 clearAllStores()
+// IDLE-5H: seed the clock as soon as the session is real, and FORCE past the write
+// throttle — a stamp written on the login page a few seconds earlier would otherwise
+// swallow this one, and the new session would inherit the previous user's idle age.
+touchActivity(true)
 user.value = data.user
 session.value = data.session || null
 await fetchProfile(data.user.id)
@@ -344,7 +362,9 @@ return { success: true }
 } catch (e) { console.warn('[pwd] unexpected failure:', e.message || e); return { error: 'generic' } }
 }
 async function logout() {
-try { clearAllStores(); await clearAllStoreData(); await supabase.auth.signOut() } catch (e) {}
+// IDLE-5H: the stamp goes with the session. Left behind, the next account to log in on
+// this browser starts its 5 h already partly spent.
+try { clearActivity(); clearAllStores(); await clearAllStoreData(); await supabase.auth.signOut() } catch (e) {}
 finally { user.value = null; profile.value = null; org.value = null; session.value = null; loading.value = false; error.value = null }
 }
 async function resetPassword(email) {

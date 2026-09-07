@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { hasStoredSession } from '@/lib/supabase'
 import { isModuleAllowed } from '@/utils/planGating'
 import { i18n } from '@/i18n'
 import { L } from '@/i18n/landing'
@@ -123,7 +124,11 @@ router.beforeEach(async (to) => {
   const authStore = useAuthStore()
   try {
     if (!authStore.user && !authStore.loading) {
-      const hasToken = Object.keys(localStorage).some(k => k.startsWith('sb-'))
+      // IDLE-5H: same prefix sniff as before, now from lib/supabase (one copy). The idle
+      // verdict itself stays inside authStore.init() — duplicating it here would need the
+      // guard to run the logout/purge too, and two places deciding to end a session is how
+      // one of them ends up ending it without clearing storage.
+      const hasToken = hasStoredSession()
       if (!hasToken && to.meta.requiresAuth) {
         return { name: 'login' }
       }

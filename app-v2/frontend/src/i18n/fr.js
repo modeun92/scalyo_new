@@ -1640,6 +1640,7 @@ export default {
   login_submit: 'Se connecter',
   login_error_timeout: 'La connexion a pris trop de temps. Vérifiez votre connexion internet et réessayez.',
   login_error_default: 'Une erreur est survenue. Veuillez réessayer.',
+  login_session_expired: 'Votre session a expiré après 5 heures sans activité. Reconnectez-vous.',
   login_no_account: 'Prêt à commencer ?',
   login_signup: 'Voir les forfaits →',
   reg_title: 'Essai gratuit — 14 jours',

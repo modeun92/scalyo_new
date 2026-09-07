@@ -9,6 +9,11 @@
         {{ t('login_email_verified') }}
       </div>
 
+      <!-- IDLE-5H: told, not silently dumped on a blank login form -->
+      <div v-if="sessionExpired" class="expired_banner">
+        {{ t('login_session_expired') }}
+      </div>
+
       <p class="auth_sub">{{ t('login_subtitle') }}</p>
       <div v-if="errorMsg" class="auth_error">{{ errorMsg }}</div>
 
@@ -57,6 +62,10 @@ const { t } = useI18n({ useScope: 'global' })
 const router = useRouter()
 const route = useRoute()
 const emailVerified = computed(() => route.query.verified === 'true' || route.query.verified === '1')
+// IDLE-5H (07/09/2026): set by the idle watch in App.vue when it ends a session after 5 h
+// without interaction. Without this the user meets an empty login page with no reason
+// given and reads it as the app having lost their session.
+const sessionExpired = computed(() => route.query.expired === '1')
 const authStore = useAuthStore()
 
 const email = ref('')
@@ -116,6 +125,7 @@ async function handleLogin() {
 .auth_error { background: #fef2f2; border: 1px solid #fecaca; color: #dc2626; border-radius: 8px; padding: 10px 14px; font-size: 0.85rem; margin-bottom: 16px; }
 .spinner { width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.4); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; display: inline-block; }
 @keyframes spin { to { transform: rotate(360deg); } }
+.expired_banner { background: #fef3c7; border: 1px solid #fcd34d; color: #92400e; border-radius: 8px; padding: 10px 14px; font-size: 0.84rem; font-weight: 500; text-align: center; margin-bottom: 4px; animation: slide-in 0.3s ease; }
 .verified_banner { background: #dcfce7; border: 1px solid #86efac; color: #166534; border-radius: 8px; padding: 10px 14px; font-size: 0.84rem; font-weight: 500; text-align: center; margin-bottom: 4px; animation: slide-in 0.3s ease; }
 @keyframes slide-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
 .auth_legal_footer { text-align: center; font-size: 0.75rem; color: #9ca3af; margin-top: 24px; padding-top: 16px; border-top: 1px solid #f3f4f6; line-height: 1.6; }

@@ -972,6 +972,7 @@ export default {
   login_submit: '로그인',
   login_error_timeout: '연결 시간이 초과되었습니다. 인터넷 연결을 확인하고 다시 시도해주세요.',
   login_error_default: '오류가 발생했습니다. 다시 시도해주세요.',
+  login_session_expired: '5시간 동안 활동이 없어 세션이 만료되었습니다. 다시 로그인해주세요.',
   login_no_account: '시작할 준비가 되셨나요?',
   login_signup: '무료 체험 →',
   reg_title: '무료 체험 — 14일',

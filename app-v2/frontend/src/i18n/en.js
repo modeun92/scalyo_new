@@ -1009,6 +1009,7 @@ export default {
   login_submit: 'Sign in',
   login_error_timeout: 'Connection timed out. Please check your internet and try again.',
   login_error_default: 'An error occurred. Please try again.',
+  login_session_expired: 'Your session expired after 5 hours without activity. Please sign in again.',
   login_no_account: 'Ready to start?',
   login_signup: 'Free trial →',
   reg_title: 'Free trial — 14 days',

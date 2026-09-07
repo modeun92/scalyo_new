@@ -37,4 +37,12 @@ supabase.auth.onAuthStateChange((event, session) => {
   console.info('[auth]', new Date().toISOString(), event, 'token_exp=' + exp)
 })
 
+// IDLE-5H (07/09/2026): "is there a persisted session at all?", asked without touching
+// GoTrue. getSession() would answer it too, but it also REFRESHES the token as a side
+// effect — useless before we have decided whether to keep the session, and the reason the
+// router guard has always sniffed the keys directly. One copy, so the prefix is written once.
+export function hasStoredSession() {
+  try { return Object.keys(localStorage).some(k => k.startsWith('sb-')) } catch (_) { return false }
+}
+
 export { supabaseUrl, supabaseAnonKey }

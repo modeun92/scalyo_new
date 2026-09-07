@@ -113,7 +113,15 @@ broke something visible. Do not relax one without saying so explicitly.
 10. **No native `confirm()`.** Use the shared `ConfirmDialog`.
 11. **Partial updates must be partial-safe.** A field absent from the input is not sent.
     Insert defaults live in the `add*` functions, not in the mapper.
-12. **Never `await` a Supabase call inside `onAuthStateChange`,** and never pass a `lock`
+12. **The login session dies 5 h after the last interaction.** `lib/sessionIdle.js` owns the
+    window, the `scalyo_last_activity` stamp and the definition of "interaction"
+    (`pointerdown`/`keydown`/`scroll`/`wheel`/`touchstart` — not mouse movement). It fails
+    **closed**: no stamp means expired. `stores/auth.init()` judges the stored session
+    *before* `getSession()` (which would refresh the token first); `App.vue` runs the live
+    sweep, gated on `auth.isAuthenticated` — ungated, it expels anonymous visitors and lets
+    landing-page scrolling revive a stale session. Client-side only: pair any change with
+    Supabase **Auth → Sessions → Inactivity timeout**.
+13. **Never `await` a Supabase call inside `onAuthStateChange`,** and never pass a `lock`
     option to `createClient` — both reintroduce a total per-tab freeze.
 
 ## Traps that have bitten before
@@ -190,5 +198,5 @@ Tracked, not fixed in this snapshot:
 
 ---
 
-*Last updated: 2026-09-04. If you changed something described above and did not update
+*Last updated: 2026-09-07. If you changed something described above and did not update
 this file, you are not done.*
