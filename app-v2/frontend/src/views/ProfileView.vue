@@ -131,16 +131,16 @@ const planPrice = computed(() => {
   const d = billing.data
   if (auth.currentPlan === 'enterprise') return t('plan_enterprise_price')
   if (!d) return billing.loading ? '' : '—'
-  if (!d.can_view_amounts) return t('stg_billing_seats', d.seats)
+  if (!d.can_view_amounts) return t('setting_billing_seats', d.seats)
   return money(d.total)
 })
 const planPeriod = computed(() => billing.canViewAmounts && billing.data?.total != null && auth.currentPlan !== 'enterprise')
 const planDetail = computed(() => {
   const d = billing.data
   if (!d || auth.currentPlan === 'enterprise') return ''
-  if (!d.can_view_amounts) return t('stg_billing_managed_by_owner')
+  if (!d.can_view_amounts) return t('setting_billing_managed_by_owner')
   if (d.unit_amount == null) return ''
-  return t('stg_billing_unit', { amount: money(d.unit_amount) }) + ' · ' + t('stg_billing_seats', d.seats)
+  return t('setting_billing_unit', { amount: money(d.unit_amount) }) + ' · ' + t('setting_billing_seats', d.seats)
 })
 
 const planClass = computed(() => {

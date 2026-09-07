@@ -2,12 +2,12 @@
   <div class="workload_view">
     <div class="workload_header">
       <div>
-        <h1>💚 {{ t('wl_title') }}</h1>
+        <h1>💚 {{ t('workload_title') }}</h1>
       </div>
       <!-- B-02: CSV import removed — a team member is a real auth account, created by invitation (CONTRACT CR-6 D1) -->
-      <RouterLink class="button_outline" to="/app/team">{{ t('wl_invite_members') }}</RouterLink>
+      <RouterLink class="button_outline" to="/app/team">{{ t('workload_invite_members') }}</RouterLink>
       <div class="workload_score_badge" :class="scoreClass">
-        <span class="wlsb_label">{{ t('wl_team_score') }}</span>
+        <span class="wlsb_label">{{ t('workload_team_score') }}</span>
         <span class="wlsb_value">{{ team.teamHealthScore ?? '—' }}</span>
       </div>
     </div>
@@ -33,26 +33,26 @@
         </div>
         <div class="workload_card_metrics">
           <div class="workload_card_m">
-            <div class="wlcm_row"><span>{{ t('wb_score') }}</span><span :class="wellbeingClass(m.wellbeingScore)">{{ hasNum(m.wellbeingScore) ? m.wellbeingScore + '/100' : '—' }}</span></div>
+            <div class="wlcm_row"><span>{{ t('wellbeing_score') }}</span><span :class="wellbeingClass(m.wellbeingScore)">{{ hasNum(m.wellbeingScore) ? m.wellbeingScore + '/100' : '—' }}</span></div>
             <div class="wlcm_bar"><div class="wlcm_fill" :class="wellbeingClass(m.wellbeingScore)" :style="{ width: (hasNum(m.wellbeingScore) ? m.wellbeingScore : 0) + '%' }" /></div>
           </div>
           <div class="workload_card_m">
-            <div class="wlcm_row"><span>{{ t('wb_charge') }}</span><span :class="workloadClass(m.workload)">{{ hasNum(m.workload) ? m.workload + '%' : '—' }}</span></div>
+            <div class="wlcm_row"><span>{{ t('wellbeing_charge') }}</span><span :class="workloadClass(m.workload)">{{ hasNum(m.workload) ? m.workload + '%' : '—' }}</span></div>
             <div class="wlcm_bar"><div class="wlcm_fill" :class="workloadClass(m.workload)" :style="{ width: (hasNum(m.workload) ? m.workload : 0) + '%' }" /></div>
           </div>
         </div>
         <div class="workload_card_details">
           <!-- TEAM-METRICS (29/08): real values derived from the clients store by csm_id (B-09: team store = null) -->
-          <span>{{ t('mgr_clients_managed') }}: <strong>{{ clientCountFor(m.id) }}</strong></span>
-          <span>{{ t('mgr_arr_managed') }}: <strong>{{ fmtCurrency(arrManagedFor(m.id), { compact: true }) }}</strong></span>
-          <span>{{ t('mgr_burnout_risk') }}: <span class="burnout_tag" :class="m.burnoutRisk || ''">{{ m.burnoutRisk ? t('mgr_burnout_' + m.burnoutRisk) : '—' }}</span></span>
+          <span>{{ t('manager_clients_managed') }}: <strong>{{ clientCountFor(m.id) }}</strong></span>
+          <span>{{ t('manager_arr_managed') }}: <strong>{{ fmtCurrency(arrManagedFor(m.id), { compact: true }) }}</strong></span>
+          <span>{{ t('manager_burnout_risk') }}: <span class="burnout_tag" :class="m.burnoutRisk || ''">{{ m.burnoutRisk ? t('manager_burnout_' + m.burnoutRisk) : '—' }}</span></span>
         </div>
       </div>
     </div>
 
     <div v-else class="workload_empty">
       <div class="empty_icon">💚</div>
-      <h3>{{ t('wl_empty') }}</h3>
+      <h3>{{ t('workload_empty') }}</h3>
     </div>
   </div>
 </template>
@@ -72,10 +72,10 @@ const activeFilter = ref('all')
 const search = ref('')
 
 const filters = [
-  { key: 'all', label: 'wl_filter_all' },
-  { key: 'overloaded', label: 'wl_filter_overloaded' },
-  { key: 'healthy', label: 'wl_filter_healthy' },
-  { key: 'risk', label: 'wl_filter_risk' },
+  { key: 'all', label: 'workload_filter_all' },
+  { key: 'overloaded', label: 'workload_filter_overloaded' },
+  { key: 'healthy', label: 'workload_filter_healthy' },
+  { key: 'risk', label: 'workload_filter_risk' },
 ]
 
 // B-09: no data → no color, no invented counter

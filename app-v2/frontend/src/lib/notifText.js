@@ -17,12 +17,12 @@ export function notifTitle(n, t) {
   if (!hasPayload(n)) return (n && n.title) || ''
   const p = n.payload
   switch (n.type) {
-    case 'churn_risk':   return t('notif_churn_risk_title', { name: p.name })
-    case 'renewal':      return t('notif_renewal_title', { name: p.name, days: p.days })
-    case 'nps_drop':     return t('notif_nps_drop_title', { name: p.name })
-    case 'task_overdue': return t('notif_task_overdue_title', { title: p.title })
-    case 'burnout':      return t('notif_burnout_title', { name: p.name })
-    case 'client_activity': return t('notif_client_activity_title', { author: p.author_name, name: p.client_name })
+    case 'churn_risk':   return t('notification_churn_risk_title', { name: p.name })
+    case 'renewal':      return t('notification_renewal_title', { name: p.name, days: p.days })
+    case 'nps_drop':     return t('notification_nps_drop_title', { name: p.name })
+    case 'task_overdue': return t('notification_task_overdue_title', { title: p.title })
+    case 'burnout':      return t('notification_burnout_title', { name: p.name })
+    case 'client_activity': return t('notification_client_activity_title', { author: p.author_name, name: p.client_name })
     default:             return n.title || ''
   }
 }
@@ -32,17 +32,17 @@ export function notifBody(n, t) {
   const p = n.payload
   switch (n.type) {
     // DATE-RAW / HEALTH-SCALE: the date and the score are formatted in the READER's locale (the payload stays raw)
-    case 'churn_risk':   return t('notif_churn_risk_body', { health: fmtHealth(p.health, { suffix: false }) })
-    case 'renewal':      return t('notif_renewal_body', { date: fmtDate(p.date) })
-    case 'nps_drop':     return t('notif_nps_drop_body', { nps: p.nps })
-    case 'task_overdue': return t('notif_task_overdue_body', { days: p.days, status: t('status_' + p.status) })
+    case 'churn_risk':   return t('notification_churn_risk_body', { health: fmtHealth(p.health, { suffix: false }) })
+    case 'renewal':      return t('notification_renewal_body', { date: fmtDate(p.date) })
+    case 'nps_drop':     return t('notification_nps_drop_body', { nps: p.nps })
+    case 'task_overdue': return t('notification_task_overdue_body', { days: p.days, status: t('status_' + p.status) })
     case 'burnout': {
       const reasons = []
-      if (p.wellbeing != null) reasons.push(t('notif_burnout_reason_wellbeing', { v: p.wellbeing }))
-      if (p.workload != null) reasons.push(t('notif_burnout_reason_workload', { v: p.workload }))
-      return t('notif_burnout_body', { reasons: reasons.join(', ') })
+      if (p.wellbeing != null) reasons.push(t('notification_burnout_reason_wellbeing', { v: p.wellbeing }))
+      if (p.workload != null) reasons.push(t('notification_burnout_reason_workload', { v: p.workload }))
+      return t('notification_burnout_body', { reasons: reasons.join(', ') })
     }
-    case 'client_activity': return t('notif_client_activity_body', { kind: t('cd_kind_' + (p.kind || 'note')) })
+    case 'client_activity': return t('notification_client_activity_body', { kind: t('client_detail_kind_' + (p.kind || 'note')) })
     default: return n.body || ''
   }
 }

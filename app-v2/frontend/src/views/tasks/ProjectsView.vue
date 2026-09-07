@@ -3,37 +3,37 @@
     <!-- IMPORT -->
     <div v-if="showImport" class="import_section">
       <div class="import_project_select">
-        <label>{{ t('imp_select_project') }}</label>
+        <label>{{ t('smart_import_select_project') }}</label>
         <select v-model="importProjectId" class="mapping_select">
           <option v-for="p in taskStore.projects" :key="p.id" :value="p.id">{{ p.name }}</option>
         </select>
-        <p class="import_hint">{{ t('imp_select_project_hint') }}</p>
+        <p class="import_hint">{{ t('smart_import_select_project_hint') }}</p>
       </div>
       <StandardImport :fields="taskFields" :on-import="handleBulkImport" />
     </div>
 
     <div class="profile_view_header">
-      <h1>📁 {{ t('sm_projects_title') }}</h1>
+      <h1>📁 {{ t('smart_matrix_projects_title') }}</h1>
       <div class="profile_view_actions">
         <button class="button_outline" @click="showImport = !showImport">{{ t('import_btn_tasks') }}</button>
-        <span class="scroll_hint">{{ t('sm_scroll_hint') }}</span>
+        <span class="scroll_hint">{{ t('smart_matrix_scroll_hint') }}</span>
 
         <!-- Reset global -->
         <div v-if="resetStep === 0">
-          <button class="button_danger_outline" @click="resetStep = 1">{{ t('sm_reset_all') }}</button>
+          <button class="button_danger_outline" @click="resetStep = 1">{{ t('smart_matrix_reset_all') }}</button>
         </div>
         <div v-else-if="resetStep === 1" class="reset_confirm">
-          <span class="reset_message">{{ t('sm_reset_step1') }}</span>
-          <button class="button_danger_outline" @click="resetStep = 2">{{ t('sm_reset_confirm') }}</button>
-          <button class="button_outline" @click="resetStep = 0">{{ t('sm_reset_cancel') }}</button>
+          <span class="reset_message">{{ t('smart_matrix_reset_step1') }}</span>
+          <button class="button_danger_outline" @click="resetStep = 2">{{ t('smart_matrix_reset_confirm') }}</button>
+          <button class="button_outline" @click="resetStep = 0">{{ t('smart_matrix_reset_cancel') }}</button>
         </div>
         <div v-else-if="resetStep === 2" class="reset_confirm">
-          <span class="reset_message warn">{{ t('sm_reset_step2') }}</span>
-          <button class="button_danger" @click="doResetAll">{{ t('sm_reset_confirm') }}</button>
-          <button class="button_outline" @click="resetStep = 0">{{ t('sm_reset_cancel') }}</button>
+          <span class="reset_message warn">{{ t('smart_matrix_reset_step2') }}</span>
+          <button class="button_danger" @click="doResetAll">{{ t('smart_matrix_reset_confirm') }}</button>
+          <button class="button_outline" @click="resetStep = 0">{{ t('smart_matrix_reset_cancel') }}</button>
         </div>
 
-        <button class="button_primary" @click="slideOpen = true">{{ t('sm_new_project') }}</button>
+        <button class="button_primary" @click="slideOpen = true">{{ t('smart_matrix_new_project') }}</button>
       </div>
     </div>
 
@@ -46,21 +46,21 @@
               <th class="column_fix column_expand"></th>
                 <th class="column_fix column_drag"></th>
               <th class="column_fix column_number">#</th>
-              <th class="column_fix column_title">{{ t('sm_col_title') }}</th>
-              <th class="column_scroll column_date">{{ t('sm_col_start') }}</th>
-              <th class="column_scroll column_date">{{ t('sm_col_end') }}</th>
-              <th class="column_scroll column_badge">{{ t('sm_col_urgency') }}</th>
-              <th class="column_scroll column_badge">{{ t('sm_col_importance') }}</th>
-              <th class="column_scroll column_badge">{{ t('sm_col_difficulty') }}</th>
+              <th class="column_fix column_title">{{ t('smart_matrix_col_title') }}</th>
+              <th class="column_scroll column_date">{{ t('smart_matrix_col_start') }}</th>
+              <th class="column_scroll column_date">{{ t('smart_matrix_col_end') }}</th>
+              <th class="column_scroll column_badge">{{ t('smart_matrix_col_urgency') }}</th>
+              <th class="column_scroll column_badge">{{ t('smart_matrix_col_importance') }}</th>
+              <th class="column_scroll column_badge">{{ t('smart_matrix_col_difficulty') }}</th>
               <th class="column_scroll column_status">{{ t('status_todo').split(' ')[0] }}</th>
-              <th class="column_scroll column_check">{{ t('sm_col_finished') }}</th>
-              <th class="column_scroll column_check">{{ t('sm_col_pended') }}</th>
-              <th class="column_scroll column_number_input">{{ t('sm_col_actual') }}</th>
-              <th class="column_scroll column_number_input">{{ t('sm_col_expected') }}</th>
-              <th class="column_scroll column_number_input">{{ t('sm_col_min') }}</th>
-              <th class="column_scroll column_number_input">{{ t('sm_col_max') }}</th>
-              <th class="column_scroll column_number_input column_average">{{ t('sm_col_avg') }}</th>
-              <th class="column_scroll column_description">{{ t('sm_col_desc') }}</th>
+              <th class="column_scroll column_check">{{ t('smart_matrix_col_finished') }}</th>
+              <th class="column_scroll column_check">{{ t('smart_matrix_col_pended') }}</th>
+              <th class="column_scroll column_number_input">{{ t('smart_matrix_col_actual') }}</th>
+              <th class="column_scroll column_number_input">{{ t('smart_matrix_col_expected') }}</th>
+              <th class="column_scroll column_number_input">{{ t('smart_matrix_col_min') }}</th>
+              <th class="column_scroll column_number_input">{{ t('smart_matrix_col_max') }}</th>
+              <th class="column_scroll column_number_input column_average">{{ t('smart_matrix_col_avg') }}</th>
+              <th class="column_scroll column_description">{{ t('smart_matrix_col_desc') }}</th>
               <th class="column_scroll column_actions"></th>
             </tr>
           </thead>
@@ -82,7 +82,7 @@
                     <input v-model="row.title" class="cell_input title_input" @keydown.enter="saveCell(row)" @keydown.tab.prevent="saveCell(row)" @keydown.escape="editCell = null" />
                   </span>
                   <span v-else class="cell_text title_text" :class="{ bold: row.type === 'project' }" @click="editCell = row.id + '_title'">{{ row.title || '—' }}</span>
-                  <button v-if="row.type === 'project'" class="add_task_button" @click.stop="addTaskToProject(row.id)">+ {{ t('sm_new_task') }}</button>
+                  <button v-if="row.type === 'project'" class="add_task_button" @click.stop="addTaskToProject(row.id)">+ {{ t('smart_matrix_new_task') }}</button>
                   <button v-else class="add_sub_button" @click.stop="addSubtaskToRow(row)">+</button>
                 </td>
                 <td class="column_scroll column_date" @click="editCell = row.id + '_startDate'">
@@ -139,14 +139,14 @@
                   <!-- Double validation delete inline -->
                   <template v-if="deleteConfirmId === row.id">
                     <div class="delete_inline">
-                      <span class="del_message">{{ row.type === 'project' ? t('sm_delete_project_inline') : t('sm_delete_task_confirm') }}</span>
+                      <span class="del_message">{{ row.type === 'project' ? t('smart_matrix_delete_project_inline') : t('smart_matrix_delete_task_confirm') }}</span>
                       <button class="button_delete_ok" @click="confirmDelete(row)">✓</button>
                       <button class="button_delete_cancel" @click="deleteConfirmId = null">✕</button>
                     </div>
                   </template>
                   <template v-else-if="deleteConfirm2Id === row.id">
                     <div class="delete_inline warn">
-                      <span class="del_message warn">{{ t('sm_delete_project_confirm2') }}</span>
+                      <span class="del_message warn">{{ t('smart_matrix_delete_project_confirm2') }}</span>
                       <button class="button_delete_ok" @click="finalDelete(row)">✓</button>
                       <button class="button_delete_cancel" @click="deleteConfirm2Id = null">✕</button>
                     </div>
@@ -161,7 +161,7 @@
             <tr class="row_totals">
               <td class="column_fix column_expand"></td>
               <td class="column_fix column_number"></td>
-              <td class="column_fix column_title"><strong>{{ t('sm_totals') }}</strong></td>
+              <td class="column_fix column_title"><strong>{{ t('smart_matrix_totals') }}</strong></td>
               <td class="column_scroll column_date"></td>
               <td class="column_scroll column_date"></td>
               <td class="column_scroll column_badge"></td>
@@ -186,15 +186,15 @@
     <!-- Empty -->
     <div v-else class="profile_view_empty">
       <div class="empty_icon">📁</div>
-      <h3>{{ t('sm_no_projects') }}</h3>
-      <button class="button_primary" @click="slideOpen = true">{{ t('sm_new_project') }}</button>
+      <h3>{{ t('smart_matrix_no_projects') }}</h3>
+      <button class="button_primary" @click="slideOpen = true">{{ t('smart_matrix_new_project') }}</button>
     </div>
 
     <!-- Slide-over new project -->
-    <SlideOver :open="slideOpen" :title="t('sm_new_project')" @close="slideOpen = false">
+    <SlideOver :open="slideOpen" :title="t('smart_matrix_new_project')" @close="slideOpen = false">
       <form @submit.prevent="createProject" class="slideover_form">
-        <div class="field_group"><label>{{ t('sm_project_name') }} *</label><input v-model="newName" required class="field_input" /></div>
-        <div class="field_group"><label>{{ t('sm_project_color') }}</label>
+        <div class="field_group"><label>{{ t('smart_matrix_project_name') }} *</label><input v-model="newName" required class="field_input" /></div>
+        <div class="field_group"><label>{{ t('smart_matrix_project_color') }}</label>
           <div class="color_picks"><button v-for="c in colors" :key="c" type="button" class="cpick" :class="{ active: newColor === c }" :style="{ background: c }" @click="newColor = c" /></div>
         </div>
         <div class="form_actions">

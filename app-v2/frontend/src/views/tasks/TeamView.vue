@@ -1,6 +1,6 @@
 <template>
   <div class="team_view">
-    <h1>👥 {{ t('sm_team_title') }}</h1>
+    <h1>👥 {{ t('smart_matrix_team_title') }}</h1>
     <div class="tm_list">
       <div v-for="m in team.members" :key="m.id" class="tm_card">
         <div class="team_card_header">
@@ -12,9 +12,9 @@
           <span class="team_card_status" :class="m.status">{{ m.status === 'healthy' ? t('status_healthy') : t('kpi_overloaded') }}</span>
         </div>
         <div class="team_card_stats">
-          <div class="tms"><span class="tms_value">{{ memberTasks(m.id).length }}</span><span class="tms_label">{{ t('sm_assigned_tasks') }}</span></div>
-          <div class="tms"><span class="tms_value">{{ memberTasks(m.id).filter(t => t.status === 'done').length }}</span><span class="tms_label">{{ t('sm_completed') }}</span></div>
-          <div class="tms"><span class="tms_value red">{{ memberTasks(m.id).filter(t => isOverdue(t)).length }}</span><span class="tms_label">{{ t('sm_overdue') }}</span></div>
+          <div class="tms"><span class="tms_value">{{ memberTasks(m.id).length }}</span><span class="tms_label">{{ t('smart_matrix_assigned_tasks') }}</span></div>
+          <div class="tms"><span class="tms_value">{{ memberTasks(m.id).filter(t => t.status === 'done').length }}</span><span class="tms_label">{{ t('smart_matrix_completed') }}</span></div>
+          <div class="tms"><span class="tms_value red">{{ memberTasks(m.id).filter(t => isOverdue(t)).length }}</span><span class="tms_label">{{ t('smart_matrix_overdue') }}</span></div>
         </div>
         <div class="team_card_tasks">
           <div v-for="task in memberTasks(m.id).filter(t => t.status !== 'done').slice(0, 5)" :key="task.id" class="team_table_row">

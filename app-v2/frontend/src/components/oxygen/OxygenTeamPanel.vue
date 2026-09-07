@@ -1,39 +1,39 @@
 <template>
   <div class="oxyteam">
     <!-- Privacy contract — ALWAYS displayed, whatever the state -->
-    <div class="oxygen_privacy">🛡️ <span>{{ t('oxy_team_privacy') }}</span></div>
+    <div class="oxygen_privacy">🛡️ <span>{{ t('oxygen_team_privacy') }}</span></div>
 
     <div v-if="team.status === 'loading' || team.status === 'idle'" class="oxygen_card oxyteam_state">
-      {{ t('oxy_team_loading') }}
+      {{ t('oxygen_team_loading') }}
     </div>
 
     <div v-else-if="team.status === 'disabled'" class="oxygen_card oxyteam_state">
-      <strong>{{ t('oxy_team_disabled_title') }}</strong>
-      <p>{{ t('oxy_team_disabled_body') }}</p>
+      <strong>{{ t('oxygen_team_disabled_title') }}</strong>
+      <p>{{ t('oxygen_team_disabled_body') }}</p>
     </div>
 
     <div v-else-if="team.status === 'insufficient'" class="oxygen_card oxyteam_state">
-      <strong>{{ t('oxy_team_threshold_title') }}</strong>
-      <p>{{ t('oxy_team_threshold_body') }}</p>
+      <strong>{{ t('oxygen_team_threshold_title') }}</strong>
+      <p>{{ t('oxygen_team_threshold_body') }}</p>
     </div>
 
     <div v-else-if="team.status === 'error' || team.status === 'forbidden'" class="oxygen_card oxyteam_state">
-      {{ t('oxy_team_error') }}
+      {{ t('oxygen_team_error') }}
     </div>
 
     <template v-else>
-      <p class="oxyteam_meta">{{ t('oxy_team_window', { n: team.data.n }) }}</p>
+      <p class="oxyteam_meta">{{ t('oxygen_team_window', { n: team.data.n }) }}</p>
       <div class="oxyteam_grid">
         <div v-for="m in metrics" :key="m.key" class="oxygen_card oxyteam_card">
           <span class="oxyteam_value">{{ m.display }}</span>
           <span class="oxyteam_label">{{ t(m.label) }}</span>
-          <span v-if="m.trend !== null" class="oxyteam_trend">{{ m.trend }} {{ t('oxy_team_trend') }}</span>
-          <span v-else class="oxyteam_trend quiet">{{ t('oxy_team_no_trend') }}</span>
+          <span v-if="m.trend !== null" class="oxyteam_trend">{{ m.trend }} {{ t('oxygen_team_trend') }}</span>
+          <span v-else class="oxyteam_trend quiet">{{ t('oxygen_team_no_trend') }}</span>
         </div>
       </div>
-      <p class="oxyteam_note">{{ t('oxy_team_closure_note') }}</p>
-      <button class="oxygen_how" @click="how = !how">{{ t('oxy_team_how') }}</button>
-      <p v-if="how" class="oxygen_how_body">{{ t('oxy_team_how_body') }}</p>
+      <p class="oxyteam_note">{{ t('oxygen_team_closure_note') }}</p>
+      <button class="oxygen_how" @click="how = !how">{{ t('oxygen_team_how') }}</button>
+      <p v-if="how" class="oxygen_how_body">{{ t('oxygen_team_how_body') }}</p>
     </template>
   </div>
 </template>
@@ -73,11 +73,11 @@ const metrics = computed(() => {
   const cur = team.data?.current || {}
   const prev = team.data?.previous || null
   return [
-    { key: 'index', label: 'oxy_team_index', display: show(cur.index_avg),
+    { key: 'index', label: 'oxygen_team_index', display: show(cur.index_avg),
       trend: trend(cur.index_avg, prev?.index_avg) },
-    { key: 'load', label: 'oxy_team_load', display: show(cur.load_avg),
+    { key: 'load', label: 'oxygen_team_load', display: show(cur.load_avg),
       trend: trend(cur.load_avg, prev?.load_avg) },
-    { key: 'closure', label: 'oxy_team_closure', display: show(cur.closure_rate, true),
+    { key: 'closure', label: 'oxygen_team_closure', display: show(cur.closure_rate, true),
       trend: trend(cur.closure_rate, prev?.closure_rate, true) },
   ]
 })

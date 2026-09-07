@@ -10,28 +10,28 @@
           <button class="roadmap_slide_over_close" @click="$emit('cancel')">✕</button>
         </div>
         <div class="mp_body">
-          <h3 class="mp_title">{{ t('imp_select_module_title') }}</h3>
-          <p class="mp_hint">{{ t('imp_select_module_hint') }}</p>
+          <h3 class="mp_title">{{ t('smart_import_select_module_title') }}</h3>
+          <p class="mp_hint">{{ t('smart_import_select_module_hint') }}</p>
           <div class="mp_grid">
             <button class="mp_card" @click="$emit('confirm', 'clients')">
               <span class="mp_card_icon">👥</span>
-              <strong>{{ t('imp_module_clients') }}</strong>
-              <span class="mp_card_description">{{ t('imp_module_desc_clients') }}</span>
+              <strong>{{ t('smart_import_module_clients') }}</strong>
+              <span class="mp_card_description">{{ t('smart_import_module_desc_clients') }}</span>
             </button>
             <button class="mp_card" @click="$emit('confirm', 'tasks')">
               <span class="mp_card_icon">✅</span>
-              <strong>{{ t('imp_module_tasks') }}</strong>
-              <span class="mp_card_description">{{ t('imp_module_desc_tasks') }}</span>
+              <strong>{{ t('smart_import_module_tasks') }}</strong>
+              <span class="mp_card_description">{{ t('smart_import_module_desc_tasks') }}</span>
             </button>
             <button class="mp_card" @click="$emit('confirm', 'team')">
               <span class="mp_card_icon">🙋</span>
-              <strong>{{ t('imp_module_team') }}</strong>
-              <span class="mp_card_description">{{ t('imp_module_desc_team') }}</span>
+              <strong>{{ t('smart_import_module_team') }}</strong>
+              <span class="mp_card_description">{{ t('smart_import_module_desc_team') }}</span>
             </button>
             <button class="mp_card" @click="$emit('confirm', 'copil')">
               <span class="mp_card_icon">📊</span>
-              <strong>{{ t('imp_module_copil') }}</strong>
-              <span class="mp_card_description">{{ t('imp_module_desc_copil') }}</span>
+              <strong>{{ t('smart_import_module_copil') }}</strong>
+              <span class="mp_card_description">{{ t('smart_import_module_desc_copil') }}</span>
             </button>
           </div>
         </div>

@@ -8,7 +8,7 @@
 
     <!-- HOTFIX CAP-1000: MAX_ROWS safeguard exceeded → the list is partial and we SAY SO (never silent, R21) -->
     <div v-if="clients.truncated" class="quota_notice" style="display:flex;align-items:center;gap:12px;padding:10px 14px;margin-bottom:12px;background:#fff4e5;border:1px solid #ffcc80;border-radius:8px;color:#8a5a00;font-size:0.9rem;">
-      <span>{{ t('port_partial_list', { loaded: clients.clients.length, total: clients.totalRows }) }}</span>
+      <span>{{ t('portfolio_partial_list', { loaded: clients.clients.length, total: clients.totalRows }) }}</span>
     </div>
 
     <!-- TEAM-METRICS (D3): CSMs unknown at import time → imported rows left UNASSIGNED + visible reporting -->
@@ -19,34 +19,34 @@
 
     <!-- IMPORT PANEL -->
     <div v-if="showImport && canImport" class="import_context">
-      <span class="ic_label">{{ t('port_import_as') }}</span>
+      <span class="ic_label">{{ t('portfolio_import_as') }}</span>
       <div class="ic_toggle">
-        <button type="button" class="ic_button" :class="{ active: importLifecycle === 'client' }" @click="importLifecycle = 'client'">{{ t('port_lifecycle_client') }}</button>
-        <button type="button" class="ic_button" :class="{ active: importLifecycle === 'prospect' }" @click="importLifecycle = 'prospect'">{{ t('port_lifecycle_prospect') }}</button>
+        <button type="button" class="ic_button" :class="{ active: importLifecycle === 'client' }" @click="importLifecycle = 'client'">{{ t('portfolio_lifecycle_client') }}</button>
+        <button type="button" class="ic_button" :class="{ active: importLifecycle === 'prospect' }" @click="importLifecycle = 'prospect'">{{ t('portfolio_lifecycle_prospect') }}</button>
       </div>
     </div>
     <StandardImport v-if="showImport && canImport" :fields="clientFields" :on-import="handleBulkImport" />
 
     <!-- HEADER -->
     <div class="portfolio_header">
-      <h1>💼 {{ t('port_title') }}</h1>
+      <h1>💼 {{ t('portfolio_title') }}</h1>
       <div class="portfolio_actions">
         <button v-if="canImport" class="button_outline" @click="toggleImport">{{ t('import_btn_clients') }}</button>
-        <button class="button_outline" @click="exportCsv">{{ t('port_export') }}</button>
+        <button class="button_outline" @click="exportCsv">{{ t('portfolio_export') }}</button>
         <div v-if="resetStep === 0">
-          <button class="button_danger_outline" @click="resetStep = 1">{{ t('port_reset_all') }}</button>
+          <button class="button_danger_outline" @click="resetStep = 1">{{ t('portfolio_reset_all') }}</button>
         </div>
         <div v-else-if="resetStep === 1" class="reset_confirm">
-          <span class="reset_message">{{ t('port_reset_step1') }}</span>
-          <button class="button_danger_outline" @click="resetStep = 2">{{ t('port_reset_confirm') }}</button>
-          <button class="button_outline" @click="resetStep = 0">{{ t('sm_reset_cancel') }}</button>
+          <span class="reset_message">{{ t('portfolio_reset_step1') }}</span>
+          <button class="button_danger_outline" @click="resetStep = 2">{{ t('portfolio_reset_confirm') }}</button>
+          <button class="button_outline" @click="resetStep = 0">{{ t('smart_matrix_reset_cancel') }}</button>
         </div>
         <div v-else-if="resetStep === 2" class="reset_confirm">
-          <span class="reset_message warn">{{ t('port_reset_step2') }}</span>
-          <button class="button_danger" @click="doResetAll">{{ t('port_reset_confirm') }}</button>
-          <button class="button_outline" @click="resetStep = 0">{{ t('sm_reset_cancel') }}</button>
+          <span class="reset_message warn">{{ t('portfolio_reset_step2') }}</span>
+          <button class="button_danger" @click="doResetAll">{{ t('portfolio_reset_confirm') }}</button>
+          <button class="button_outline" @click="resetStep = 0">{{ t('smart_matrix_reset_cancel') }}</button>
         </div>
-        <button class="button_primary" @click="openCreate">{{ activeLifecycle === 'prospects' ? t('port_add_prospect') : t('port_add') }}</button>
+        <button class="button_primary" @click="openCreate">{{ activeLifecycle === 'prospects' ? t('portfolio_add_prospect') : t('portfolio_add') }}</button>
       </div>
     </div>
 
@@ -59,23 +59,23 @@
 
     <!-- KPI CARDS -->
     <div v-if="activeLifecycle === 'clients'" class="portfolio_kpis">
-      <div class="kpi_page"><span class="kpi_page_icon">📊</span><div><span class="portfolio_kpi_page_value">{{ clients.clientsCount }}</span><span class="kpi_page_label">{{ t('port_accounts') }}</span></div></div>
-      <div class="kpi_page"><span class="kpi_page_icon">💰</span><div><span class="portfolio_kpi_page_value">{{ fmtCurrency(clients.totalArr, { compact: true }) }}</span><span class="kpi_page_label">{{ t('port_arr_total') }}</span></div></div>
-      <div class="kpi_page"><span class="kpi_page_icon">💚</span><div><span class="portfolio_kpi_page_value">{{ fmtHealth(clients.avgHealth, { average: true }) }}</span><span class="kpi_page_label">{{ t('port_health_avg') }}</span></div></div>
-      <div class="kpi_page warn"><span class="kpi_page_icon">🔴</span><div><span class="portfolio_kpi_page_value">{{ clients.criticalCount }}</span><span class="kpi_page_label">{{ t('port_critical') }}</span></div></div>
+      <div class="kpi_page"><span class="kpi_page_icon">📊</span><div><span class="portfolio_kpi_page_value">{{ clients.clientsCount }}</span><span class="kpi_page_label">{{ t('portfolio_accounts') }}</span></div></div>
+      <div class="kpi_page"><span class="kpi_page_icon">💰</span><div><span class="portfolio_kpi_page_value">{{ fmtCurrency(clients.totalArr, { compact: true }) }}</span><span class="kpi_page_label">{{ t('portfolio_arr_total') }}</span></div></div>
+      <div class="kpi_page"><span class="kpi_page_icon">💚</span><div><span class="portfolio_kpi_page_value">{{ fmtHealth(clients.avgHealth, { average: true }) }}</span><span class="kpi_page_label">{{ t('portfolio_health_avg') }}</span></div></div>
+      <div class="kpi_page warn"><span class="kpi_page_icon">🔴</span><div><span class="portfolio_kpi_page_value">{{ clients.criticalCount }}</span><span class="kpi_page_label">{{ t('portfolio_critical') }}</span></div></div>
     </div>
     <div v-else class="portfolio_kpis">
-      <div class="kpi_page"><span class="kpi_page_icon">🎯</span><div><span class="portfolio_kpi_page_value">{{ clients.prospectsCount }}</span><span class="kpi_page_label">{{ t('port_lifecycle_prospects') }}</span></div></div>
-      <div class="kpi_page"><span class="kpi_page_icon">✅</span><div><span class="portfolio_kpi_page_value">{{ clients.pipelineByStage.qualified.length }}</span><span class="kpi_page_label">{{ t('port_stage_qualified') }}</span></div></div>
-      <div class="kpi_page"><span class="kpi_page_icon">🏆</span><div><span class="portfolio_kpi_page_value">{{ clients.pipelineByStage.won.length }}</span><span class="kpi_page_label">{{ t('port_stage_won') }}</span></div></div>
-      <div class="kpi_page"><span class="kpi_page_icon">🌱</span><div><span class="portfolio_kpi_page_value">{{ clients.pipelineByStage.new.length }}</span><span class="kpi_page_label">{{ t('port_stage_new') }}</span></div></div>
+      <div class="kpi_page"><span class="kpi_page_icon">🎯</span><div><span class="portfolio_kpi_page_value">{{ clients.prospectsCount }}</span><span class="kpi_page_label">{{ t('portfolio_lifecycle_prospects') }}</span></div></div>
+      <div class="kpi_page"><span class="kpi_page_icon">✅</span><div><span class="portfolio_kpi_page_value">{{ clients.pipelineByStage.qualified.length }}</span><span class="kpi_page_label">{{ t('portfolio_stage_qualified') }}</span></div></div>
+      <div class="kpi_page"><span class="kpi_page_icon">🏆</span><div><span class="portfolio_kpi_page_value">{{ clients.pipelineByStage.won.length }}</span><span class="kpi_page_label">{{ t('portfolio_stage_won') }}</span></div></div>
+      <div class="kpi_page"><span class="kpi_page_icon">🌱</span><div><span class="portfolio_kpi_page_value">{{ clients.pipelineByStage.new.length }}</span><span class="kpi_page_label">{{ t('portfolio_stage_new') }}</span></div></div>
     </div>
 
     <!-- SEARCH & FILTERS -->
     <div class="portfolio_toolbar">
       <div class="search_box">
         <span class="si">🔍</span>
-        <input v-model="search" :placeholder="t('port_search')" />
+        <input v-model="search" :placeholder="t('portfolio_search')" />
       </div>
       <div class="filter_tabs">
         <button v-for="f in filterList" :key="f.key" class="filter_tab" :class="{ active: activeFilter === f.key }" @click="activeFilter = f.key">
@@ -223,7 +223,7 @@ var handleBulkImport = async function (rows) {
   var unknownNames = Object.keys(unresolved)
   if (unknownNames.length) {
     var lines = unknownNames.reduce(function (s, n) { return s + unresolved[n] }, 0)
-    csmNotice.value = t('port_import_csm_unknown', { count: lines, names: unknownNames.join(', ') })
+    csmNotice.value = t('portfolio_import_csm_unknown', { count: lines, names: unknownNames.join(', ') })
   }
   if (count > 0) showImport.value = false
   return count
@@ -238,11 +238,11 @@ const initForm = () => ({
 })
 
 const form = reactive(initForm())
-const industries = computed(() => t('port_industries').split(','))
+const industries = computed(() => t('portfolio_industries').split(','))
 
 const lifecycleTabs = computed(() => [
-  { key: 'clients', label: 'port_lifecycle_clients', icon: '💼', count: clients.clientsCount },
-  { key: 'prospects', label: 'port_lifecycle_prospects', icon: '🎯', count: clients.prospectsCount },
+  { key: 'clients', label: 'portfolio_lifecycle_clients', icon: '💼', count: clients.clientsCount },
+  { key: 'prospects', label: 'portfolio_lifecycle_prospects', icon: '🎯', count: clients.prospectsCount },
 ])
 
 const baseList = computed(() => activeLifecycle.value === 'prospects' ? clients.prospectsOnly : clients.clientsOnly)
@@ -251,10 +251,10 @@ const filterList = computed(() => {
   const base = baseList.value
   const cnt = (s) => base.filter(c => clients.getEffectiveStatus(c) === s).length
   return [
-    { key: 'all', label: 'port_filter_all', count: base.length },
-    { key: 'critical', label: 'port_filter_critical', count: cnt('critical') },
-    { key: 'watch', label: 'port_filter_watch', count: cnt('watch') },
-    { key: 'healthy', label: 'port_filter_healthy', count: cnt('healthy') },
+    { key: 'all', label: 'portfolio_filter_all', count: base.length },
+    { key: 'critical', label: 'portfolio_filter_critical', count: cnt('critical') },
+    { key: 'watch', label: 'portfolio_filter_watch', count: cnt('watch') },
+    { key: 'healthy', label: 'portfolio_filter_healthy', count: cnt('healthy') },
   ]
 })
 
@@ -318,8 +318,8 @@ function doDelete(c) { clients.deleteClient(c.id) }
 function openDetail(c) { clientModal.open(c.id) }
 
 function exportCsv() {
-  const h = [t('port_field_name'), t('port_field_industry'), t('kpi_arr'), t('cd_health'),
-    'NPS', t('port_field_status'), t('port_field_agent'), t('port_renewal')]
+  const h = [t('portfolio_field_name'), t('portfolio_field_industry'), t('kpi_arr'), t('client_detail_health'),
+    'NPS', t('portfolio_field_status'), t('portfolio_field_agent'), t('portfolio_renewal')]
   const rows = baseList.value.map(c => [c.name, c.industry, c.arr, c.health, c.nps, c.status, c.csm, c.renewalDate])
   const csv = [h.join(','), ...rows.map(r => r.join(','))].join('\n')
   const a = document.createElement('a')

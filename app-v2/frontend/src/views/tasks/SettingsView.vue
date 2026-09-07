@@ -1,6 +1,6 @@
 <template>
   <div class="settings_view">
-    <h1>⚙️ {{ t('sm_settings_title') }}</h1>
+    <h1>⚙️ {{ t('smart_matrix_settings_title') }}</h1>
 
     <!-- Toast -->
     <transition name="fade">
@@ -9,20 +9,20 @@
 
     <!-- General info -->
     <div class="settings_card">
-      <h3>{{ t('sm_firstname') }}</h3>
+      <h3>{{ t('smart_matrix_firstname') }}</h3>
       <div class="settings_grid">
-        <div class="field_group"><label>{{ t('sm_firstname') }}</label><input v-model="form.firstName" class="field_input" /></div>
-        <div class="field_group"><label>{{ t('sm_country') }}</label>
+        <div class="field_group"><label>{{ t('smart_matrix_firstname') }}</label><input v-model="form.firstName" class="field_input" /></div>
+        <div class="field_group"><label>{{ t('smart_matrix_country') }}</label>
           <select v-model="form.country" class="field_input">
             <option v-for="c in countryLaws.allCountries" :key="c.code" :value="c.code">{{ c.flag }} {{ t(c.nameKey) }}</option>
           </select>
         </div>
-        <div class="field_group"><label>{{ t('sm_company') }}</label><input v-model="form.company" class="field_input" /></div>
-        <div class="field_group"><label>{{ t('sm_contract') }}</label>
+        <div class="field_group"><label>{{ t('smart_matrix_company') }}</label><input v-model="form.company" class="field_input" /></div>
+        <div class="field_group"><label>{{ t('smart_matrix_contract') }}</label>
           <select v-model="form.contract" class="field_input">
-            <option value="cdi">{{ t('sm_contract_cdi') }}</option>
-            <option value="cdd">{{ t('sm_contract_cdd') }}</option>
-            <option value="freelance">{{ t('sm_contract_freelance') }}</option>
+            <option value="cdi">{{ t('smart_matrix_contract_cdi') }}</option>
+            <option value="cdd">{{ t('smart_matrix_contract_cdd') }}</option>
+            <option value="freelance">{{ t('smart_matrix_contract_freelance') }}</option>
           </select>
         </div>
       </div>
@@ -30,33 +30,33 @@
 
     <!-- Time organization -->
     <div class="settings_card">
-      <h3>{{ t('sm_days_week') }}</h3>
+      <h3>{{ t('smart_matrix_days_week') }}</h3>
       <div class="settings_grid">
         <div class="field_group">
-          <label>{{ t('sm_days_week') }}</label>
+          <label>{{ t('smart_matrix_days_week') }}</label>
           <input v-model.number="form.daysPerWeek" type="number" min="1" max="7" class="field_input" />
         </div>
         <div class="field_group">
-          <label>{{ t('sm_hours_day') }}</label>
+          <label>{{ t('smart_matrix_hours_day') }}</label>
           <input v-model.number="form.hoursPerDay" type="number" min="1" max="24" step="0.5" class="field_input" />
-          <span class="legal_hint">⚖️ {{ laws.hoursPerWeek }}h/{{ t('sm_days_week').toLowerCase() }}</span>
+          <span class="legal_hint">⚖️ {{ laws.hoursPerWeek }}h/{{ t('smart_matrix_days_week').toLowerCase() }}</span>
         </div>
         <div class="field_group">
-          <label>{{ t('sm_vacation_days') }}</label>
+          <label>{{ t('smart_matrix_vacation_days') }}</label>
           <input v-model.number="form.vacationDays" type="number" min="0" class="field_input" />
           <span class="legal_hint">⚖️ {{ t('country_law_updated', { country: '' }) }} {{ laws.vacationDays }}j</span>
         </div>
         <div class="field_group">
-          <label>{{ t('sm_holidays') }}</label>
+          <label>{{ t('smart_matrix_holidays') }}</label>
           <input v-model.number="form.holidays" type="number" min="0" class="field_input" />
-          <span class="legal_hint">⚖️ {{ laws.publicHolidays }} {{ t('sm_holidays').toLowerCase() }}</span>
+          <span class="legal_hint">⚖️ {{ laws.publicHolidays }} {{ t('smart_matrix_holidays').toLowerCase() }}</span>
         </div>
         <div class="field_group">
-          <label>{{ t('sm_exceptional') }}</label>
+          <label>{{ t('smart_matrix_exceptional') }}</label>
           <input v-model.number="form.exceptionalLeave" type="number" min="0" class="field_input" />
         </div>
         <div class="field_group">
-          <label>{{ t('sm_daily_tasks') }}</label>
+          <label>{{ t('smart_matrix_daily_tasks') }}</label>
           <input v-model.number="form.dailyFixedHours" type="number" min="0" max="8" step="0.5" class="field_input" />
         </div>
       </div>
@@ -64,20 +64,20 @@
 
     <!-- Auto-calculated -->
     <div class="settings_card auto">
-      <h3>{{ t('sm_auto_calculated') }}</h3>
+      <h3>{{ t('smart_matrix_auto_calculated') }}</h3>
       <div class="calculator_grid">
         <div class="calculator_item">
-          <span class="calculator_label">{{ t('sm_working_days') }}</span>
+          <span class="calculator_label">{{ t('smart_matrix_working_days') }}</span>
           <span class="calculator_value">{{ workingDays }}</span>
           <span class="calculator_formula">52×{{ form.daysPerWeek }} - {{ form.vacationDays }} - {{ form.holidays }} - {{ form.exceptionalLeave }}</span>
         </div>
         <div class="calculator_item">
-          <span class="calculator_label">{{ t('sm_project_hours_day') }}</span>
+          <span class="calculator_label">{{ t('smart_matrix_project_hours_day') }}</span>
           <span class="calculator_value">{{ projectHoursDay }}h</span>
           <span class="calculator_formula">{{ form.hoursPerDay }} - {{ form.dailyFixedHours }}</span>
         </div>
         <div class="calculator_item">
-          <span class="calculator_label">{{ t('sm_project_hours_year') }}</span>
+          <span class="calculator_label">{{ t('smart_matrix_project_hours_year') }}</span>
           <span class="calculator_value purple">{{ projectHoursYear }}h</span>
           <span class="calculator_formula">{{ workingDays }} × {{ projectHoursDay }}</span>
         </div>
@@ -91,7 +91,7 @@
         <div class="legal_item"><span class="li_label">{{ t('country_law_work_law') }}</span><span>{{ t('law_' + form.country.toLowerCase() + '_labor') }}</span></div>
         <div class="legal_item"><span class="li_label">{{ t('country_law_data_law') }}</span><span>{{ t('law_' + form.country.toLowerCase() + '_privacy') }}</span></div>
         <div class="legal_item"><span class="li_label">{{ t('country_law_hours_week') }}</span><span>{{ laws.hoursPerWeek }}h</span></div>
-        <div class="legal_item"><span class="li_label">{{ t('country_law_vacation') }}</span><span>{{ laws.vacationDays }} {{ t('sm_vacation_days').split('/')[0] }}</span></div>
+        <div class="legal_item"><span class="li_label">{{ t('country_law_vacation') }}</span><span>{{ laws.vacationDays }} {{ t('smart_matrix_vacation_days').split('/')[0] }}</span></div>
         <div class="legal_item"><span class="li_label">{{ t('country_law_holidays') }}</span><span>{{ laws.publicHolidays }}</span></div>
         <div class="legal_item"><span class="li_label">{{ t('country_law_tax') }}</span><span>{{ laws.taxRate }}% ({{ t('country_law_tax_name') }})</span></div>
       </div>
@@ -150,7 +150,7 @@ watch(() => form.country, (newCountry) => {
   form.vacationDays = law.vacationDays
   form.holidays = law.publicHolidays
   form.daysPerWeek = law.workDaysPerWeek || 5
-  toast.value = '✓ ' + law.flag + ' ' + law.name + ' — ' + law.hoursPerWeek + 'h/' + t('sm_days_week').toLowerCase() + ' · ' + law.vacationDays + 'j ' + t('sm_vacation_days').split('/')[0] + ' · ' + law.publicHolidays + ' ' + t('sm_holidays').toLowerCase()
+  toast.value = '✓ ' + law.flag + ' ' + law.name + ' — ' + law.hoursPerWeek + 'h/' + t('smart_matrix_days_week').toLowerCase() + ' · ' + law.vacationDays + 'j ' + t('smart_matrix_vacation_days').split('/')[0] + ' · ' + law.publicHolidays + ' ' + t('smart_matrix_holidays').toLowerCase()
   setTimeout(() => { toast.value = '' }, 4000)
 })
 

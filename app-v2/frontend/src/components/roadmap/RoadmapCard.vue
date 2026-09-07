@@ -8,7 +8,7 @@
           <strong>{{ rm.name }}</strong>
           <!-- DATE-RAW: `rm.createdAt` did not exist (row spread `...r` → created_at) → empty label;
                the start date = that of the first milestone (entered at creation), otherwise created_at -->
-          <span class="roadmap_card_date">{{ t('rm_start_date') }} : {{ fmtDate(rm.milestones?.[0]?.startDate || rm.created_at) }}</span>
+          <span class="roadmap_card_date">{{ t('roadmap_start_date') }} : {{ fmtDate(rm.milestones?.[0]?.startDate || rm.created_at) }}</span>
         </div>
       </div>
       <div class="roadmap_card_right">
@@ -20,17 +20,17 @@
         </div>
         <!-- Delete flow -->
         <template v-if="step === 2">
-          <span class="del_message warn">{{ t('rm_delete_step2') }}</span>
-          <button class="button_danger" @click="$emit('confirm-delete', rm.id)">{{ t('rm_delete_confirm') }}</button>
-          <button class="button_outline_small" @click="step = 0">{{ t('rm_delete_cancel') }}</button>
+          <span class="del_message warn">{{ t('roadmap_delete_step2') }}</span>
+          <button class="button_danger" @click="$emit('confirm-delete', rm.id)">{{ t('roadmap_delete_confirm') }}</button>
+          <button class="button_outline_small" @click="step = 0">{{ t('roadmap_delete_cancel') }}</button>
         </template>
         <template v-else-if="step === 1">
-          <span class="del_message">{{ t('rm_delete_step1') }}</span>
-          <button class="button_danger_outline_small" @click="step = 2">{{ t('rm_delete_confirm') }}</button>
-          <button class="button_outline_small" @click="step = 0">{{ t('rm_delete_cancel') }}</button>
+          <span class="del_message">{{ t('roadmap_delete_step1') }}</span>
+          <button class="button_danger_outline_small" @click="step = 2">{{ t('roadmap_delete_confirm') }}</button>
+          <button class="button_outline_small" @click="step = 0">{{ t('roadmap_delete_cancel') }}</button>
         </template>
         <template v-else>
-          <button class="roadmap_button_delete" @click="step = 1" :title="t('rm_delete_roadmap')">🗑</button>
+          <button class="roadmap_button_delete" @click="step = 1" :title="t('roadmap_delete_roadmap')">🗑</button>
         </template>
       </div>
     </div>
@@ -47,15 +47,15 @@
           <span class="roadmap_timeline_title">{{ ms.titleKey ? t(ms.titleKey) : ms.title }}</span>
           <span class="roadmap_timeline_date">{{ fmtDate(ms.endDate) }}</span>
           <span v-if="daysInfo(ms)" class="roadmap_timeline_days" :class="daysInfo(ms).late ? 'late' : 'ok'">
-            {{ daysInfo(ms).days }} {{ daysInfo(ms).late ? t('rm_days_late') : t('rm_days_left') }}
+            {{ daysInfo(ms).days }} {{ daysInfo(ms).late ? t('roadmap_days_late') : t('roadmap_days_left') }}
           </span>
         </div>
       </div>
       <div class="roadmap_timeline_add" @click="$emit('add-milestone', rm)">
-        <span>{{ t('rm_add_milestone') }}</span>
+        <span>{{ t('roadmap_add_milestone') }}</span>
       </div>
     </div>
-    <div v-if="!rm.milestones.length" class="roadmap_card_empty">{{ t('rm_no_milestones') }}</div>
+    <div v-if="!rm.milestones.length" class="roadmap_card_empty">{{ t('roadmap_no_milestones') }}</div>
   </div>
 </template>
 

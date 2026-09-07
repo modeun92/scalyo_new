@@ -1,6 +1,6 @@
 <template>
   <div class="stats_view">
-    <h1>📊 {{ t('sm_stats_title') }}</h1>
+    <h1>📊 {{ t('smart_matrix_stats_title') }}</h1>
 
     <EmptyState v-if="store.tasks.length === 0" icon="✅" title-key="empty_tasks_title" desc-key="empty_tasks_desc" cta-key="empty_tasks_cta" :cta-action="() => $router.push('/app/tasks/kanban')" />
 
@@ -10,33 +10,33 @@
     <div class="ai_panel" :class="'ai_' + pred.riskLabel">
       <div class="ai_header">
         <span class="ai_icon">🤖</span>
-        <h2>{{ t('sm_ai_title') }}</h2>
+        <h2>{{ t('smart_matrix_ai_title') }}</h2>
         <span class="ai_risk" :class="'risk_' + pred.riskLabel">
-          {{ pred.riskLabel === 'critical' ? '🔴 ' + t('sm_risk_critical') : pred.riskLabel === 'warning' ? '🟡 ' + t('sm_risk_warning') : '🟢 ' + t('sm_risk_healthy') }}
+          {{ pred.riskLabel === 'critical' ? '🔴 ' + t('smart_matrix_risk_critical') : pred.riskLabel === 'warning' ? '🟡 ' + t('smart_matrix_risk_warning') : '🟢 ' + t('smart_matrix_risk_healthy') }}
           ({{ pred.riskScore }}/100)
         </span>
       </div>
       <!-- STATS-N1 (29/08): < 3 completed tasks → "not enough data" state instead
            of the predictions (the store returns null, R21). Completion, delays and blockers stay real. -->
       <div v-if="pred.insufficientData" class="ai_insufficient">
-        📉 {{ t('sm_pred_insufficient', { n: pred.doneCount }) }}
+        📉 {{ t('smart_matrix_pred_insufficient', { n: pred.doneCount }) }}
       </div>
       <div v-else class="ai_grid">
         <div class="ai_metric">
           <span class="aim_value">{{ pred.velocityPerWeek ?? '—' }}</span>
-          <span class="aim_label">{{ t('sm_velocity_unit') }}</span>
+          <span class="aim_label">{{ t('smart_matrix_velocity_unit') }}</span>
         </div>
         <div class="ai_metric">
           <span class="aim_value">{{ pred.completionPercent }}%</span>
-          <span class="aim_label">{{ t('sm_delivery_rate') }}</span>
+          <span class="aim_label">{{ t('smart_matrix_delivery_rate') }}</span>
         </div>
         <div class="ai_metric">
           <span class="aim_value">{{ pred.weeksToComplete || '—' }}</span>
-          <span class="aim_label">{{ t('sm_weeks_remaining') }}</span>
+          <span class="aim_label">{{ t('smart_matrix_weeks_remaining') }}</span>
         </div>
         <div class="ai_metric">
           <span class="aim_value">{{ pred.estimatedDate ? fmtDate(pred.estimatedDate) : '—' }}</span>
-          <span class="aim_label">{{ t('sm_est_completion') }}</span>
+          <span class="aim_label">{{ t('smart_matrix_est_completion') }}</span>
         </div>
       </div>
       <div v-if="pred.recommendations.length" class="ai_recs">
@@ -49,24 +49,24 @@
 
     <!-- KPI cards -->
     <div class="status_kpis">
-      <div class="stk"><span class="stats_kpi_icon">🎯</span><span class="stats_kpi_value">{{ pred.velocityPerWeek ?? '—' }}</span><span class="stats_kpi_label">{{ t('sm_velocity') }}</span><span class="stats_kpi_sub">{{ t('sm_velocity_unit') }}</span></div>
-      <div class="stk"><span class="stats_kpi_icon">⏱</span><span class="stats_kpi_value">{{ pred.hoursAccuracy || 0 }}%</span><span class="stats_kpi_label">{{ t('sm_estimation_acc') }}</span></div>
-      <div class="stk warn"><span class="stats_kpi_icon">🔴</span><span class="stats_kpi_value red">{{ pred.overdueCount }}</span><span class="stats_kpi_label">{{ t('sm_overdue') }}</span></div>
-      <div class="stk"><span class="stats_kpi_icon">✅</span><span class="stats_kpi_value green">{{ pred.completionPercent }}%</span><span class="stats_kpi_label">{{ t('sm_delivery_rate') }}</span></div>
+      <div class="stk"><span class="stats_kpi_icon">🎯</span><span class="stats_kpi_value">{{ pred.velocityPerWeek ?? '—' }}</span><span class="stats_kpi_label">{{ t('smart_matrix_velocity') }}</span><span class="stats_kpi_sub">{{ t('smart_matrix_velocity_unit') }}</span></div>
+      <div class="stk"><span class="stats_kpi_icon">⏱</span><span class="stats_kpi_value">{{ pred.hoursAccuracy || 0 }}%</span><span class="stats_kpi_label">{{ t('smart_matrix_estimation_acc') }}</span></div>
+      <div class="stk warn"><span class="stats_kpi_icon">🔴</span><span class="stats_kpi_value red">{{ pred.overdueCount }}</span><span class="stats_kpi_label">{{ t('smart_matrix_overdue') }}</span></div>
+      <div class="stk"><span class="stats_kpi_icon">✅</span><span class="stats_kpi_value green">{{ pred.completionPercent }}%</span><span class="stats_kpi_label">{{ t('smart_matrix_delivery_rate') }}</span></div>
     </div>
 
     <!-- Charts row -->
     <div class="status_charts">
       <div class="status_card">
-        <h3>{{ t('sm_by_status') }}</h3>
+        <h3>{{ t('smart_matrix_by_status') }}</h3>
         <apexchart type="donut" height="260" :options="donutOpts" :series="donutSeries" />
       </div>
       <div class="status_card">
-        <h3>{{ t('sm_project_progress') }}</h3>
+        <h3>{{ t('smart_matrix_project_progress') }}</h3>
         <apexchart type="bar" height="260" :options="barOpts" :series="barSeries" />
       </div>
       <div class="status_card">
-        <h3>{{ t('sm_hours_chart') }}</h3>
+        <h3>{{ t('smart_matrix_hours_chart') }}</h3>
         <apexchart type="bar" height="260" :options="hoursOpts" :series="hoursSeries" />
       </div>
     </div>
@@ -74,7 +74,7 @@
     <!-- Tables row -->
     <div class="status_tables">
       <div class="status_card">
-        <h3>{{ t('sm_top_late') }}</h3>
+        <h3>{{ t('smart_matrix_top_late') }}</h3>
         <div v-if="store.overdueTasks.length" class="status_table">
           <div v-for="task in store.overdueTasks.slice(0, 5)" :key="task.id" class="stats_table_row">
             <span class="stats_table_title">{{ task.title }}</span>
@@ -82,10 +82,10 @@
             <span class="stats_table_assignee">{{ task.assignee || '—' }}</span>
           </div>
         </div>
-        <div v-else class="stats_table_empty">{{ t('sm_no_late') }} 🎉</div>
+        <div v-else class="stats_table_empty">{{ t('smart_matrix_no_late') }} 🎉</div>
       </div>
       <div class="status_card">
-        <h3>{{ t('sm_estimation_analysis') }}</h3>
+        <h3>{{ t('smart_matrix_estimation_analysis') }}</h3>
         <div v-if="tasksWithHours.length" class="status_table">
           <div v-for="task in tasksWithHours" :key="task.id" class="stats_table_row">
             <span class="stats_table_title">{{ task.title }}</span>
@@ -93,7 +93,7 @@
             <span class="stats_table_delta" :class="hoursDelta(task) > 0 ? 'red' : 'green'">{{ hoursDelta(task) > 0 ? '+' : '' }}{{ hoursDelta(task) }}%</span>
           </div>
         </div>
-        <div v-else class="stats_table_empty">{{ t('sm_no_hours') }}</div>
+        <div v-else class="stats_table_empty">{{ t('smart_matrix_no_hours') }}</div>
       </div>
     </div>
       </template>
@@ -127,12 +127,12 @@ const donutOpts = computed(() => ({
   colors: ['#9ca3af', '#3b82f6', '#ef4444', '#10b981'],
   legend: { position: 'bottom', fontSize: '12px' },
   dataLabels: { enabled: true, style: { fontSize: '11px' } },
-  plotOptions: { pie: { donut: { size: '55%', labels: { show: true, total: { show: true, label: t('sm_chart_total'), fontSize: '12px', fontWeight: 600 } } } } },
+  plotOptions: { pie: { donut: { size: '55%', labels: { show: true, total: { show: true, label: t('smart_matrix_chart_total'), fontSize: '12px', fontWeight: 600 } } } } },
 }))
 
 // Bar chart: project progress
 const barSeries = computed(() => [{
-  name: t('sm_series_completion'),
+  name: t('smart_matrix_series_completion'),
   data: store.projects.map(p => {
     const pTasks = store.tasks.filter(t => t.projectId === p.id)
     const done = pTasks.filter(t => t.finished || t.status === 'done').length
@@ -153,10 +153,10 @@ const barOpts = computed(() => ({
 const hoursSeries = computed(() => {
   const projs = store.projects.slice(0, 6)
   return [
-    { name: t('sm_series_expected'), data: projs.map(p => {
+    { name: t('smart_matrix_series_expected'), data: projs.map(p => {
       return store.tasks.filter(t => t.projectId === p.id).reduce((s, t) => s + (t.expectedHours || 0), 0)
     })},
-    { name: t('sm_series_actual'), data: projs.map(p => {
+    { name: t('smart_matrix_series_actual'), data: projs.map(p => {
       return store.tasks.filter(t => t.projectId === p.id).reduce((s, t) => s + (t.actualHours || 0), 0)
     })},
   ]

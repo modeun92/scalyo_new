@@ -1,6 +1,6 @@
 <template>
   <section class="manager_section">
-    <h2>💚 {{ t('mgr_wellbeing') }}</h2>
+    <h2>💚 {{ t('manager_wellbeing') }}</h2>
     <div class="wellbeing_grid">
       <div v-for="m in members" :key="m.id" class="member_card">
         <div class="masterclass_header">
@@ -17,7 +17,7 @@
         <!-- Wellbeing bar (B-09: '—' without data, never an invented figure) -->
         <div class="masterclass_metric">
           <div class="metric_row">
-            <span class="metric_label">{{ t('mgr_wellbeing') }}</span>
+            <span class="metric_label">{{ t('manager_wellbeing') }}</span>
             <span class="metric_value" :class="wellbeingClass(m.wellbeingScore)">
               {{ typeof m.wellbeingScore === 'number' ? m.wellbeingScore + '/100' : '—' }}
             </span>
@@ -34,7 +34,7 @@
         <!-- Workload bar -->
         <div class="masterclass_metric">
           <div class="metric_row">
-            <span class="metric_label">{{ t('mgr_workload') }}</span>
+            <span class="metric_label">{{ t('manager_workload') }}</span>
             <span class="metric_value" :class="workloadClass(m.workload)">
               {{ typeof m.workload === 'number' ? m.workload + '%' : '—' }}
             </span>
@@ -54,9 +54,9 @@
              without a replacement: individual mood is self-only (Oxygen);
              the team aggregate = Lot 4 (SECURITY DEFINER, n ≥ 5). -->
         <div class="masterclass_row">
-          <span class="metric_label">{{ t('mgr_burnout_risk') }}</span>
+          <span class="metric_label">{{ t('manager_burnout_risk') }}</span>
           <span class="burnout_badge" :class="m.burnoutRisk || ''">
-            {{ m.burnoutRisk ? t('mgr_burnout_' + m.burnoutRisk) : '—' }}
+            {{ m.burnoutRisk ? t('manager_burnout_' + m.burnoutRisk) : '—' }}
           </span>
         </div>
       </div>

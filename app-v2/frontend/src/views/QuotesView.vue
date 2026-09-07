@@ -1,10 +1,10 @@
 <template>
   <div class="quotes_view">
     <div class="quote_header">
-      <div><h1>📄 {{ t('qt_title') }}</h1><p class="quote_sub">{{ t('qt_subtitle') }}</p></div>
+      <div><h1>📄 {{ t('quote_title') }}</h1><p class="quote_sub">{{ t('quote_subtitle') }}</p></div>
       <div class="quote_actions">
-        <button class="button_outline" @click="configOpen = true">{{ t('qt_config') }}</button>
-        <button class="button_primary" @click="slideOpen = true">{{ t('qt_new') }}</button>
+        <button class="button_outline" @click="configOpen = true">{{ t('quote_config') }}</button>
+        <button class="button_primary" @click="slideOpen = true">{{ t('quote_new') }}</button>
       </div>
     </div>
 
@@ -12,16 +12,16 @@
     <div v-if="billingCountry" class="quote_country_banner">
       <span>{{ laws.flag }} {{ t(laws.nameKey) }}</span>
       <!-- QUOTE-VAT (27/08): the field is called taxRate — "laws.tva" never existed -->
-      <span>{{ t('qt_field_tax') }}: {{ laws.taxRate }}% ({{ t('country_law_tax_name') }})</span>
+      <span>{{ t('quote_field_tax') }}: {{ laws.taxRate }}% ({{ t('country_law_tax_name') }})</span>
       <span>{{ t('country_law_currency') }}: {{ laws.currencySymbol }}</span>
     </div>
 
     <!-- KPIs -->
     <div class="quote_kpis">
-      <div class="kpi_quote"><span class="kpi_quote_value">{{ quotes.length }}</span><span class="kpi_quote_label">{{ t('qt_total') }}</span></div>
-      <div class="kpi_quote"><span class="kpi_quote_value">{{ conversionRate }}%</span><span class="kpi_quote_label">{{ t('qt_conversion') }}</span></div>
+      <div class="kpi_quote"><span class="kpi_quote_value">{{ quotes.length }}</span><span class="kpi_quote_label">{{ t('quote_total') }}</span></div>
+      <div class="kpi_quote"><span class="kpi_quote_value">{{ conversionRate }}%</span><span class="kpi_quote_label">{{ t('quote_conversion') }}</span></div>
       <!-- CURRENCY-FORMAT: a quote follows the currency of ITS billing country (ISO code from countryLaws), formatted to the locale -->
-      <div class="kpi_quote"><span class="kpi_quote_value green">{{ fmtCurrency(wonAmount, { currency: laws.currency }) }}</span><span class="kpi_quote_label">{{ t('qt_won') }}</span></div>
+      <div class="kpi_quote"><span class="kpi_quote_value green">{{ fmtCurrency(wonAmount, { currency: laws.currency }) }}</span><span class="kpi_quote_label">{{ t('quote_won') }}</span></div>
     </div>
 
     <!-- Filters -->
@@ -40,14 +40,14 @@
         </div>
         <div class="quote_card_right">
           <span class="quote_card_amount">{{ fmtCurrency(q.amount, { currency: quoteCurrency(q) }) }}</span>
-          <select class="quote_card_status" :class="q.status" :value="q.status" @change="changeStatus(q, $event.target.value)" :title="t('qt_field_status')">
-            <option value="draft">{{ t('qt_filter_draft') }}</option>
-            <option value="sent">{{ t('qt_filter_sent') }}</option>
-            <option value="won">{{ t('qt_filter_won') }}</option>
-            <option value="lost">{{ t('qt_filter_lost') }}</option>
+          <select class="quote_card_status" :class="q.status" :value="q.status" @change="changeStatus(q, $event.target.value)" :title="t('quote_field_status')">
+            <option value="draft">{{ t('quote_filter_draft') }}</option>
+            <option value="sent">{{ t('quote_filter_sent') }}</option>
+            <option value="won">{{ t('quote_filter_won') }}</option>
+            <option value="lost">{{ t('quote_filter_lost') }}</option>
           </select>
-          <button class="button_pdf" @click="handlePdf(q)" :title="t('qt_download_pdf')">📄</button>
-          <button class="button_delete" @click="deleteQuote(q.id)" :title="t('qt_delete')">🗑</button>
+          <button class="button_pdf" @click="handlePdf(q)" :title="t('quote_download_pdf')">📄</button>
+          <button class="button_delete" @click="deleteQuote(q.id)" :title="t('quote_delete')">🗑</button>
         </div>
       </div>
     </div>
@@ -55,9 +55,9 @@
     <!-- Empty -->
     <div v-else class="quote_empty">
       <div class="empty_icon">📄</div>
-      <h3>{{ t('qt_empty_title') }}</h3>
-      <p>{{ t('qt_empty_note') }}</p>
-      <button class="button_primary" @click="slideOpen = true">{{ t('qt_new') }}</button>
+      <h3>{{ t('quote_empty_title') }}</h3>
+      <p>{{ t('quote_empty_note') }}</p>
+      <button class="button_primary" @click="slideOpen = true">{{ t('quote_new') }}</button>
     </div>
 
     <!-- Create Modal -->
@@ -131,9 +131,9 @@ const form = reactive({ title: '', clientId: '', company: '', amount: 0, tax: la
 watch(billingCountry, (country) => { form.tax = countryLaws.getLaws(country).taxRate })
 
 const filters = [
-  { key: 'all', label: 'qt_filter_all' }, { key: 'draft', label: 'qt_filter_draft' },
-  { key: 'sent', label: 'qt_filter_sent' }, { key: 'won', label: 'qt_filter_won' },
-  { key: 'lost', label: 'qt_filter_lost' }
+  { key: 'all', label: 'quote_filter_all' }, { key: 'draft', label: 'quote_filter_draft' },
+  { key: 'sent', label: 'quote_filter_sent' }, { key: 'won', label: 'quote_filter_won' },
+  { key: 'lost', label: 'quote_filter_lost' }
 ]
 
 const filtered = computed(() => activeFilter.value === 'all' ? quotes.value : quotes.value.filter(q => q.status === activeFilter.value))

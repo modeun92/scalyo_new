@@ -1,13 +1,13 @@
 <template>
   <div v-if="currentStep === 3" class="import_success">
     <div class="success_icon">✅</div>
-    <h3>{{ t('imp_success') }}</h3>
-    <p>{{ t('imp_success_desc', { n: importedCount, module: t('imp_module_' + (moduleName || 'clients')) }) }}</p>
+    <h3>{{ t('smart_import_success') }}</h3>
+    <p>{{ t('smart_import_success_desc', { n: importedCount, module: t('smart_import_module_' + (moduleName || 'clients')) }) }}</p>
 
     <div v-if="rejectedRows.length > 0" class="import_rejected">
       <div class="rej_header">
         <span>⚠️</span>
-        <strong>{{ t('imp_rejected_count', { n: rejectedRows.length }) }}</strong>
+        <strong>{{ t('smart_import_rejected_count', { n: rejectedRows.length }) }}</strong>
       </div>
       <div class="rej_list">
         <div v-for="(row, i) in rejectedRows" :key="i" class="rej_row">
@@ -23,8 +23,8 @@
     </div>
 
     <div class="success_actions">
-      <button class="button_outline" @click="$emit('reset')">{{ t('imp_new_import') }}</button>
-      <button class="button_primary" @click="$emit('go-to-module')">{{ t('imp_go_to_module') }} →</button>
+      <button class="button_outline" @click="$emit('reset')">{{ t('smart_import_new_import') }}</button>
+      <button class="button_primary" @click="$emit('go-to-module')">{{ t('smart_import_go_to_module') }} →</button>
     </div>
   </div>
 </template>

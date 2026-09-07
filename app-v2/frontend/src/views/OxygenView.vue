@@ -4,7 +4,7 @@
     <h1>🫧 Oxygen</h1>
     <div class="oxygen_privacy">
       <span>🔒</span>
-      <span>{{ t('oxy_privacy') }}</span>
+      <span>{{ t('oxygen_privacy') }}</span>
     </div>
 
     <!-- ── Index of the day — "—" without a check-in (R21, never invented) ── -->
@@ -12,21 +12,21 @@
       <div class="oxygen_index_main">
         <span class="oxygen_index_big">{{ displayIndex }}</span>
         <div class="oxygen_index_meta">
-          <strong>{{ t('oxy_index_label') }}</strong>
-          <span v-if="!hasIndex" class="oxygen_index_hint">{{ t('oxy_index_none_hint') }}</span>
+          <strong>{{ t('oxygen_index_label') }}</strong>
+          <span v-if="!hasIndex" class="oxygen_index_hint">{{ t('oxygen_index_none_hint') }}</span>
         </div>
       </div>
-      <p v-if="engine.divergenceActive" class="oxygen_div">{{ t('oxy_divergence') }}</p>
-      <button class="oxygen_how" @click="showHow = !showHow">{{ t('oxy_how_title') }}</button>
-      <p v-if="showHow" class="oxygen_how_body">{{ t('oxy_how_body', { load: loadStore.loadScore }) }}</p>
+      <p v-if="engine.divergenceActive" class="oxygen_div">{{ t('oxygen_divergence') }}</p>
+      <button class="oxygen_how" @click="showHow = !showHow">{{ t('oxygen_how_title') }}</button>
+      <p v-if="showHow" class="oxygen_how_body">{{ t('oxygen_how_body', { load: loadStore.loadScore }) }}</p>
     </section>
 
     <!-- ── Load weather — real components only (pure read) ── -->
     <section class="oxygen_card">
-      <h2>{{ t('oxy_weather_title') }}</h2>
+      <h2>{{ t('oxygen_weather_title') }}</h2>
       <div class="oxygen_weather_line">
         <span class="oxygen_load_number">{{ loadStore.loadScore }}</span>
-        <span class="oxygen_load_label">{{ t('oxy_load_label') }}</span>
+        <span class="oxygen_load_label">{{ t('oxygen_load_label') }}</span>
       </div>
       <div class="oxygen_chips">
         <span v-for="c in componentChips" :key="c.key" class="oxygen_chip" :class="{ quiet: !c.value }">
@@ -37,21 +37,21 @@
 
     <!-- ── Check-in of the day — SAME component and SAME write as the dot ── -->
     <section class="oxygen_card">
-      <h2>{{ t('oxy_checkin_title') }}</h2>
+      <h2>{{ t('oxygen_checkin_title') }}</h2>
       <OxygenCheckinForm />
     </section>
 
     <!-- ── Streak + custom days off ── -->
     <section class="oxygen_card">
-      <h2>{{ t('oxy_series_title') }}</h2>
+      <h2>{{ t('oxygen_series_title') }}</h2>
       <p class="oxygen_streak_line">
         {{ streakLine }}
       </p>
-      <p class="oxygen_pardon_hint">{{ t('oxy_pardon_hint') }}</p>
+      <p class="oxygen_pardon_hint">{{ t('oxygen_pardon_hint') }}</p>
 
-      <button class="oxygen_how" @click="showOffdays = !showOffdays">⚙ {{ t('oxy_offdays_title') }}</button>
+      <button class="oxygen_how" @click="showOffdays = !showOffdays">⚙ {{ t('oxygen_offdays_title') }}</button>
       <div v-if="showOffdays" class="oxygen_offdays">
-        <p class="oxygen_offdays_hint">{{ t('oxy_offdays_hint') }}</p>
+        <p class="oxygen_offdays_hint">{{ t('oxygen_offdays_hint') }}</p>
         <div class="oxygen_days_row">
           <button
             v-for="d in weekDays"
@@ -65,15 +65,15 @@
           </button>
         </div>
         <div class="oxygen_offdates">
-          <label class="oxygen_offdates_label" for="oxy-offdate">{{ t('oxy_offdays_dates_label') }}</label>
+          <label class="oxygen_offdates_label" for="oxy-offdate">{{ t('oxygen_offdays_dates_label') }}</label>
           <div class="oxygen_offdate_add">
             <input id="oxy-offdate" v-model="newOffDate" type="date" />
-            <button class="oxygen_offdate_button" :disabled="!newOffDate" @click="addDate">{{ t('oxy_offdays_add') }}</button>
+            <button class="oxygen_offdate_button" :disabled="!newOffDate" @click="addDate">{{ t('oxygen_offdays_add') }}</button>
           </div>
           <div v-if="prefs.offDates.length" class="oxygen_offdate_list">
             <span v-for="dt in prefs.offDates" :key="dt" class="oxygen_chip">
               {{ fmtDate(dt) }}
-              <button class="oxygen_chip_close" :aria-label="t('oxy_close')" @click="prefs.removeOffDate(dt)">✕</button>
+              <button class="oxygen_chip_close" :aria-label="t('oxygen_close')" @click="prefs.removeOffDate(dt)">✕</button>
             </span>
           </div>
         </div>
@@ -82,17 +82,17 @@
 
     <!-- ── Closing (Lot 3b) — global overlay rendered by OxygenPulse ── -->
     <section class="oxygen_card">
-      <h2>{{ t('oxy_ferm_title') }}</h2>
-      <p v-if="recoveries.todayClosing" class="oxygen_closing_done_line">✓ {{ t('oxy_ferm_already') }}</p>
+      <h2>{{ t('oxygen_ferm_title') }}</h2>
+      <p v-if="recoveries.todayClosing" class="oxygen_closing_done_line">✓ {{ t('oxygen_ferm_already') }}</p>
       <button v-else class="oxygen_closing_launch" @click="recoveries.openClosing('cloture')">
-        🫧 {{ t('oxy_ferm_start') }}
+        🫧 {{ t('oxygen_ferm_start') }}
       </button>
     </section>
 
     <!-- ── The Sky (Lot 3b) — one bubble per closed day ── -->
     <section class="oxygen_card">
-      <h2>{{ t('oxy_sky_title') }}</h2>
-      <p class="oxygen_sky_hint">{{ t('oxy_sky_hint') }}</p>
+      <h2>{{ t('oxygen_sky_title') }}</h2>
+      <p class="oxygen_sky_hint">{{ t('oxygen_sky_hint') }}</p>
       <OxygenSky />
     </section>
 
@@ -150,17 +150,17 @@ const hasIndex = computed(() => engine.indexToday != null)
 const displayIndex = computed(() => (hasIndex.value ? Math.round(engine.indexToday) : '—'))
 
 const streakLine = computed(() => {
-  if (engine.streak == null || engine.streak < 2) return t('oxy_streak_none')
-  return t('oxy_streak', { n: engine.streakCapped ? '30+' : engine.streak })
+  if (engine.streak == null || engine.streak < 2) return t('oxygen_streak_none')
+  return t('oxygen_streak', { n: engine.streakCapped ? '30+' : engine.streak })
 })
 
 // Real components of the load (pure oxygenLoad read — R21)
 const componentChips = computed(() => ([
-  { key: 'critical', value: loadStore.components.critical, label: 'oxy_c_critical' },
-  { key: 'renewals30', value: loadStore.components.renewals30, label: 'oxy_c_renewals' },
-  { key: 'overdue', value: loadStore.components.overdue_tasks, label: 'oxy_c_overdue' },
-  { key: 'alerts7', value: loadStore.components.alerts7, label: 'oxy_c_alerts' },
-  { key: 'playbooks', value: loadStore.components.active_playbooks, label: 'oxy_c_playbooks' },
+  { key: 'critical', value: loadStore.components.critical, label: 'oxygen_c_critical' },
+  { key: 'renewals30', value: loadStore.components.renewals30, label: 'oxygen_c_renewals' },
+  { key: 'overdue', value: loadStore.components.overdue_tasks, label: 'oxygen_c_overdue' },
+  { key: 'alerts7', value: loadStore.components.alerts7, label: 'oxygen_c_alerts' },
+  { key: 'playbooks', value: loadStore.components.active_playbooks, label: 'oxygen_c_playbooks' },
 ]))
 
 // Day labels localized by Intl (C7 — zero hardcoding, follows the locale;

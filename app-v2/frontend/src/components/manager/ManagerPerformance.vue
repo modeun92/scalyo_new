@@ -1,11 +1,11 @@
 <template>
   <section class="manager_section">
-    <h2>📊 {{ t('mgr_performance') }}</h2>
+    <h2>📊 {{ t('manager_performance') }}</h2>
     <div class="performance_table">
       <div class="performance_header">
         <span>CSM</span>
-        <span>{{ t('mgr_clients_managed') }}</span>
-        <span>{{ t('mgr_arr_managed') }}</span>
+        <span>{{ t('manager_clients_managed') }}</span>
+        <span>{{ t('manager_arr_managed') }}</span>
         <span>{{ t('kpi_health') }}</span>
       </div>
       <div v-for="m in members" :key="m.id" class="performance_row">

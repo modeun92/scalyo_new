@@ -6,8 +6,8 @@
       <div class="import_module_card">
         <div class="imc_icon">{{ moduleIcons[analysisResult.module] || '📦' }}</div>
         <div class="imc_info">
-          <span class="imc_label">{{ t('imp_detected_module') }}</span>
-          <strong>{{ t('imp_module_' + analysisResult.module) }}</strong>
+          <span class="imc_label">{{ t('smart_import_detected_module') }}</span>
+          <strong>{{ t('smart_import_module_' + analysisResult.module) }}</strong>
         </div>
         <div class="imc_confidence">
           <div class="conf_bar">
@@ -15,7 +15,7 @@
           </div>
           <span class="conf_value">{{ analysisResult.confidence }}%</span>
         </div>
-        <button class="button_map" @click="$emit('show-mapping')">{{ t('imp_col_mapping') }} ↗</button>
+        <button class="button_map" @click="$emit('show-mapping')">{{ t('smart_import_col_mapping') }} ↗</button>
       </div>
 
       <div class="import_ai_reason">
@@ -25,8 +25,8 @@
 
       <div class="import_preview_section">
         <div class="preview_header">
-          <h3>{{ t('imp_preview_title') }}</h3>
-          <span class="badge_count">{{ allMappedRows.length }} {{ t('imp_rows') }}</span>
+          <h3>{{ t('smart_import_preview_title') }}</h3>
+          <span class="badge_count">{{ allMappedRows.length }} {{ t('smart_import_rows') }}</span>
         </div>
         <div class="table_scroll">
           <table class="import_table">
@@ -41,14 +41,14 @@
           </table>
         </div>
         <p v-if="allMappedRows.length > 5" class="preview_more">
-          {{ t('imp_more_rows', { n: allMappedRows.length - 5 }) }}
+          {{ t('smart_import_more_rows', { n: allMappedRows.length - 5 }) }}
         </p>
       </div>
 
       <div v-if="rejectedRows.length > 0" class="import_rejected">
         <div class="rej_header">
           <span>⚠️</span>
-          <strong>{{ t('imp_rejected_count', { n: rejectedRows.length }) }}</strong>
+          <strong>{{ t('smart_import_rejected_count', { n: rejectedRows.length }) }}</strong>
         </div>
         <div class="rej_list">
           <div v-for="(row, i) in rejectedRows" :key="i" class="rej_row">
@@ -64,10 +64,10 @@
       </div>
 
       <div v-if="analysisResult && analysisResult.module === 'tasks'" class="import_project_select">
-        <label>{{ t('imp_assign_project') }}</label>
+        <label>{{ t('smart_import_assign_project') }}</label>
         <select v-model="localProjectId" class="field_input">
-          <option value="new">{{ t('imp_create_project') }}</option>
-          <option value="">{{ t('imp_no_project') }}</option>
+          <option value="new">{{ t('smart_import_create_project') }}</option>
+          <option value="">{{ t('smart_import_no_project') }}</option>
           <option v-for="p in projects" :key="p.id" :value="p.id">{{ p.name }}</option>
         </select>
       </div>
@@ -76,26 +76,26 @@
         <button class="button_outline" @click="$emit('reset')">{{ t('cancel') }}</button>
         <button class="button_primary button_import" @click="$emit('import')" :disabled="importing">
           <span v-if="importing">⏳</span>
-          <span v-else>✦ {{ t('imp_import_btn') }}</span>
+          <span v-else>✦ {{ t('smart_import_import_btn') }}</span>
         </button>
       </div>
     </div>
 
     <div v-else-if="analysisResult" class="import_unknown">
       <div class="unk_icon">🚫</div>
-      <h3>{{ t('imp_error') }}</h3>
-      <p class="unk_description">{{ t('imp_error_desc') }}</p>
+      <h3>{{ t('smart_import_error') }}</h3>
+      <p class="unk_description">{{ t('smart_import_error_desc') }}</p>
       <div class="unk_reason"><span>🤖</span> {{ analysisResult.reason }}</div>
       <div class="unk_modules">
-        <p>{{ t('imp_compatible_modules') }}</p>
+        <p>{{ t('smart_import_compatible_modules') }}</p>
         <div class="unk_chips">
-          <span>👥 {{ t('imp_module_clients') }}</span>
-          <span>✅ {{ t('imp_module_tasks') }}</span>
-          <span>🙋 {{ t('imp_module_team') }}</span>
-          <span>📊 {{ t('imp_module_copil') }}</span>
+          <span>👥 {{ t('smart_import_module_clients') }}</span>
+          <span>✅ {{ t('smart_import_module_tasks') }}</span>
+          <span>🙋 {{ t('smart_import_module_team') }}</span>
+          <span>📊 {{ t('smart_import_module_copil') }}</span>
         </div>
       </div>
-      <button class="button_primary" @click="$emit('reset')">{{ t('imp_new_import') }}</button>
+      <button class="button_primary" @click="$emit('reset')">{{ t('smart_import_new_import') }}</button>
     </div>
   </template>
 </template>

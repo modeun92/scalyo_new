@@ -1,22 +1,22 @@
 <template>
   <div class="kanban_view">
     <div class="kpis_builder_header">
-      <h1>📋 {{ t('sm_kanban_title') }}</h1>
+      <h1>📋 {{ t('smart_matrix_kanban_title') }}</h1>
       <div class="kpis_builder_header_actions">
         <div v-if="resetStep === 0">
-          <button class="button_danger_outline" @click="resetStep = 1">{{ t('sm_reset_all') }}</button>
+          <button class="button_danger_outline" @click="resetStep = 1">{{ t('smart_matrix_reset_all') }}</button>
         </div>
         <div v-else-if="resetStep === 1" class="reset_confirm">
-          <span class="reset_message">{{ t('sm_reset_step1') }}</span>
-          <button class="button_danger_outline" @click="resetStep = 2">{{ t('sm_reset_confirm') }}</button>
-          <button class="button_outline" @click="resetStep = 0">{{ t('sm_reset_cancel') }}</button>
+          <span class="reset_message">{{ t('smart_matrix_reset_step1') }}</span>
+          <button class="button_danger_outline" @click="resetStep = 2">{{ t('smart_matrix_reset_confirm') }}</button>
+          <button class="button_outline" @click="resetStep = 0">{{ t('smart_matrix_reset_cancel') }}</button>
         </div>
         <div v-else-if="resetStep === 2" class="reset_confirm">
-          <span class="reset_message warn">{{ t('sm_reset_step2') }}</span>
-          <button class="button_danger" @click="doResetAll">{{ t('sm_reset_confirm') }}</button>
-          <button class="button_outline" @click="resetStep = 0">{{ t('sm_reset_cancel') }}</button>
+          <span class="reset_message warn">{{ t('smart_matrix_reset_step2') }}</span>
+          <button class="button_danger" @click="doResetAll">{{ t('smart_matrix_reset_confirm') }}</button>
+          <button class="button_outline" @click="resetStep = 0">{{ t('smart_matrix_reset_cancel') }}</button>
         </div>
-        <button class="button_primary" @click="openCreate">{{ t('sm_new_task') }}</button>
+        <button class="button_primary" @click="openCreate">{{ t('smart_matrix_new_task') }}</button>
       </div>
     </div>
 
@@ -64,37 +64,37 @@
             @dragover.prevent
             @drop="onDrop($event, col.key)"
           >
-            <span v-if="!colTasks(col.key).length">{{ t('sm_no_tasks') }}</span>
+            <span v-if="!colTasks(col.key).length">{{ t('smart_matrix_no_tasks') }}</span>
           </div>
         </div>
       </div>
     </div>
 
     <!-- Slide-over new/edit task -->
-    <SlideOver :open="slideOpen" :title="editId ? t('edit') : t('sm_new_task')" @close="slideOpen = false">
+    <SlideOver :open="slideOpen" :title="editId ? t('edit') : t('smart_matrix_new_task')" @close="slideOpen = false">
       <form @submit.prevent="saveTask" class="slideover_form">
-        <div class="field_group"><label>{{ t('sm_task_title') }} *</label><input v-model="form.title" required class="field_input" /></div>
-        <div class="field_group"><label>{{ t('sm_task_desc') }}</label><textarea v-model="form.description" class="field_input textarea" rows="2" /></div>
+        <div class="field_group"><label>{{ t('smart_matrix_task_title') }} *</label><input v-model="form.title" required class="field_input" /></div>
+        <div class="field_group"><label>{{ t('smart_matrix_task_desc') }}</label><textarea v-model="form.description" class="field_input textarea" rows="2" /></div>
         <div class="field_row">
-          <div class="field_group"><label>{{ t('sm_task_project') }}</label>
+          <div class="field_group"><label>{{ t('smart_matrix_task_project') }}</label>
             <select v-model="form.projectId" class="field_input"><option :value="null">—</option><option v-for="p in tasks.projects" :key="p.id" :value="p.id">{{ p.name }}</option></select>
           </div>
-          <div class="field_group"><label>{{ t('sm_task_client') }}</label>
+          <div class="field_group"><label>{{ t('smart_matrix_task_client') }}</label>
             <select v-model="form.clientId" class="field_input"><option :value="null">—</option><option v-for="c in clients.clients" :key="c.id" :value="c.id">{{ c.name }}</option></select>
           </div>
         </div>
         <div class="field_row">
-          <div class="field_group"><label>{{ t('sm_task_assignee') }}</label>
+          <div class="field_group"><label>{{ t('smart_matrix_task_assignee') }}</label>
             <select v-model="form.assignee" class="field_input"><option value="">—</option><option v-for="m in team.assignableMembers" :key="m.id" :value="m.id">{{ m.name }}</option></select>
           </div>
-          <div class="field_group"><label>{{ t('sm_task_due') }}</label><input v-model="form.dueDate" type="date" class="field_input" /></div>
+          <div class="field_group"><label>{{ t('smart_matrix_task_due') }}</label><input v-model="form.dueDate" type="date" class="field_input" /></div>
         </div>
-        <div class="field_group"><label>{{ t('sm_task_priority') }}</label>
+        <div class="field_group"><label>{{ t('smart_matrix_task_priority') }}</label>
           <select v-model="form.priority" class="field_input">
-            <option value="urgent_important">{{ t('sm_priority_urgent_important') }}</option>
-            <option value="important">{{ t('sm_priority_important') }}</option>
-            <option value="urgent">{{ t('sm_priority_urgent') }}</option>
-            <option value="not_urgent">{{ t('sm_priority_not_urgent') }}</option>
+            <option value="urgent_important">{{ t('smart_matrix_priority_urgent_important') }}</option>
+            <option value="important">{{ t('smart_matrix_priority_important') }}</option>
+            <option value="urgent">{{ t('smart_matrix_priority_urgent') }}</option>
+            <option value="not_urgent">{{ t('smart_matrix_priority_not_urgent') }}</option>
           </select>
         </div>
         <div class="form_actions">
@@ -134,10 +134,10 @@ function doResetAll() {
 }
 
 const columns = [
-  { key: 'todo', label: 'sm_col_todo' },
-  { key: 'in_progress', label: 'sm_col_progress' },
-  { key: 'blocked', label: 'sm_col_blocked' },
-  { key: 'done', label: 'sm_col_done' },
+  { key: 'todo', label: 'smart_matrix_col_todo' },
+  { key: 'in_progress', label: 'smart_matrix_col_progress' },
+  { key: 'blocked', label: 'smart_matrix_col_blocked' },
+  { key: 'done', label: 'smart_matrix_col_done' },
 ]
 
 // MIN-i18n: default assignee '' (unassigned) — 'tm1' was a phantom member from the mock era
@@ -157,11 +157,11 @@ function priorityLevel(p) {
 }
 function priorityLabel(p) {
   // PRIORITY-LABEL (29/08): the card displays the SAME labels as the form
-  // (sm_priority_*, keys × 3 languages) — the generic sm_badge_* scale made the card
+  // (smart_matrix_priority_*, keys × 3 languages) — the generic smart_matrix_badge_* scale made the card
   // say "High" while the select said "Important". Value outside the scale
   // (e.g. 'medium', separate PRIO-MEDIUM finding): fallback unchanged.
-  const map = { urgent_important: t('sm_priority_urgent_important'), important: t('sm_priority_important'), urgent: t('sm_priority_urgent'), not_urgent: t('sm_priority_not_urgent') }
-  return map[p] || t('sm_badge_1')
+  const map = { urgent_important: t('smart_matrix_priority_urgent_important'), important: t('smart_matrix_priority_important'), urgent: t('smart_matrix_priority_urgent'), not_urgent: t('smart_matrix_priority_not_urgent') }
+  return map[p] || t('smart_matrix_badge_1')
 }
 
 function onDragStart(e, task) { draggedTask = task; e.dataTransfer.effectAllowed = 'move' }

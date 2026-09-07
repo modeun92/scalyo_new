@@ -3,16 +3,16 @@
     <div v-if="show" class="roadmap_slide_over_overlay" @click.self="$emit('close')">
       <div class="main_slide_over_panel">
         <div class="roadmap_slide_over_header">
-          <h3>{{ t('imp_col_mapping') }}</h3>
+          <h3>{{ t('smart_import_col_mapping') }}</h3>
           <button class="roadmap_slide_over_close" @click="$emit('close')">✕</button>
         </div>
         <div class="roadmap_slide_over_body">
-          <p class="slide_over_hint">{{ t('imp_mapping_hint') }}</p>
+          <p class="slide_over_hint">{{ t('smart_import_mapping_hint') }}</p>
           <table class="mapping_table">
             <thead>
               <tr>
-                <th>{{ t('imp_col_source') }}</th>
-                <th>{{ t('imp_col_target') }}</th>
+                <th>{{ t('smart_import_col_source') }}</th>
+                <th>{{ t('smart_import_col_target') }}</th>
               </tr>
             </thead>
             <tbody>
@@ -20,7 +20,7 @@
                 <td class="column_source">{{ source }}</td>
                 <td>
                   <span v-if="target" class="tag_mapped">{{ target }}</span>
-                  <span v-else class="tag_ignored">{{ t('imp_col_ignored') }}</span>
+                  <span v-else class="tag_ignored">{{ t('smart_import_col_ignored') }}</span>
                 </td>
               </tr>
             </tbody>

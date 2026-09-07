@@ -1,8 +1,8 @@
 <template>
   <div class="playbook_header">
     <div>
-      <h1>📋 {{ t('pb_title') }}</h1>
-      <span class="playbook_counter">{{ playbookCount }} {{ t('pb_label') }}</span>
+      <h1>📋 {{ t('playbook_title') }}</h1>
+      <span class="playbook_counter">{{ playbookCount }} {{ t('playbook_label') }}</span>
     </div>
     <div class="playbook_actions">
       <div class="search_box">
@@ -14,7 +14,7 @@
         />
       </div>
       <button class="button_primary" @click="$emit('openTemplates')">
-        {{ t('pb_add') }}
+        {{ t('playbook_add') }}
       </button>
     </div>
   </div>

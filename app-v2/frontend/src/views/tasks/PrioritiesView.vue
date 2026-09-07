@@ -1,6 +1,6 @@
 <template>
   <div class="priorities_view">
-    <h1>🎯 {{ t('sm_priorities_title') }}</h1>
+    <h1>🎯 {{ t('smart_matrix_priorities_title') }}</h1>
 
     <AiInsightPanel
       module="matrix"
@@ -12,12 +12,12 @@
 
     <!-- Unclassified -->
     <div class="priority_unclassified">
-      <h3>{{ t('sm_not_classified') }} <span class="priority_count">{{ unclassified.length }}</span></h3>
+      <h3>{{ t('smart_matrix_not_classified') }} <span class="priority_count">{{ unclassified.length }}</span></h3>
       <div class="priority_cards_row" @dragover.prevent @drop="onDrop($event, null)">
         <div v-for="task in unclassified" :key="task.id" class="priority_chip" draggable="true" @dragstart="onDragStart($event, task)">
           {{ task.title }}
         </div>
-        <span v-if="!unclassified.length" class="priority_empty_hint">{{ t('sm_no_tasks') }}</span>
+        <span v-if="!unclassified.length" class="priority_empty_hint">{{ t('smart_matrix_no_tasks') }}</span>
       </div>
     </div>
 
@@ -37,7 +37,7 @@
             </div>
             <span class="matrix_quadrant_due" :class="{ late: isOverdue(task) }">{{ task.dueDate ? fmtDate(task.dueDate) : '' }}</span>
           </div>
-          <div v-if="!quadrantTasks(q.key).length" class="matrix_quadrant_empty">{{ t('sm_no_tasks') }}</div>
+          <div v-if="!quadrantTasks(q.key).length" class="matrix_quadrant_empty">{{ t('smart_matrix_no_tasks') }}</div>
         </div>
       </div>
     </div>
@@ -59,10 +59,10 @@ const clients = useClientStore()
 let draggedTask = null
 
 const quadrants = [
-  { key: 'urgent_important', labelKey: 'sm_do_now', descKey: 'sm_do_now_desc' },
-  { key: 'important', labelKey: 'sm_schedule', descKey: 'sm_schedule_desc' },
-  { key: 'urgent', labelKey: 'sm_delegate', descKey: 'sm_delegate_desc' },
-  { key: 'not_urgent', labelKey: 'sm_eliminate', descKey: 'sm_eliminate_desc' },
+  { key: 'urgent_important', labelKey: 'smart_matrix_do_now', descKey: 'smart_matrix_do_now_desc' },
+  { key: 'important', labelKey: 'smart_matrix_schedule', descKey: 'smart_matrix_schedule_desc' },
+  { key: 'urgent', labelKey: 'smart_matrix_delegate', descKey: 'smart_matrix_delegate_desc' },
+  { key: 'not_urgent', labelKey: 'smart_matrix_eliminate', descKey: 'smart_matrix_eliminate_desc' },
 ]
 
 const unclassified = computed(() => tasks.tasks.filter(t => !t.priority || !quadrants.some(q => q.key === t.priority)))

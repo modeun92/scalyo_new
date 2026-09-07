@@ -16,7 +16,7 @@
       <label class="metric_wizard_values_label">📊 {{ t('copil_mw_client_src') }}</label>
       <div class="metric_wizard_row">
         <select v-model="clientKpiId" class="field_input grow">
-          <option value="">{{ t('cmet_pick') }}</option>
+          <option value="">{{ t('client_metric_pick') }}</option>
           <option v-for="k in clientKpis" :key="k.id" :value="k.id">{{ kpiLabel(k) }}</option>
         </select>
         <button class="metric_wizard_use" :disabled="!clientKpiId" @click="useClientSeries">{{ t('copil_mw_client_use') }}</button>

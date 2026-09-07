@@ -10,9 +10,9 @@
       :message="t('ai_playbook_prompt')"
     />
 
-      <h3>{{ t('pb_plan_required', { plan: 'Growth' }) }}</h3>
-      <p>{{ t('pb_empty_desc') }}</p>
-      <button class="button_primary" @click="$router.push('/app/settings')">{{ t('pb_upgrade') }}</button>
+      <h3>{{ t('playbook_plan_required', { plan: 'Growth' }) }}</h3>
+      <p>{{ t('playbook_empty_desc') }}</p>
+      <button class="button_primary" @click="$router.push('/app/settings')">{{ t('playbook_upgrade') }}</button>
     </div>
     <template v-else>
     <PbHeader
@@ -114,9 +114,9 @@ onMounted(() => {
 })
 
 const filterTabs = computed(() => [
-  { key: 'all', label: 'pb_filter_all', count: store.playbooks.length },
-  { key: 'active', label: 'pb_filter_active', count: store.activePlaybooks.length },
-  { key: 'done', label: 'pb_filter_done', count: store.donePlaybooks.length },
+  { key: 'all', label: 'playbook_filter_all', count: store.playbooks.length },
+  { key: 'active', label: 'playbook_filter_active', count: store.activePlaybooks.length },
+  { key: 'done', label: 'playbook_filter_done', count: store.donePlaybooks.length },
 ])
 
 const filteredPlaybooks = computed(() => {
@@ -128,7 +128,7 @@ const filteredPlaybooks = computed(() => {
   if (search.value) {
     const q = search.value.toLowerCase()
     list = list.filter(p => {
-      const name = t('pb_template_' + p.templateKey).toLowerCase()
+      const name = t('playbook_template_' + p.templateKey).toLowerCase()
       const client = clientName(p.clientId).toLowerCase()
       return name.includes(q) || client.includes(q)
     })

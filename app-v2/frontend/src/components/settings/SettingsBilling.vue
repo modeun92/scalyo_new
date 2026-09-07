@@ -2,7 +2,7 @@
   <div class="settings_view_panel">
     <!-- Current Plan -->
     <div class="settings_view_section">
-      <h3>{{ t('stg_tab_billing') }}</h3>
+      <h3>{{ t('setting_tab_billing') }}</h3>
       <div class="billing_plan">
         <div class="billing_plan_current">
           <span class="billing_plan_badge">{{ auth.currentPlanLabel }}</span>
@@ -10,14 +10,14 @@
         </div>
         <p v-if="summaryLine" class="billing_plan_line">{{ summaryLine }}</p>
         <p v-if="upcomingLine" class="billing_plan_line">{{ upcomingLine }}</p>
-        <p v-if="billing.data && !billing.canViewAmounts" class="billing_plan_note">{{ t('stg_billing_managed_by_owner') }}</p>
-        <p v-else-if="billing.data?.source === 'table'" class="billing_plan_note">{{ t('stg_billing_indicative') }}</p>
-        <p v-else-if="billing.error" class="billing_plan_note">{{ t('stg_billing_error') }}</p>
+        <p v-if="billing.data && !billing.canViewAmounts" class="billing_plan_note">{{ t('setting_billing_managed_by_owner') }}</p>
+        <p v-else-if="billing.data?.source === 'table'" class="billing_plan_note">{{ t('setting_billing_indicative') }}</p>
+        <p v-else-if="billing.error" class="billing_plan_note">{{ t('setting_billing_error') }}</p>
         <div v-if="billing.canViewAmounts" class="plan_status_row">
           <span class="plan_status" :class="statusClass">{{ statusLabel }}</span>
         </div>
         <p v-if="billing.canViewAmounts && auth.profile?.subscription_end_date" class="billing_plan_end_date">
-          {{ t('stg_sub_ends') }} {{ fmtDate(auth.profile.subscription_end_date, { year: 'numeric', month: 'long', day: 'numeric' }) }}
+          {{ t('setting_sub_ends') }} {{ fmtDate(auth.profile.subscription_end_date, { year: 'numeric', month: 'long', day: 'numeric' }) }}
         </p>
         <button
           v-if="billing.canViewAmounts && auth.hasActiveSubscription"
@@ -25,16 +25,16 @@
           :disabled="portalLoading"
           @click="openPortal"
         >
-          {{ portalLoading ? t('stg_portal_loading') : t('stg_manage_sub') }}
+          {{ portalLoading ? t('setting_portal_loading') : t('setting_manage_sub') }}
         </button>
-        <p v-if="portalError" class="settings_view_field_error">{{ t('stg_portal_error') }}</p>
+        <p v-if="portalError" class="settings_view_field_error">{{ t('setting_portal_error') }}</p>
       </div>
     </div>
 
     <!-- Plans Grid — D1: owner / admin only, prices served by /api/billing in the account currency -->
     <div v-if="billing.canViewAmounts" class="settings_view_section">
-      <h3>{{ t('stg_plan_title') }}</h3>
-      <p class="settings_view_description">{{ t('stg_plan_desc') }}</p>
+      <h3>{{ t('setting_plan_title') }}</h3>
+      <p class="settings_view_description">{{ t('setting_plan_desc') }}</p>
       <div class="plan_grid">
         <div
           v-for="plan in plans"
@@ -42,9 +42,9 @@
           class="plan_card"
           :class="{ featured: plan.featured, current: auth.currentPlan === plan.key }"
         >
-          <span v-if="plan.featured" class="plan_pop">{{ t('stg_plan_popular') }}</span>
+          <span v-if="plan.featured" class="plan_pop">{{ t('setting_plan_popular') }}</span>
           <h4>{{ plan.name }}</h4>
-          <p class="plan_price">{{ gridPrice(plan.key) }}<span v-if="plan.key !== 'enterprise'">/{{ t('stg_per_seat') }}</span></p>
+          <p class="plan_price">{{ gridPrice(plan.key) }}<span v-if="plan.key !== 'enterprise'">/{{ t('setting_per_seat') }}</span></p>
           <ul>
             <li v-for="f in plan.features" :key="f">{{ t(f) }}</li>
           </ul>
@@ -57,7 +57,7 @@
           </button>
         </div>
       </div>
-      <p class="billing_plan_note">{{ t('stg_stripe_note') }}</p>
+      <p class="billing_plan_note">{{ t('setting_stripe_note') }}</p>
     </div>
   </div>
 </template>
@@ -92,37 +92,37 @@ const headline = computed(() => {
   const d = billing.data
   if (auth.currentPlan === 'enterprise') return t('plan_enterprise_price')
   if (!d) return billing.loading ? '' : '—'
-  if (!d.can_view_amounts) return t('stg_billing_seats', d.seats)
-  return d.unit_amount == null ? '—' : t('stg_billing_unit', { amount: money(d.unit_amount) })
+  if (!d.can_view_amounts) return t('setting_billing_seats', d.seats)
+  return d.unit_amount == null ? '—' : t('setting_billing_unit', { amount: money(d.unit_amount) })
 })
 
 // "5 seats · €795/month" — owner/admin only
 const summaryLine = computed(() => {
   const d = billing.data
   if (!d?.can_view_amounts || d.total == null) return ''
-  return t('stg_billing_seats', d.seats) + ' · ' + t('stg_billing_total', { amount: money(d.total) })
+  return t('setting_billing_seats', d.seats) + ' · ' + t('setting_billing_total', { amount: money(d.total) })
 })
 
 // "Next charge: €397.50 on 21 Sep 2026 · including a €397.50 discount" — real Stripe data only
 const upcomingLine = computed(() => {
   const u = billing.data?.upcoming
   if (!billing.canViewAmounts || !u || u.total == null) return ''
-  let line = t('stg_billing_next', { amount: money(u.total), date: fmtDate(u.date) })
-  if (u.discount > 0) line += ' · ' + t('stg_billing_discount', { amount: money(u.discount) })
+  let line = t('setting_billing_next', { amount: money(u.total), date: fmtDate(u.date) })
+  if (u.discount > 0) line += ' · ' + t('setting_billing_discount', { amount: money(u.discount) })
   return line
 })
 
 // Status: Stripe's when it exists, otherwise the existing profile/org states
 const statusLabel = computed(() => {
   const s = billing.data?.status
-  if (s === 'past_due' || s === 'unpaid') return t('stg_billing_past_due')
-  if (s === 'trialing') return t('stg_billing_trialing', { date: fmtDate(billing.data.period_end) })
-  if (s === 'active') return t('stg_plan_active')
-  if (s === 'canceled' || s === 'incomplete_expired') return t('stg_plan_none')
-  if (auth.hasActiveSubscription) return t('stg_plan_active')
-  if (auth.isOnBetaAccess) return t('stg_beta_days', { days: auth.orgTrialDaysLeft })
-  if (auth.isOnTrial) return t('stg_trial_days', { days: auth.trialDaysLeft })
-  return t('stg_plan_none')
+  if (s === 'past_due' || s === 'unpaid') return t('setting_billing_past_due')
+  if (s === 'trialing') return t('setting_billing_trialing', { date: fmtDate(billing.data.period_end) })
+  if (s === 'active') return t('setting_plan_active')
+  if (s === 'canceled' || s === 'incomplete_expired') return t('setting_plan_none')
+  if (auth.hasActiveSubscription) return t('setting_plan_active')
+  if (auth.isOnBetaAccess) return t('setting_beta_days', { days: auth.orgTrialDaysLeft })
+  if (auth.isOnTrial) return t('setting_trial_days', { days: auth.trialDaysLeft })
+  return t('setting_plan_none')
 })
 const statusClass = computed(() => {
   const s = billing.data?.status
@@ -144,20 +144,20 @@ const growthUrl = computed(() => stripeCheckoutUrl('billing', 'growth', { email:
 const eliteUrl = computed(() => stripeCheckoutUrl('billing', 'elite', { email: email.value, userId: auth.user?.id }))
 
 const plans = computed(() => [
-  { key: 'starter', name: 'Starter', featured: false, url: starterUrl.value, features: ['stg_plan_starter_f1', 'stg_plan_starter_f2', 'stg_plan_starter_f3'] },
-  { key: 'growth', name: 'Growth', featured: true, url: growthUrl.value, features: ['stg_plan_growth_f1', 'stg_plan_growth_f2', 'stg_plan_growth_f3'] },
-  { key: 'elite', name: 'Elite', featured: false, url: eliteUrl.value, features: ['stg_plan_elite_f1', 'stg_plan_elite_f2', 'stg_plan_elite_f3'] },
+  { key: 'starter', name: 'Starter', featured: false, url: starterUrl.value, features: ['setting_plan_starter_f1', 'setting_plan_starter_f2', 'setting_plan_starter_f3'] },
+  { key: 'growth', name: 'Growth', featured: true, url: growthUrl.value, features: ['setting_plan_growth_f1', 'setting_plan_growth_f2', 'setting_plan_growth_f3'] },
+  { key: 'elite', name: 'Elite', featured: false, url: eliteUrl.value, features: ['setting_plan_elite_f1', 'setting_plan_elite_f2', 'setting_plan_elite_f3'] },
   // PLANS-ENTERPRISE (2.3, D2 27/08): same offer as the landing page — quote-based, direct contact
-  { key: 'enterprise', name: 'Enterprise', featured: false, url: 'mailto:contact@scalyo.app', features: ['stg_plan_enterprise_f1', 'stg_plan_enterprise_f2', 'stg_plan_enterprise_f3'] },
+  { key: 'enterprise', name: 'Enterprise', featured: false, url: 'mailto:contact@scalyo.app', features: ['setting_plan_enterprise_f1', 'setting_plan_enterprise_f2', 'setting_plan_enterprise_f3'] },
 ])
 
 function getPlanButtonLabel(planKey) {
-  if (auth.currentPlan === planKey) return t('stg_plan_current')
-  if (planKey === 'enterprise') return t('stg_plan_contact')
+  if (auth.currentPlan === planKey) return t('setting_plan_current')
+  if (planKey === 'enterprise') return t('setting_plan_contact')
   const tiers = { starter: 0, growth: 1, elite: 2, enterprise: 3 }
   const current = tiers[auth.currentPlan] || 0
   const target = tiers[planKey] || 0
-  return target > current ? t('stg_plan_upgrade') : t('stg_plan_downgrade')
+  return target > current ? t('setting_plan_upgrade') : t('setting_plan_downgrade')
 }
 
 function handlePlanChange(url, plan) {

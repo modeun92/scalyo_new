@@ -1,5 +1,5 @@
 <template>
-  <SlideOver :open="open" :title="t('qt_config')" @close="$emit('close')">
+  <SlideOver :open="open" :title="t('quote_config')" @close="$emit('close')">
     <div class="slideover_form">
       <div class="field_group">
         <label>{{ t('country_law_country') }}</label>

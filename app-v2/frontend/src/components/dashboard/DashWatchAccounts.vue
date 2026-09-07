@@ -1,8 +1,8 @@
 <template>
   <div class="dashboard_card">
     <div class="card_header">
-      <h2>{{ t('dash_watch_accounts') }}</h2>
-      <router-link to="/app/satisfaction" class="card_link">{{ t('dash_view_all') }} →</router-link>
+      <h2>{{ t('dashboard_watch_accounts') }}</h2>
+      <router-link to="/app/satisfaction" class="card_link">{{ t('dashboard_view_all') }} →</router-link>
     </div>
 
     <div class="satisfaction_chart">
@@ -21,13 +21,13 @@
             :stroke-dashoffset="'-' + (parseFloat(healthyArc) + parseFloat(watchArc))"
             stroke-linecap="round" transform="rotate(-90 60 60)" />
           <text x="60" y="58" text-anchor="middle" font-size="22" font-weight="800" fill="currentColor">{{ totalClients }}</text>
-          <text x="60" y="74" text-anchor="middle" font-size="9" fill="var(--text-muted)">{{ t('dash_clients') }}</text>
+          <text x="60" y="74" text-anchor="middle" font-size="9" fill="var(--text-muted)">{{ t('dashboard_clients') }}</text>
         </svg>
       </div>
       <div class="satisfaction_legend">
-        <div class="legend_item"><span class="status_dot green" /> {{ t('dash_healthy') }} <strong>{{ healthyCount }}</strong></div>
-        <div class="legend_item"><span class="status_dot amber" /> {{ t('dash_watch') }} <strong>{{ watchCount }}</strong></div>
-        <div class="legend_item"><span class="status_dot red" /> {{ t('dash_critical') }} <strong>{{ criticalCount }}</strong></div>
+        <div class="legend_item"><span class="status_dot green" /> {{ t('dashboard_healthy') }} <strong>{{ healthyCount }}</strong></div>
+        <div class="legend_item"><span class="status_dot amber" /> {{ t('dashboard_watch') }} <strong>{{ watchCount }}</strong></div>
+        <div class="legend_item"><span class="status_dot red" /> {{ t('dashboard_critical') }} <strong>{{ criticalCount }}</strong></div>
       </div>
     </div>
 

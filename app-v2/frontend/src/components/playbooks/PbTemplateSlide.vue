@@ -1,7 +1,7 @@
 <template>
   <SlideOver
     :open="open"
-    :title="t('pb_templates_title')"
+    :title="t('playbook_templates_title')"
     @close="$emit('close')"
     :width="520"
   >
@@ -13,18 +13,18 @@
             :style="{ background: tpl.color + '15', color: tpl.color }"
           >{{ tpl.icon }}</span>
           <div class="template_info">
-            <strong>{{ t('pb_template_' + tpl.key) }}</strong>
-            <p>{{ t('pb_template_' + tpl.key + '_desc') }}</p>
+            <strong>{{ t('playbook_template_' + tpl.key) }}</strong>
+            <p>{{ t('playbook_template_' + tpl.key + '_desc') }}</p>
           </div>
         </div>
         <div class="template_meta">
-          <span>{{ tpl.steps.length }} {{ t('pb_steps') }}</span>
-          <span>~{{ tpl.avgDays }} {{ t('pb_avg_days') }}</span>
+          <span>{{ tpl.steps.length }} {{ t('playbook_steps') }}</span>
+          <span>~{{ tpl.avgDays }} {{ t('playbook_avg_days') }}</span>
         </div>
         <button
           class="button_outline template_use"
           @click="$emit('selectTemplate', tpl)"
-        >{{ t('pb_use_template') }}</button>
+        >{{ t('playbook_use_template') }}</button>
       </div>
     </div>
   </SlideOver>

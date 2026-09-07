@@ -15,9 +15,9 @@
           <path d="M32 24v16m-8-8h16" stroke="var(--purple)" stroke-width="2.5" stroke-linecap="round"/>
         </svg>
       </div>
-      <p class="drop_zone_main">{{ t('imp_drop') }}</p>
-      <p class="drop_zone_formats">{{ t('imp_formats') }}</p>
-      <button class="button_primary" @click.stop="$refs.fileInput.click()">{{ t('imp_choose') }}</button>
+      <p class="drop_zone_main">{{ t('smart_import_drop') }}</p>
+      <p class="drop_zone_formats">{{ t('smart_import_formats') }}</p>
+      <button class="button_primary" @click.stop="$refs.fileInput.click()">{{ t('smart_import_choose') }}</button>
       <p v-if="errorMsg" class="import_error_message">⚠️ {{ errorMsg }}</p>
     </div>
 
@@ -28,7 +28,7 @@
         <div class="orb_ring r2" />
         <div class="orb_core">🤖</div>
       </div>
-      <p class="analyzing_title">{{ t('imp_analyzing') }}</p>
+      <p class="analyzing_title">{{ t('smart_import_analyzing') }}</p>
       <p class="analyzing_file">{{ fileName }}</p>
       <div class="analyzing_dots"><span /><span /><span /></div>
     </div>

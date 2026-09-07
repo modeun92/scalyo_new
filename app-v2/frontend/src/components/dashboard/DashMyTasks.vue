@@ -1,8 +1,8 @@
 <template>
   <div class="dashboard_card">
     <div class="card_header">
-      <h2>{{ t('dash_my_tasks') }}</h2>
-      <router-link to="/app/tasks/kanban" class="card_link">{{ t('dash_view_all') }} →</router-link>
+      <h2>{{ t('dashboard_my_tasks') }}</h2>
+      <router-link to="/app/tasks/kanban" class="card_link">{{ t('dashboard_view_all') }} →</router-link>
     </div>
 
     <div class="task_tabs">

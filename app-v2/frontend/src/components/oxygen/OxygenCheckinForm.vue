@@ -21,9 +21,9 @@ const savedFlash = ref(false)
 const firstSlider = ref(null)
 const form = reactive({ energy: 3, mood: 3, feltLoad: 3, word: '' })
 const fields = [
-  { key: 'energy', label: 'oxy_energy' },
-  { key: 'mood', label: 'oxy_mood' },
-  { key: 'feltLoad', label: 'oxy_felt_load' },
+  { key: 'energy', label: 'oxygen_energy' },
+  { key: 'mood', label: 'oxygen_mood' },
+  { key: 'feltLoad', label: 'oxygen_felt_load' },
 ]
 
 function prefill() {
@@ -83,12 +83,12 @@ defineExpose({ prefill, focusFirst })
       class="oxygen_word"
       type="text"
       maxlength="80"
-      :placeholder="t('oxy_word_placeholder')"
-      :aria-label="t('oxy_word_label')"
+      :placeholder="t('oxygen_word_placeholder')"
+      :aria-label="t('oxygen_word_label')"
     />
 
     <button class="oxygen_save" :disabled="checkins.saving" @click="save">
-      {{ savedFlash ? '✓ ' + t('oxy_saved') : t('oxy_save') }}
+      {{ savedFlash ? '✓ ' + t('oxygen_saved') : t('oxygen_save') }}
     </button>
   </div>
 </template>

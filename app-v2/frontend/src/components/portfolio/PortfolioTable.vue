@@ -1,13 +1,13 @@
 <template>
   <div class="table_wrapper">
     <div class="table_head">
-      <span class="client_name">{{ t('port_field_name') }}</span>
-      <span class="client_indicator hide_small">{{ t('port_field_industry') }}</span>
+      <span class="client_name">{{ t('portfolio_field_name') }}</span>
+      <span class="client_indicator hide_small">{{ t('portfolio_field_industry') }}</span>
       <span class="client_arr">{{ t('kpi_arr') }}</span>
-      <span class="client_header">{{ t('cd_health') }}</span>
-      <span class="client_st hide_small">{{ t('port_field_status') }}</span>
-      <span class="client_csm hide_medium">{{ t('port_field_agent') }}</span>
-      <span class="client_renewal hide_medium">{{ t('port_renewal') }}</span>
+      <span class="client_header">{{ t('client_detail_health') }}</span>
+      <span class="client_st hide_small">{{ t('portfolio_field_status') }}</span>
+      <span class="client_csm hide_medium">{{ t('portfolio_field_agent') }}</span>
+      <span class="client_renewal hide_medium">{{ t('portfolio_renewal') }}</span>
       <span class="client_action hide_small"></span>
     </div>
     <div v-for="c in clients" :key="c.id" class="table_row" @click="$emit('open', c)">
@@ -16,7 +16,7 @@
         <div>
           <strong>
             {{ c.name }}
-            <span v-if="c.lifecycle === 'prospect'" class="library_card_badge" :class="'stage_' + (c.pipeline_stage || 'new')">{{ t('port_stage_' + (c.pipeline_stage || 'new')) }}</span>
+            <span v-if="c.lifecycle === 'prospect'" class="library_card_badge" :class="'stage_' + (c.pipeline_stage || 'new')">{{ t('portfolio_stage_' + (c.pipeline_stage || 'new')) }}</span>
           </strong>
           <span class="sub" v-if="mainContact(c)">
             {{ mainContact(c).name }}<template v-if="mainContact(c).role"> · {{ mainContact(c).role }}</template>
@@ -25,7 +25,7 @@
       </div>
       <span class="client_indicator hide_small">{{ c.industry }}</span>
       <!-- CURRENCY-FORMAT: account currency, locale formatting ("118 k€" / "€118K"), no more hard-coded "€" -->
-      <span class="client_arr fw">{{ fmtCurrency(c.arr, { compact: true }) }}<small v-if="wonAmount(c.id) > 0" class="client_signed">{{ t('port_ca_signed') }} {{ fmtCurrency(wonAmount(c.id), { compact: true }) }}</small></span>
+      <span class="client_arr fw">{{ fmtCurrency(c.arr, { compact: true }) }}<small v-if="wonAmount(c.id) > 0" class="client_signed">{{ t('portfolio_ca_signed') }} {{ fmtCurrency(wonAmount(c.id), { compact: true }) }}</small></span>
       <!-- HEALTH-SCALE: localized score out of 10, pill/badge/avatar colored by the EFFECTIVE status
            (the same function as the counters and filters) — never again a raw c.status -->
       <span class="client_header">
@@ -41,10 +41,10 @@
       <span class="client_action hide_small">
         <button class="rb" @click.stop="$emit('edit', c)" :title="t('edit')">✏️</button>
         <template v-if="deleteId === c.id">
-          <button class="rb del active" @click.stop="$emit('delete', c)" :title="t('port_delete_step2')">✓</button>
-          <button class="rb" @click.stop="deleteId = null" :title="t('sm_reset_cancel')">✕</button>
+          <button class="rb del active" @click.stop="$emit('delete', c)" :title="t('portfolio_delete_step2')">✓</button>
+          <button class="rb" @click.stop="deleteId = null" :title="t('smart_matrix_reset_cancel')">✕</button>
         </template>
-        <button v-else class="rb del" @click.stop="deleteId = c.id" :title="t('port_delete_step1')">🗑️</button>
+        <button v-else class="rb del" @click.stop="deleteId = c.id" :title="t('portfolio_delete_step1')">🗑️</button>
       </span>
     </div>
   </div>

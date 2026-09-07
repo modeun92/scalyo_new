@@ -1,24 +1,24 @@
 <template>
 <div class="email_studio">
   <div class="email_studio_header">
-    <h1>{{ t('es_title') }}</h1>
-    <p class="email_studio_sub">{{ t('es_subtitle') }}</p>
+    <h1>{{ t('email_studio_title') }}</h1>
+    <p class="email_studio_sub">{{ t('email_studio_subtitle') }}</p>
   </div>
 
   <!-- CR-D: the store's failures are displayed (the view used to be mute) — ChatPanel C-07 pattern -->
   <div v-if="store.lastError" class="email_studio_error_toast">
-    <span>{{ t('es_err_' + store.lastError) }}</span>
+    <span>{{ t('email_studio_err_' + store.lastError) }}</span>
     <button class="email_studio_error_close" @click="store.clearError()">✕</button>
   </div>
 
   <div :class="['email_studio_email_banner', store.emailConfigured ? 'connected' : 'setup_needed']">
     <span class="email_studio_banner_icon">{{ store.emailConfigured ? '✅' : '⚠️' }}</span>
     <div class="email_studio_banner_text">
-      <strong>{{ store.emailConfigured ? t('es_resend_connected') : t('es_resend_setup_title') }}</strong>
-      <span>{{ store.emailConfigured ? t('es_resend_connected_desc') : t('es_resend_setup_desc') }}</span>
+      <strong>{{ store.emailConfigured ? t('email_studio_resend_connected') : t('email_studio_resend_setup_title') }}</strong>
+      <span>{{ store.emailConfigured ? t('email_studio_resend_connected_desc') : t('email_studio_resend_setup_desc') }}</span>
     </div>
     <router-link v-if="!store.emailConfigured" to="/app/settings?tab=integrations" class="email_studio_banner_link">
-      {{ t('es_resend_setup_link') }}
+      {{ t('email_studio_resend_setup_link') }}
     </router-link>
   </div>
 
@@ -113,11 +113,11 @@ const selected = computed(() => {
 })
 
 const tabKeys = [
-  { key: 'all', label: 'es_tab_all' },
-  { key: 'csm', label: 'es_tab_csm' },
-  { key: 'commercial', label: 'es_tab_commercial' },
-  { key: 'kam', label: 'es_tab_kam' },
-  { key: 'history', label: 'es_tab_history' }
+  { key: 'all', label: 'email_studio_tab_all' },
+  { key: 'csm', label: 'email_studio_tab_csm' },
+  { key: 'commercial', label: 'email_studio_tab_commercial' },
+  { key: 'kam', label: 'email_studio_tab_kam' },
+  { key: 'history', label: 'email_studio_tab_history' }
 ]
 
 onMounted(() => { store.init() })

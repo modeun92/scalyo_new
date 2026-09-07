@@ -13,14 +13,14 @@
     </div>
 
     <select :value="csmFilter" class="filter_select" @change="$emit('update:csmFilter', $event.target.value)">
-      <option value="all">{{ t('sat_all_csm') }}</option>
+      <option value="all">{{ t('satisfaction_all_csm') }}</option>
       <option v-for="m in teamMembers" :key="m.id" :value="m.id">{{ m.name }}</option>
     </select>
 
     <select :value="sortBy" class="filter_select" @change="$emit('update:sortBy', $event.target.value)">
-      <option value="health">{{ t('sat_sort_health') }} ↑</option>
-      <option value="health_desc">{{ t('sat_sort_health') }} ↓</option>
-      <option value="arr">{{ t('sat_sort_arr') }} ↓</option>
+      <option value="health">{{ t('satisfaction_sort_health') }} ↑</option>
+      <option value="health_desc">{{ t('satisfaction_sort_health') }} ↓</option>
+      <option value="arr">{{ t('satisfaction_sort_arr') }} ↓</option>
     </select>
 
     <div class="search_box">

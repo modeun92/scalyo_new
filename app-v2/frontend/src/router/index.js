@@ -198,58 +198,58 @@ router.afterEach((to) => {
   }
 
   const TITLE_KEYS = {
-    'login': 'rt_login',
-    'register': 'rt_register',
-    'dashboard': 'rt_dashboard',
-    'portfolio': 'rt_portfolio',
-    'client-detail': 'rt_client_detail',
-    'oxygen': 'rt_oxygen',
-    'kpis': 'rt_kpis',
-    'import': 'rt_import',
-    'settings': 'rt_settings',
-    'profile': 'rt_profile',
-    'payment-success': 'rt_payment_success',
-    'paywall': 'rt_paywall',
-    'NotFound': 'rt_not_found',
-    'ResetPassword': 'rt_reset',
-    'ResetPasswordConfirm': 'rt_reset_confirm',
-    'CGU': 'rt_cgu',
-    'Support': 'rt_support',
-    'Blog': 'rt_blog',
-    'Privacy': 'rt_privacy',
-    // HEADER-PILL (29/08): ~30 named routes titled the tab with the generic "rt_default" —
-    // each screen now names its own view (rt_* keys × 3 languages, aligned with the views' real titles).
-    // 'landing' deliberately stays on rt_default (SEO title of the home page).
-    'onboarding': 'rt_onboarding',
-    'manager': 'rt_manager',
-    'satisfaction': 'rt_satisfaction',
-    'playbooks': 'rt_playbooks',
-    'kpis-builder-new': 'rt_kpis_builder',
-    'kpis-builder': 'rt_kpis_builder',
-    'kpis-preview': 'rt_kpis_preview',
-    'kpis-present': 'rt_kpis_present',
-    'okr': 'rt_okr',
-    'roadmap': 'rt_roadmap',
-    'tasks-stats': 'rt_tasks_stats',
-    'tasks-planning': 'rt_tasks_planning',
-    'tasks-projects': 'rt_tasks_projects',
-    'tasks-kanban': 'rt_tasks_kanban',
-    'tasks-priorities': 'rt_tasks_priorities',
-    'tasks-team': 'rt_tasks_team',
-    'tasks-settings': 'rt_tasks_settings',
-    'workload': 'rt_workload',
-    'coach': 'rt_coach',
-    'chat': 'rt_chat',
-    'email-studio': 'rt_email_studio',
-    'quotes': 'rt_quotes',
-    'team': 'rt_team',
-    'resources-library': 'rt_res_library',
-    'resources-masterclass': 'rt_res_masterclass',
-    'resources-guides': 'rt_res_guides',
-    'resources-tools': 'rt_res_tools',
-    'resources-wellbeing': 'rt_res_wellbeing',
-    'dpa': 'rt_dpa',
-    'join': 'rt_join',
+    'login': 'route_title_login',
+    'register': 'route_title_register',
+    'dashboard': 'route_title_dashboard',
+    'portfolio': 'route_title_portfolio',
+    'client-detail': 'route_title_client_detail',
+    'oxygen': 'route_title_oxygen',
+    'kpis': 'route_title_kpis',
+    'import': 'route_title_import',
+    'settings': 'route_title_settings',
+    'profile': 'route_title_profile',
+    'payment-success': 'route_title_payment_success',
+    'paywall': 'route_title_paywall',
+    'NotFound': 'route_title_not_found',
+    'ResetPassword': 'route_title_reset',
+    'ResetPasswordConfirm': 'route_title_reset_confirm',
+    'CGU': 'route_title_cgu',
+    'Support': 'route_title_support',
+    'Blog': 'route_title_blog',
+    'Privacy': 'route_title_privacy',
+    // HEADER-PILL (29/08): ~30 named routes titled the tab with the generic "route_title_default" —
+    // each screen now names its own view (route_title_* keys × 3 languages, aligned with the views' real titles).
+    // 'landing' deliberately stays on route_title_default (SEO title of the home page).
+    'onboarding': 'route_title_onboarding',
+    'manager': 'route_title_manager',
+    'satisfaction': 'route_title_satisfaction',
+    'playbooks': 'route_title_playbooks',
+    'kpis-builder-new': 'route_title_kpis_builder',
+    'kpis-builder': 'route_title_kpis_builder',
+    'kpis-preview': 'route_title_kpis_preview',
+    'kpis-present': 'route_title_kpis_present',
+    'okr': 'route_title_okr',
+    'roadmap': 'route_title_roadmap',
+    'tasks-stats': 'route_title_tasks_stats',
+    'tasks-planning': 'route_title_tasks_planning',
+    'tasks-projects': 'route_title_tasks_projects',
+    'tasks-kanban': 'route_title_tasks_kanban',
+    'tasks-priorities': 'route_title_tasks_priorities',
+    'tasks-team': 'route_title_tasks_team',
+    'tasks-settings': 'route_title_tasks_settings',
+    'workload': 'route_title_workload',
+    'coach': 'route_title_coach',
+    'chat': 'route_title_chat',
+    'email-studio': 'route_title_email_studio',
+    'quotes': 'route_title_quotes',
+    'team': 'route_title_team',
+    'resources-library': 'route_title_res_library',
+    'resources-masterclass': 'route_title_res_masterclass',
+    'resources-guides': 'route_title_res_guides',
+    'resources-tools': 'route_title_res_tools',
+    'resources-wellbeing': 'route_title_res_wellbeing',
+    'dpa': 'route_title_dpa',
+    'join': 'route_title_join',
   }
   // Outside the landing page, <html lang> follows the application locale: without this line,
   // an internal navigation from /ko/ to /blog would leave lang="ko" on a
@@ -257,10 +257,10 @@ router.afterEach((to) => {
   document.documentElement.lang = i18n.global.locale?.value || 'fr'
 
   const key = to.name && TITLE_KEYS[to.name]
-  document.title = key ? t(key) : (to.meta?.title || t('rt_default'))
+  document.title = key ? t(key) : (to.meta?.title || t('route_title_default'))
   let metaDesc = document.querySelector('meta[name="description"]')
   if (!metaDesc) { metaDesc = document.createElement('meta'); metaDesc.setAttribute('name', 'description'); document.head.appendChild(metaDesc) }
-  metaDesc.setAttribute('content', to.meta?.description || t('rt_meta_desc'))
+  metaDesc.setAttribute('content', to.meta?.description || t('route_title_meta_desc'))
 
   // SEO-404: the Cloudflare Pages SPA fallback returns 200 with the landing page's
   // HTML for any non-existent URL. Search Console thus discovered phantom

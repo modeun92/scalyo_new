@@ -8,13 +8,13 @@
 
         <div class="onboarding_step" v-if="step === 0">
           <div class="onboarding_emoji">👋</div>
-          <h2>{{ t('ob_welcome_title') }}</h2>
-          <p>{{ t('ob_welcome_desc') }}</p>
-          <button class="onboarding_button_primary" @click="step++">{{ t('ob_start') }}</button>
+          <h2>{{ t('onboarding_wizard_welcome_title') }}</h2>
+          <p>{{ t('onboarding_wizard_welcome_desc') }}</p>
+          <button class="onboarding_button_primary" @click="step++">{{ t('onboarding_wizard_start') }}</button>
         </div>
 
         <div class="onboarding_step" v-if="step === 1">
-          <h3>{{ t('ob_role_title') }}</h3>
+          <h3>{{ t('onboarding_wizard_role_title') }}</h3>
           <div class="onboarding_options">
             <button
               v-for="opt in profileStore.ROLE_OPTIONS"
@@ -28,16 +28,16 @@
             v-if="form.role === 'other'"
             v-model="form.role_custom"
             class="onboarding_input"
-            :placeholder="t('ob_role_custom')"
+            :placeholder="t('onboarding_wizard_role_custom')"
           />
           <div class="onboarding_navigation">
             <button class="onboarding_button_ghost" @click="step--">←</button>
-            <button class="onboarding_button_primary" @click="step++" :disabled="!form.role">{{ t('ob_next') }}</button>
+            <button class="onboarding_button_primary" @click="step++" :disabled="!form.role">{{ t('onboarding_wizard_next') }}</button>
           </div>
         </div>
 
         <div class="onboarding_step" v-if="step === 2">
-          <h3>{{ t('ob_seniority_title') }}</h3>
+          <h3>{{ t('onboarding_wizard_seniority_title') }}</h3>
           <div class="onboarding_options">
             <button
               v-for="opt in profileStore.SENIORITY_OPTIONS"
@@ -49,12 +49,12 @@
           </div>
           <div class="onboarding_navigation">
             <button class="onboarding_button_ghost" @click="step--">←</button>
-            <button class="onboarding_button_primary" @click="step++">{{ t('ob_next') }}</button>
+            <button class="onboarding_button_primary" @click="step++">{{ t('onboarding_wizard_next') }}</button>
           </div>
         </div>
 
         <div class="onboarding_step" v-if="step === 3">
-          <h3>{{ t('ob_industry_title') }}</h3>
+          <h3>{{ t('onboarding_wizard_industry_title') }}</h3>
           <div class="onboarding_options">
             <button
               v-for="opt in profileStore.INDUSTRY_OPTIONS"
@@ -68,16 +68,16 @@
             v-if="form.industry === 'other'"
             v-model="form.industry_custom"
             class="onboarding_input"
-            :placeholder="t('ob_industry_custom')"
+            :placeholder="t('onboarding_wizard_industry_custom')"
           />
           <div class="onboarding_navigation">
             <button class="onboarding_button_ghost" @click="step--">←</button>
-            <button class="onboarding_button_primary" @click="step++">{{ t('ob_next') }}</button>
+            <button class="onboarding_button_primary" @click="step++">{{ t('onboarding_wizard_next') }}</button>
           </div>
         </div>
 
         <div class="onboarding_step" v-if="step === 4">
-          <h3>{{ t('ob_company_title') }}</h3>
+          <h3>{{ t('onboarding_wizard_company_title') }}</h3>
           <div class="onboarding_options">
             <button
               v-for="opt in profileStore.SIZE_OPTIONS"
@@ -87,44 +87,44 @@
               @click="form.company_size = opt.value"
             >{{ t(opt.labelKey) }}</button>
           </div>
-          <label class="onboarding_label">{{ t('ob_portfolio_size') }}</label>
-          <input v-model.number="form.portfolio_size" type="number" class="onboarding_input" min="0" :placeholder="t('ob_portfolio_placeholder')" />
+          <label class="onboarding_label">{{ t('onboarding_wizard_portfolio_size') }}</label>
+          <input v-model.number="form.portfolio_size" type="number" class="onboarding_input" min="0" :placeholder="t('onboarding_wizard_portfolio_placeholder')" />
           <div class="onboarding_navigation">
             <button class="onboarding_button_ghost" @click="step--">←</button>
-            <button class="onboarding_button_primary" @click="step++">{{ t('ob_next') }}</button>
+            <button class="onboarding_button_primary" @click="step++">{{ t('onboarding_wizard_next') }}</button>
           </div>
         </div>
 
         
         <div class="onboarding_step" v-if="step === 5">
           <div class="onboarding_emoji">🔒</div>
-          <h3>{{ t('ob_consent_title') }}</h3>
+          <h3>{{ t('onboarding_wizard_consent_title') }}</h3>
           <div class="onboarding_consent_items">
             <label class="onboarding_consent_item">
               <input type="checkbox" v-model="form.ai_consent" />
               <div>
-                <strong>{{ t('ob_consent_ai_label') }}</strong>
-                <p>{{ t('ob_consent_ai_desc') }}</p>
+                <strong>{{ t('onboarding_wizard_consent_ai_label') }}</strong>
+                <p>{{ t('onboarding_wizard_consent_ai_desc') }}</p>
               </div>
             </label>
             <label class="onboarding_consent_item">
               <input type="checkbox" v-model="form.analytics_consent" />
               <div>
-                <strong>{{ t('ob_consent_analytics_label') }}</strong>
-                <p>{{ t('ob_consent_analytics_desc') }}</p>
+                <strong>{{ t('onboarding_wizard_consent_analytics_label') }}</strong>
+                <p>{{ t('onboarding_wizard_consent_analytics_desc') }}</p>
               </div>
             </label>
           </div>
-          <p class="onboarding_consent_legal">{{ t('ob_consent_legal') }}</p>
+          <p class="onboarding_consent_legal">{{ t('onboarding_wizard_consent_legal') }}</p>
           <div class="onboarding_navigation">
             <button class="onboarding_button_ghost" @click="step--">←</button>
-            <button class="onboarding_button_primary" @click="step++" :disabled="!form.ai_consent">{{ t('ob_next') }}</button>
+            <button class="onboarding_button_primary" @click="step++" :disabled="!form.ai_consent">{{ t('onboarding_wizard_next') }}</button>
           </div>
         </div>
 
         <div class="onboarding_step" v-if="step === 6">
-          <h3>{{ t('ob_goals_title') }}</h3>
-          <p class="onboarding_hint">{{ t('ob_goals_hint') }}</p>
+          <h3>{{ t('onboarding_wizard_goals_title') }}</h3>
+          <p class="onboarding_hint">{{ t('onboarding_wizard_goals_hint') }}</p>
           <div class="onboarding_options">
             <button
               v-for="g in goalOptions"
@@ -136,7 +136,7 @@
           </div>
           <div class="onboarding_navigation">
             <button class="onboarding_button_ghost" @click="step--">←</button>
-            <button class="onboarding_button_primary" @click="submit" :disabled="saving">{{ saving ? '...' : t('ob_finish') }}</button>
+            <button class="onboarding_button_primary" @click="submit" :disabled="saving">{{ saving ? '...' : t('onboarding_wizard_finish') }}</button>
           </div>
         </div>
       </div>
@@ -172,14 +172,14 @@ const form = ref({
 })
 
 const goalOptions = [
-  { value: 'reduce_churn', labelKey: 'ob_goal_churn' },
-  { value: 'increase_nrr', labelKey: 'ob_goal_nrr' },
-  { value: 'improve_onboarding', labelKey: 'ob_goal_onboarding' },
-  { value: 'scale_team', labelKey: 'ob_goal_scale' },
-  { value: 'automate_playbooks', labelKey: 'ob_goal_automate' },
-  { value: 'better_reporting', labelKey: 'ob_goal_reporting' },
-  { value: 'client_satisfaction', labelKey: 'ob_goal_satisfaction' },
-  { value: 'expansion_revenue', labelKey: 'ob_goal_expansion' },
+  { value: 'reduce_churn', labelKey: 'onboarding_wizard_goal_churn' },
+  { value: 'increase_nrr', labelKey: 'onboarding_wizard_goal_nrr' },
+  { value: 'improve_onboarding', labelKey: 'onboarding_wizard_goal_onboarding' },
+  { value: 'scale_team', labelKey: 'onboarding_wizard_goal_scale' },
+  { value: 'automate_playbooks', labelKey: 'onboarding_wizard_goal_automate' },
+  { value: 'better_reporting', labelKey: 'onboarding_wizard_goal_reporting' },
+  { value: 'client_satisfaction', labelKey: 'onboarding_wizard_goal_satisfaction' },
+  { value: 'expansion_revenue', labelKey: 'onboarding_wizard_goal_expansion' },
 ]
 
 function toggleGoal(val) {

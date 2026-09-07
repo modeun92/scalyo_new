@@ -86,10 +86,10 @@ const sortBy = ref('health')
 const search = ref('')
 
 const statusFilters = [
-  { key: 'all', label: 'sat_filter_all' },
-  { key: 'healthy', label: 'sat_filter_healthy' },
-  { key: 'watch', label: 'sat_filter_watch' },
-  { key: 'risk', label: 'sat_filter_risk' },
+  { key: 'all', label: 'satisfaction_filter_all' },
+  { key: 'healthy', label: 'satisfaction_filter_healthy' },
+  { key: 'watch', label: 'satisfaction_filter_watch' },
+  { key: 'risk', label: 'satisfaction_filter_risk' },
 ]
 
 function resetFilters() {

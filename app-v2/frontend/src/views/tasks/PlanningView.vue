@@ -3,10 +3,10 @@
     <!-- TOOLBAR -->
     <div class="planning_toolbar">
       <div class="planning_toolbar_left">
-        <h1>📅 {{ t('pl_title') }}</h1>
+        <h1>📅 {{ t('planning_title') }}</h1>
         <div class="planning_navigation_buttons">
           <button class="nav_button" @click="calPrev">‹</button>
-          <button class="nav_button today_button" @click="calToday">{{ t('pl_today') }}</button>
+          <button class="nav_button today_button" @click="calToday">{{ t('planning_today') }}</button>
           <button class="nav_button" @click="calNext">›</button>
           <span class="planning_current_date">{{ currentTitle }}</span>
         </div>
@@ -18,9 +18,9 @@
         <div class="planning_actions">
           <!-- D-10: "Synchronize" button removed — calendar sync does not exist
                (the flow showed a fake ✓ badge without OAuth). Precedent: Integrations 10/07. -->
-          <button class="create_button" @click="openCreate">{{ t('pl_create') }}</button>
+          <button class="create_button" @click="openCreate">{{ t('planning_create') }}</button>
           <!-- PLAN-BTN: hover label — ⚙ = calendar settings, distinct from "Create" -->
-          <button class="settings_button" @click="settingsOpen = true" :title="t('pl_settings')" :aria-label="t('pl_settings')">⚙</button>
+          <button class="settings_button" @click="settingsOpen = true" :title="t('planning_settings')" :aria-label="t('planning_settings')">⚙</button>
         </div>
       </div>
     </div>
@@ -38,22 +38,22 @@
           <button v-for="z in zoomLevels" :key="z.key" class="gantt_zoom_button" :class="{ active: ganttZoom === z.key }" @click="ganttZoom = z.key">{{ t(z.label) }}</button>
         </div>
         <div class="gantt_zoom_group">
-          <span class="gantt_zoom_label">{{ t('pl_color_by') }}:</span>
+          <span class="gantt_zoom_label">{{ t('planning_color_by') }}:</span>
           <select v-model="ganttColorBy" class="gantt_zoom_select">
-            <option value="project">{{ t('pl_color_project') }}</option>
-            <option value="status">{{ t('pl_color_status') }}</option>
-            <option value="priority">{{ t('pl_color_priority') }}</option>
+            <option value="project">{{ t('planning_color_project') }}</option>
+            <option value="status">{{ t('planning_color_status') }}</option>
+            <option value="priority">{{ t('planning_color_priority') }}</option>
           </select>
         </div>
         <!-- GANTT-READ: unplaceable tasks counted honestly, never silently hidden -->
         <div class="gantt_zoom_group" v-if="noDateCount">
-          <span class="gantt_zoom_label">{{ t('pl_gantt_nodates') }}: {{ noDateCount }}</span>
+          <span class="gantt_zoom_label">{{ t('planning_gantt_nodates') }}: {{ noDateCount }}</span>
         </div>
       </div>
       <div class="gantt_container" ref="ganttRef">
         <!-- Timeline header -->
         <div class="gantt_header">
-          <div class="gantt_labels_header">{{ t('sm_projects_title') }}</div>
+          <div class="gantt_labels_header">{{ t('smart_matrix_projects_title') }}</div>
           <div class="gantt_dates_header">
             <div v-for="d in ganttDates" :key="d.key" class="gantt_date_column" :class="{ today: d.isToday, weekend: d.isWeekend }">
               <span class="gdc_day">{{ d.dayName }}</span>
@@ -84,7 +84,7 @@
              tasks.projects); "unclassified" group, existing i18n key reused -->
         <div v-if="unassignedTasks.length" class="gantt_project">
           <div class="gantt_row gantt_project_row">
-            <div class="gantt_label"><span class="gp_dot" style="background: #9ca3af" /><strong>{{ t('sm_not_classified') }}</strong></div>
+            <div class="gantt_label"><span class="gp_dot" style="background: #9ca3af" /><strong>{{ t('smart_matrix_not_classified') }}</strong></div>
             <div class="gantt_cells"><div v-for="d in ganttDates" :key="d.key" class="gantt_cell" :class="{ today: d.isToday, weekend: d.isWeekend }" /></div>
           </div>
           <div v-for="task in unassignedTasks" :key="task.id" class="gantt_row gantt_task_row">
@@ -100,43 +100,43 @@
         </div>
         <!-- Today line -->
         <div v-if="todayLineX > 0" class="gantt_today_line" :style="{ left: todayLineX + 'px' }">
-          <span class="gtl">{{ t('pl_gantt_today') }}</span>
+          <span class="gtl">{{ t('planning_gantt_today') }}</span>
         </div>
       </div>
     </div>
 
     <!-- SLIDE-OVER: Create/Edit Event -->
-    <SlideOver :open="eventSlideOpen" :title="editingEvent ? t('pl_event_edit') : t('pl_create')" @close="eventSlideOpen = false" :width="460">
+    <SlideOver :open="eventSlideOpen" :title="editingEvent ? t('planning_event_edit') : t('planning_create')" @close="eventSlideOpen = false" :width="460">
       <form @submit.prevent="saveEvent" class="slideover_form">
-        <div class="field_group"><label>{{ t('pl_event_title') }} *</label><input v-model="eventForm.title" required class="field_input" /></div>
+        <div class="field_group"><label>{{ t('planning_event_title') }} *</label><input v-model="eventForm.title" required class="field_input" /></div>
         <div class="field_row">
-          <div class="field_group"><label>{{ t('pl_event_start') }}</label><input v-model="eventForm.start" type="datetime-local" class="field_input" /></div>
-          <div class="field_group"><label>{{ t('pl_event_end') }}</label><input v-model="eventForm.end" type="datetime-local" class="field_input" /></div>
+          <div class="field_group"><label>{{ t('planning_event_start') }}</label><input v-model="eventForm.start" type="datetime-local" class="field_input" /></div>
+          <div class="field_group"><label>{{ t('planning_event_end') }}</label><input v-model="eventForm.end" type="datetime-local" class="field_input" /></div>
         </div>
-        <label class="field_input_check"><input type="checkbox" v-model="eventForm.allDay" /> {{ t('pl_event_allday') }}</label>
-        <div class="field_group"><label>{{ t('pl_event_location') }}</label><input v-model="eventForm.location" class="field_input" /></div>
-        <div class="field_group"><label>{{ t('pl_event_desc') }}</label><textarea v-model="eventForm.description" class="field_input textarea" rows="2" /></div>
+        <label class="field_input_check"><input type="checkbox" v-model="eventForm.allDay" /> {{ t('planning_event_allday') }}</label>
+        <div class="field_group"><label>{{ t('planning_event_location') }}</label><input v-model="eventForm.location" class="field_input" /></div>
+        <div class="field_group"><label>{{ t('planning_event_desc') }}</label><textarea v-model="eventForm.description" class="field_input textarea" rows="2" /></div>
         <div class="field_row">
-          <div class="field_group"><label>{{ t('pl_event_client') }}</label>
+          <div class="field_group"><label>{{ t('planning_event_client') }}</label>
             <select v-model="eventForm.clientId" class="field_input"><option value="">—</option><option v-for="c in clients.clients" :key="c.id" :value="c.id">{{ c.name }}</option></select>
           </div>
-          <div class="field_group"><label>{{ t('pl_event_project') }}</label>
+          <div class="field_group"><label>{{ t('planning_event_project') }}</label>
             <select v-model="eventForm.projectId" class="field_input"><option value="">—</option><option v-for="p in tasks.projects" :key="p.id" :value="p.id">{{ p.name }}</option></select>
           </div>
         </div>
         <!-- PLAN-RECUR: "Reminder" REMOVED (phantom field — never persisted, no planning
              notification infrastructure); recurrence hidden in EDIT mode (v1 = single occurrence) -->
         <div class="field_row" v-if="!editingEvent">
-          <div class="field_group"><label>{{ t('pl_event_recurrence') }}</label>
+          <div class="field_group"><label>{{ t('planning_event_recurrence') }}</label>
             <select v-model="eventForm.recurrence" class="field_input">
-              <option value="none">{{ t('pl_recur_none') }}</option>
-              <option value="daily">{{ t('pl_recur_daily') }}</option>
-              <option value="weekly">{{ t('pl_recur_weekly') }}</option>
-              <option value="monthly">{{ t('pl_recur_monthly') }}</option>
+              <option value="none">{{ t('planning_recur_none') }}</option>
+              <option value="daily">{{ t('planning_recur_daily') }}</option>
+              <option value="weekly">{{ t('planning_recur_weekly') }}</option>
+              <option value="monthly">{{ t('planning_recur_monthly') }}</option>
             </select>
           </div>
         </div>
-        <div class="field_group"><label>{{ t('pl_event_color') }}</label>
+        <div class="field_group"><label>{{ t('planning_event_color') }}</label>
           <div class="color_row">
             <button v-for="c in eventColors" :key="c" type="button" class="cpick" :class="{ active: eventForm.color === c }" :style="{ background: c }" @click="eventForm.color = c" />
           </div>
@@ -144,36 +144,36 @@
         <div class="form_actions">
           <!-- PLAN-RECUR: occurrence of a series → choose single occurrence / whole series -->
           <template v-if="editingEvent && editingSeriesId">
-            <button type="button" class="button_danger" @click="deleteEvent('one')">{{ t('pl_recur_del_one') }}</button>
-            <button type="button" class="button_danger" @click="deleteEvent('series')">{{ t('pl_recur_del_series') }}</button>
+            <button type="button" class="button_danger" @click="deleteEvent('one')">{{ t('planning_recur_del_one') }}</button>
+            <button type="button" class="button_danger" @click="deleteEvent('series')">{{ t('planning_recur_del_series') }}</button>
           </template>
-          <button v-else-if="editingEvent" type="button" class="button_danger" @click="deleteEvent('one')">{{ t('pl_event_delete') }}</button>
+          <button v-else-if="editingEvent" type="button" class="button_danger" @click="deleteEvent('one')">{{ t('planning_event_delete') }}</button>
           <div style="flex:1" />
           <button type="button" class="button_outline" @click="eventSlideOpen = false">{{ t('cancel') }}</button>
-          <button type="submit" class="button_primary">{{ t('pl_event_save') }}</button>
+          <button type="submit" class="button_primary">{{ t('planning_event_save') }}</button>
         </div>
       </form>
     </SlideOver>
 
     <!-- SLIDE-OVER: Settings -->
-    <SlideOver :open="settingsOpen" :title="t('pl_settings')" @close="settingsOpen = false">
+    <SlideOver :open="settingsOpen" :title="t('planning_settings')" @close="settingsOpen = false">
       <div class="slideover_form">
-        <div class="field_group"><label>{{ t('pl_settings_first_day') }}</label>
-          <select v-model="planningSettings.firstDay" class="field_input"><option :value="1">{{ t('wb_mon') }}</option><option :value="0">{{ t('wb_fri') === 'Ven' ? 'Dimanche' : 'Sunday' }}</option></select>
+        <div class="field_group"><label>{{ t('planning_settings_first_day') }}</label>
+          <select v-model="planningSettings.firstDay" class="field_input"><option :value="1">{{ t('wellbeing_mon') }}</option><option :value="0">{{ t('wellbeing_fri') === 'Ven' ? 'Dimanche' : 'Sunday' }}</option></select>
         </div>
         <div class="field_row">
-          <div class="field_group"><label>{{ t('pl_settings_work_hours') }} ({{ t('pl_event_start') }})</label><input v-model="planningSettings.workStart" type="time" class="field_input" /></div>
-          <div class="field_group"><label>{{ t('pl_event_end') }}</label><input v-model="planningSettings.workEnd" type="time" class="field_input" /></div>
+          <div class="field_group"><label>{{ t('planning_settings_work_hours') }} ({{ t('planning_event_start') }})</label><input v-model="planningSettings.workStart" type="time" class="field_input" /></div>
+          <div class="field_group"><label>{{ t('planning_event_end') }}</label><input v-model="planningSettings.workEnd" type="time" class="field_input" /></div>
         </div>
-        <label class="field_input_check"><input type="checkbox" v-model="planningSettings.hideWeekends" /> {{ t('pl_settings_hide_weekends') }}</label>
-        <div class="field_group"><label>{{ t('pl_settings_density') }}</label>
+        <label class="field_input_check"><input type="checkbox" v-model="planningSettings.hideWeekends" /> {{ t('planning_settings_hide_weekends') }}</label>
+        <div class="field_group"><label>{{ t('planning_settings_density') }}</label>
           <select v-model="planningSettings.density" class="field_input">
-            <option value="compact">{{ t('pl_density_compact') }}</option>
-            <option value="normal">{{ t('pl_density_normal') }}</option>
-            <option value="comfortable">{{ t('pl_density_comfortable') }}</option>
+            <option value="compact">{{ t('planning_density_compact') }}</option>
+            <option value="normal">{{ t('planning_density_normal') }}</option>
+            <option value="comfortable">{{ t('planning_density_comfortable') }}</option>
           </select>
         </div>
-        <div class="field_group"><label>{{ t('pl_settings_time_format') }}</label>
+        <div class="field_group"><label>{{ t('planning_settings_time_format') }}</label>
           <select v-model="planningSettings.timeFormat" class="field_input"><option value="24h">24h</option><option value="12h">12h (AM/PM)</option></select>
         </div>
       </div>
@@ -220,18 +220,18 @@ const ganttColorBy = ref('project')
 const eventColors = ['#7c3aed', '#3b82f6', '#10b981', '#ef4444', '#f59e0b', '#ec4899', '#06b6d4', '#8b5cf6']
 
 const views = [
-  { key: 'day', label: 'pl_view_day' },
-  { key: 'week', label: 'pl_view_week' },
-  { key: 'month', label: 'pl_view_month' },
-  { key: 'year', label: 'pl_view_year' },
-  { key: 'list', label: 'pl_view_list' },
-  { key: 'gantt', label: 'pl_view_gantt' },
+  { key: 'day', label: 'planning_view_day' },
+  { key: 'week', label: 'planning_view_week' },
+  { key: 'month', label: 'planning_view_month' },
+  { key: 'year', label: 'planning_view_year' },
+  { key: 'list', label: 'planning_view_list' },
+  { key: 'gantt', label: 'planning_view_gantt' },
 ]
 
 const zoomLevels = [
-  { key: 'day', label: 'pl_zoom_day' },
-  { key: 'week', label: 'pl_zoom_week' },
-  { key: 'month', label: 'pl_zoom_month' },
+  { key: 'day', label: 'planning_zoom_day' },
+  { key: 'week', label: 'planning_zoom_week' },
+  { key: 'month', label: 'planning_zoom_month' },
 ]
 
 const planningSettings = reactive({

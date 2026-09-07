@@ -1,7 +1,7 @@
 <template>
   <!-- Deep link /app/clients/:id: opens the record as a pop-up on top of the portfolio.
        We keep the URL shareable (meeting, Slack) while honoring the pop-up choice. -->
-  <div class="cd_redirect">{{ t('cd_opening') }}</div>
+  <div class="cd_redirect">{{ t('client_detail_opening') }}</div>
 </template>
 
 <script setup>

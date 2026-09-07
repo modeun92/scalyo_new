@@ -7,69 +7,69 @@ export const TEMPLATES = [
   {
     id: 'tpl_project', key: 'project_launch', icon: '\u{1F680}', color: '#7c3aed',
     milestones: [
-      { titleKey: 'rm_ms_project_1', duration: 7 },
-      { titleKey: 'rm_ms_project_2', duration: 14 },
-      { titleKey: 'rm_ms_project_3', duration: 30 },
-      { titleKey: 'rm_ms_project_4', duration: 7 },
-      { titleKey: 'rm_ms_project_5', duration: 30 },
-      { titleKey: 'rm_ms_project_6', duration: 14 },
+      { titleKey: 'roadmap_ms_project_1', duration: 7 },
+      { titleKey: 'roadmap_ms_project_2', duration: 14 },
+      { titleKey: 'roadmap_ms_project_3', duration: 30 },
+      { titleKey: 'roadmap_ms_project_4', duration: 7 },
+      { titleKey: 'roadmap_ms_project_5', duration: 30 },
+      { titleKey: 'roadmap_ms_project_6', duration: 14 },
     ],
   },
   {
     id: 'tpl_sales', key: 'sales_cycle', icon: '\u{1F91D}', color: '#10b981',
     milestones: [
-      { titleKey: 'rm_ms_sales_1', duration: 7 },
-      { titleKey: 'rm_ms_sales_2', duration: 7 },
-      { titleKey: 'rm_ms_sales_3', duration: 10 },
-      { titleKey: 'rm_ms_sales_4', duration: 14 },
-      { titleKey: 'rm_ms_sales_5', duration: 7 },
-      { titleKey: 'rm_ms_sales_6', duration: 14 },
+      { titleKey: 'roadmap_ms_sales_1', duration: 7 },
+      { titleKey: 'roadmap_ms_sales_2', duration: 7 },
+      { titleKey: 'roadmap_ms_sales_3', duration: 10 },
+      { titleKey: 'roadmap_ms_sales_4', duration: 14 },
+      { titleKey: 'roadmap_ms_sales_5', duration: 7 },
+      { titleKey: 'roadmap_ms_sales_6', duration: 14 },
     ],
   },
   {
     id: 'tpl_session', key: 'session_launch', icon: '\u{1F3EB}', color: '#3b82f6',
     milestones: [
-      { titleKey: 'rm_ms_session_1', duration: 30 },
-      { titleKey: 'rm_ms_session_2', duration: 21 },
-      { titleKey: 'rm_ms_session_3', duration: 14 },
-      { titleKey: 'rm_ms_session_4', duration: 1 },
-      { titleKey: 'rm_ms_session_5', duration: 7 },
-      { titleKey: 'rm_ms_session_6', duration: 30 },
+      { titleKey: 'roadmap_ms_session_1', duration: 30 },
+      { titleKey: 'roadmap_ms_session_2', duration: 21 },
+      { titleKey: 'roadmap_ms_session_3', duration: 14 },
+      { titleKey: 'roadmap_ms_session_4', duration: 1 },
+      { titleKey: 'roadmap_ms_session_5', duration: 7 },
+      { titleKey: 'roadmap_ms_session_6', duration: 30 },
     ],
   },
   {
     id: 'tpl_deployment', key: 'deployment', icon: '\u{1F4E6}', color: '#f59e0b',
     milestones: [
-      { titleKey: 'rm_ms_deploy_1', duration: 7 },
-      { titleKey: 'rm_ms_deploy_2', duration: 14 },
-      { titleKey: 'rm_ms_deploy_3', duration: 7 },
-      { titleKey: 'rm_ms_deploy_4', duration: 3 },
-      { titleKey: 'rm_ms_deploy_5', duration: 7 },
-      { titleKey: 'rm_ms_deploy_6', duration: 14 },
+      { titleKey: 'roadmap_ms_deploy_1', duration: 7 },
+      { titleKey: 'roadmap_ms_deploy_2', duration: 14 },
+      { titleKey: 'roadmap_ms_deploy_3', duration: 7 },
+      { titleKey: 'roadmap_ms_deploy_4', duration: 3 },
+      { titleKey: 'roadmap_ms_deploy_5', duration: 7 },
+      { titleKey: 'roadmap_ms_deploy_6', duration: 14 },
     ],
   },
   {
-    // D-12: the keys × 3 languages exist under rm_ms_renewal_* / rm_ms_quarterly_* —
+    // D-12: the keys × 3 languages exist under roadmap_ms_renewal_* / roadmap_ms_quarterly_* —
     // the templates referenced rm_ms_renew_* / rm_ms_quarter_* → raw keys at render time
     id: 'tpl_renewal', key: 'renewal', icon: '\u{1F504}', color: '#ec4899',
     milestones: [
-      { titleKey: 'rm_ms_renewal_1', duration: 14 },
-      { titleKey: 'rm_ms_renewal_2', duration: 14 },
-      { titleKey: 'rm_ms_renewal_3', duration: 21 },
-      { titleKey: 'rm_ms_renewal_4', duration: 14 },
-      { titleKey: 'rm_ms_renewal_5', duration: 7 },
-      { titleKey: 'rm_ms_renewal_6', duration: 14 },
+      { titleKey: 'roadmap_ms_renewal_1', duration: 14 },
+      { titleKey: 'roadmap_ms_renewal_2', duration: 14 },
+      { titleKey: 'roadmap_ms_renewal_3', duration: 21 },
+      { titleKey: 'roadmap_ms_renewal_4', duration: 14 },
+      { titleKey: 'roadmap_ms_renewal_5', duration: 7 },
+      { titleKey: 'roadmap_ms_renewal_6', duration: 14 },
     ],
   },
   {
     id: 'tpl_quarterly', key: 'quarterly_goals', icon: '\u{1F4C8}', color: '#06b6d4',
     milestones: [
-      { titleKey: 'rm_ms_quarterly_1', duration: 7 },
-      { titleKey: 'rm_ms_quarterly_2', duration: 7 },
-      { titleKey: 'rm_ms_quarterly_3', duration: 60 },
-      { titleKey: 'rm_ms_quarterly_4', duration: 7 },
-      { titleKey: 'rm_ms_quarterly_5', duration: 7 },
-      { titleKey: 'rm_ms_quarterly_6', duration: 7 },
+      { titleKey: 'roadmap_ms_quarterly_1', duration: 7 },
+      { titleKey: 'roadmap_ms_quarterly_2', duration: 7 },
+      { titleKey: 'roadmap_ms_quarterly_3', duration: 60 },
+      { titleKey: 'roadmap_ms_quarterly_4', duration: 7 },
+      { titleKey: 'roadmap_ms_quarterly_5', duration: 7 },
+      { titleKey: 'roadmap_ms_quarterly_6', duration: 7 },
     ],
   },
 ]
@@ -77,9 +77,19 @@ export const TEMPLATES = [
 // D-12: normalizes the titleKey of roadmaps already persisted with the old names
 // (rm_ms_renew_* / rm_ms_quarter_*) — self-healing on the next save, zero migration.
 // Already-correct keys do not match (renewal/quarterly ≠ renew_/quarter_).
+//
+// NAME-SPELLED-OUT (07/09/2026): a THIRD legacy shape now. The i18n prefix rm_ -> roadmap_
+// renamed the lookup targets, but `titleKey` is PERSISTED — every roadmap already in the
+// database still holds rm_ms_*, and those rows would render their raw key instead of a
+// title. The rm_ms_ -> roadmap_ms_ rewrite must run LAST: renew_ -> renewal_ has to match
+// on the old spelling first, or 'rm_ms_renew_1' lands on roadmap_ms_renew_1, a key that
+// does not exist in any of the three languages.
 function fixLegacyKey(k) {
   if (typeof k !== 'string') return k
-  return k.replace(/^rm_ms_renew_/, 'rm_ms_renewal_').replace(/^rm_ms_quarter_/, 'rm_ms_quarterly_')
+  return k
+    .replace(/^rm_ms_renew_/, 'rm_ms_renewal_')
+    .replace(/^rm_ms_quarter_/, 'rm_ms_quarterly_')
+    .replace(/^rm_ms_/, 'roadmap_ms_')
 }
 
 export const useRoadmapStore = defineStore('roadmap', () => {

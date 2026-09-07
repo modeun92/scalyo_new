@@ -4,7 +4,7 @@
       <h2 class="kpi_section_title">KPIs</h2>
       <div class="kpi_header_actions">
         <div class="period_selector">
-          <span class="period_label">{{ t('dash_compare_with') }}</span>
+          <span class="period_label">{{ t('dashboard_compare_with') }}</span>
           <div class="period_pills">
             <button
               v-for="p in periods"
@@ -17,7 +17,7 @@
             </button>
           </div>
         </div>
-        <button v-if="canCustomize" class="button_customize" @click="$emit('customize')">⚙️ {{ t('dash_customize_kpis') }}</button>
+        <button v-if="canCustomize" class="button_customize" @click="$emit('customize')">⚙️ {{ t('dashboard_customize_kpis') }}</button>
       </div>
     </div>
 

@@ -3,43 +3,43 @@
   <div v-if="!isElite" class="email_studio_history_gate">
     <span class="email_studio_elite_gate">
       <span>Elite</span>
-      <span class="email_studio_elite_lock">🔒 {{ t('es_history_elite') }}</span>
+      <span class="email_studio_elite_lock">🔒 {{ t('email_studio_history_elite') }}</span>
     </span>
   </div>
   <template v-else>
     <div class="email_studio_history_kpis">
       <div class="email_studio_kpi">
         <span class="email_studio_kpi_value">{{ sentEmails.length }}</span>
-        <span class="email_studio_kpi_label">{{ t('es_history_sent') }}</span>
+        <span class="email_studio_kpi_label">{{ t('email_studio_history_sent') }}</span>
       </div>
       <div class="email_studio_kpi">
         <span class="email_studio_kpi_value">{{ openedCount }}</span>
-        <span class="email_studio_kpi_label">{{ t('es_history_opened') }}</span>
+        <span class="email_studio_kpi_label">{{ t('email_studio_history_opened') }}</span>
       </div>
       <div class="email_studio_kpi">
         <span class="email_studio_kpi_value">{{ openRate }}</span>
-        <span class="email_studio_kpi_label">{{ t('es_history_rate') }}</span>
+        <span class="email_studio_kpi_label">{{ t('email_studio_history_rate') }}</span>
       </div>
     </div>
 
     <div v-if="!sentEmails.length" class="email_studio_history_empty">
-      {{ t('es_history_empty') }}
+      {{ t('email_studio_history_empty') }}
     </div>
 
     <div v-else class="email_studio_history_table">
       <div class="email_studio_history_header">
-        <span>{{ t('es_history_col_to') }}</span>
-        <span>{{ t('es_history_col_subject') }}</span>
-        <span>{{ t('es_history_col_sent') }}</span>
-        <span>{{ t('es_history_col_status') }}</span>
-        <span>{{ t('es_history_col_opens') }}</span>
+        <span>{{ t('email_studio_history_col_to') }}</span>
+        <span>{{ t('email_studio_history_col_subject') }}</span>
+        <span>{{ t('email_studio_history_col_sent') }}</span>
+        <span>{{ t('email_studio_history_col_status') }}</span>
+        <span>{{ t('email_studio_history_col_opens') }}</span>
       </div>
       <div v-for="email in sentEmails" :key="email.id" class="email_studio_history_row">
         <span class="email_studio_history_to" :title="email.recipient">{{ email.recipient }}</span>
         <span class="email_studio_history_subject" :title="email.subject">{{ email.subject }}</span>
         <span class="email_studio_history_date">{{ formatDate(email.sent_at) }}</span>
         <span :class="['email_studio_history_status', email.opened_at ? 'opened' : 'pending']">
-          {{ email.opened_at ? '✅ ' + t('es_history_read') : t('es_history_unread') }}
+          {{ email.opened_at ? '✅ ' + t('email_studio_history_read') : t('email_studio_history_unread') }}
         </span>
         <span class="email_studio_history_opens">{{ email.open_count || 0 }}x</span>
       </div>

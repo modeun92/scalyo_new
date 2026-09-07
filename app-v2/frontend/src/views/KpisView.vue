@@ -1,8 +1,8 @@
 <template>
   <div class="kpis_view">
     <div class="kpis_header">
-      <div><h1>📊 {{ t('kpis_title') }}</h1><p class="kpis_sub">{{ t('kpis_subtitle') }}</p></div>
-      <button class="button_primary" @click="createNew">{{ t('kpis_new') }}</button>
+      <div><h1>📊 {{ t('kpi_dashboard_title') }}</h1><p class="kpis_sub">{{ t('kpi_dashboard_subtitle') }}</p></div>
+      <button class="button_primary" @click="createNew">{{ t('kpi_dashboard_new') }}</button>
     </div>
 
     <AiInsightPanel
@@ -37,9 +37,9 @@
     <!-- Empty -->
     <div v-else class="kpis_empty">
       <div class="empty_icon">📊</div>
-      <h3>{{ t('kpis_empty_title') }}</h3>
-      <p>{{ t('kpis_empty_desc') }}</p>
-      <button class="button_primary" @click="createNew">{{ t('kpis_create_first') }}</button>
+      <h3>{{ t('kpi_dashboard_empty_title') }}</h3>
+      <p>{{ t('kpi_dashboard_empty_desc') }}</p>
+      <button class="button_primary" @click="createNew">{{ t('kpi_dashboard_create_first') }}</button>
     </div>
 
     <!-- NO-CONFIRM: deletion confirmed inside the product (ConfirmDialog), never a native confirm() -->

@@ -28,9 +28,9 @@
             <p>{{ t(mc.descKey) }}</p>
 
             <div class="masterclass_card_stats">
-              <span>📚 {{ mc.modules.length }} {{ t('res_modules') }}</span>
+              <span>📚 {{ mc.modules.length }} {{ t('resources_modules') }}</span>
               <span>·</span>
-              <span>{{ totalLessonsCount(mc) }} {{ t('res_lessons') }}</span>
+              <span>{{ totalLessonsCount(mc) }} {{ t('resources_lessons') }}</span>
             </div>
 
             <div class="masterclass_progress_wrapper">
@@ -43,9 +43,9 @@
             </div>
 
             <button class="masterclass_start_button" :class="{ 'button_continue': getMcProgress(mc.id) > 0 }">
-              {{ getMcProgress(mc.id) === 0 ? t('res_start') :
-                 getMcProgress(mc.id) === 100 ? '🎓 ' + t('res_completed') :
-                 t('res_continue') }}
+              {{ getMcProgress(mc.id) === 0 ? t('resources_start') :
+                 getMcProgress(mc.id) === 100 ? '🎓 ' + t('resources_completed') :
+                 t('resources_continue') }}
             </button>
           </div>
 
@@ -70,7 +70,7 @@
             <div class="masterclass_progress_fill fill_purple"
                  :style="{ width: getMcProgress(activeMc.id) + '%' }" />
           </div>
-          <span>{{ getMcProgress(activeMc.id) }}% {{ t('res_completed') }}</span>
+          <span>{{ getMcProgress(activeMc.id) }}% {{ t('resources_completed') }}</span>
         </div>
 
         <div class="masterclass_sidebar_modules">
@@ -109,7 +109,7 @@
                 </span>
                 <div class="lesson_info">
                   <span class="lesson_title">{{ t(ex.titleKey) }}</span>
-                  <span class="lesson_duration exercise_tag">{{ t('res_exercise_label') }} · {{ ex.duration }}</span>
+                  <span class="lesson_duration exercise_tag">{{ t('resources_exercise_label') }} · {{ ex.duration }}</span>
                 </div>
               </div>
             </div>
@@ -127,12 +127,12 @@
             <h2>{{ t(activeMc.titleKey) }}</h2>
             <p>{{ t(activeMc.descKey) }}</p>
             <div class="masterclass_welcome_stats">
-              <div class="stat"><strong>{{ activeMc.modules.length }}</strong><span>{{ t('res_modules') }}</span></div>
-              <div class="stat"><strong>{{ totalLessonsCount(activeMc) }}</strong><span>{{ t('res_lessons') }}</span></div>
-              <div class="stat"><strong>{{ activeMc.totalDuration }}</strong><span>{{ t('res_of_content') }}</span></div>
+              <div class="stat"><strong>{{ activeMc.modules.length }}</strong><span>{{ t('resources_modules') }}</span></div>
+              <div class="stat"><strong>{{ totalLessonsCount(activeMc) }}</strong><span>{{ t('resources_lessons') }}</span></div>
+              <div class="stat"><strong>{{ activeMc.totalDuration }}</strong><span>{{ t('resources_of_content') }}</span></div>
             </div>
             <button class="masterclass_start_button" @click="startFirst">
-              {{ getMcProgress(activeMc.id) > 0 ? t('res_continue') : t('res_start') }} →
+              {{ getMcProgress(activeMc.id) > 0 ? t('resources_continue') : t('resources_start') }} →
             </button>
           </div>
         </div>
@@ -148,7 +148,7 @@
             </div>
             <div class="masterclass_lesson_meta">
               <span class="masterclass_lesson_type" :class="isExercise ? 'type_exercise' : 'type_lesson'">
-                {{ isExercise ? '📝 ' + t('res_exercise_label') : '📖 ' + t('res_lesson_label') }}
+                {{ isExercise ? '📝 ' + t('resources_exercise_label') : '📖 ' + t('resources_lesson_label') }}
               </span>
               <span class="masterclass_lesson_duration">{{ activeLesson.duration }}</span>
             </div>
@@ -171,7 +171,7 @@
             <div class="masterclass_lesson_actions">
               <button class="masterclass_mark_done" :class="{ done: completedLessons.includes(activeLesson.id) }"
                       @click="toggleLessonDone(activeLesson.id)">
-                {{ completedLessons.includes(activeLesson.id) ? '✅ ' + t('res_completed') : '○ ' + t('res_mark_done') }}
+                {{ completedLessons.includes(activeLesson.id) ? '✅ ' + t('resources_completed') : '○ ' + t('resources_mark_done') }}
               </button>
             </div>
           </div>
@@ -208,32 +208,32 @@
                 </div>
               </div>
               <div class="exercise_notes_area">
-                <label>📝 {{ t('res_my_notes') }}</label>
-                <textarea v-model="exerciseNotes[activeLesson.id]" :placeholder="t('res_notes_ph')" @input="saveNotes" rows="6" />
-                <span class="exercise_notes_saved" v-if="notesSaved">✓ {{ t('res_saved') }}</span>
+                <label>📝 {{ t('resources_my_notes') }}</label>
+                <textarea v-model="exerciseNotes[activeLesson.id]" :placeholder="t('resources_notes_ph')" @input="saveNotes" rows="6" />
+                <span class="exercise_notes_saved" v-if="notesSaved">✓ {{ t('resources_saved') }}</span>
               </div>
             </div>
 
             <div class="masterclass_lesson_actions">
               <button class="masterclass_mark_done" :class="{ done: completedLessons.includes(activeLesson.id) }"
                       @click="toggleLessonDone(activeLesson.id)">
-                {{ completedLessons.includes(activeLesson.id) ? '✅ ' + t('res_exercise_done') : '○ ' + t('res_mark_done') }}
+                {{ completedLessons.includes(activeLesson.id) ? '✅ ' + t('resources_exercise_done') : '○ ' + t('resources_mark_done') }}
               </button>
             </div>
           </div>
 
           <!-- Lesson navigation -->
           <div class="masterclass_navigation">
-            <button class="masterclass_navigation_button" @click="prevLesson" :disabled="!hasPrev">← {{ t('res_prev') }}</button>
+            <button class="masterclass_navigation_button" @click="prevLesson" :disabled="!hasPrev">← {{ t('resources_prev') }}</button>
             <span class="masterclass_navigation_position">{{ currentPosition }}</span>
-            <button class="masterclass_navigation_button primary" @click="nextLesson" :disabled="!hasNext">{{ t('res_next') }} →</button>
+            <button class="masterclass_navigation_button primary" @click="nextLesson" :disabled="!hasNext">{{ t('resources_next') }} →</button>
           </div>
 
           <!-- Completed module badge -->
           <transition name="badge_pop">
             <div v-if="showBadge" class="masterclass_badge_popup">
               <div class="badge_icon">🏅</div>
-              <div><strong>{{ t('res_module_done') }}</strong><p>{{ badgeModuleName }}</p></div>
+              <div><strong>{{ t('resources_module_done') }}</strong><p>{{ badgeModuleName }}</p></div>
               <button @click="showBadge = false">✕</button>
             </div>
           </transition>

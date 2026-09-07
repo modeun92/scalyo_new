@@ -2,45 +2,45 @@
 <div class="send_modal_overlay" @click.self="$emit('close')">
   <div class="send_modal">
     <div class="send_modal_header">
-      <h3>{{ t('es_send_title') }}</h3>
+      <h3>{{ t('email_studio_send_title') }}</h3>
       <button class="send_modal_close" @click="$emit('close')">✕</button>
     </div>
     <div class="send_modal_body">
       <div v-if="sendResult?.success" class="send_modal_success">
-        ✅ {{ t('es_send_success') }}
+        ✅ {{ t('email_studio_send_success') }}
       </div>
       <div v-else-if="sendResult?.error" class="send_modal_error">
         ❌ {{ sendResult.error }}
       </div>
       <template v-else>
       <div class="send_modal_field">
-        <label>{{ t('es_send_client') }}</label>
+        <label>{{ t('email_studio_send_client') }}</label>
         <select v-model="selectedClientId" class="send_modal_input" @change="onClientSelect">
-          <option value="">{{ t('es_send_client_placeholder') }}</option>
+          <option value="">{{ t('email_studio_send_client_placeholder') }}</option>
           <option v-for="c in clients" :key="c.id" :value="c.id">{{ c.name }}</option>
         </select>
       </div>
         <div class="send_modal_field">
-          <label>{{ t('es_send_to') }}</label>
-          <input v-model="sendTo" type="email" :placeholder="t('es_send_to_placeholder')" class="send_modal_input" />
+          <label>{{ t('email_studio_send_to') }}</label>
+          <input v-model="sendTo" type="email" :placeholder="t('email_studio_send_to_placeholder')" class="send_modal_input" />
         </div>
         <div class="send_modal_field">
-          <label>{{ t('es_send_from_name') }}</label>
-          <input v-model="sendFromName" type="text" :placeholder="auth.fullName || t('es_send_from_placeholder')" class="send_modal_input" />
+          <label>{{ t('email_studio_send_from_name') }}</label>
+          <input v-model="sendFromName" type="text" :placeholder="auth.fullName || t('email_studio_send_from_placeholder')" class="send_modal_input" />
         </div>
         
       <div class="send_modal_sender_info">
-        <span>{{ t('es_send_via') }} contact@scalyo.app</span>
+        <span>{{ t('email_studio_send_via') }} contact@scalyo.app</span>
       </div>
 <div class="send_modal_preview">
-          <strong>{{ t('es_subject') }} :</strong> {{ editSubject }}
+          <strong>{{ t('email_studio_subject') }} :</strong> {{ editSubject }}
         </div>
         <div class="send_modal_preview send_modal_preview_body">
-          <strong>{{ t('es_body') }} :</strong>
+          <strong>{{ t('email_studio_body') }} :</strong>
           <p class="send_modal_body_text">{{ editBody.substring(0, 200) }}{{ editBody.length > 200 ? '...' : '' }}</p>
         </div>
         <button class="button_primary send_modal_send_button" @click="sendEmail" :disabled="!sendTo || sending">
-          {{ sending ? t('es_sending') : t('es_send_btn') }}
+          {{ sending ? t('email_studio_sending') : t('email_studio_send_btn') }}
         </button>
       </template>
     </div>
@@ -89,7 +89,7 @@ async function sendEmail() {
   try {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session?.access_token) {
-      sendResult.value = { error: t('es_send_auth_error') || 'Session expired' }
+      sendResult.value = { error: t('email_studio_send_auth_error') || 'Session expired' }
       return
     }
 
@@ -121,10 +121,10 @@ async function sendEmail() {
       sendTo.value = ''
       setTimeout(() => { emit('close'); sendResult.value = null }, 2000)
     } else {
-      sendResult.value = { error: data.error || t('es_send_error') || 'Send failed' }
+      sendResult.value = { error: data.error || t('email_studio_send_error') || 'Send failed' }
     }
   } catch (e) {
-    sendResult.value = { error: e.message || t('es_send_error') }
+    sendResult.value = { error: e.message || t('email_studio_send_error') }
   } finally {
     sending.value = false
   }

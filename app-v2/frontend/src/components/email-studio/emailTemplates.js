@@ -6,18 +6,18 @@ export const EMAIL_FREE_QUOTA = 3000
 export const EMAIL_OVERAGE_RATE = 1.5 // €/1000 beyond the quota
 
 export const templates = [
-  { id: 1, nameKey: 'es_tpl1_name', categoryKey: 'onboarding', type: 'csm', subjectKey: 'es_tpl1_subject', bodyKey: 'es_tpl1_body' },
-  { id: 2, nameKey: 'es_tpl2_name', categoryKey: 'qbr', type: 'csm', subjectKey: 'es_tpl2_subject', bodyKey: 'es_tpl2_body' },
-  { id: 3, nameKey: 'es_tpl3_name', categoryKey: 'suivi', type: 'csm', subjectKey: 'es_tpl3_subject', bodyKey: 'es_tpl3_body' },
-  { id: 4, nameKey: 'es_tpl4_name', categoryKey: 'risque', type: 'csm', subjectKey: 'es_tpl4_subject', bodyKey: 'es_tpl4_body' },
-  { id: 5, nameKey: 'es_tpl5_name', categoryKey: 'renouvellement', type: 'csm', subjectKey: 'es_tpl5_subject', bodyKey: 'es_tpl5_body' },
-  { id: 6, nameKey: 'es_tpl6_name', categoryKey: 'expansion', type: 'csm', subjectKey: 'es_tpl6_subject', bodyKey: 'es_tpl6_body' },
-  { id: 7, nameKey: 'es_tpl7_name', categoryKey: 'nps', type: 'csm', subjectKey: 'es_tpl7_subject', bodyKey: 'es_tpl7_body' },
-  { id: 8, nameKey: 'es_tpl8_name', categoryKey: 'prospection', type: 'commercial', subjectKey: 'es_tpl8_subject', bodyKey: 'es_tpl8_body' },
-  { id: 9, nameKey: 'es_tpl9_name', categoryKey: 'negociation', type: 'commercial', subjectKey: 'es_tpl9_subject', bodyKey: 'es_tpl9_body' },
-  { id: 10, nameKey: 'es_tpl10_name', categoryKey: 'relance', type: 'commercial', subjectKey: 'es_tpl10_subject', bodyKey: 'es_tpl10_body' },
-  { id: 11, nameKey: 'es_tpl11_name', categoryKey: 'retention', type: 'kam', subjectKey: 'es_tpl11_subject', bodyKey: 'es_tpl11_body' },
-  { id: 12, nameKey: 'es_tpl12_name', categoryKey: 'closing', type: 'commercial', subjectKey: 'es_tpl12_subject', bodyKey: 'es_tpl12_body' },
+  { id: 1, nameKey: 'email_studio_tpl1_name', categoryKey: 'onboarding', type: 'csm', subjectKey: 'email_studio_tpl1_subject', bodyKey: 'email_studio_tpl1_body' },
+  { id: 2, nameKey: 'email_studio_tpl2_name', categoryKey: 'qbr', type: 'csm', subjectKey: 'email_studio_tpl2_subject', bodyKey: 'email_studio_tpl2_body' },
+  { id: 3, nameKey: 'email_studio_tpl3_name', categoryKey: 'suivi', type: 'csm', subjectKey: 'email_studio_tpl3_subject', bodyKey: 'email_studio_tpl3_body' },
+  { id: 4, nameKey: 'email_studio_tpl4_name', categoryKey: 'risque', type: 'csm', subjectKey: 'email_studio_tpl4_subject', bodyKey: 'email_studio_tpl4_body' },
+  { id: 5, nameKey: 'email_studio_tpl5_name', categoryKey: 'renouvellement', type: 'csm', subjectKey: 'email_studio_tpl5_subject', bodyKey: 'email_studio_tpl5_body' },
+  { id: 6, nameKey: 'email_studio_tpl6_name', categoryKey: 'expansion', type: 'csm', subjectKey: 'email_studio_tpl6_subject', bodyKey: 'email_studio_tpl6_body' },
+  { id: 7, nameKey: 'email_studio_tpl7_name', categoryKey: 'nps', type: 'csm', subjectKey: 'email_studio_tpl7_subject', bodyKey: 'email_studio_tpl7_body' },
+  { id: 8, nameKey: 'email_studio_tpl8_name', categoryKey: 'prospection', type: 'commercial', subjectKey: 'email_studio_tpl8_subject', bodyKey: 'email_studio_tpl8_body' },
+  { id: 9, nameKey: 'email_studio_tpl9_name', categoryKey: 'negociation', type: 'commercial', subjectKey: 'email_studio_tpl9_subject', bodyKey: 'email_studio_tpl9_body' },
+  { id: 10, nameKey: 'email_studio_tpl10_name', categoryKey: 'relance', type: 'commercial', subjectKey: 'email_studio_tpl10_subject', bodyKey: 'email_studio_tpl10_body' },
+  { id: 11, nameKey: 'email_studio_tpl11_name', categoryKey: 'retention', type: 'kam', subjectKey: 'email_studio_tpl11_subject', bodyKey: 'email_studio_tpl11_body' },
+  { id: 12, nameKey: 'email_studio_tpl12_name', categoryKey: 'closing', type: 'commercial', subjectKey: 'email_studio_tpl12_subject', bodyKey: 'email_studio_tpl12_body' },
 ]
 
 const catClassMap = {

@@ -3,11 +3,11 @@
     <div v-if="open" class="roadmap_slide_over_overlay" @click.self="$emit('close')">
       <div class="main_slide_over_panel">
         <div class="roadmap_slide_over_header">
-          <h3>{{ t('rm_new') }}</h3>
+          <h3>{{ t('roadmap_new') }}</h3>
           <button class="roadmap_slide_over_close" @click="$emit('close')">✕</button>
         </div>
         <div class="roadmap_slide_over_body">
-          <p class="slide_over_section_label">{{ t('rm_select_template') }}</p>
+          <p class="slide_over_section_label">{{ t('roadmap_select_template') }}</p>
           <div class="template_grid">
             <div
               v-for="tpl in TEMPLATES"
@@ -19,23 +19,23 @@
             >
               <span class="template_icon">{{ tpl.icon }}</span>
               <div>
-                <strong>{{ t('rm_tpl_' + tpl.key) }}</strong>
-                <p>{{ t('rm_tpl_' + tpl.key + '_desc') }}</p>
+                <strong>{{ t('roadmap_tpl_' + tpl.key) }}</strong>
+                <p>{{ t('roadmap_tpl_' + tpl.key + '_desc') }}</p>
               </div>
             </div>
           </div>
-          <div class="slide_over_divider">{{ t('rm_or_blank') }}</div>
+          <div class="slide_over_divider">{{ t('roadmap_or_blank') }}</div>
           <div class="field_group">
-            <label>{{ t('rm_roadmap_name') }} *</label>
-            <input v-model="form.name" class="field_input" :placeholder="t('rm_roadmap_name_ph')" />
+            <label>{{ t('roadmap_roadmap_name') }} *</label>
+            <input v-model="form.name" class="field_input" :placeholder="t('roadmap_roadmap_name_ph')" />
           </div>
           <div class="field_group mt">
-            <label>{{ t('rm_start_date') }}</label>
+            <label>{{ t('roadmap_start_date') }}</label>
             <input v-model="form.startDate" type="date" class="field_input" />
           </div>
           <div class="slide_over_actions">
             <button class="button_outline" @click="$emit('close')">{{ t('cancel') }}</button>
-            <button class="button_primary" @click="doCreate" :disabled="!form.name">{{ t('rm_create') }}</button>
+            <button class="button_primary" @click="doCreate" :disabled="!form.name">{{ t('roadmap_create') }}</button>
           </div>
         </div>
       </div>

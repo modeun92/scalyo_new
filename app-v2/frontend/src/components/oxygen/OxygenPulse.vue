@@ -74,7 +74,7 @@ const displayIndex = computed(() => (hasIndex.value ? Math.round(engine.indexTod
 const eveningReady = computed(() => hasIndex.value && isEvening(now.value))
 const streakText = computed(() => {
   if (engine.streak == null || engine.streak < 2) return ''
-  return t('oxy_streak', { n: engine.streakCapped ? '30+' : engine.streak })
+  return t('oxygen_streak', { n: engine.streakCapped ? '30+' : engine.streak })
 })
 
 // ── Lot 3b — Closing + micro-bubble (dot signal ONLY, contract 29/07) ──
@@ -109,41 +109,41 @@ function onSaved() {
     <!-- NEUTRAL dot (decision by Lidia 28/07): NO health data visible in the
          topbar — neither index nor state, identical rendering for everyone all day long.
          The index only appears on a deliberate click, inside the popover. -->
-    <button class="oxygen_pill" :class="{ 'oxygen_halo': microHalo }" title="Oxygen" :aria-label="t('oxy_pulse_cta')" @click="toggle">
+    <button class="oxygen_pill" :class="{ 'oxygen_halo': microHalo }" title="Oxygen" :aria-label="t('oxygen_pulse_cta')" @click="toggle">
       <span class="oxygen_icon" aria-hidden="true">🫧</span>
     </button>
 
     <transition name="fade">
       <div v-if="open" class="oxygen_popover">
         <div class="oxygen_header">
-          <strong>{{ t('oxy_checkin_title') }}</strong>
-          <button class="oxygen_close" :aria-label="t('oxy_close')" @click="open = false">✕</button>
+          <strong>{{ t('oxygen_checkin_title') }}</strong>
+          <button class="oxygen_close" :aria-label="t('oxygen_close')" @click="open = false">✕</button>
         </div>
 
         <OxygenCheckinForm autofocus @saved="onSaved" />
 
         <div class="oxygen_index_line">
           <span class="oxygen_index_number">{{ displayIndex }}</span>
-          <span class="oxygen_index_label">{{ t('oxy_index_label') }}</span>
+          <span class="oxygen_index_label">{{ t('oxygen_index_label') }}</span>
         </div>
 
         <p v-if="streakText" class="oxygen_streak">{{ streakText }}</p>
-        <p v-if="engine.divergenceActive" class="oxygen_div">{{ t('oxy_divergence') }}</p>
+        <p v-if="engine.divergenceActive" class="oxygen_div">{{ t('oxygen_divergence') }}</p>
         <div v-if="microHalo" class="oxygen_micro_card">
-          <p class="oxygen_micro_prompt">{{ t('oxy_micro_prompt') }}</p>
+          <p class="oxygen_micro_prompt">{{ t('oxygen_micro_prompt') }}</p>
           <div class="oxygen_micro_actions">
-            <button class="oxygen_micro_go" @click="startMicro">{{ t('oxy_micro_go') }}</button>
-            <button class="oxygen_micro_later" @click="recoveries.dismissMicroToday()">{{ t('oxy_micro_dismiss') }}</button>
+            <button class="oxygen_micro_go" @click="startMicro">{{ t('oxygen_micro_go') }}</button>
+            <button class="oxygen_micro_later" @click="recoveries.dismissMicroToday()">{{ t('oxygen_micro_dismiss') }}</button>
           </div>
         </div>
 
-        <p v-if="closingDone" class="oxygen_evening_note">✓ {{ t('oxy_ferm_done_badge') }}</p>
+        <p v-if="closingDone" class="oxygen_evening_note">✓ {{ t('oxygen_ferm_done_badge') }}</p>
         <button v-else-if="eveningReady" class="oxygen_evening_button" @click="startClosing">
-          🌙 {{ t('oxy_pulse_ready') }}
+          🌙 {{ t('oxygen_pulse_ready') }}
         </button>
 
-        <button class="oxygen_how" @click="showHow = !showHow">{{ t('oxy_how_title') }}</button>
-        <p v-if="showHow" class="oxygen_how_body">{{ t('oxy_how_body', { load: loadStore.loadScore }) }}</p>
+        <button class="oxygen_how" @click="showHow = !showHow">{{ t('oxygen_how_title') }}</button>
+        <p v-if="showHow" class="oxygen_how_body">{{ t('oxygen_how_body', { load: loadStore.loadScore }) }}</p>
       </div>
     </transition>
 

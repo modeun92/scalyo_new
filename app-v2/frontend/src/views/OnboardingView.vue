@@ -4,52 +4,52 @@
       <div class="progress_bar" :style="{ width: (step / 5) * 100 + '%' }"></div>
     </div>
     <div class="onboarding_header">
-      <p class="step_indicator">{{ t('onb_step') }} {{ step }} {{ t('onb_of') }} 5</p>
+      <p class="step_indicator">{{ t('onboarding_step') }} {{ step }} {{ t('onboarding_of') }} 5</p>
     </div>
     <div v-if="step === 1" class="onboarding_view_onboarding_step">
-      <h1>{{ t('onb_title') }}</h1>
-      <p class="step_description">{{ t('onb_s1_desc') }}</p>
-      <input v-model="companyName" :placeholder="t('onb_s1_placeholder')" class="onb_input" @keyup.enter="nextStep" />
+      <h1>{{ t('onboarding_title') }}</h1>
+      <p class="step_description">{{ t('onboarding_s1_desc') }}</p>
+      <input v-model="companyName" :placeholder="t('onboarding_s1_placeholder')" class="onb_input" @keyup.enter="nextStep" />
     </div>
     <div v-if="step === 2" class="onboarding_view_onboarding_step">
-      <h1>{{ t('onb_s2_title') }}</h1>
-      <p class="step_description">{{ t('onb_s2_desc') }}</p>
-      <input v-model="clientName" :placeholder="t('onb_s2_name_placeholder')" class="onb_input" @keyup.enter="nextStep" />
+      <h1>{{ t('onboarding_s2_title') }}</h1>
+      <p class="step_description">{{ t('onboarding_s2_desc') }}</p>
+      <input v-model="clientName" :placeholder="t('onboarding_s2_name_placeholder')" class="onb_input" @keyup.enter="nextStep" />
       <div class="health_selector">
-        <label>{{ t('onb_s2_health') }}</label>
+        <label>{{ t('onboarding_s2_health') }}</label>
         <div class="health_dots">
           <button v-for="n in 10" :key="n" :class="['status_dot', { active: n <= clientHealth }]" @click="clientHealth = n">{{ n }}</button>
         </div>
       </div>
-      <p class="skip_hint">{{ t('onb_s2_skip_hint') }}</p>
+      <p class="skip_hint">{{ t('onboarding_s2_skip_hint') }}</p>
     </div>
     <div v-if="step === 3" class="onboarding_view_onboarding_step">
-      <h1>{{ t('onb_s3_title') }}</h1>
-      <p class="step_description">{{ t('onb_s3_desc') }}</p>
-      <input v-model="taskTitle" :placeholder="t('onb_s3_task_placeholder')" class="onb_input" @keyup.enter="nextStep" />
-      <p class="skip_hint">{{ t('onb_s3_skip_hint') }}</p>
+      <h1>{{ t('onboarding_s3_title') }}</h1>
+      <p class="step_description">{{ t('onboarding_s3_desc') }}</p>
+      <input v-model="taskTitle" :placeholder="t('onboarding_s3_task_placeholder')" class="onb_input" @keyup.enter="nextStep" />
+      <p class="skip_hint">{{ t('onboarding_s3_skip_hint') }}</p>
     </div>
     <div v-if="step === 4" class="onboarding_view_onboarding_step">
-      <h1>{{ t('onb_s4_title') }}</h1>
-      <p class="step_description">{{ t('onb_s4_desc') }}</p>
+      <h1>{{ t('onboarding_s4_title') }}</h1>
+      <p class="step_description">{{ t('onboarding_s4_desc') }}</p>
       <div class="coach_demo">
-        <input v-model="coachMessage" :placeholder="t('onb_s4_placeholder')" class="onb_input" @keyup.enter="sendCoachMessage" :disabled="coachLoading" />
-        <button class="button_send" @click="sendCoachMessage" :disabled="!coachMessage.trim() || coachLoading">{{ t('onb_s4_send') }}</button>
+        <input v-model="coachMessage" :placeholder="t('onboarding_s4_placeholder')" class="onb_input" @keyup.enter="sendCoachMessage" :disabled="coachLoading" />
+        <button class="button_send" @click="sendCoachMessage" :disabled="!coachMessage.trim() || coachLoading">{{ t('onboarding_s4_send') }}</button>
       </div>
       <div v-if="coachResponse" class="coach_response" v-html="formatAiText(coachResponse)"></div>
-      <p class="skip_hint">{{ t('onb_s4_skip_hint') }}</p>
+      <p class="skip_hint">{{ t('onboarding_s4_skip_hint') }}</p>
     </div>
     <div v-if="step === 5" class="onboarding_view_onboarding_step onboarding_done">
       <div class="done_icon">✓</div>
-      <h1>{{ t('onb_s5_title') }}</h1>
-      <p class="step_description">{{ t('onb_s5_desc') }}</p>
+      <h1>{{ t('onboarding_s5_title') }}</h1>
+      <p class="step_description">{{ t('onboarding_s5_desc') }}</p>
     </div>
-    <p v-if="errorMsg" class="onb_error">{{ errorMsg }}</p>
+    <p v-if="errorMsg" class="onboarding_error">{{ errorMsg }}</p>
     <div class="onboarding_view_onboarding_navigation">
-      <button v-if="step > minStep && step < 5" class="button_back" @click="step--">{{ t('onb_back') }}</button>
-      <button v-if="canSkip" class="button_skip" @click="skipStep">{{ t('onb_skip') }}</button>
-      <button v-if="step < 5" class="button_next" @click="nextStep" :disabled="saving">{{ saving ? t('onb_saving') : t('onb_next') }}</button>
-      <button v-if="step === 5" class="button_next button_finish" @click="finishOnboarding" :disabled="saving">{{ saving ? t('onb_saving') : t('onb_s5_cta') }}</button>
+      <button v-if="step > minStep && step < 5" class="button_back" @click="step--">{{ t('onboarding_back') }}</button>
+      <button v-if="canSkip" class="button_skip" @click="skipStep">{{ t('onboarding_skip') }}</button>
+      <button v-if="step < 5" class="button_next" @click="nextStep" :disabled="saving">{{ saving ? t('onboarding_saving') : t('onboarding_next') }}</button>
+      <button v-if="step === 5" class="button_next button_finish" @click="finishOnboarding" :disabled="saving">{{ saving ? t('onboarding_saving') : t('onboarding_s5_cta') }}</button>
     </div>
   </div>
 </template>
@@ -110,7 +110,7 @@ async function nextStep() {
     }
     step.value++
   } catch (err) {
-    errorMsg.value = t('onb_error')
+    errorMsg.value = t('onboarding_error')
     console.error('Onboarding step error:', err)
   } finally {
     saving.value = false
@@ -128,7 +128,7 @@ async function sendCoachMessage() {
     // G9-2: the back end returns { response } (see coach.module.js) — aligned with CoachView
     coachResponse.value = (response && (response.response || response.content || response.message)) || ''
   } catch (err) {
-    errorMsg.value = t('onb_error')
+    errorMsg.value = t('onboarding_error')
     console.error('Coach error:', err)
   } finally {
     coachLoading.value = false
@@ -145,7 +145,7 @@ async function finishOnboarding() {
     await authStore.fetchProfile(authStore.user.id)
     router.push({ name: 'dashboard' })
   } catch (err) {
-    errorMsg.value = t('onb_error')
+    errorMsg.value = t('onboarding_error')
     console.error('Finish onboarding error:', err)
   } finally {
     saving.value = false
@@ -176,7 +176,7 @@ async function finishOnboarding() {
 .coach_response { margin-top: 16px; padding: 16px; background: var(--bg-tertiary, #f9fafb); border-radius: 12px; font-size: 14px; line-height: 1.6; color: var(--text-primary, #111827); max-height: 200px; overflow-y: auto; }
 .onboarding_done { text-align: center; padding-top: 60px; }
 .done_icon { width: 64px; height: 64px; margin: 0 auto 24px; background: var(--success, #10b981); color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: 700; }
-.onb_error { color: var(--error, #ef4444); font-size: 14px; margin-top: 12px; }
+.onboarding_error { color: var(--error, #ef4444); font-size: 14px; margin-top: 12px; }
 .onboarding_view_onboarding_navigation { display: flex; gap: 12px; justify-content: flex-end; margin-top: 40px; padding-bottom: 24px; }
 .button_back, .button_skip { padding: 12px 24px; font-size: 14px; font-weight: 500; border: 1px solid var(--border-color, #d1d5db); border-radius: 12px; background: transparent; color: var(--text-secondary, #6b7280); cursor: pointer; }
 .button_next { padding: 12px 32px; font-size: 14px; font-weight: 600; background: var(--primary, #6366f1); color: #fff; border: none; border-radius: 12px; cursor: pointer; transition: opacity 0.15s; }

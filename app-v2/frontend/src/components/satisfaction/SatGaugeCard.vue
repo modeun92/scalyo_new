@@ -17,18 +17,18 @@
           {{ fmtHealth(globalScore, { suffix: false, average: true }) }}
         </text>
         <text x="100" y="116" text-anchor="middle" font-size="14" fill="#9ca3af">
-          {{ t('sat_score_out_of') }}
+          {{ t('satisfaction_score_out_of') }}
         </text>
       </svg>
     </div>
 
     <!-- Distribution -->
     <div class="distrib">
-      <h3>{{ t('sat_distribution') }}</h3>
+      <h3>{{ t('satisfaction_distribution') }}</h3>
       <div class="distrib_bars">
         <div class="dbar">
           <div class="dbar_header">
-            <span class="status_dot green" /> {{ t('sat_healthy') }}<strong>{{ healthyCount }}</strong>
+            <span class="status_dot green" /> {{ t('satisfaction_healthy') }}<strong>{{ healthyCount }}</strong>
           </div>
           <div class="dbar_track">
             <div class="dbar_fill green" :style="{ width: pct(healthyCount, totalClients) + '%' }" />
@@ -36,7 +36,7 @@
         </div>
         <div class="dbar">
           <div class="dbar_header">
-            <span class="status_dot amber" /> {{ t('sat_watch') }}<strong>{{ watchCount }}</strong>
+            <span class="status_dot amber" /> {{ t('satisfaction_watch') }}<strong>{{ watchCount }}</strong>
           </div>
           <div class="dbar_track">
             <div class="dbar_fill amber" :style="{ width: pct(watchCount, totalClients) + '%' }" />
@@ -44,7 +44,7 @@
         </div>
         <div class="dbar">
           <div class="dbar_header">
-            <span class="status_dot red" /> {{ t('sat_risk') }}<strong>{{ criticalCount }}</strong>
+            <span class="status_dot red" /> {{ t('satisfaction_risk') }}<strong>{{ criticalCount }}</strong>
           </div>
           <div class="dbar_track">
             <div class="dbar_fill red" :style="{ width: pct(criticalCount, totalClients) + '%' }" />

@@ -7,20 +7,20 @@
           :style="{ background: pb.color + '15', color: pb.color }"
         >{{ pb.icon }}</span>
         <div>
-          <strong>{{ t('pb_template_' + pb.templateKey) }}</strong>
+          <strong>{{ t('playbook_template_' + pb.templateKey) }}</strong>
           <span class="playbook_card_client" v-if="pb.clientId">
             {{ clientLabel }}
           </span>
         </div>
       </div>
       <span class="playbook_card_status" :class="pb.status">
-        {{ t('pb_status_' + pb.status) }}
+        {{ t('playbook_status_' + pb.status) }}
       </span>
     </div>
 
     <div class="playbook_card_progress">
       <div class="playbook_card_progress_header">
-        <span>{{ t('pb_progress') }}</span>
+        <span>{{ t('playbook_progress') }}</span>
         <span class="playbook_card_percent">{{ progressPct }}%</span>
       </div>
       <div class="playbook_card_bar">
@@ -60,18 +60,18 @@
 
     <div class="playbook_card_footer">
       <span class="playbook_card_date">
-        {{ t('pb_started') }} {{ formattedDate }}
+        {{ t('playbook_started') }} {{ formattedDate }}
       </span>
       <div class="playbook_card_buttons">
         <button
           v-if="pb.status === 'active'"
           class="button_small green"
           @click.stop="$emit('complete', pb.id)"
-        >{{ t('pb_complete') }}</button>
+        >{{ t('playbook_complete') }}</button>
         <button
           class="button_small red"
           @click.stop="$emit('delete', pb.id)"
-        >{{ t('pb_delete') }}</button>
+        >{{ t('playbook_delete') }}</button>
       </div>
     </div>
   </div>

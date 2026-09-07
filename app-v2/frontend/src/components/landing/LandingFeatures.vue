@@ -38,12 +38,12 @@
               <component :is="'div'" class="mockup_content">
                 <!-- Portfolio -->
                 <template v-if="activeModule === 0">
-                  <div class="mockup_header">{{ t('pb_title') }} <span class="mockup_mobile_badge">{{ t('pb_status') }}</span></div>
-                  <div class="playbook_step done"><span>&#9989;</span> {{ t('pb_s1') }}</div>
-                  <div class="playbook_step done"><span>&#9989;</span> {{ t('pb_s2') }}</div>
-                  <div class="playbook_step"><span>&#11036;</span> {{ t('pb_s3') }}</div>
-                  <div class="playbook_step"><span>&#11036;</span> {{ t('pb_s4') }}</div>
-                  <div class="mockup_ai"><span>&#129302;</span> {{ t('pb_ai_msg') }}</div>
+                  <div class="mockup_header">{{ t('playbook_title') }} <span class="mockup_mobile_badge">{{ t('playbook_status') }}</span></div>
+                  <div class="playbook_step done"><span>&#9989;</span> {{ t('playbook_s1') }}</div>
+                  <div class="playbook_step done"><span>&#9989;</span> {{ t('playbook_s2') }}</div>
+                  <div class="playbook_step"><span>&#11036;</span> {{ t('playbook_s3') }}</div>
+                  <div class="playbook_step"><span>&#11036;</span> {{ t('playbook_s4') }}</div>
+                  <div class="mockup_ai"><span>&#129302;</span> {{ t('playbook_ai_msg') }}</div>
                 </template>
                 <!-- KPIs COPIL -->
                 <template v-else-if="activeModule === 1">

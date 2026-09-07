@@ -1,8 +1,8 @@
 <template>
   <div class="settings_view">
     <div class="settings_view_header">
-      <h1>⚙️ {{ t('stg_title') }}</h1>
-      <p class="settings_view_sub">{{ t('stg_subtitle') }}</p>
+      <h1>⚙️ {{ t('setting_title') }}</h1>
+      <p class="settings_view_sub">{{ t('setting_subtitle') }}</p>
     </div>
 
     <!-- Tabs -->
@@ -42,15 +42,15 @@
            destructive zone rather than a fourth field group. -->
       <div class="settings_view_panel">
         <div class="settings_view_section danger_section">
-          <h3>{{ t('stg_delete_title') }}</h3>
-          <p>{{ t('stg_delete_warning') }}</p>
+          <h3>{{ t('setting_delete_title') }}</h3>
+          <p>{{ t('setting_delete_warning') }}</p>
           <div v-if="!deleteConfirmStep" class="delete_action">
             <button class="button_danger" @click="deleteConfirmStep = true">
-              {{ t('stg_delete_btn') }}
+              {{ t('setting_delete_btn') }}
             </button>
           </div>
           <div v-else class="delete_confirm">
-            <p class="delete_confirm_message">{{ t('stg_delete_confirm_msg') }}</p>
+            <p class="delete_confirm_message">{{ t('setting_delete_confirm_msg') }}</p>
             <input
               v-model="deleteEmail"
               type="email"
@@ -63,13 +63,13 @@
                 :disabled="deleteEmail !== auth.user?.email || deleteLoading"
                 @click="handleDelete"
               >
-                {{ deleteLoading ? t('stg_delete_loading') : t('stg_delete_confirm_btn') }}
+                {{ deleteLoading ? t('setting_delete_loading') : t('setting_delete_confirm_btn') }}
               </button>
               <button class="settings_view_button_ghost" @click="cancelDelete">
-                {{ t('stg_delete_cancel') }}
+                {{ t('setting_delete_cancel') }}
               </button>
             </div>
-            <p v-if="deleteError" class="settings_view_field_error">{{ t('stg_delete_error') }}</p>
+            <p v-if="deleteError" class="settings_view_field_error">{{ t('setting_delete_error') }}</p>
           </div>
         </div>
       </div>
@@ -90,27 +90,27 @@
     <!-- Notifications -->
     <div v-else-if="activeTab === 'notifications'" class="settings_view_panel">
       <div class="settings_view_section">
-        <h3>{{ t('stg_tab_notif') }}</h3>
+        <h3>{{ t('setting_tab_notif') }}</h3>
         <div class="notification_settings">
           <label class="ns_row">
             <input type="checkbox" v-model="notif.churn" />
-            {{ t('stg_notif_churn') }}
+            {{ t('setting_notif_churn') }}
           </label>
           <label class="ns_row">
             <input type="checkbox" v-model="notif.renewal" />
-            {{ t('stg_notif_renewal') }}
+            {{ t('setting_notif_renewal') }}
           </label>
           <label class="ns_row">
             <input type="checkbox" v-model="notif.burnout" />
-            {{ t('stg_notif_burnout') }}
+            {{ t('setting_notif_burnout') }}
           </label>
           <label class="ns_row">
             <input type="checkbox" v-model="notif.late_tasks" />
-            {{ t('stg_notif_late_tasks') }}
+            {{ t('setting_notif_late_tasks') }}
           </label>
           <label class="ns_row">
             <input type="checkbox" v-model="notif.nps" />
-            {{ t('stg_notif_nps') }}
+            {{ t('setting_notif_nps') }}
           </label>
         </div>
       </div>
@@ -122,17 +122,17 @@
          'delete' is the kind of thing the next person greps for and mis-edits. -->
     <div v-else-if="activeTab === 'export'" class="settings_view_panel">
       <div class="settings_view_section">
-        <h3>{{ t('stg_export_title') }}</h3>
-        <p class="settings_view_description">{{ t('stg_export_desc') }}</p>
+        <h3>{{ t('setting_export_title') }}</h3>
+        <p class="settings_view_description">{{ t('setting_export_desc') }}</p>
         <button
           class="settings_view_button_secondary"
           :disabled="exportLoading"
           @click="handleExport"
         >
-          {{ exportLoading ? t('stg_export_loading') : t('stg_export_btn') }}
+          {{ exportLoading ? t('setting_export_loading') : t('setting_export_btn') }}
         </button>
-        <p v-if="exportError" class="settings_view_field_error">{{ t('stg_export_error') }}</p>
-        <p v-if="exportSuccess" class="settings_view_field_success">{{ t('stg_export_success') }}</p>
+        <p v-if="exportError" class="settings_view_field_error">{{ t('setting_export_error') }}</p>
+        <p v-if="exportSuccess" class="settings_view_field_success">{{ t('setting_export_success') }}</p>
       </div>
     </div>
   </div>
@@ -158,15 +158,15 @@ const auth = useAuthStore()
 const activeTab = ref('profile')
 
 const tabs = [
-  { key: 'profile', label: 'stg_tab_profile' },
-  { key: 'team', label: 'stg_tab_team' },
-  { key: 'billing', label: 'stg_tab_billing' },
-  { key: 'integrations', label: 'stg_tab_integrations' },
-  { key: 'notifications', label: 'stg_tab_notif' },
-  { key: 'appearance', label: 'stg_tab_appearance' },
+  { key: 'profile', label: 'setting_tab_profile' },
+  { key: 'team', label: 'setting_tab_team' },
+  { key: 'billing', label: 'setting_tab_billing' },
+  { key: 'integrations', label: 'setting_tab_integrations' },
+  { key: 'notifications', label: 'setting_tab_notif' },
+  { key: 'appearance', label: 'setting_tab_appearance' },
   // The danger flag went with the delete section: this tab is a data download now, and a
   // red tab for it read as "something destructive lives here".
-  { key: 'export', label: 'stg_tab_export' }
+  { key: 'export', label: 'setting_tab_export' }
 ]
 
 // E-04: init from the REAL profile (the old code read auth.user?.displayName,
@@ -315,11 +315,11 @@ async function changePassword() {
     setTimeout(() => { pwdSaved.value = false }, 4000)
   } else {
     const map = {
-      wrong_current: 'stg_pwd_err_current',
-      same_password: 'stg_pwd_err_same',
+      wrong_current: 'setting_pwd_err_current',
+      same_password: 'setting_pwd_err_same',
       rate_limit: 'reset_err_rate_limit'
     }
-    pwdErrorKey.value = map[res && res.error] || 'stg_pwd_err_generic'
+    pwdErrorKey.value = map[res && res.error] || 'setting_pwd_err_generic'
   }
 }
 </script>

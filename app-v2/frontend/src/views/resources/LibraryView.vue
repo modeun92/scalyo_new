@@ -10,12 +10,12 @@
       </div>
       <div class="library_filters">
         <select v-model="activeLevel" class="fsel">
-          <option value="all">{{ t('res_all_levels') }}</option>
-          <option value="beginner">{{ t('res_beginner') }}</option>
-          <option value="intermediate">{{ t('res_intermediate') }}</option>
-          <option value="expert">{{ t('res_expert') }}</option>
+          <option value="all">{{ t('resources_all_levels') }}</option>
+          <option value="beginner">{{ t('resources_beginner') }}</option>
+          <option value="intermediate">{{ t('resources_intermediate') }}</option>
+          <option value="expert">{{ t('resources_expert') }}</option>
         </select>
-        <div class="search_box"><span>🔍</span><input v-model="search" :placeholder="t('res_search_ph')" /></div>
+        <div class="search_box"><span>🔍</span><input v-model="search" :placeholder="t('resources_search_ph')" /></div>
       </div>
     </div>
     <div class="library_grid">
@@ -26,7 +26,7 @@
             <strong>{{ t(r.titleKey) }}</strong>
             <p>{{ t(r.descKey) }}</p>
             <div class="library_card_meta">
-              <span class="library_card_category">{{ t('res_cat_' + r.category) }}</span>
+              <span class="library_card_category">{{ t('resources_cat_' + r.category) }}</span>
               <span class="library_card_level" :class="r.level">{{ levelLabel(r.level) }}</span>
               <span class="library_card_duration">{{ r.duration }}</span>
             </div>
@@ -36,7 +36,7 @@
       </div>
     </div>
     <div v-if="!filtered.length" class="library_empty">
-      <span>📚</span><p>{{ t('res_no_results') }}</p>
+      <span>📚</span><p>{{ t('resources_no_results') }}</p>
     </div>
 
     <!-- Fiche ressource (popup) -->
@@ -48,7 +48,7 @@
           <div>
             <h3>{{ t(selected.titleKey) }}</h3>
             <div class="library_card_meta">
-              <span class="library_card_category">{{ t('res_cat_' + selected.category) }}</span>
+              <span class="library_card_category">{{ t('resources_cat_' + selected.category) }}</span>
               <span class="library_card_level" :class="selected.level">{{ levelLabel(selected.level) }}</span>
               <span class="library_card_duration">{{ selected.duration }}</span>
             </div>
@@ -61,7 +61,7 @@
             <ul><li v-for="item in section.itemKeys" :key="item">{{ t(item) }}</li></ul>
           </div>
           <div v-if="selected.exerciseKey" class="library_card_exercise">
-            <strong>📝 {{ t('res_exercise') }}</strong>
+            <strong>📝 {{ t('resources_exercise') }}</strong>
             <p>{{ t(selected.exerciseKey) }}</p>
           </div>
         </div>
@@ -85,8 +85,8 @@ const onKey = (e) => { if (e.key === 'Escape') selected.value = null }
 onMounted(() => window.addEventListener('keydown', onKey))
 onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 const cats = computed(() => [
-  { key: 'all', label: t('all') }, { key: 'guide', label: '📘 ' + t('res_cat_guide') }, { key: 'checklist', label: '📋 ' + t('res_cat_checklist') },
-  { key: 'framework', label: '🎯 ' + t('res_cat_framework') }, { key: 'script', label: '⚙️ ' + t('res_cat_script') }, { key: 'template', label: '📊 ' + t('res_cat_template') },
+  { key: 'all', label: t('all') }, { key: 'guide', label: '📘 ' + t('resources_cat_guide') }, { key: 'checklist', label: '📋 ' + t('resources_cat_checklist') },
+  { key: 'framework', label: '🎯 ' + t('resources_cat_framework') }, { key: 'script', label: '⚙️ ' + t('resources_cat_script') }, { key: 'template', label: '📊 ' + t('resources_cat_template') },
 ])
 // Filtering lives here (not in the store) so search matches the RENDERED text (t(key)),
 // and results stay reactive to locale changes. Structure is locale-invariant in the store.
@@ -98,7 +98,7 @@ const filtered = computed(() => {
   if (q) r = r.filter(x => t(x.titleKey).toLowerCase().includes(q) || t(x.descKey).toLowerCase().includes(q))
   return r
 })
-function levelLabel(l) { return l === 'beginner' ? t('res_beginner') : l === 'intermediate' ? t('res_intermediate') : t('res_expert') }
+function levelLabel(l) { return l === 'beginner' ? t('resources_beginner') : l === 'intermediate' ? t('resources_intermediate') : t('resources_expert') }
 </script>
 
 <style scoped>

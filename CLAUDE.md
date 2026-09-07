@@ -88,6 +88,15 @@ broke something visible. Do not relax one without saying so explicitly.
    values** (`kind = 'cloture'`, `category = 'renouvellement'`, CSV import aliases) or
    public SEO slugs. A label that reaches the screen belongs in i18n — including the KPI
    library's (`kpi_library_<id>` / `kpi_library_category_<id>`), which `config/kpis.js` references by key.
+   **Prefixes are words, not initials** (07/09/2026): `setting_`, `planning_`, `workload_`,
+   `email_studio_`, `smart_matrix_`, `smart_import_`, `playbook_`, `roadmap_`, `oxygen_`,
+   `portfolio_`, `client_detail_`, `manager_`, `resources_`, `quote_`, `satisfaction_`,
+   `dashboard_`, `wellbeing_`, `notification_`, `client_metric_`, `route_title_`,
+   `kpi_dashboard_`, `onboarding_` / `onboarding_wizard_`. `copil_`, `ai_` and `kpi_` stay —
+   they are names and acronyms, not abbreviations. Watch for keys built at run time
+   (`t('playbook_template_' + k)`): the fragment lives in the view, so a prefix rename must
+   chase it there too, and `roadmap_ms_*` is **persisted** — `stores/roadmap.fixLegacyKey`
+   migrates the old spellings.
    **No hard-coded translation**: `src/i18n/` is the ONLY home for a translation, server strings
    included — `functions/api/_i18n/translate.js` is a resolver holding no data, and
    `_i18n/messages.js` is deleted. A config stores the key, the view calls `t()`. A table outside
@@ -138,9 +147,11 @@ broke something visible. Do not relax one without saying so explicitly.
   `clientsOnly`.
 - **Cloudflare Pages does not reliably resolve newly added module files** — that is why
   the `wellbeing` AI handler is inlined twice.
-- **`src/i18n/legal.js` has duplicated keys in its `fr` object** (last-one-wins). Editing
-  the wrong copy has no effect. `check-i18n.mjs` loads only `fr/en/ko.js` — `landing.js`,
-  `legal.js` and `dpa.js` have **no parity check at all**, which is how that survived.
+- **`check-i18n.mjs` loads only `fr/en/ko.js`** — `landing.js`, `legal.js` and `dpa.js`
+  have **no parity check at all**. That blind spot is how `legal.js` accumulated 28
+  duplicate `fr` keys (last-one-wins, so editing the wrong copy did nothing). The
+  duplicates are gone as of 07/09/2026 and every i18n file is now sorted A→Z, which makes
+  a duplicate adjacent and obvious — but nothing *enforces* either property yet.
 - **`/api/ai`, `/api/email` and `/api/usage` read `profiles.plan`**, while the front end
   and the SQL client-limit trigger read `organizations.plan`. A member of a paying org
   can be entitled in the UI and 403'd by the API. Use the org plan when you touch these.
@@ -158,8 +169,9 @@ broke something visible. Do not relax one without saying so explicitly.
   explicit go. Respect the stated ordering against the front-end deploy.
 - **Zero dead code**: a removed feature takes its CSS, i18n keys and imports with it.
   What is dormant on purpose (Integrations, `_future/*`) says so in a comment.
-- **Before finishing**: run `node scripts/check-i18n.mjs` (a pre-existing gap of `wb_fri`
-  and three `chat_ch_*` keys is expected) **and `node scripts/check-i18n-quality.mjs`**, which
+- **Before finishing**: run `node scripts/check-i18n.mjs` (one pre-existing gap,
+  `wellbeing_fri`, is expected; the three `chat_ch_*` keys that used to be missing were
+  unused and have been deleted) **and `node scripts/check-i18n-quality.mjs`**, which
   checks that the three values of a key still MEAN the same thing — missing `{n}`, Korean prose
   in the French file, an untranslated or English-left-in-place Korean value, a procedure that
   lost a step. `check-i18n.mjs` only proves a key exists; a wrong value fails nothing there. Also

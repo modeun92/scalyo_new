@@ -2,8 +2,8 @@
   <div class="settings_view_panel">
     <!-- Language -->
     <div class="settings_view_section">
-      <h3>🌐 {{ t('stg_lang_title') }}</h3>
-      <p class="settings_view_note">{{ t('stg_lang_desc') }}</p>
+      <h3>🌐 {{ t('setting_lang_title') }}</h3>
+      <p class="settings_view_note">{{ t('setting_lang_desc') }}</p>
       <div class="language_cards">
         <button
           v-for="lang in langOptions"
@@ -17,16 +17,16 @@
           <span v-if="selectedLang === lang.code" class="language_check">✓</span>
         </button>
       </div>
-      <p v-if="langSaved" class="settings_saved">✓ {{ t('stg_lang_saved') }}</p>
-      <p v-if="langError" class="settings_view_field_error">{{ t('stg_lang_error') }}</p>
+      <p v-if="langSaved" class="settings_saved">✓ {{ t('setting_lang_saved') }}</p>
+      <p v-if="langError" class="settings_view_field_error">{{ t('setting_lang_error') }}</p>
     </div>
 
     <!-- Region — REGIONAL-I18N (04/09): the country half of the locale. The same language is not
          written the same way in every country (Devis / Offres / Soumissions), and the product had
          no way to say which one this account reads. -->
     <div class="settings_view_section">
-      <h3>🗺️ {{ t('stg_region_title') }}</h3>
-      <p class="settings_view_note">{{ t('stg_region_desc') }}</p>
+      <h3>🗺️ {{ t('setting_region_title') }}</h3>
+      <p class="settings_view_note">{{ t('setting_region_desc') }}</p>
       <div class="language_cards">
         <button
           v-for="region in regionOptions"
@@ -41,15 +41,15 @@
           <span v-if="selectedRegion === region.code" class="language_check">✓</span>
         </button>
       </div>
-      <p v-if="regionSaved" class="settings_saved">✓ {{ t('stg_region_saved') }}</p>
-      <p v-if="regionError" class="settings_view_field_error">{{ t('stg_region_error') }}</p>
+      <p v-if="regionSaved" class="settings_saved">✓ {{ t('setting_region_saved') }}</p>
+      <p v-if="regionError" class="settings_view_field_error">{{ t('setting_region_error') }}</p>
     </div>
 
     <!-- Currency — CURRENCY-ACCOUNT (04/09): the account currency was in the database but on no
          screen, so everything rendered in euro whatever the account billed in (error_list §5). -->
     <div class="settings_view_section">
-      <h3>💱 {{ t('stg_currency_title') }}</h3>
-      <p class="settings_view_note">{{ t('stg_currency_desc') }}</p>
+      <h3>💱 {{ t('setting_currency_title') }}</h3>
+      <p class="settings_view_note">{{ t('setting_currency_desc') }}</p>
       <div class="settings_currency_row">
         <select
           class="settings_currency_select"
@@ -63,36 +63,36 @@
         </select>
         <span class="settings_currency_sample">{{ currencySample }}</span>
       </div>
-      <p class="settings_view_note settings_currency_warning">⚠️ {{ t('stg_currency_no_conversion') }}</p>
-      <p v-if="currencySaved" class="settings_saved">✓ {{ t('stg_currency_saved') }}</p>
-      <p v-if="currencyError" class="settings_view_field_error">{{ t('stg_currency_error') }}</p>
+      <p class="settings_view_note settings_currency_warning">⚠️ {{ t('setting_currency_no_conversion') }}</p>
+      <p v-if="currencySaved" class="settings_saved">✓ {{ t('setting_currency_saved') }}</p>
+      <p v-if="currencyError" class="settings_view_field_error">{{ t('setting_currency_error') }}</p>
     </div>
 
     <!-- Theme -->
     <div class="settings_view_section">
-      <h3>🌙 {{ t('stg_dark_title') }}</h3>
-      <p class="settings_view_note">{{ t('stg_dark_desc') }}</p>
+      <h3>🌙 {{ t('setting_dark_title') }}</h3>
+      <p class="settings_view_note">{{ t('setting_dark_desc') }}</p>
       <div class="theme_cards">
         <button
           class="theme_card"
           :class="{ active: theme === 'light' }"
           @click="setTheme('light')"
         >
-          ☀️ {{ t('stg_theme_light') }}
+          ☀️ {{ t('setting_theme_light') }}
         </button>
         <button
           class="theme_card"
           :class="{ active: theme === 'dark' }"
           @click="setTheme('dark')"
         >
-          🌙 {{ t('stg_theme_dark') }}
+          🌙 {{ t('setting_theme_dark') }}
         </button>
         <button
           class="theme_card"
           :class="{ active: theme === 'auto' }"
           @click="setTheme('auto')"
         >
-          🖥️ {{ t('stg_theme_auto') }}
+          🖥️ {{ t('setting_theme_auto') }}
         </button>
       </div>
     </div>

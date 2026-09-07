@@ -1,7 +1,7 @@
 <template>
   <section class="manager_section">
     <!-- Alerts -->
-    <h2>🔔 {{ t('mgr_alerts') }}</h2>
+    <h2>🔔 {{ t('manager_alerts') }}</h2>
     <div class="alerts_list">
       <div
         v-for="n in activeAlerts"
@@ -17,12 +17,12 @@
         </div>
       </div>
       <div v-if="!activeAlerts.length" class="empty_alerts">
-        {{ t('mgr_no_alerts') }}
+        {{ t('manager_no_alerts') }}
       </div>
     </div>
 
     <!-- Portfolio Overview -->
-    <h2 class="mt_section">💼 {{ t('mgr_portfolio_overview') }}</h2>
+    <h2 class="mt_section">💼 {{ t('manager_portfolio_overview') }}</h2>
     <div class="portfolio_mini">
       <div class="performance_manager_stat">
         <div class="performance_manager_donut_mini">

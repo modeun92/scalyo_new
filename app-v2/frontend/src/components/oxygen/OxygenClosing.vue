@@ -62,10 +62,10 @@ const reducedMotion = typeof window !== 'undefined' &&
 const progressItems = computed(() => {
   const p = engine.dayProgress
   const items = []
-  if (p.tasksDone) items.push({ key: 'oxy_ferm_p_tasks', params: { n: p.tasksDone } })
-  if (recoveries.notesCountToday) items.push({ key: 'oxy_ferm_p_notes', params: { n: recoveries.notesCountToday } })
-  if (p.quotesCreated) items.push({ key: 'oxy_ferm_p_quotes', params: { n: p.quotesCreated } })
-  if (p.clientsAdded) items.push({ key: 'oxy_ferm_p_clients', params: { n: p.clientsAdded } })
+  if (p.tasksDone) items.push({ key: 'oxygen_ferm_p_tasks', params: { n: p.tasksDone } })
+  if (recoveries.notesCountToday) items.push({ key: 'oxygen_ferm_p_notes', params: { n: recoveries.notesCountToday } })
+  if (p.quotesCreated) items.push({ key: 'oxygen_ferm_p_quotes', params: { n: p.quotesCreated } })
+  if (p.clientsAdded) items.push({ key: 'oxygen_ferm_p_clients', params: { n: p.clientsAdded } })
   return items
 })
 const progressCount = computed(() => {
@@ -164,72 +164,72 @@ onUnmounted(() => {
 
 <template>
   <Teleport to="body">
-    <div class="oxygen_closing" role="dialog" aria-modal="true" :aria-label="t('oxy_ferm_title')">
-      <button class="oxygen_closing_close" :aria-label="t('oxy_close')" @click="stopBreath(); emitClose()">✕</button>
-      <p class="oxygen_closing_esc">{{ t('oxy_ferm_esc_hint') }}</p>
+    <div class="oxygen_closing" role="dialog" aria-modal="true" :aria-label="t('oxygen_ferm_title')">
+      <button class="oxygen_closing_close" :aria-label="t('oxygen_close')" @click="stopBreath(); emitClose()">✕</button>
+      <p class="oxygen_closing_esc">{{ t('oxygen_ferm_esc_hint') }}</p>
 
       <!-- ── Step 1: real progress of the day (zero input) ── -->
       <section v-if="step === 1" class="oxygen_closing_step">
-        <span class="oxygen_closing_stepnum">{{ t('oxy_ferm_step', { n: 1 }) }}</span>
-        <h2>{{ t('oxy_ferm_progress_title') }}</h2>
+        <span class="oxygen_closing_stepnum">{{ t('oxygen_ferm_step', { n: 1 }) }}</span>
+        <h2>{{ t('oxygen_ferm_progress_title') }}</h2>
         <ul v-if="progressItems.length" class="oxygen_closing_list">
           <li v-for="(it, i) in progressItems" :key="i">{{ t(it.key, it.params) }}</li>
         </ul>
-        <p v-else class="oxygen_closing_soft">{{ t('oxy_ferm_progress_none') }}</p>
-        <button class="oxygen_closing_button" @click="next">{{ t('oxy_ferm_next') }}</button>
+        <p v-else class="oxygen_closing_soft">{{ t('oxygen_ferm_progress_none') }}</p>
+        <button class="oxygen_closing_button" @click="next">{{ t('oxygen_ferm_next') }}</button>
       </section>
 
       <!-- ── Step 2: one word (same database row as the check-in) ── -->
       <section v-else-if="step === 2" class="oxygen_closing_step">
-        <span class="oxygen_closing_stepnum">{{ t('oxy_ferm_step', { n: 2 }) }}</span>
-        <h2>{{ t('oxy_ferm_word_title') }}</h2>
+        <span class="oxygen_closing_stepnum">{{ t('oxygen_ferm_step', { n: 2 }) }}</span>
+        <h2>{{ t('oxygen_ferm_word_title') }}</h2>
         <template v-if="hasCheckin">
-          <p class="oxygen_closing_soft">{{ t('oxy_ferm_word_hint') }}</p>
+          <p class="oxygen_closing_soft">{{ t('oxygen_ferm_word_hint') }}</p>
           <input
             v-model="word" class="oxygen_closing_word" type="text" maxlength="80"
-            :placeholder="t('oxy_word_placeholder')" :aria-label="t('oxy_word_label')"
+            :placeholder="t('oxygen_word_placeholder')" :aria-label="t('oxygen_word_label')"
             @keydown.enter.prevent="next"
           />
         </template>
         <template v-else>
-          <p class="oxygen_closing_soft">{{ t('oxy_ferm_checkin_first') }}</p>
+          <p class="oxygen_closing_soft">{{ t('oxygen_ferm_checkin_first') }}</p>
           <div class="oxygen_closing_checkin"><OxygenCheckinForm autofocus /></div>
         </template>
-        <button class="oxygen_closing_button" @click="next">{{ t('oxy_ferm_next') }}</button>
+        <button class="oxygen_closing_button" @click="next">{{ t('oxygen_ferm_next') }}</button>
       </section>
 
       <!-- ── Step 3: 90 s breathing — cyclic sighing, never blocking ── -->
       <section v-else-if="step === 3" class="oxygen_closing_step oxygen_closing_breath">
-        <span v-if="!isMicro" class="oxygen_closing_stepnum">{{ t('oxy_ferm_step', { n: 3 }) }}</span>
-        <h2>{{ t('oxy_ferm_breath_title') }}</h2>
+        <span v-if="!isMicro" class="oxygen_closing_stepnum">{{ t('oxygen_ferm_step', { n: 3 }) }}</span>
+        <h2>{{ t('oxygen_ferm_breath_title') }}</h2>
         <div class="oxygen_breath_stage">
           <div class="oxygen_breath_bubble" :class="{ still: reducedMotion }" aria-hidden="true"></div>
         </div>
-        <p class="oxygen_closing_soft">{{ t('oxy_ferm_breath_hint') }}</p>
+        <p class="oxygen_closing_soft">{{ t('oxygen_ferm_breath_hint') }}</p>
         <p class="oxygen_breath_count" aria-live="polite">{{ breathLeft }}s</p>
-        <button class="oxygen_closing_skip" @click="skipBreath">{{ t('oxy_ferm_breath_skip') }}</button>
+        <button class="oxygen_closing_skip" @click="skipBreath">{{ t('oxygen_ferm_breath_skip') }}</button>
       </section>
 
       <!-- ── Step 4: tomorrow is ready (real derived data, zero input) ── -->
       <section v-else-if="step === 4" class="oxygen_closing_step">
-        <span class="oxygen_closing_stepnum">{{ t('oxy_ferm_step', { n: 4 }) }}</span>
-        <h2>{{ t('oxy_ferm_tomorrow_title') }}</h2>
+        <span class="oxygen_closing_stepnum">{{ t('oxygen_ferm_step', { n: 4 }) }}</span>
+        <h2>{{ t('oxygen_ferm_tomorrow_title') }}</h2>
         <ul v-if="engine.tomorrowTop3.length" class="oxygen_closing_list">
           <li v-for="(it, i) in engine.tomorrowTop3" :key="i">{{ t(it.key, it.params) }}</li>
         </ul>
-        <p v-else class="oxygen_closing_soft">{{ t('oxy_ferm_tomorrow_none') }}</p>
+        <p v-else class="oxygen_closing_soft">{{ t('oxygen_ferm_tomorrow_none') }}</p>
         <button class="oxygen_closing_button" :disabled="closing || recoveries.saving" @click="next">
-          {{ t('oxy_ferm_finish') }}
+          {{ t('oxygen_ferm_finish') }}
         </button>
       </section>
 
       <!-- ── Final screen ── -->
       <section v-else class="oxygen_closing_step oxygen_closing_done">
         <template v-if="isMicro">
-          <h2>{{ t('oxy_micro_done') }}</h2>
+          <h2>{{ t('oxygen_micro_done') }}</h2>
         </template>
         <template v-else>
-          <h2>{{ closeError === 'already' ? t('oxy_ferm_already') : t('oxy_ferm_done_title') }}</h2>
+          <h2>{{ closeError === 'already' ? t('oxygen_ferm_already') : t('oxygen_ferm_done_title') }}</h2>
           <svg v-if="todayBubble" class="oxygen_closing_bubble_svg" viewBox="0 0 80 80" aria-hidden="true">
             <circle
               cx="40" cy="40" :r="todayBubble.r"
@@ -248,8 +248,8 @@ onUnmounted(() => {
               :r="d.s" fill="#fff" fill-opacity="0.55"
             />
           </svg>
-          <p class="oxygen_closing_soft">{{ t('oxy_ferm_done_hint') }}</p>
-          <button class="oxygen_closing_button" @click="emitClose">{{ t('oxy_close') }}</button>
+          <p class="oxygen_closing_soft">{{ t('oxygen_ferm_done_hint') }}</p>
+          <button class="oxygen_closing_button" @click="emitClose">{{ t('oxygen_close') }}</button>
         </template>
       </section>
     </div>

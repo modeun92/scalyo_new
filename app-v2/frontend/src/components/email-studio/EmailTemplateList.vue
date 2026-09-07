@@ -14,7 +14,7 @@
 
     <div class="email_studio_search">
       <span>🔍</span>
-      <input v-model="localSearch" :placeholder="t('es_search')" />
+      <input v-model="localSearch" :placeholder="t('email_studio_search')" />
     </div>
 
     <div class="email_studio_categories">
@@ -25,7 +25,7 @@
         :class="{ active: activeCat === cat, [catClass(cat)]: true }"
         @click="$emit('update:activeCat', activeCat === cat ? 'all' : cat)"
       >
-        {{ cat === 'all' ? t('es_cat_all') : t('es_cat_' + cat) }}
+        {{ cat === 'all' ? t('email_studio_cat_all') : t('email_studio_cat_' + cat) }}
       </button>
     </div>
 
@@ -38,7 +38,7 @@
         @click="$emit('update:selectedId', tpl.id)"
       >
         <span class="esi_category" :class="catClass(tpl.categoryKey)">
-          {{ t('es_cat_' + tpl.categoryKey) }}
+          {{ t('email_studio_cat_' + tpl.categoryKey) }}
         </span>
         <!-- CR-D: custom templates = stored name, defaults = i18n key -->
         <strong>{{ tpl.nameKey ? t(tpl.nameKey) : tpl.name }}</strong>
@@ -68,11 +68,11 @@ const localSearch = ref(props.search)
 watch(localSearch, (val) => emit('update:search', val))
 
 const tabs = [
-  { key: 'all', label: 'es_tab_all' },
-  { key: 'csm', label: 'es_tab_csm' },
-  { key: 'commercial', label: 'es_tab_commercial' },
-  { key: 'kam', label: 'es_tab_kam' },
-  { key: 'history', label: 'es_tab_history' }
+  { key: 'all', label: 'email_studio_tab_all' },
+  { key: 'csm', label: 'email_studio_tab_csm' },
+  { key: 'commercial', label: 'email_studio_tab_commercial' },
+  { key: 'kam', label: 'email_studio_tab_kam' },
+  { key: 'history', label: 'email_studio_tab_history' }
 ]
 
 const categoryKeys = computed(() => {
@@ -102,7 +102,7 @@ const filteredTemplates = computed(() => {
     const q = localSearch.value.toLowerCase()
     list = list.filter(tpl =>
       (tpl.nameKey ? t(tpl.nameKey) : (tpl.name || '')).toLowerCase().includes(q) ||
-      t('es_cat_' + tpl.categoryKey).toLowerCase().includes(q)
+      t('email_studio_cat_' + tpl.categoryKey).toLowerCase().includes(q)
     )
   }
   return list

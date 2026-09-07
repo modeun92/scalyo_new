@@ -68,7 +68,7 @@ watch(() => recoveries.monthLoaded, (v) => { if (!v) recoveries.loadMonth() })
     <svg
       class="oxygen_sky_svg"
       :viewBox="`0 0 ${COLS * CELL} ${rows * CELL}`"
-      role="img" :aria-label="t('oxy_sky_title')"
+      role="img" :aria-label="t('oxygen_sky_title')"
     >
       <g v-for="d in days" :key="d.date">
         <template v-if="d.b">
@@ -101,7 +101,7 @@ watch(() => recoveries.monthLoaded, (v) => { if (!v) recoveries.loadMonth() })
         </circle>
       </g>
     </svg>
-    <p v-if="!hasBubbles" class="oxygen_sky_empty">{{ t('oxy_sky_empty') }}</p>
+    <p v-if="!hasBubbles" class="oxygen_sky_empty">{{ t('oxygen_sky_empty') }}</p>
   </div>
 </template>
 

@@ -100,11 +100,11 @@ export const useTaskStore = defineStore('tasks', () => {
     // D-11: recommendations = i18n keys + params — the RENDER translates (t(key, params)),
     // never a localized string built inside a store (C2/C6)
     const recommendations = []
-    if (blockedCount > 0) recommendations.push({ type: 'danger', key: 'sm_rec_blocked', params: { n: blockedCount } })
-    if (overdueCount > 0) recommendations.push({ type: 'warning', key: 'sm_rec_overdue', params: { n: overdueCount } })
-    if (hoursAccuracy && hoursAccuracy > 130) recommendations.push({ type: 'warning', key: 'sm_rec_hours', params: { pct: hoursAccuracy - 100 } })
-    if (!insufficientData && velocityPerWeek < 1 && remaining > 3) recommendations.push({ type: 'info', key: 'sm_rec_velocity', params: { v: velocityPerWeek.toFixed(1) } })
-    if (doneCount > 0 && riskScore < 30) recommendations.push({ type: 'success', key: 'sm_rec_ontrack', params: { done: doneCount, total: totalTasks } })
+    if (blockedCount > 0) recommendations.push({ type: 'danger', key: 'smart_matrix_rec_blocked', params: { n: blockedCount } })
+    if (overdueCount > 0) recommendations.push({ type: 'warning', key: 'smart_matrix_rec_overdue', params: { n: overdueCount } })
+    if (hoursAccuracy && hoursAccuracy > 130) recommendations.push({ type: 'warning', key: 'smart_matrix_rec_hours', params: { pct: hoursAccuracy - 100 } })
+    if (!insufficientData && velocityPerWeek < 1 && remaining > 3) recommendations.push({ type: 'info', key: 'smart_matrix_rec_velocity', params: { v: velocityPerWeek.toFixed(1) } })
+    if (doneCount > 0 && riskScore < 30) recommendations.push({ type: 'success', key: 'smart_matrix_rec_ontrack', params: { done: doneCount, total: totalTasks } })
 
     return {
       // STATS-N1: below 3 completed tasks, predictions return null — never an invented figure

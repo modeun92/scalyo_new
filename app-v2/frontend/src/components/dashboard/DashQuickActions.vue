@@ -1,18 +1,18 @@
 <template>
   <div class="quick_actions">
-    <h2>{{ t('dash_quick_actions') }}</h2>
+    <h2>{{ t('dashboard_quick_actions') }}</h2>
     <div class="actions_grid">
       <button class="action_card" @click="$router.push('/app/tasks/kanban')">
         <span class="action_icon">✏️</span>
-        <span>{{ t('dash_action_task') }}</span>
+        <span>{{ t('dashboard_action_task') }}</span>
       </button>
       <button class="action_card" @click="$router.push('/app/portfolio')">
         <span class="action_icon">👤</span>
-        <span>{{ t('dash_action_client') }}</span>
+        <span>{{ t('dashboard_action_client') }}</span>
       </button>
       <button class="action_card" @click="$router.push({ path: '/app/portfolio', query: { import: '1' } })">
         <span class="action_icon">📥</span>
-        <span>{{ t('dash_action_import') }}</span>
+        <span>{{ t('dashboard_action_import') }}</span>
       </button>
       <button class="action_card" @click="$router.push('/app/kpis')">
         <span class="action_icon">📊</span>

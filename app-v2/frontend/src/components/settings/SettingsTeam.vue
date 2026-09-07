@@ -1,7 +1,7 @@
 <template>
   <div class="settings_view_panel">
     <div class="settings_view_section">
-      <h3>{{ t('stg_tab_team') }}</h3>
+      <h3>{{ t('setting_tab_team') }}</h3>
       <div class="team_list">
         <div v-for="m in team.members" :key="m.id" class="team_row">
           <div class="table_row_avatar" :class="m.status">{{ m.name[0] }}</div>

@@ -1,6 +1,6 @@
 <template>
   <div class="satisfaction_card">
-    <h3>{{ t('sat_portfolio_health') }}</h3>
+    <h3>{{ t('satisfaction_portfolio_health') }}</h3>
     <div class="health_list">
       <!-- HEALTH-SCALE: localized score out of 10 (no more ×10 "10 /100"), avatar/hue/badge by the
            EFFECTIVE status — the same function as the Dashboard and the Portfolio -->
@@ -28,7 +28,7 @@
           <span class="health_list_status" :class="statusOf(c)">{{ t('status_' + statusOf(c)) }}</span>
         </div>
       </div>
-      <div v-if="!sortedClients.length" class="satisfaction_empty">{{ t('sat_no_clients') }}</div>
+      <div v-if="!sortedClients.length" class="satisfaction_empty">{{ t('satisfaction_no_clients') }}</div>
     </div>
   </div>
 </template>

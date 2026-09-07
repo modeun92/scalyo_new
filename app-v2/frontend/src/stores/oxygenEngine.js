@@ -161,15 +161,15 @@ export const useOxygenEngineStore = defineStore('oxygenEngine', () => {
       .filter(x => x.d && !Number.isNaN(x.d.getTime()) && x.d >= now && x.d <= limit)
       .sort((a, b) => a.d - b.d)
     for (const { c, d } of renewals) {
-      out.push({ key: 'oxy_tm_renewal', params: { name: c.name, n: Math.max(0, Math.round((d - now) / DAY)) } })
+      out.push({ key: 'oxygen_tm_renewal', params: { name: c.name, n: Math.max(0, Math.round((d - now) / DAY)) } })
     }
     const tomorrow = dstr(new Date(Date.now() + DAY))
     const dues = tasks.tasks
       .filter(t => t.status !== 'done' && !t.finished && t.endDate && t.endDate <= tomorrow)
       .sort((a, b) => (a.endDate < b.endDate ? -1 : a.endDate > b.endDate ? 1 : (b.urgency ?? 3) - (a.urgency ?? 3)))
-    for (const t of dues) out.push({ key: 'oxy_tm_task', params: { title: t.title } })
+    for (const t of dues) out.push({ key: 'oxygen_tm_task', params: { title: t.title } })
     const criticals = load.assignedClients.filter(c => clients.getEffectiveStatus(c) === 'critical')
-    for (const c of criticals) out.push({ key: 'oxy_tm_critical', params: { name: c.name } })
+    for (const c of criticals) out.push({ key: 'oxygen_tm_critical', params: { name: c.name } })
     return out.slice(0, 3)
   })
 

@@ -9,7 +9,7 @@
           <div class="client_modal_titlebar" @pointerdown="startDrag">
             <div class="client_modal_title">
               <span class="client_modal_avatar" :style="{ background: statusColor }">{{ (form.name || '?')[0] }}</span>
-              <span class="client_modal_name">{{ form.name || t('cd_untitled') }}</span>
+              <span class="client_modal_name">{{ form.name || t('client_detail_untitled') }}</span>
               <span class="client_modal_badge" :class="'status_' + effectiveStatus">{{ statusLabel }}</span>
             </div>
             <button class="client_modal_close" @click="modal.close()" :title="t('cancel')">✕</button>
@@ -18,48 +18,48 @@
           <div class="client_modal_body">
             <!-- ── Editable info (everything editable, here, right now) ── -->
             <div class="client_modal_grid">
-              <label class="client_modal_f client_modal_f_wide"><span>{{ t('port_field_name') }}</span>
+              <label class="client_modal_f client_modal_f_wide"><span>{{ t('portfolio_field_name') }}</span>
                 <input v-model="form.name" class="client_modal_i" /></label>
-              <label class="client_modal_f"><span>{{ t('port_field_industry') }}</span>
+              <label class="client_modal_f"><span>{{ t('portfolio_field_industry') }}</span>
                 <!-- FICHE-SECTEUR (29/08): a stored value outside the list (import, other language)
                      matched no option → EMPTY select even though the data exists.
                      Dynamic option = the value shows as-is and can be reclassified. -->
                 <select v-model="form.industry" class="client_modal_i"><option value="">—</option>
                   <option v-if="form.industry && !industries.includes(form.industry)" :value="form.industry">{{ form.industry }}</option>
                   <option v-for="i in industries" :key="i" :value="i">{{ i }}</option></select></label>
-              <label class="client_modal_f"><span>{{ t('port_field_status') }}</span>
+              <label class="client_modal_f"><span>{{ t('portfolio_field_status') }}</span>
                 <select v-model="form.status" class="client_modal_i">
                   <option value="healthy">{{ t('status_healthy') }}</option>
                   <option value="watch">{{ t('status_watch') }}</option>
                   <option value="critical">{{ t('status_critical') }}</option></select></label>
-              <label class="client_modal_f"><span>{{ t('cd_health') }} (0-10)</span>
+              <label class="client_modal_f"><span>{{ t('client_detail_health') }} (0-10)</span>
                 <input v-model.number="form.health" type="number" min="0" max="10" class="client_modal_i" /></label>
               <label class="client_modal_f"><span>NPS</span>
                 <input v-model.number="form.nps" type="number" min="-100" max="100" class="client_modal_i" /></label>
               <!-- CURRENCY-FORMAT: currency symbol of the ACCOUNT (no more hard-coded "€"), amount through the single formatter -->
-              <label class="client_modal_f"><span>{{ t('cd_arr') }} ({{ currencySymbol() }})</span>
+              <label class="client_modal_f"><span>{{ t('client_detail_arr') }} ({{ currencySymbol() }})</span>
                 <input v-model.number="form.arr" type="number" min="0" class="client_modal_i" /></label>
-              <label class="client_modal_f"><span>{{ t('cd_mrr') }} ({{ currencySymbol() }})</span>
+              <label class="client_modal_f"><span>{{ t('client_detail_mrr') }} ({{ currencySymbol() }})</span>
                 <input v-model.number="form.mrr" type="number" min="0" class="client_modal_i" /></label>
-              <div class="client_modal_f"><span>{{ t('port_ca_signed') }}</span>
+              <div class="client_modal_f"><span>{{ t('portfolio_ca_signed') }}</span>
                 <div class="client_modal_i client_modal_ro">{{ fmtCurrency(signedAmount) }}</div></div>
-              <label class="client_modal_f"><span>{{ t('cd_renewal') }}</span>
+              <label class="client_modal_f"><span>{{ t('client_detail_renewal') }}</span>
                 <input v-model="form.renewalDate" type="date" class="client_modal_i" /></label>
-              <label class="client_modal_f"><span>{{ t('cd_csm') }}</span>
-                <select v-model="form.csmId" class="client_modal_i"><option value="">{{ t('cd_no_csm') }}</option>
+              <label class="client_modal_f"><span>{{ t('client_detail_csm') }}</span>
+                <select v-model="form.csmId" class="client_modal_i"><option value="">{{ t('client_detail_no_csm') }}</option>
                   <option v-for="m in team.assignableMembers" :key="m.id" :value="m.id">{{ m.name }}</option></select></label>
             </div>
 
             <!-- ── Monthly metrics (client_metrics — contract 22/07) ── -->
             <div class="client_modal_section">
               <div class="client_modal_section_header">
-                <h3>{{ t('cmet_title') }}</h3>
-                <button class="client_modal_mini" @click="showMetricAdd = !showMetricAdd">＋ {{ t('cmet_add') }}</button>
+                <h3>{{ t('client_metric_title') }}</h3>
+                <button class="client_modal_mini" @click="showMetricAdd = !showMetricAdd">＋ {{ t('client_metric_add') }}</button>
               </div>
               <div v-if="showMetricAdd" class="client_modal_metric_form">
                 <!-- P10 think-like-a-CSM: direct search (39 KPIs), tracked ones first, focus on value after selection -->
                 <div class="client_modal_kpi_combo">
-                  <input v-model="kpiSearch" class="client_modal_i" :placeholder="t('cmet_pick')"
+                  <input v-model="kpiSearch" class="client_modal_i" :placeholder="t('client_metric_pick')"
                     @focus="kpiListOpen = true" @input="kpiListOpen = true; metricDraft.kpiId = ''"
                     @keydown.esc="kpiListOpen = false" @blur="closeKpiListSoon" />
                   <div v-if="kpiListOpen" class="client_modal_kpi_list">
@@ -73,12 +73,12 @@
                 </div>
                 <input v-model="metricDraft.month" type="month" :max="curMonth" class="client_modal_i" />
                 <input ref="valueInput" v-model="metricDraft.value" type="number" step="any" class="client_modal_i client_modal_metric_value"
-                  :placeholder="t('cmet_value')" @keydown.enter="submitMetric" />
+                  :placeholder="t('client_metric_value')" @keydown.enter="submitMetric" />
                 <button class="button_primary client_modal_note_button" :disabled="!canSaveMetric || savingMetric" @click="submitMetric">
-                  {{ savingMetric ? '…' : t('cd_note_add') }}
+                  {{ savingMetric ? '…' : t('client_detail_note_add') }}
                 </button>
               </div>
-              <div v-if="!trackedKpis.length" class="client_modal_muted">{{ t('cmet_empty') }}</div>
+              <div v-if="!trackedKpis.length" class="client_modal_muted">{{ t('client_metric_empty') }}</div>
               <div v-for="tk in trackedKpis" :key="tk.kpiId" class="client_modal_metric">
                 <button class="client_modal_metric_row" @click="toggleMetric(tk.kpiId)">
                   <span class="client_modal_metric_chevron">{{ metricOpen[tk.kpiId] ? '▾' : '▸' }}</span>
@@ -98,35 +98,35 @@
             <!-- ── Interlocuteurs ── -->
             <div class="client_modal_section">
               <div class="client_modal_section_header">
-                <h3>{{ t('port_contacts_title') }}</h3>
-                <button class="client_modal_mini" @click="addContact">＋ {{ t('port_contact_add') }}</button>
+                <h3>{{ t('portfolio_contacts_title') }}</h3>
+                <button class="client_modal_mini" @click="addContact">＋ {{ t('portfolio_contact_add') }}</button>
               </div>
-              <p v-if="!form.contacts.length" class="client_modal_muted">{{ t('port_contacts_empty') }}</p>
+              <p v-if="!form.contacts.length" class="client_modal_muted">{{ t('portfolio_contacts_empty') }}</p>
               <div v-for="(ct, i) in form.contacts" :key="i" class="client_modal_contact">
-                <input v-model="ct.name" :placeholder="t('port_field_contact_name')" class="client_modal_i" />
-                <input v-model="ct.role" :placeholder="t('port_field_contact_role')" class="client_modal_i" />
-                <input v-model="ct.email" :placeholder="t('port_field_contact_email')" class="client_modal_i" />
+                <input v-model="ct.name" :placeholder="t('portfolio_field_contact_name')" class="client_modal_i" />
+                <input v-model="ct.role" :placeholder="t('portfolio_field_contact_role')" class="client_modal_i" />
+                <input v-model="ct.email" :placeholder="t('portfolio_field_contact_email')" class="client_modal_i" />
                 <button class="client_modal_remove" @click="form.contacts.splice(i, 1)" :title="t('cancel')">✕</button>
               </div>
             </div>
 
             <!-- ── Free-form notes (FB-03 v2) — call / email / meeting / note ── -->
             <div class="client_modal_section">
-              <h3>{{ t('cd_notes') }}</h3>
+              <h3>{{ t('client_detail_notes') }}</h3>
               <div class="client_modal_note_add">
                 <select v-model="noteKind" class="client_modal_i client_modal_note_kind">
-                  <option value="note">📝 {{ t('cd_kind_note') }}</option>
-                  <option value="call">📞 {{ t('cd_kind_call') }}</option>
-                  <option value="email">✉️ {{ t('cd_kind_email') }}</option>
-                  <option value="meeting">🤝 {{ t('cd_kind_meeting') }}</option>
+                  <option value="note">📝 {{ t('client_detail_kind_note') }}</option>
+                  <option value="call">📞 {{ t('client_detail_kind_call') }}</option>
+                  <option value="email">✉️ {{ t('client_detail_kind_email') }}</option>
+                  <option value="meeting">🤝 {{ t('client_detail_kind_meeting') }}</option>
                 </select>
                 <textarea v-model="noteDraft" class="client_modal_i client_modal_note_text" rows="2"
-                  :placeholder="t('cd_note_placeholder')" @keydown.ctrl.enter="submitNote" @keydown.meta.enter="submitNote" />
+                  :placeholder="t('client_detail_note_placeholder')" @keydown.ctrl.enter="submitNote" @keydown.meta.enter="submitNote" />
                 <button class="button_primary client_modal_note_button" :disabled="!noteDraft.trim() || savingNote" @click="submitNote">
-                  {{ savingNote ? '…' : t('cd_note_add') }}
+                  {{ savingNote ? '…' : t('client_detail_note_add') }}
                 </button>
               </div>
-              <div v-if="!notes.length" class="client_modal_muted">{{ t('cd_notes_empty') }}</div>
+              <div v-if="!notes.length" class="client_modal_muted">{{ t('client_detail_notes_empty') }}</div>
               <div v-for="n in notes" :key="n.id" class="client_modal_note">
                 <span class="client_modal_note_icon">{{ kindIcon(n.kind) }}</span>
                 <div class="client_modal_note_main">
@@ -139,37 +139,37 @@
 
             <!-- ── Create & log (copil / task linked to this client) ── -->
             <div class="client_modal_section">
-              <h3>{{ t('cd_add_title') }}</h3>
+              <h3>{{ t('client_detail_add_title') }}</h3>
               <div class="client_modal_add_row">
                 <button class="client_modal_add_button" :disabled="addingCopil" @click="addCopil">
-                  <span class="client_modal_note_icon">📊</span>{{ addingCopil ? t('cd_opening') : t('cd_add_copil') }}
+                  <span class="client_modal_note_icon">📊</span>{{ addingCopil ? t('client_detail_opening') : t('client_detail_add_copil') }}
                 </button>
                 <button class="client_modal_add_button" :class="{ active: showTaskInput }" @click="showTaskInput = !showTaskInput">
-                  <span class="client_modal_note_icon">📝</span>{{ t('cd_add_task') }}
+                  <span class="client_modal_note_icon">📝</span>{{ t('client_detail_add_task') }}
                 </button>
                 <button class="client_modal_add_button" @click="goCreate('/app/quotes')">
-                  <span class="client_modal_note_icon">📄</span>{{ t('cd_add_quote') }}
+                  <span class="client_modal_note_icon">📄</span>{{ t('client_detail_add_quote') }}
                 </button>
                 <button class="client_modal_add_button" @click="goCreate('/app/tasks/planning')">
-                  <span class="client_modal_note_icon">📅</span>{{ t('cd_add_event') }}
+                  <span class="client_modal_note_icon">📅</span>{{ t('client_detail_add_event') }}
                 </button>
                 <button class="client_modal_add_button" @click="goCreate('/app/playbooks')">
-                  <span class="client_modal_note_icon">📋</span>{{ t('cd_add_playbook') }}
+                  <span class="client_modal_note_icon">📋</span>{{ t('client_detail_add_playbook') }}
                 </button>
               </div>
               <div v-if="showTaskInput" class="client_modal_task_add">
-                <input v-model="taskDraft" class="client_modal_i" :placeholder="t('cd_task_placeholder')"
+                <input v-model="taskDraft" class="client_modal_i" :placeholder="t('client_detail_task_placeholder')"
                   @keydown.enter="addQuickTask" />
                 <button class="button_primary client_modal_note_button" :disabled="!taskDraft.trim() || savingTask" @click="addQuickTask">
-                  {{ savingTask ? '…' : t('cd_note_add') }}
+                  {{ savingTask ? '…' : t('client_detail_note_add') }}
                 </button>
               </div>
             </div>
 
             <!-- ── Derived history (tasks / planning / playbooks / copils) ── -->
             <div class="client_modal_section">
-              <h3>{{ t('cd_timeline') }}</h3>
-              <div v-if="!timeline.length" class="client_modal_muted">{{ t('cd_tl_empty') }}</div>
+              <h3>{{ t('client_detail_timeline') }}</h3>
+              <div v-if="!timeline.length" class="client_modal_muted">{{ t('client_detail_tl_empty') }}</div>
               <router-link v-for="(e, i) in timeline" :key="i" :to="e.to" class="client_modal_timeline" @click="modal.close()">
                 <span class="client_modal_note_icon">{{ e.icon }}</span>
                 <span class="client_modal_timeline_label">{{ e.label }}</span>
@@ -179,7 +179,7 @@
           </div>
 
           <div class="client_modal_footer">
-            <span v-if="saved" class="client_modal_saved">✓ {{ t('cd_saved') }}</span>
+            <span v-if="saved" class="client_modal_saved">✓ {{ t('client_detail_saved') }}</span>
             <button class="button_outline" @click="modal.close()">{{ t('cancel') }}</button>
             <button class="button_primary" @click="saveClient">{{ t('save') }}</button>
           </div>
@@ -187,7 +187,7 @@
 
         <!-- Client introuvable -->
         <div v-else class="client_modal_window client_modal_window_small" :style="windowStyle" role="dialog">
-          <div class="client_modal_titlebar"><span class="client_modal_name">{{ t('cd_not_found') }}</span>
+          <div class="client_modal_titlebar"><span class="client_modal_name">{{ t('client_detail_not_found') }}</span>
             <button class="client_modal_close" @click="modal.close()">✕</button></div>
         </div>
       </div>
@@ -229,7 +229,7 @@ const kpis = useKpiStore()
 const playbooks = usePlaybookStore()
 
 const client = computed(() => clients.clients.find(c => c.id === modal.clientId) || null)
-const industries = computed(() => t('port_industries').split(','))
+const industries = computed(() => t('portfolio_industries').split(','))
 const effectiveStatus = computed(() => client.value ? clients.getEffectiveStatus({ ...client.value, ...form }) : 'healthy')
 const statusLabel = computed(() => t('status_' + effectiveStatus.value))
 const statusColor = computed(() => effectiveStatus.value === 'healthy' ? '#10b981' : effectiveStatus.value === 'watch' ? '#f59e0b' : '#ef4444')
@@ -354,7 +354,7 @@ async function addCopil() {
   if (addingCopil.value || !client.value) return
   addingCopil.value = true
   const name = form.name || client.value.name
-  const id = await kpis.createCopil({ clientId: client.value.id, clientName: name, title: t('cd_new_copil_title', { name }) })
+  const id = await kpis.createCopil({ clientId: client.value.id, clientName: name, title: t('client_detail_new_copil_title', { name }) })
   addingCopil.value = false
   if (id) { modal.close(); router.push('/app/kpis/' + id) }
 }
@@ -399,19 +399,19 @@ const timeline = computed(() => {
   const id = modal.clientId
   const out = []
   for (const tk of tasksStore.tasks.filter(x => x.clientId === id)) {
-    out.push({ date: tk.createdAt?.slice(0, 10) || tk.startDate || '', icon: '📝', to: '/app/tasks', label: t('cd_tl_task_created', { title: tk.title }) })
-    if (tk.finished || tk.status === 'done') out.push({ date: tk.endDate || tk.dueDate || '', icon: '✅', to: '/app/tasks', label: t('cd_tl_task_done', { title: tk.title }) })
+    out.push({ date: tk.createdAt?.slice(0, 10) || tk.startDate || '', icon: '📝', to: '/app/tasks', label: t('client_detail_tl_task_created', { title: tk.title }) })
+    if (tk.finished || tk.status === 'done') out.push({ date: tk.endDate || tk.dueDate || '', icon: '✅', to: '/app/tasks', label: t('client_detail_tl_task_done', { title: tk.title }) })
   }
-  for (const ev of planningEvents.value) out.push({ date: (ev.start_at || '').slice(0, 10), icon: '📅', to: '/app/tasks/planning', label: t('cd_tl_event', { title: ev.title }) })
+  for (const ev of planningEvents.value) out.push({ date: (ev.start_at || '').slice(0, 10), icon: '📅', to: '/app/tasks/planning', label: t('client_detail_tl_event', { title: ev.title }) })
   for (const pb of playbooks.playbooks.filter(x => (x.clientId ?? x.client_id) === id)) {
-    const name = t('pb_template_' + (pb.templateKey ?? pb.template_key ?? ''))
+    const name = t('playbook_template_' + (pb.templateKey ?? pb.template_key ?? ''))
     const started = pb.startedAt ?? pb.started_at, completed = pb.completedAt ?? pb.completed_at
-    if (started) out.push({ date: started.slice(0, 10), icon: pb.icon || '📋', to: '/app/playbooks', label: t('cd_tl_pb_started', { name }) })
-    if (completed) out.push({ date: completed.slice(0, 10), icon: '🏁', to: '/app/playbooks', label: t('cd_tl_pb_done', { name }) })
+    if (started) out.push({ date: started.slice(0, 10), icon: pb.icon || '📋', to: '/app/playbooks', label: t('client_detail_tl_pb_started', { name }) })
+    if (completed) out.push({ date: completed.slice(0, 10), icon: '🏁', to: '/app/playbooks', label: t('client_detail_tl_pb_done', { name }) })
   }
-  for (const cp of kpis.copils.filter(x => x.clientId === id)) out.push({ date: (cp.createdAt || '').slice(0, 10), icon: '📊', to: '/app/kpis', label: t('cd_tl_copil', { title: cp.title }) })
+  for (const cp of kpis.copils.filter(x => x.clientId === id)) out.push({ date: (cp.createdAt || '').slice(0, 10), icon: '📊', to: '/app/kpis', label: t('client_detail_tl_copil', { title: cp.title }) })
   // Devis (base, store quotes) — clientId + status + createdAt
-  for (const q of quoteStore.quotesForClient(id)) out.push({ date: (q.createdAt || '').slice(0, 10), icon: '📄', to: '/app/quotes', label: t('cd_tl_quote', { title: q.title || '—', status: t('qt_filter_' + (q.status || 'draft')) }) })
+  for (const q of quoteStore.quotesForClient(id)) out.push({ date: (q.createdAt || '').slice(0, 10), icon: '📄', to: '/app/quotes', label: t('client_detail_tl_quote', { title: q.title || '—', status: t('quote_filter_' + (q.status || 'draft')) }) })
   // Linked projects — derived from the client's tasks (no direct client_id on projects)
   const projByClient = {}
   for (const tk of tasksStore.tasks.filter(x => x.clientId === id && x.projectId)) {
@@ -420,10 +420,10 @@ const timeline = computed(() => {
   }
   for (const [pid, d] of Object.entries(projByClient)) {
     const proj = tasksStore.projects.find(p => p.id === pid)
-    if (proj) out.push({ date: d, icon: '📁', to: '/app/tasks', label: t('cd_tl_project', { name: proj.name || proj.title }) })
+    if (proj) out.push({ date: d, icon: '📁', to: '/app/tasks', label: t('client_detail_tl_project', { name: proj.name || proj.title }) })
   }
   // Situations / tickets = alerts raised on this client (churn, renewal, errors…)
-  for (const n of notifStore.notifications.filter(x => x.target_id === id)) out.push({ date: (n.created_at || '').slice(0, 10), icon: '🔔', to: '/app/dashboard', label: t('cd_tl_alert', { title: notifTitle(n, t) }) })
+  for (const n of notifStore.notifications.filter(x => x.target_id === id)) out.push({ date: (n.created_at || '').slice(0, 10), icon: '🔔', to: '/app/dashboard', label: t('client_detail_tl_alert', { title: notifTitle(n, t) }) })
   return out.filter(e => e.date).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 80)
 })
 

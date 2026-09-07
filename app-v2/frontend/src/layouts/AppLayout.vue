@@ -198,7 +198,7 @@ const notifRef = ref(null)
 onClickOutside(notifRef, () => { notifOpen.value = false })
 
 
-const NOTIF_GROUP_KEYS = { nps_drop: 'notif_group_nps_drop', churn_risk: 'notif_group_churn_risk', renewal: 'notif_group_renewal', task_overdue: 'notif_group_task_overdue' }
+const NOTIF_GROUP_KEYS = { nps_drop: 'notification_group_nps_drop', churn_risk: 'notification_group_churn_risk', renewal: 'notification_group_renewal', task_overdue: 'notification_group_task_overdue' }
 
 const groupedNotifications = computed(() => {
   const groups = {}
@@ -233,12 +233,12 @@ function fmtNotifDate(iso) {
   const d = new Date(iso)
   const now = new Date()
   const diffMin = Math.round((now - d) / 60000)
-  if (diffMin < 2) return t('notif_just_now')
-  if (diffMin < 60) return t('notif_minutes_ago', { n: diffMin })
+  if (diffMin < 2) return t('notification_just_now')
+  if (diffMin < 60) return t('notification_minutes_ago', { n: diffMin })
   const diffH = Math.round(diffMin / 60)
-  if (diffH < 24) return t('notif_hours_ago', { n: diffH })
+  if (diffH < 24) return t('notification_hours_ago', { n: diffH })
   const diffD = Math.round(diffH / 24)
-  if (diffD < 7) return t('notif_days_ago', { n: diffD })
+  if (diffD < 7) return t('notification_days_ago', { n: diffD })
   // REGIONAL-I18N (04/09): localeTag() instead of a local ladder — it is the one place that knows
   // the locale may carry a country ('fr-CA'), which this ladder read as neither 'ko' nor 'en' and
   // formatted as France.

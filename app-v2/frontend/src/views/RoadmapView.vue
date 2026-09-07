@@ -3,29 +3,29 @@
     <!-- Header -->
     <div class="roadmap_header">
       <div>
-        <h1>🗺️ {{ t('rm_title') }}</h1>
-        <p class="roadmap_sub">{{ t('rm_subtitle') }}</p>
+        <h1>🗺️ {{ t('roadmap_title') }}</h1>
+        <p class="roadmap_sub">{{ t('roadmap_subtitle') }}</p>
       </div>
-      <button class="button_primary" @click="showCreate = true">{{ t('rm_new') }}</button>
+      <button class="button_primary" @click="showCreate = true">{{ t('roadmap_new') }}</button>
     </div>
 
     <!-- KPIs -->
     <div class="roadmap_kpis">
       <div class="kpi_roadmap">
         <span class="kpi_roadmap_value blue">{{ store.activeRoadmaps.length }}</span>
-        <span class="kpi_roadmap_label">{{ t('rm_active_count') }}</span>
+        <span class="kpi_roadmap_label">{{ t('roadmap_active_count') }}</span>
       </div>
       <div class="kpi_roadmap">
         <span class="kpi_roadmap_value green">{{ store.doneRoadmaps.length }}</span>
-        <span class="kpi_roadmap_label">{{ t('rm_done_count') }}</span>
+        <span class="kpi_roadmap_label">{{ t('roadmap_done_count') }}</span>
       </div>
       <div class="kpi_roadmap">
         <span class="kpi_roadmap_value purple">{{ totalMilestones }}</span>
-        <span class="kpi_roadmap_label">{{ t('rm_total_milestones') }}</span>
+        <span class="kpi_roadmap_label">{{ t('roadmap_total_milestones') }}</span>
       </div>
       <div class="kpi_roadmap">
         <span class="kpi_roadmap_value">{{ store.globalProgress }}%</span>
-        <span class="kpi_roadmap_label">{{ t('rm_global_progress') }}</span>
+        <span class="kpi_roadmap_label">{{ t('roadmap_global_progress') }}</span>
         <div class="kpi_roadmap_bar">
           <div class="kpi_roadmap_fill" :style="{ width: store.globalProgress + '%' }" />
         </div>
@@ -35,11 +35,11 @@
     <!-- Empty state -->
     <div v-if="!store.roadmaps.length" class="roadmap_empty">
       <div class="rme_icon">🗺️</div>
-      <h3>{{ t('rm_empty_title') }}</h3>
-      <p>{{ t('rm_empty_desc') }}</p>
+      <h3>{{ t('roadmap_empty_title') }}</h3>
+      <p>{{ t('roadmap_empty_desc') }}</p>
       <div class="rme_actions">
-        <button class="button_primary" @click="showCreate = true">{{ t('rm_choose_template') }}</button>
-        <button class="button_outline" @click="showCreate = true">{{ t('rm_blank') }}</button>
+        <button class="button_primary" @click="showCreate = true">{{ t('roadmap_choose_template') }}</button>
+        <button class="button_outline" @click="showCreate = true">{{ t('roadmap_blank') }}</button>
       </div>
     </div>
 

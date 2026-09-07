@@ -1,7 +1,7 @@
 <template>
   <SlideOver
     :open="open"
-    :title="template ? t('pb_template_' + template.key) : ''"
+    :title="template ? t('playbook_template_' + template.key) : ''"
     @close="$emit('close')"
   >
     <form @submit.prevent="onSubmit" class="slideover_form" v-if="template">
@@ -10,7 +10,7 @@
           class="template_icon_large"
           :style="{ background: template.color + '15', color: template.color }"
         >{{ template.icon }}</span>
-        <p>{{ t('pb_template_' + template.key + '_desc') }}</p>
+        <p>{{ t('playbook_template_' + template.key + '_desc') }}</p>
       </div>
 
       <div class="template_steps_preview">
@@ -26,7 +26,7 @@
       </div>
 
       <div class="field_group">
-        <label>{{ t('pb_select_client') }} *</label>
+        <label>{{ t('playbook_select_client') }} *</label>
         <select v-model="form.clientId" required class="field_input">
           <option value="" disabled>—</option>
           <option
@@ -38,7 +38,7 @@
       </div>
 
       <div class="field_group">
-        <label>{{ t('pb_select_csm') }}</label>
+        <label>{{ t('playbook_select_csm') }}</label>
         <select v-model="form.csmId" class="field_input">
           <option
             v-for="m in teamMembers"
@@ -53,7 +53,7 @@
           {{ t('cancel') }}
         </button>
         <button type="submit" class="button_primary">
-          {{ t('pb_start') }}
+          {{ t('playbook_start') }}
         </button>
       </div>
     </form>
