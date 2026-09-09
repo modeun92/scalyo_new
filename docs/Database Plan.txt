@@ -1,23 +1,10 @@
-Organization - Company
-	Plan
-	Persons (by id)
-	Clients (by id)
-
-Client - Company
-	Organizations (by id)
-	Persons (by id)
-
-Administrator - Person
-Manager - Person
-Employee - Person
-	
-
 Company
 	id
 	Company Name
 	Country
 	Main Currency
-
+	info links (SNS, web, youtube etc.)
+	Photo Image link (for logo)
 Person
 	id
 	company-id
@@ -25,15 +12,76 @@ Person
 	Last-Name
 	Title (Dr./Mr./Ms./Mrs./Mx./None)
 	Language with Region
-	Position
+	Position (Job Title)
 	Phone Number
 	Email Address
-
-Chat
-	Messages
-
+	Photo Image link (for profile)
+	IsValid // absent or present
+Profit
+	company-id
+	from company-id
+	amount
+	currency
+	issued-at
+	description (json)
+Interaction
+	worker (by id)
+	visitor (by id)
+	From (person-id) // who approached first?
+	Description json // issue, conclusion
+Worker : Person
+	Clients (by id) // for what companies does it do CSM?
+	Working Status // quit, vacation, available
+	Assigned Tasks (by id)
+	Vacations (by id)
+Visitor : Person
+	Client (by id)
+	- Updating the profit
+	- viewing the infos (only about its company)
+	- declining the contract (from the organization)
+Administrator : Worker
+	- Managing the plan
+	- Updating the profit
+	- Viewing the performance
+		- of workers
+		- of its own organization
+Manager : Worker
+	- Managing the plan (only when granted)
+	- Updating the profit
+	- managing the team
+	- managing the clients
+	- managing the tasks
+Employee : Worker
+	- CSM jobs
+	- Updating the profit (only for assigned)
+Organization : Company
+	Plan
+	Workers (by id)
+	Clients (by id)
+Client : Company
+	Organization (by id) // maybe it could be multiple
+	Visitors (by id)
+	Workers (by id) // who manage(s) this client?
+	Profits (by id)
+	Clients (by id) // the client of the organization has clients and the organization manages
+	Interactions (by id)
+	IsValid (it can stop the contract)
+Emoji
+	type // emoji value
+	person // who did that?
 Message
+	id
 	From	person-id
 	To		person-id
+	emojis (by id)
 	written-at
 	read-at
+Chat Room
+	Persons (by id)
+	Messages (by id)
+	ChatInfos json // joining, deleting, pinned
+	pinned message (by id)
+	
+	
+	
+	

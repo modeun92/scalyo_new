@@ -47,7 +47,7 @@
 	   - /api/* AI context already read user_profiles.currency: it follows automatically
 	   NOT changed on purpose: no conversion (A-11 - the symbol changes, the amounts do
 	   not), and a quote keeps the currency of its own billing country (countryLaws).
-	
+
 6. member's authority what they are allowed to do
 	1) nominating CSM (manager only)
 	2) information changing (CSM or manager only)
@@ -110,3 +110,12 @@
 	3) CRUD CSMs
 	4) CRUD clients (confirmation)
 	5) right now all the info is not shown
+
+12. Chatting problems
+	1) message is not seen in real-time.
+	2) emoji reaction is not added in mobile.
+	3) the second message cannot get emoji reaction.
+	4) notification for chatting doesn't exist or doesn't function well.
+		(1) shall be on the button for chatting
+		(2) showing the number of new messages
+		(3) in the style of { white-text, red-background }
