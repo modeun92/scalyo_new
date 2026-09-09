@@ -24,6 +24,10 @@ Profit
 	currency
 	issued-at
 	description (json)
+Churn
+	company-id
+	from company-id
+	description
 Interaction
 	worker (by id)
 	visitor (by id)
@@ -63,7 +67,8 @@ Client : Company
 	Visitors (by id)
 	Workers (by id) // who manage(s) this client?
 	Profits (by id)
-	Clients (by id) // the client of the organization has clients and the organization manages
+	Churns (by id)
+	Companies (by id) // the client of the organization has clients and the organization manages
 	Interactions (by id)
 	IsValid (it can stop the contract)
 Emoji
@@ -79,9 +84,5 @@ Message
 Chat Room
 	Persons (by id)
 	Messages (by id)
-	ChatInfos json // joining, deleting, pinned
+	ChatInfos json // joining (by whom of whom), deleting (by whom), pinned (by whom)
 	pinned message (by id)
-	
-	
-	
-	
