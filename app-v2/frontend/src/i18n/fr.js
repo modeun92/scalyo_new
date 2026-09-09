@@ -119,6 +119,8 @@ export default {
   chat_err_load_messages_failed: 'Impossible de charger les messages',
   chat_err_msg_too_long: 'Message trop long (max 5000 caracteres)',
   chat_err_open_dm_failed: 'La conversation n\'a pas pu être ouverte',
+  chat_err_pin_failed: 'L’épinglage n’a pas pu être enregistré',
+  chat_err_react_failed: 'La réaction n’a pas pu être enregistrée',
   chat_err_send_failed: 'Echec de l\'envoi',
   chat_load_more: 'Charger les messages précédents',
   chat_loading: 'Chargement...',

@@ -80,7 +80,7 @@ discovered phantom URLs. Serving a real 404 would mean rewriting production rout
 | `roadmap` | Roadmaps and milestones |
 | `emailStudio` | Templates, sending, Resend org status |
 | `integrations` | Third-party integrations (module currently hidden) |
-| `chat` | Channels, DMs, realtime + polling fallback, unread badges |
+| `chat` | Channels, DMs, realtime **plus** an always-on safety-net sweep, optimistic send, unread badges (`unreadBadge()` caps at 9+) |
 | `notifications` | Generated alerts, locale-agnostic payloads |
 | `team` | Members, seats, per-CSM statistics |
 | `oxygen*` | The Oxygen loop — see [MODULES.md](MODULES.md) |

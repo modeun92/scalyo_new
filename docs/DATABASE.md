@@ -37,6 +37,7 @@ is an older, superseded file.
 | `20260722200000_client_metrics` | Monthly manual KPI measurements per client |
 | `20260729250000_oxygen_team` | `oxygen_team_enabled` legal gate + the `oxygen_team_aggregate` function |
 | `20260903100000_copil_media_bucket` | Private `copil-media` Storage bucket with per-user prefix policies |
+| `20260909120000_chat_reactions_rpc` | `can_read_chat_message`, `toggle_chat_reaction`, `set_chat_message_pinned` RPCs — reacting to or pinning **another member's** message; publishes `chat_channels` to `supabase_realtime` |
 | `20260721000000_copils_client_id` (front) | Idempotent guarantee that `copils.client_id` exists |
 | `20260721010000_notify_client_note` (front) | Trigger notifying a client's owner when a colleague adds a note |
 | `20260801120000_planning_recurrence` (front) | `planning_events.recurrence` + `series_id` |
@@ -88,7 +89,7 @@ aggregate is only reachable through the `oxygen_team_aggregate` function.
 |---|---|
 | `chat_channels` | `type` classic or `dm`; `dm_key` is a deterministic sorted-uuid pair key |
 | `chat_channel_members` | Participants; writes only happen through the `open_dm` RPC |
-| `chat_messages` | Published to `supabase_realtime` |
+| `chat_messages` | Published to `supabase_realtime` (so is `chat_channels`). `UPDATE` stays `user_id = auth.uid()` — **reactions and pins on someone else's message go through the RPCs**, never a direct `UPDATE`, which would silently match zero rows |
 | `notifications` | `type` + `payload` (a snapshot of the values at alert time); title/body are rendered in the **reader's** locale by `src/lib/notifText.js` |
 | `ai_conversations`, `ai_messages` | Persisted AI history |
 | `ai_usage` | One row per quota-consuming AI call (`coach`, `nova` only) |
@@ -136,6 +137,9 @@ alone would be ineffective while a table-level `GRANT` exists, so the migrations
 | `get_org_member_names()` | Minimal exposure (id, first name, last name) of the caller's org members. A full org RLS policy on `profiles` is **excluded** — that table carries secrets. |
 | `get_org_email_status()` | Boolean configuration status, for owner **and** members |
 | `open_dm(other_user_id)` | Atomic find-or-create of a 1-to-1 DM |
+| `can_read_chat_message(id)` | `SECURITY DEFINER` visibility check that mirrors `chat_messages_select` + the DM clause of `chat_channels_select`. **Parity is mandatory**: change either policy, change this. |
+| `toggle_chat_reaction(id, emoji)` | Adds or removes the caller's reaction, under a row lock (concurrent reactors no longer overwrite each other). Returns the confirmed `reactions` array. Only reachable for a message the caller can read. |
+| `set_chat_message_pinned(id, pinned)` | Pin/unpin any readable message. Both RPCs exist because `chat_messages_update` is `user_id = auth.uid()`, so a direct `UPDATE` on someone else's message returned 204 with `error = null` — a false success (D-14). |
 | `oxygen_team_aggregate()` | The only path to team well-being data. `SECURITY DEFINER`, **owner-only**, literal `n ≥ 5` threshold in the body (not parameterizable), fail-closed when the org flag is off, 14-day window plus trend. Returns team averages only — **no individual data**. |
 | `notify_client_note()` | Trigger: notifies a client's owner when a colleague adds a note. `SECURITY DEFINER` because `notifications` enforces `user_id = auth.uid()` on insert. |
 | `check_client_limit()` / `enforce_client_limit` | Client quota per organization, prospects excluded |

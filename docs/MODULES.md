@@ -219,10 +219,32 @@ Org channels and 1-to-1 DMs, over Supabase Realtime.
   same components.
 - Realtime lives at the **layout** level, so the unread badge keeps working when the panel
   is closed; it is only destroyed on logout or when leaving `/app`.
-- A **polling fallback** activates only when realtime is unavailable *and* the chat
-  surface is visible. It is incremental (messages newer than the channel's last known
-  one), so the response is empty ~99 % of the time, with a 6→30 s backoff on an inactive
-  channel, and it switches itself off when realtime returns.
+- A **safety-net sweep** (`CHAT-LIVE`, 09/09/2026) runs for as long as the store is alive,
+  *including while realtime reports itself connected* — 15 s when it looks healthy, 4→30 s
+  once it is known to be down. It replaces the old fallback, which was only armed after a
+  realtime error and only ever read the active channel: a socket stuck in `SUBSCRIBED` and
+  delivering nothing had no fallback at all, and an unread badge could never grow for a
+  channel other than the displayed one.
+- The sweep is **one request for every channel at once**, incremental on a `created_at`
+  high-water mark (never an `.in('channel_id', [...])`, R6), so the answer is an empty array
+  almost always. RLS does the scoping. A one-second overlap plus id deduplication covers
+  rows sharing a timestamp. While realtime is down and the panel is open, the open channel is
+  additionally re-read every 15 s — reactions and edits move `edited_at`, not `created_at`,
+  so the watermark is blind to them.
+- Everything incoming — realtime `INSERT`/`UPDATE`, the sweep, and the row our own insert
+  returns — goes through the single `ingest()` door, deduplicated by id.
+- **Sending is optimistically echoed** and the insert uses `.select()`, so the confirmed
+  server row is what stays on screen (D-14); a failed insert removes its own echo.
+- Reactions and pins go through `toggle_chat_reaction` / `set_chat_message_pinned`
+  (`CHAT-REACT`). A direct `UPDATE` on someone else's message matched zero rows under
+  `chat_messages_update` and returned success — you could only react to your own messages,
+  silently.
+- The action bar is opened by a **tap** on the message as well as by hover (`CHAT-TOUCH`);
+  on a coarse pointer it drops below the bubble with 32 px targets. It was `:hover`-only,
+  which made every message action unreachable on a phone.
+- Unread badges are white-on-red and capped at `9+` through `store.unreadBadge()` (one
+  source, R3), on the chat FAB and on each channel/DM row. Your **own** messages never
+  increment them.
 - An anti-storm guard stops residual `CLOSED` events — including the one caused by the
   app's own `unsubscribe` — from re-triggering reconnection logs.
 

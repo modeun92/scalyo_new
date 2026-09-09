@@ -10,8 +10,25 @@ const SEND_COOLDOWN_MS = 1000
 const REALTIME_RECONNECT_DELAYS = [1000, 2000, 5000, 10000, 30000]
 const MAX_REALTIME_RETRIES = 10
 const REALTIME_FAILSAFE_MS = 120000
-const POLL_BASE_MS = 6000
+// CHAT-LIVE (09/09/2026): three cadences, not one. POLL_LIVE_MS is a safety-net sweep that
+// runs EVEN WHILE realtime reports itself connected - a websocket that is up but delivering
+// nothing (RLS refusing the row, publication dropped, tenant throttled) is indistinguishable
+// from a healthy one on the client side, and that is exactly what "the message is not seen
+// in real-time" was: connected.value === true and not one event ever arriving.
+// POLL_BASE/POLL_MAX are the degraded mode used once realtime is known to be down.
+const POLL_LIVE_MS = 15000
+const POLL_BASE_MS = 4000
 const POLL_MAX_MS = 30000
+// One sweep covers EVERY channel at once - RLS already scopes the rows to my org and my DMs.
+// The old poll only ever looked at the active channel, so an unread badge could never grow
+// for any other channel. Never an .in('channel_id', [...]) here: that list grows unbounded (R6).
+const POLL_SWEEP_LIMIT = 200
+// Overlap re-read: two rows can share a created_at, and .gt() would drop one of them.
+// We re-ask for the last second every time and let the id dedupe absorb the overlap.
+const POLL_OVERLAP_MS = 1000
+// Degraded mode only: reactions and edits move `edited_at`, not `created_at`, so the
+// watermark sweep cannot see them. Re-read the open channel at this cadence instead.
+const DEGRADED_REFRESH_MS = 15000
 
 export const useChatStore = defineStore('chat', () => {
 const channels = ref([])
@@ -39,8 +56,16 @@ let realtimeFailsafeTimer = null
 let pollTimer = null
 let pollDelay = POLL_BASE_MS
 let pollBusy = false
+let pollActive = false
+// CHAT-LIVE: high-water mark = the newest created_at this client has ever ingested, across
+// ALL channels. The sweep asks for "everything after this", so a channel that was never
+// opened still feeds its badge.
+let lastSeenAt = null
+let lastDegradedRefresh = 0
 let lastSendTime = 0
 let realtimeGaveUpListener = null
+// CHAT-LIVE: coming back to the tab sweeps at once instead of waiting out the cadence.
+let pollVisibilityListener = null
 // Anti-storm guard: once the abandon is recorded, residual CLOSED events
 // (including the one triggered by our own unsubscribe) are no longer logged.
 let realtimeGaveUp = false
@@ -48,6 +73,14 @@ let realtimeGaveUp = false
 const activeMessages = computed(() => activeChannel.value ? (messages.value[activeChannel.value] || []) : [])
 const pinnedMessages = computed(() => activeMessages.value.filter(m => m.pinned))
 const totalUnread = computed(() => Object.values(unreadCounts.value).reduce((a, b) => a + b, 0))
+// CHAT-BADGE (09/09/2026): one source for the badge text (R3) - the FAB and every sidebar
+// row must cap the same way, or a 3-digit count blows the 16px circle out of shape.
+// Not i18n: it is a number, and "9+" reads identically in fr/en/ko.
+function unreadBadge(n) {
+  const v = Number(n) || 0
+  if (v <= 0) return ''
+  return v > 9 ? '9+' : String(v)
+}
 
 // ─── Init ──────────────────────────────────────────────────────────────────
 async function init() {
@@ -58,7 +91,18 @@ async function init() {
       activeChannel.value = channels.value[0].id
     }
     if (activeChannel.value) await loadMessages(activeChannel.value)
+    // CHAT-LIVE: nothing has ever been ingested (empty org, or every channel empty) - start
+    // the watermark slightly in the past rather than at "now": a client clock running ahead
+    // of Postgres would otherwise skip the next minute of messages outright.
+    if (!lastSeenAt) lastSeenAt = new Date(Date.now() - 60000).toISOString()
+    pollActive = true
+    if (!pollVisibilityListener && typeof document !== 'undefined') {
+      pollVisibilityListener = () => { if (document.visibilityState === 'visible') pollNow() }
+      document.addEventListener('visibilitychange', pollVisibilityListener)
+    }
     subscribeRealtime()
+    // Armed BEFORE realtime confirms: if the socket never delivers, the sweep still does.
+    startPolling()
   } catch (e) {
     console.error('Chat init failed:', e.message || e)
     lastError.value = 'init_failed'
@@ -104,10 +148,16 @@ async function loadMessages(channelId, before = null) {
     }
     if (data) {
       const mapped = data.map(mapMsg)
+      for (const m of mapped) {
+        if (m.timestamp && (!lastSeenAt || m.timestamp > lastSeenAt)) lastSeenAt = m.timestamp
+      }
       if (before && messages.value[channelId]) {
         messages.value[channelId] = [...mapped, ...messages.value[channelId]]
       } else {
-        messages.value[channelId] = mapped
+        // CHAT-LIVE: a message still in flight (optimistic echo) survives the reload.
+        // Dropping it made the sender's own line vanish for a second on every refresh.
+        const pending = (messages.value[channelId] || []).filter(m => m.pending)
+        messages.value[channelId] = pending.length ? [...mapped, ...pending] : mapped
       }
     }
   } catch (e) {
@@ -133,8 +183,53 @@ function mapMsg(m) {
     reactions: m.reactions || [], attachments: m.attachments || [],
     replyTo: m.reply_to, editedAt: m.edited_at,
     date: ts ? ts.slice(0, 10) : '',
-    edited: !!m.edited_at
+    edited: !!m.edited_at,
+    pending: false
   }
+}
+
+// CHAT-LIVE (09/09/2026): the ONE door every incoming message goes through - realtime INSERT,
+// poll sweep, and the confirmed row our own insert returns. Deduplicated by id, so realtime
+// and the safety-net sweep delivering the same row is a no-op, not a double bubble.
+// Returns how many rows were genuinely new.
+function ingest(rows, { silent = false } = {}) {
+  const meId = useAuthStore().user?.id
+  let added = 0
+  let unknownChannel = false
+  for (const raw of rows || []) {
+    const msg = mapMsg(raw)
+    if (msg.timestamp && (!lastSeenAt || msg.timestamp > lastSeenAt)) lastSeenAt = msg.timestamp
+    if (!messages.value[msg.channelId]) messages.value[msg.channelId] = []
+    const arr = messages.value[msg.channelId]
+    const known = arr.findIndex(m => m.id === msg.id)
+    if (known !== -1) { arr[known] = msg; continue }
+    // The optimistic echo of MY message, now confirmed: replace it in place. Appending
+    // instead showed the sender their own message twice until the next reload.
+    const pending = arr.findIndex(m => m.pending && m.authorId === msg.authorId && m.content === msg.content)
+    if (pending !== -1) { arr[pending] = msg; continue }
+    insertByTime(arr, msg)
+    added++
+    // D-14/R21: my own message is never "unread". Counting it made the badge lie the moment
+    // I sent something with the panel closed.
+    if (!silent && msg.authorId !== meId && (!surfaceVisible.value || msg.channelId !== activeChannel.value)) {
+      unreadCounts.value[msg.channelId] = (unreadCounts.value[msg.channelId] || 0) + 1
+    }
+    // G9-22: channel created after boot => unknown to the list. One reload after the batch,
+    // never one per row (a 200-row sweep used to fire 200 loadChannels()).
+    if (!channels.value.some(c => c.id === msg.channelId)) unknownChannel = true
+  }
+  if (unknownChannel) loadChannels()
+  return added
+}
+
+// A sweep after a reconnect can deliver rows older than what is already on screen, so the
+// append fast-path is not enough on its own.
+function insertByTime(arr, msg) {
+  const last = arr[arr.length - 1]
+  if (!last || !msg.timestamp || (last.timestamp || '') <= msg.timestamp) { arr.push(msg); return }
+  let i = arr.length - 1
+  while (i > 0 && (arr[i - 1].timestamp || '') > msg.timestamp) i--
+  arr.splice(i, 0, msg)
 }
 
 // G9-21: name resolution at render time (fallback = stored author_name, never a crash)
@@ -176,31 +271,14 @@ async function subscribeRealtime() {
     realtimeSub = ch
     ch
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages' }, (payload) => {
-        try {
-          const msg = mapMsg(payload.new)
-          if (!messages.value[msg.channelId]) messages.value[msg.channelId] = []
-          const exists = messages.value[msg.channelId].some(m => m.id === msg.id)
-          if (!exists) {
-            messages.value[msg.channelId].push(msg)
-            // G9-20: unread if the chat surface is closed OR if the channel is not the displayed one
-            if (!surfaceVisible.value || msg.channelId !== activeChannel.value) {
-              unreadCounts.value[msg.channelId] = (unreadCounts.value[msg.channelId] || 0) + 1
-            }
-            // G9-22: channel created after boot → unknown to the list (no realtime on
-            // chat_channels) → we reload the channels when an unknown channel_id is discovered
-            if (!channels.value.some(c => c.id === msg.channelId)) loadChannels()
-          }
-        } catch (e) { console.error('Realtime INSERT handler failed:', e.message || e) }
+        // G9-20 unread + G9-22 unknown channel now live in ingest(), shared with the sweep.
+        try { ingest([payload.new]) }
+        catch (e) { console.error('Realtime INSERT handler failed:', e.message || e) }
       })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'chat_messages' }, (payload) => {
-        try {
-          const updated = mapMsg(payload.new)
-          const arr = messages.value[updated.channelId]
-          if (arr) {
-            const idx = arr.findIndex(m => m.id === updated.id)
-            if (idx !== -1) arr[idx] = updated
-          }
-        } catch (e) { console.error('Realtime UPDATE handler failed:', e.message || e) }
+        // silent: an edit or a reaction is not a new message - it must not move the badge.
+        try { ingest([payload.new], { silent: true }) }
+        catch (e) { console.error('Realtime UPDATE handler failed:', e.message || e) }
       })
       .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'chat_messages' }, (payload) => {
         try {
@@ -217,20 +295,25 @@ async function subscribeRealtime() {
           connected.value = true
           lastRealtimeError.value = null
           if (realtimeFailsafeTimer) { clearInterval(realtimeFailsafeTimer); realtimeFailsafeTimer = null }
-          stopPolling()
+          // CHAT-LIVE: do NOT stop polling here. This used to be stopPolling(), which is why a
+          // socket that reported SUBSCRIBED and then delivered nothing left the chat frozen with
+          // no fallback and no visible error. It merely slows down to POLL_LIVE_MS.
+          startPolling()
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
           connected.value = false
           lastRealtimeError.value = err ? String(err.message || err) : status
           if (err) console.error('Chat realtime — ' + status + ': ' + lastRealtimeError.value)
           scheduleRealtimeReconnect()
-          startPolling()
+          pollDelay = POLL_BASE_MS
+          pollNow()
         }
       })
   } catch (e) {
     console.error('Realtime subscription failed:', e.message || e)
     connected.value = false
     scheduleRealtimeReconnect()
-    startPolling()
+    pollDelay = POLL_BASE_MS
+    pollNow()
   }
 }
 
@@ -270,16 +353,28 @@ function scheduleRealtimeReconnect() {
   }, delay)
 }
 
-// ─── Fallback polling (realtime outage) ────────────────────────────────
-// Only active if realtime is unavailable AND the chat surface is visible.
-// Incremental (created_at > the channel's last message): empty response ~99 % of the
-// time → negligible egress. Backoff 6→30 s on an inactive channel. Switches itself off
-// when realtime comes back (SUBSCRIBED) or on destroy.
+// ─── Safety-net polling ────────────────────────────────────────────────────
+// CHAT-LIVE (09/09/2026): this used to be a *fallback*, armed only once realtime had
+// reported an error, and it only ever looked at the active channel while the panel was open.
+// Two consequences, both reported as "the chat is not real-time":
+//   - a socket stuck in SUBSCRIBED but delivering nothing had NO fallback at all, and
+//     connected.value stayed true, so not even the disconnected banner showed;
+//   - an unread badge could never grow for a channel other than the displayed one.
+// It is now always armed while the store is alive, at POLL_LIVE_MS when realtime looks
+// healthy and POLL_BASE..POLL_MAX when it does not. One request per sweep, incremental on a
+// created_at watermark, so the usual answer is an empty array: negligible egress.
 function startPolling() {
-  if (pollTimer) return
-  pollDelay = POLL_BASE_MS
-  console.warn('Chat realtime — fallback polling actif (' + (POLL_BASE_MS / 1000) + 's)')
-  pollTimer = setTimeout(pollCycle, pollDelay)
+  if (!pollActive || pollTimer) return
+  pollTimer = setTimeout(pollCycle, connected.value ? POLL_LIVE_MS : pollDelay)
+}
+
+// Cancels whatever long timer is pending and sweeps on the next tick. Used when the state
+// changed under us (realtime dropped, the surface opened, a channel was selected): waiting
+// out a 15 s timer there is exactly the lag the user sees.
+function pollNow() {
+  if (!pollActive) return
+  if (pollTimer) { clearTimeout(pollTimer); pollTimer = null }
+  pollTimer = setTimeout(pollCycle, 0)
 }
 
 function stopPolling() {
@@ -289,47 +384,52 @@ function stopPolling() {
 
 async function pollCycle() {
   pollTimer = null
-  if (connected.value) { stopPolling(); return }
-  if (!pollBusy && surfaceVisible.value && document.visibilityState === 'visible' && activeChannel.value) {
+  if (!pollActive) return
+  // A hidden tab is not polled. The timer keeps ticking so the loop survives, and the
+  // visibilitychange listener below sweeps the instant the tab is looked at again.
+  const tabVisible = typeof document === 'undefined' || document.visibilityState === 'visible'
+  if (!pollBusy && tabVisible) {
     pollBusy = true
     try {
-      const got = await pollOnce(activeChannel.value)
+      const got = await pollSweep()
       pollDelay = got ? POLL_BASE_MS : Math.min(Math.round(pollDelay * 1.5), POLL_MAX_MS)
+      await degradedRefresh()
     } catch (_) {
       pollDelay = POLL_MAX_MS
     } finally {
       pollBusy = false
     }
   }
-  if (!connected.value) pollTimer = setTimeout(pollCycle, pollDelay)
+  startPolling()
 }
 
-// Fetches messages newer than the last known one of the channel. true if there are new ones.
-async function pollOnce(channelId) {
-  const arr = messages.value[channelId]
-  if (!arr || arr.length === 0) {
-    await loadMessages(channelId)
-    return (messages.value[channelId] || []).length > 0
-  }
-  const last = arr[arr.length - 1].timestamp
-  if (!last) return false
+// Every message newer than the watermark, all channels at once. RLS does the scoping.
+async function pollSweep() {
+  if (!lastSeenAt) return 0
+  const since = new Date(Date.parse(lastSeenAt) - POLL_OVERLAP_MS).toISOString()
   const { data, error } = await supabase
     .from('chat_messages')
     .select('*')
-    .eq('channel_id', channelId)
-    .gt('created_at', last)
+    .gt('created_at', since)
     .order('created_at', { ascending: true })
-    .limit(MESSAGES_PER_PAGE)
-  if (error || !data || data.length === 0) return false
-  let added = false
-  for (const raw of data) {
-    const msg = mapMsg(raw)
-    if (!messages.value[channelId].some(m => m.id === msg.id)) {
-      messages.value[channelId].push(msg)
-      added = true
-    }
+    .limit(POLL_SWEEP_LIMIT)
+  if (error) {
+    console.warn('Chat poll sweep failed:', error.message)
+    return 0
   }
-  return added
+  if (!data || data.length === 0) return 0
+  return ingest(data)
+}
+
+// Realtime down + panel open: reactions, edits and pins move edited_at, never created_at,
+// so the watermark sweep is blind to them. Re-read the open channel, but no faster than
+// DEGRADED_REFRESH_MS - this is a full page of 100 rows, not an incremental read.
+async function degradedRefresh() {
+  if (connected.value || !surfaceVisible.value || !activeChannel.value) return
+  const now = Date.now()
+  if (now - lastDegradedRefresh < DEGRADED_REFRESH_MS) return
+  lastDegradedRefresh = now
+  await loadMessages(activeChannel.value)
 }
 
 function destroy() {
@@ -338,9 +438,13 @@ function destroy() {
   if (realtimeFailsafeTimer) { clearInterval(realtimeFailsafeTimer); realtimeFailsafeTimer = null }
   stopPolling()
   if (realtimeGaveUpListener) { document.removeEventListener('visibilitychange', realtimeGaveUpListener); realtimeGaveUpListener = null }
+  if (pollVisibilityListener) { document.removeEventListener('visibilitychange', pollVisibilityListener); pollVisibilityListener = null }
   connected.value = false
   realtimeRetryCount = 0
   realtimeGaveUp = false
+  pollActive = false
+  lastSeenAt = null
+  lastDegradedRefresh = 0
 }
 
 // ─── Send with validation ─────────────────────────────────────────────────
@@ -355,6 +459,7 @@ async function sendMessage(channelId, content, author, authorId, attachments = [
   if (now - lastSendTime < SEND_COOLDOWN_MS) return
   lastSendTime = now
   sending.value = true
+  let tempId = null // declared out here so the catch below can revert the echo too
   try {
     const auth = useAuthStore()
     const userId = authorId || auth.user?.id
@@ -362,21 +467,43 @@ async function sendMessage(channelId, content, author, authorId, attachments = [
     const name = author || auth.profile?.first_name || (auth.user?.email || '').split('@')[0] || ''
     // CR-9 (C-06): organization_id set at insert time — RLS only accepts
     // the caller's org value (IS NOT DISTINCT FROM get_my_org_id())
-    const { error } = await withWrite(() => supabase.from('chat_messages').insert({
+    // CHAT-LIVE: the sender used to see NOTHING until a realtime INSERT came back for their
+    // own message. With the socket silently dead that is a chat that swallows what you type.
+    // The bubble now appears at once, marked pending, and is replaced by the confirmed row.
+    tempId = 'pending-' + now + '-' + Math.random().toString(36).slice(2)
+    const echo = {
+      id: tempId, channelId, author: name, authorId: userId, content: trimmed,
+      timestamp: new Date().toISOString(), pinned: false, reactions: [],
+      attachments: attachments.length ? attachments : [], replyTo: replyingTo.value || null,
+      editedAt: null, edited: false, pending: true
+    }
+    echo.date = echo.timestamp.slice(0, 10)
+    if (!messages.value[channelId]) messages.value[channelId] = []
+    messages.value[channelId].push(echo)
+
+    // D-14: .select() so the CONFIRMED row is what lands on screen - the echo is never
+    // promoted on its own. A failed insert takes its echo away with it (structural
+    // optimistic update, reverted on failure).
+    const { data, error } = await withWrite(() => supabase.from('chat_messages').insert({
       channel_id: channelId, user_id: userId, author_name: name,
       content: trimmed, attachments: attachments.length ? attachments : [],
       reply_to: replyingTo.value || null,
       organization_id: auth.profile?.organization_id ?? null
-    }), { label: 'chat.sendMessage' })
+    }).select().single(), { label: 'chat.sendMessage' })
     if (error) {
+      messages.value[channelId] = messages.value[channelId].filter(m => m.id !== tempId)
       console.error('sendMessage — insert failed:', error.message)
       lastError.value = 'send_failed'
       return
     }
     replyingTo.value = null
-    // Realtime outage: immediately reflect the sent message through the poll
-    if (!connected.value) pollOnce(channelId).catch(() => {})
+    // silent: my own message must not increment my own badge.
+    if (data) ingest([data], { silent: true })
+    else messages.value[channelId] = messages.value[channelId].filter(m => m.id !== tempId)
   } catch (e) {
+    if (tempId && messages.value[channelId]) {
+      messages.value[channelId] = messages.value[channelId].filter(m => m.id !== tempId)
+    }
     console.error('sendMessage — unexpected failure:', e.message || e)
     lastError.value = 'send_failed'
   } finally {
@@ -415,51 +542,57 @@ async function deleteMessage(channelId, msgId) {
   }
 }
 
+// CHAT-REACT: same false success as the reaction - pinning someone else's message was a
+// silent no-op against chat_messages_update. Through the RPC, org-scoped and confirmed.
 async function pinMessage(channelId, msgId) {
   try {
     const msg = (messages.value[channelId] || []).find(m => m.id === msgId)
-    if (!msg) return
-    const { error } = await withWrite(() => supabase.from('chat_messages')
-      .update({ pinned: !msg.pinned })
-      .eq('id', msgId), { label: 'chat.pinMessage' })
+    if (!msg || msg.pending) return
+    const { data, error } = await withWrite(
+      () => supabase.rpc('set_chat_message_pinned', { p_message_id: msgId, p_pinned: !msg.pinned }),
+      { label: 'chat.pinMessage' }
+    )
     if (error) {
-      console.error('pinMessage — update failed:', error.message)
-      lastError.value = 'edit_failed'
+      console.error('pinMessage — rpc failed:', error.message)
+      lastError.value = 'pin_failed'
+      return
     }
+    const arr = messages.value[channelId] || []
+    const idx = arr.findIndex(m => m.id === msgId)
+    if (idx !== -1) arr[idx] = { ...arr[idx], pinned: data === true }
   } catch (e) {
     console.error('pinMessage — unexpected failure:', e.message || e)
-    lastError.value = 'edit_failed'
+    lastError.value = 'pin_failed'
   }
 }
 
-async function addReaction(channelId, msgId, emoji, userId) {
+// CHAT-REACT (09/09/2026): through the toggle_chat_reaction RPC, never a direct UPDATE.
+// chat_messages_update is USING (user_id = auth.uid()), so the old read-modify-write UPDATE
+// matched ZERO rows on anybody else's message and PostgREST answered 204 with error = null -
+// a textbook false success (D-14): the reaction never appeared and nothing was ever shown.
+// The RPC also does the read-modify-write under a row lock, so two people reacting at the
+// same instant no longer overwrite each other. Migration 20260909120000_chat_reactions_rpc.sql.
+async function addReaction(channelId, msgId, emoji) {
   try {
-    const auth = useAuthStore()
-    const uid = userId || auth.user?.id
     const msg = (messages.value[channelId] || []).find(m => m.id === msgId)
     if (!msg) return
-    let reactions = [...(msg.reactions || [])]
-    const idx = reactions.findIndex(r => r.emoji === emoji)
-    if (idx !== -1) {
-      if (reactions[idx].users?.includes(uid)) {
-        reactions[idx].users = reactions[idx].users.filter(u => u !== uid)
-        if (reactions[idx].users.length === 0) reactions.splice(idx, 1)
-      } else {
-        reactions[idx].users = [...(reactions[idx].users || []), uid]
-      }
-    } else {
-      reactions.push({ emoji, users: [uid] })
-    }
-    const { error } = await withWrite(() => supabase.from('chat_messages')
-      .update({ reactions })
-      .eq('id', msgId), { label: 'chat.addReaction' })
+    if (msg.pending) return // not written yet - it has no server id to react to
+    const { data, error } = await withWrite(
+      () => supabase.rpc('toggle_chat_reaction', { p_message_id: msgId, p_emoji: emoji }),
+      { label: 'chat.addReaction' }
+    )
     if (error) {
-      console.error('addReaction — update failed:', error.message)
-      lastError.value = 'edit_failed'
+      console.error('addReaction — rpc failed:', error.message)
+      lastError.value = 'react_failed'
+      return
     }
+    // The confirmed array from the server, never the locally guessed one (D-14).
+    const arr = messages.value[channelId] || []
+    const idx = arr.findIndex(m => m.id === msgId)
+    if (idx !== -1) arr[idx] = { ...arr[idx], reactions: Array.isArray(data) ? data : [] }
   } catch (e) {
     console.error('addReaction — unexpected failure:', e.message || e)
-    lastError.value = 'edit_failed'
+    lastError.value = 'react_failed'
   }
 }
 
@@ -476,9 +609,10 @@ async function setActive(id) {
     } catch (e) {
       console.error('setActive — loadMessages failed:', e.message || e)
     }
-  } else if (!connected.value) {
-    // Realtime outage: catch up on what was missed on this channel
-    pollOnce(id).catch(() => {})
+  } else {
+    // CHAT-LIVE: catch up immediately on switching, whatever realtime claims about itself.
+    lastDegradedRefresh = 0
+    pollNow()
   }
 }
 
@@ -608,9 +742,10 @@ function clearError() { lastError.value = null }
 function setSurfaceVisible(v) {
   surfaceVisible.value = !!v
   if (v && activeChannel.value) unreadCounts.value[activeChannel.value] = 0
-  if (v && !connected.value && activeChannel.value) {
+  if (v && activeChannel.value) {
     pollDelay = POLL_BASE_MS
-    pollOnce(activeChannel.value).catch(() => {})
+    lastDegradedRefresh = 0
+    pollNow()
   }
 }
 
@@ -636,7 +771,7 @@ async function deleteUserChatData(userId) {
 }
 
 return {
-  channels, messages, activeChannel, unreadCounts, totalUnread,
+  channels, messages, activeChannel, unreadCounts, totalUnread, unreadBadge,
   activeMessages, pinnedMessages, editingMessage, replyingTo,
   channelsLoading, messagesLoading, sending, lastError, lastRealtimeError, connected,
   surfaceVisible, memberNames, authorLabel, loadMemberNames, setSurfaceVisible,

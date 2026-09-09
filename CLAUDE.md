@@ -170,6 +170,15 @@ broke something visible. Do not relax one without saying so explicitly.
 - **`/api/ai`, `/api/email` and `/api/usage` read `profiles.plan`**, while the front end
   and the SQL client-limit trigger read `organizations.plan`. A member of a paying org
   can be entitled in the UI and 403'd by the API. Use the org plan when you touch these.
+- **`chat_messages` UPDATE is `user_id = auth.uid()`.** A PostgREST `UPDATE` that matches
+  zero rows returns **204 with `error = null`** — a false success no `error` test can catch.
+  That is why reacting to or pinning someone else's message did nothing at all. Both now go
+  through `toggle_chat_reaction` / `set_chat_message_pinned`
+  (`20260909120000_chat_reactions_rpc.sql`); `can_read_chat_message` mirrors
+  `chat_messages_select` **by hand** — keep them in parity.
+- **Chat realtime can report `SUBSCRIBED` and deliver nothing.** The client cannot tell that
+  apart from a healthy socket, so the safety-net sweep in `stores/chat.js` runs *even when
+  `connected` is true*. Do not turn it back into a fallback armed only on error.
 - **Oxygen data is legally self-only.** The only aggregation path is
   `oxygen_team_aggregate` (owner-only, literal `n ≥ 5`, fail-closed behind an org flag).
   Changing this is a legal change.
@@ -225,5 +234,5 @@ Tracked, not fixed in this snapshot:
 
 ---
 
-*Last updated: 2026-09-07. If you changed something described above and did not update
+*Last updated: 2026-09-09. If you changed something described above and did not update
 this file, you are not done.*

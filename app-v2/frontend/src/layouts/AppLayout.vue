@@ -140,7 +140,8 @@
     <!-- CHAT FAB (hidden on /app/chat — G9-19/D1: a single surface at a time) -->
     <button v-if="route.name !== 'chat'" class="chat_fab" @click="app.toggleChat()" :class="{ active: app.chatOpen }">
       💬
-      <span v-if="chatStore.totalUnread" class="chat_fab_badge">{{ chatStore.totalUnread }}</span>
+      <!-- CHAT-BADGE: white on red, count of unread messages, capped at 9+ (error_list 12.4). -->
+      <span v-if="chatStore.totalUnread" class="chat_fab_badge">{{ chatStore.unreadBadge(chatStore.totalUnread) }}</span>
     </button>
     <transition name="slide_right">
       <div v-if="app.chatOpen && route.name !== 'chat'" class="chat_panel_wrapper">
@@ -429,7 +430,7 @@ async function handleLogout() {
 .chat_fab { position: fixed; bottom: 24px; right: 24px; width: 52px; height: 52px; border-radius: 50%; background: var(--purple); color: #fff; border: none; font-size: 1.4rem; box-shadow: var(--shadow-lg); z-index: 400; transition: all 0.2s; display: flex; align-items: center; justify-content: center; cursor: pointer; }
 .chat_fab:hover { transform: scale(1.08); box-shadow: 0 8px 30px rgba(124,58,237,0.3); }
 .chat_fab.active { background: var(--text); }
-.chat_fab_badge { position: absolute; top: -4px; right: -4px; background: #ef4444; color: #fff; font-size: 0.6rem; font-weight: 700; min-width: 16px; height: 16px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+.chat_fab_badge { position: absolute; top: -4px; right: -4px; background: #ef4444; color: #fff; font-size: 0.65rem; font-weight: 700; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px; border: 2px solid var(--bg-card, #fff); display: flex; align-items: center; justify-content: center; line-height: 1; }
 .chat_panel_wrapper { position: fixed; bottom: 88px; right: 24px; width: 680px; height: 520px; background-color: var(--bg-card); border-radius: var(--radius-lg); box-shadow: var(--shadow-xl); z-index: 999; border: 1px solid var(--border); overflow: hidden; }
 
 /* ═══ TOPBAR ACTIONS ═══ */

@@ -120,6 +120,8 @@ export default {
   chat_err_load_messages_failed: '메시지를 불러올 수 없습니다',
   chat_err_msg_too_long: '메시지가 너무 깁니다 (최대 5000자)',
   chat_err_open_dm_failed: '대화를 열 수 없습니다',
+  chat_err_pin_failed: '고정을 저장하지 못했습니다',
+  chat_err_react_failed: '반응을 저장하지 못했습니다',
   chat_err_send_failed: '전송 실패',
   chat_load_more: '이전 메시지 불러오기',
   chat_loading: '로딩 중...',

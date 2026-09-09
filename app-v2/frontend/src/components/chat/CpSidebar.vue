@@ -16,7 +16,7 @@
       >
         <span class="chat_panel_ch_icon">#</span>
         <span class="chat_panel_ch_name">{{ ch.name }}</span>
-        <span v-if="store.unreadCounts[ch.id]" class="chat_panel_badge">{{ store.unreadCounts[ch.id] }}</span>
+        <span v-if="store.unreadCounts[ch.id]" class="chat_panel_badge">{{ store.unreadBadge(store.unreadCounts[ch.id]) }}</span>
       </div>
     </div>
 
@@ -33,7 +33,7 @@
       >
         <span class="chat_panel_dm_avatar">{{ m.name.charAt(0) }}</span>
         <span class="chat_panel_ch_name">{{ m.name }}</span>
-        <span v-if="dmUnread(m.id)" class="chat_panel_badge">{{ dmUnread(m.id) }}</span>
+        <span v-if="dmUnread(m.id)" class="chat_panel_badge">{{ store.unreadBadge(dmUnread(m.id)) }}</span>
       </div>
     </div>
 
@@ -98,7 +98,9 @@ function dmUnread(userId) {
 .chat_panel_ch_icon { font-size: 14px; color: var(--text-muted); width: 18px; text-align: center; }
 .chat_panel_ch_name { font-size: 13px; color: var(--text-secondary); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .chat_panel_sidebar_item.active .chat_panel_ch_name { color: var(--purple); font-weight: 500; }
-.chat_panel_badge { background: var(--purple); color: #fff; font-size: 10px; padding: 1px 5px; border-radius: 8px; min-width: 16px; text-align: center; }
+/* CHAT-BADGE: red, like the FAB. Purple was the brand colour and read as "selected",
+   not as "unread" - the one signal the row exists to carry. */
+.chat_panel_badge { background: #ef4444; color: #fff; font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 8px; min-width: 16px; text-align: center; }
 .chat_panel_sidebar_section { padding: 12px 14px 4px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-secondary); }
 .chat_panel_dm_list { flex: 0 0 auto; }
 .chat_panel_dm_avatar { width: 18px; height: 18px; border-radius: 50%; background: #ede9fe; color: #7c3aed; font-size: 10px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }

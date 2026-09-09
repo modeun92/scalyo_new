@@ -119,6 +119,8 @@ export default {
   chat_err_load_messages_failed: 'Failed to load messages',
   chat_err_msg_too_long: 'Message too long (max 5000 characters)',
   chat_err_open_dm_failed: 'The conversation could not be opened',
+  chat_err_pin_failed: 'The pin could not be saved',
+  chat_err_react_failed: 'The reaction could not be saved',
   chat_err_send_failed: 'Failed to send',
   chat_load_more: 'Load older messages',
   chat_loading: 'Loading...',
