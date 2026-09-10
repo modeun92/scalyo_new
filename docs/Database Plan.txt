@@ -16,6 +16,7 @@ Person
 	Phone Number
 	Email Address
 	Photo Image link (for profile)
+	info links (SNS, web, youtube etc. / optional)
 	IsValid // absent or present
 Profit
 	company-id
@@ -28,11 +29,37 @@ Churn
 	company-id
 	from company-id
 	description
-Interaction
-	worker (by id)
-	visitor (by id)
+Issue (Interaction)
 	From (person-id) // who approached first?
+	To (person-id) //
+	With-s (person-id) // multiple optional
 	Description json // issue, conclusion
+	$what-it-is
+		1. it could be
+			1) a simple question
+			2) a trouble
+			3) a suggestion
+			4) 
+	$rules
+		1. it could be registered firstly only with "from"
+		2. if "from" is worker then To shall be visitor and vice-versa
+		3. the partners can be in "with"
+		4. "To" is the one who gets itself involved first by clicking the button "accept"
+		5. as worker or visitor, if it wants to join the issue, then it will be in "with", by clicking "join"
+		6. as worker or visitor, you can add the partner, depending on the visibility.
+		7. one issue can contain sevel sub-issues
+	$ideas
+		1. like github project management
+			1) milestone
+			2) progress in %
+			3) tree graph
+	$to-think
+		1. the difference to "Task"
+			1) priority
+			2) scheduling
+		2. the common with "Task"
+			1) due date - optional for Issue
+			2) duration
 Worker : Person
 	Clients (by id) // for what companies does it do CSM?
 	Working Status // quit, vacation, available
@@ -58,9 +85,11 @@ Manager : Worker
 Employee : Worker
 	- CSM jobs
 	- Updating the profit (only for assigned)
+Partner : Person
 Organization : Company
 	Plan
 	Workers (by id)
+	Partners (by id) // they could be our workers or collaborators(free-lancer) that don't use our web service, but certainly referred.
 	Clients (by id)
 Client : Company
 	Organization (by id) // maybe it could be multiple

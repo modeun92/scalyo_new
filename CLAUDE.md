@@ -74,6 +74,7 @@ different live tables — identity/plan/trial vs AI-context/currency.
 | tables, RLS, RPCs, migrations | [docs/DATABASE.md](docs/DATABASE.md) |
 | what the columns actually are | [docs/SCHEMA_FROM_CODE.sql](docs/SCHEMA_FROM_CODE.sql) — reference, **not** a migration |
 | a product feature | [docs/MODULES.md](docs/MODULES.md) |
+| the proposed schema redesign | [docs/SCHEMA_REVIEW.md](docs/SCHEMA_REVIEW.md) + [docs/NEW_SCHEMA.sql](docs/NEW_SCHEMA.sql) — **proposals, not migrations** |
 | plans, seats, roles, gating, Stripe | [docs/BILLING_AND_PLANS.md](docs/BILLING_AND_PLANS.md) |
 | secrets, GDPR, AI residency, Oxygen privacy | [docs/SECURITY_AND_PRIVACY.md](docs/SECURITY_AND_PRIVACY.md) |
 | the business model, entitlements, monetization logic | [docs/BUSINESS.md](docs/BUSINESS.md) |

@@ -17,7 +17,9 @@ view to the narrowest.
 | 10 | [DEVELOPMENT.md](DEVELOPMENT.md) | local setup, scripts, env vars, the pre-commit checklist |
 | 11 | [DEPLOY_CLOUDFLARE.md](DEPLOY_CLOUDFLARE.md) | **the live deploy** — Pages project settings, the two variable families, the release runbook, rollback, Cloudflare-specific traps |
 | 12 | [DEPLOY_FLY.md](DEPLOY_FLY.md) | **proposal, not the live deploy** — plan for moving from Cloudflare Pages to Fly.io + GitHub Actions |
-| 13 | [MOCK_CODE_AUDIT.md](MOCK_CODE_AUDIT.md) | audit of mock, hard-coded and "pretending to work" code — 24 findings, 4 critical |
+| 13 | [SCHEMA_REVIEW.md](SCHEMA_REVIEW.md) | review of the current schema against the `Database Plan.txt` redesign — what it fixes, what has to change before it is DDL, and the adoption path |
+| 14 | [NEW_SCHEMA.sql](NEW_SCHEMA.sql) | the proposed core-domain schema. **A proposal, not a migration** |
+| 15 | [MOCK_CODE_AUDIT.md](MOCK_CODE_AUDIT.md) | audit of mock, hard-coded and "pretending to work" code — 24 findings, 4 critical |
 
 Repository scope and known hygiene items: [`../REVIEW_NOTES.md`](../REVIEW_NOTES.md).
 Operational environment table: `../app-v2/frontend/functions/api/_config/SECURITY.md`.
