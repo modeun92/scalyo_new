@@ -80,6 +80,7 @@ different live tables — identity/plan/trial vs AI-context/currency.
 | known mock / false-signal code | [docs/MOCK_CODE_AUDIT.md](docs/MOCK_CODE_AUDIT.md) |
 | conventions and doctrine | [docs/CODE_STYLE.md](docs/CODE_STYLE.md) |
 | setup, scripts, env vars, deploy | [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) |
+| moving the deploy to Fly.io (**proposal — the live deploy is still Cloudflare Pages**) | [docs/DEPLOY_FLY.md](docs/DEPLOY_FLY.md) |
 
 ## Non-negotiable rules
 
