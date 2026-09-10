@@ -15,8 +15,9 @@ view to the narrowest.
 | 8 | [SECURITY_AND_PRIVACY.md](SECURITY_AND_PRIVACY.md) | secret custody, GDPR, AI data residency, well-being confidentiality |
 | 9 | [CODE_STYLE.md](CODE_STYLE.md) | the doctrine you are expected to follow, and why |
 | 10 | [DEVELOPMENT.md](DEVELOPMENT.md) | local setup, scripts, env vars, the pre-commit checklist |
-| 11 | [DEPLOY_FLY.md](DEPLOY_FLY.md) | **proposal, not the live deploy** — plan for moving from Cloudflare Pages to Fly.io + GitHub Actions |
-| 11 | [MOCK_CODE_AUDIT.md](MOCK_CODE_AUDIT.md) | audit of mock, hard-coded and "pretending to work" code — 24 findings, 4 critical |
+| 11 | [DEPLOY_CLOUDFLARE.md](DEPLOY_CLOUDFLARE.md) | **the live deploy** — Pages project settings, the two variable families, the release runbook, rollback, Cloudflare-specific traps |
+| 12 | [DEPLOY_FLY.md](DEPLOY_FLY.md) | **proposal, not the live deploy** — plan for moving from Cloudflare Pages to Fly.io + GitHub Actions |
+| 13 | [MOCK_CODE_AUDIT.md](MOCK_CODE_AUDIT.md) | audit of mock, hard-coded and "pretending to work" code — 24 findings, 4 critical |
 
 Repository scope and known hygiene items: [`../REVIEW_NOTES.md`](../REVIEW_NOTES.md).
 Operational environment table: `../app-v2/frontend/functions/api/_config/SECURITY.md`.
