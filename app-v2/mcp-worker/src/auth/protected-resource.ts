@@ -25,6 +25,20 @@ export function authorizationServerIssuer(config: ScalyoMcpConfig): string {
   return config.supabaseUrl + '/auth/v1'
 }
 
+/**
+ * The single resource identifier this Worker publishes and validates against.
+ *
+ * MCP-RESOURCE-CANONICAL (14/09/2026): the value advertised in discovery and the value
+ * checked in checkTokenBinding() MUST be the same string, or a client dutifully requests
+ * `resource=<advertised>` and then gets 401'd for an audience we never advertised. It is
+ * therefore derived in exactly one place. MCP_RESOURCE_URL wins; the request origin is
+ * only the development fallback, and it is a fallback rather than the rule because an
+ * attacker-chosen Host header must not be able to redefine what a token is bound to.
+ */
+export function canonicalResourceUrl(config: ScalyoMcpConfig, requestUrl: string, route: string): string {
+  return config.resourceUrl || new URL(route, new URL(requestUrl).origin).toString().replace(/\/+$/, '')
+}
+
 export function protectedResourceMetadata(config: ScalyoMcpConfig, resourceUrl: string) {
   return {
     resource: resourceUrl,

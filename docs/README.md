@@ -21,6 +21,7 @@ view to the narrowest.
 | 14 | [NEW_SCHEMA.sql](NEW_SCHEMA.sql) | the proposed core-domain schema. **A proposal, not a migration** |
 | 15 | [MOCK_CODE_AUDIT.md](MOCK_CODE_AUDIT.md) | audit of mock, hard-coded and "pretending to work" code — 24 findings, 4 critical |
 | 16 | [MCP_SERVER.md](MCP_SERVER.md) | the customer-facing Scalyo MCP server — the Claude / ChatGPT integration, its security model, setup and release checklist |
+| 17 | [MCP_OPEN_QUESTIONS.md](MCP_OPEN_QUESTIONS.md) | the five MCP items that need a decision or a live observation before production — OAuth audience binding, AI-token RLS restrictions, `search`/`fetch`, the consent screen, tool-selection evals |
 
 Repository scope and known hygiene items: [`../REVIEW_NOTES.md`](../REVIEW_NOTES.md).
 Operational environment table: `../app-v2/frontend/functions/api/_config/SECURITY.md`.

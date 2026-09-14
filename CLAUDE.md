@@ -84,6 +84,7 @@ different live tables — identity/plan/trial vs AI-context/currency.
 | conventions and doctrine | [docs/CODE_STYLE.md](docs/CODE_STYLE.md) |
 | setup, scripts, env vars, deploy, the Cloudflare MCP servers in `.mcp.json` | [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) |
 | the Scalyo MCP server (Claude / ChatGPT integration) | [docs/MCP_SERVER.md](docs/MCP_SERVER.md) — **customer-facing**, not the `.mcp.json` dev tooling |
+| what is still undecided about MCP before it goes public | [docs/MCP_OPEN_QUESTIONS.md](docs/MCP_OPEN_QUESTIONS.md) — five open items, each with what is needed to close it |
 | deploying: Pages settings, env vars, the release runbook, rollback | [docs/DEPLOY_CLOUDFLARE.md](docs/DEPLOY_CLOUDFLARE.md) — **the live deploy** |
 | moving the deploy to Fly.io (**proposal — the live deploy is still Cloudflare Pages**) | [docs/DEPLOY_FLY.md](docs/DEPLOY_FLY.md) |
 
@@ -198,6 +199,21 @@ broke something visible. Do not relax one without saying so explicitly.
   whatever a prompt tells it to. Tenant context is derived server-side in
   `mcp-worker/src/auth/user-context.ts`; the tool schemas contain no identity field and a
   test enforces it.
+- **An MCP tenant context read `organization_members limit 1`.** That is whichever row
+  Postgres felt like returning: with two memberships, "my portfolio" could answer for a
+  different company between two calls a second apart, with nothing on screen to say which.
+  `mcp-worker/src/auth/user-context.ts` now takes `profiles.organization_id` — the same
+  canonical source `stores/auth.js` uses — cross-checks it against `organization_members`,
+  and **refuses** rather than guessing when the two disagree or when there is no profile
+  organization and several memberships (`MCP-ORG-DETERMINISTIC`).
+- **A valid Scalyo session token is not the same thing as a token issued for MCP.**
+  `/auth/v1/user` proves the first, never the second. `mcp-worker/src/auth/verify-token.ts`
+  `checkTokenBinding()` proves the second — and the resource string it validates against is
+  derived in one place, `canonicalResourceUrl()`, because a client that requests the
+  resource we advertised must not then be 401'd for an audience we never advertised.
+- **`get_server_status` returns no internal ids.** It is the tool an assistant calls first
+  and quotes back verbatim, so a `userId` in it ends up pasted into a chat transcript that
+  leaves the EU. Email and role only; the ids stay in the audit log (`MCP-STATUS-MINIMAL`).
 - **Oxygen data is legally self-only.** The only aggregation path is
   `oxygen_team_aggregate` (owner-only, literal `n ≥ 5`, fail-closed behind an org flag).
   Changing this is a legal change.
@@ -251,9 +267,18 @@ Tracked, not fixed in this snapshot:
   checking anything; `account/delete.js` and `account/export.js` still carry a hard-coded
   **production** Supabase URL fallback; `/api/coach` bypasses rate limit, gating and quota.
   Read it before touching account deletion, alerts, or the plan config.
-- The MCP server ships **read-only** with no OAuth-client-aware authorization: every valid
-  Supabase token gets the same read surface, and `get_portfolio_summary` scans at most 200
-  accounts (it reports `partial: true` beyond that rather than a wrong total). Listed in
+- The MCP server ships **read-only**, and that read-only-ness is a property of the Worker,
+  not of the token: an MCP OAuth token pointed straight at Supabase REST still gets normal
+  user RLS, which allows writes and the tables MCP withholds. Restricting it at the
+  database level needs the live policy set and a decision — [docs/MCP_OPEN_QUESTIONS.md](docs/MCP_OPEN_QUESTIONS.md) Q2.
+- **MCP token resource binding runs in `observe` in production.** Issuer, expiry,
+  audience/resource and the OAuth-client allowlist are all validated and audited
+  (`event = "mcp.auth.binding"`), but a failed verdict is not acted on until a live ChatGPT
+  and a live Claude token have been seen `bound` in pre-prod, which ships in `enforce`.
+  Flipping production blind 401s every connector at once — [docs/MCP_SERVER.md](docs/MCP_SERVER.md)
+  and [docs/MCP_OPEN_QUESTIONS.md](docs/MCP_OPEN_QUESTIONS.md) Q1.
+- `get_portfolio_summary` scans at most 200 accounts (it reports `partial: true` beyond
+  that rather than a wrong total). Listed in
   [docs/MCP_SERVER.md](docs/MCP_SERVER.md#open-items).
 - Upstream hygiene: macOS duplicate files, a committed `.env.production`, session notes at
   the repository root (see [`REVIEW_NOTES.md`](REVIEW_NOTES.md)).

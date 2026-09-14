@@ -27,6 +27,7 @@ import { getMyTasks } from '../src/services/tasks.service'
 import { ScalyoMcpError } from '../src/errors'
 import { verifyAccessToken } from '../src/auth/verify-token'
 import { resolveUserContext } from '../src/auth/user-context'
+import type { ScalyoMcpConfig } from '../src/env'
 
 const ENV = {
   url: process.env.SCALYO_TEST_SUPABASE_URL,
@@ -47,11 +48,17 @@ if (!configured) {
   )
 }
 
-const config = {
+const config: ScalyoMcpConfig = {
   supabaseUrl: (ENV.url || '').replace(/\/+$/, ''),
   supabaseAnonKey: ENV.anonKey || '',
   environment: 'test',
   enabled: true,
+  // The live pre-prod tokens in this suite are ordinary session tokens, not
+  // OAuth-issued ones, so the binding check must not reject them here. What this suite
+  // proves is RLS isolation; the binding itself is proved in auth-and-logic.test.ts.
+  resourceUrl: null,
+  tokenBinding: 'observe',
+  allowedOauthClients: [],
 }
 
 describe.skipIf(!configured)('cross-tenant isolation (live pre-production)', () => {

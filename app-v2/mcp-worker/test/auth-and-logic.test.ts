@@ -1,13 +1,22 @@
 import { describe, it, expect } from 'vitest'
 
-import { extractBearerToken } from '../src/auth/verify-token'
+import { extractBearerToken, decodeTokenClaims, checkTokenBinding } from '../src/auth/verify-token'
+import type { ScalyoMcpConfig } from '../src/env'
 import { requireOrganization } from '../src/auth/user-context'
 import type { ScalyoUserContext } from '../src/auth/user-context'
 import { ScalyoMcpError, toSafePayload } from '../src/errors'
 import { riskReasons, toClientSummary } from '../src/services/clients.service'
 import { protectedResourceMetadata, authorizationServerIssuer } from '../src/auth/protected-resource'
 
-const CONFIG = { supabaseUrl: 'https://example.supabase.co', supabaseAnonKey: 'anon', environment: 'test', enabled: true }
+const CONFIG: ScalyoMcpConfig = {
+  supabaseUrl: 'https://example.supabase.co',
+  supabaseAnonKey: 'anon',
+  environment: 'test',
+  enabled: true,
+  resourceUrl: 'https://mcp.scalyo.app/mcp',
+  tokenBinding: 'observe',
+  allowedOauthClients: [],
+}
 
 function request(headers: Record<string, string>): Request {
   return new Request('https://mcp.scalyo.app/mcp', { headers })
@@ -31,7 +40,8 @@ describe('bearer token extraction', () => {
 
 describe('tenant context fails closed', () => {
   const base: ScalyoUserContext = {
-    userId: 'u1', email: null, organizationId: null, role: null, oauthClientId: null, requestId: 'r1',
+    userId: 'u1', email: null, organizationId: null, role: null, oauthClientId: null,
+    organizationSource: null, requestId: 'r1',
   }
 
   it('refuses a user with no organization membership', () => {

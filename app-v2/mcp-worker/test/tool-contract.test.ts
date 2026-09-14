@@ -21,6 +21,7 @@ const CONTEXT: ScalyoUserContext = {
   organizationId: 'org-a',
   role: 'member',
   oauthClientId: 'client-1',
+  organizationSource: 'profile',
   requestId: 'req-1',
 }
 
@@ -98,6 +99,27 @@ describe('tool registration', () => {
     }
   })
 
+  it('gives every tool a human title (MCP-TOOL-ANNOTATIONS)', () => {
+    for (const [name, { config }] of tools) {
+      expect(config.title, name + ' needs a title').toBeTruthy()
+      expect(config.annotations?.title, name + ' needs an annotation title').toBeTruthy()
+    }
+  })
+
+  it('declares every v1 tool read-only rather than leaving a host to guess', () => {
+    for (const [name, { config }] of tools) {
+      expect(config.annotations?.readOnlyHint, name + ' must declare readOnlyHint').toBe(true)
+      expect(config.annotations?.destructiveHint, name + ' must declare destructiveHint').toBe(false)
+      expect(config.annotations?.openWorldHint, name + ' must declare openWorldHint').toBe(false)
+    }
+  })
+
+  it('declares an output schema for every tool', () => {
+    for (const [name, { config }] of tools) {
+      expect(config.outputSchema, name + ' needs an outputSchema').toBeTruthy()
+    }
+  })
+
   it('describes every tool precisely enough for a model to choose it', () => {
     for (const [name, { config }] of tools) {
       expect(config.description, name + ' needs a description').toBeTruthy()
@@ -109,11 +131,22 @@ describe('tool registration', () => {
 })
 
 describe('tool behaviour', () => {
-  it('get_server_status reports the authenticated identity', async () => {
+  it('get_server_status confirms the connection without handing back internal ids', async () => {
     const tools = registerAndCapture(EMPTY)
-    const payload = parse(await tools.get('get_server_status')!.handler({}))
-    expect(payload.authenticatedUser.userId).toBe('user-a')
+    const result = await tools.get('get_server_status')!.handler({})
+    const payload = parse(result)
+
+    expect(payload.connected).toBe(true)
     expect(payload.readOnly).toBe(true)
+    expect(payload.account).toBe('a@example.com')
+    expect(payload.role).toBe('member')
+    expect(payload.organizationConnected).toBe(true)
+
+    // MCP-STATUS-MINIMAL: the ids stay in the audit log, not in a chat transcript.
+    const serialized = JSON.stringify(payload)
+    expect(serialized).not.toContain('user-a')
+    expect(serialized).not.toContain('org-a')
+    expect(serialized).not.toContain('req-1')
   })
 
   it('a database failure surfaces as an error, never as an empty portfolio (R21)', async () => {
@@ -129,6 +162,38 @@ describe('tool behaviour', () => {
     // The crucial bit: it must not have returned clientCount: 0.
     expect(payload.clientCount).toBeUndefined()
     expect(JSON.stringify(payload)).not.toContain('500')
+  })
+
+  it('returns structuredContent that matches the declared output schema', async () => {
+    const rows = [
+      { id: 'c1', name: 'Acme', health: 3, status: null, arr: 1000, mrr: null, renewal_date: null, lifecycle: 'client', churn_risk: null },
+    ]
+    const select: UserSupabaseClient['select'] = async (table) => (table === 'clients' ? (rows as never[]) : [])
+    const tools = registerAndCapture(select)
+
+    for (const name of ['get_portfolio_summary', 'get_at_risk_clients', 'search_clients', 'get_my_tasks']) {
+      const { config, handler } = tools.get(name)!
+      const result = await handler({ limit: 10, withinDays: 30, overdueOnly: false, includeDone: false })
+
+      expect(result.isError, name + ' should have succeeded').toBeFalsy()
+      expect(result.structuredContent, name + ' must return structuredContent').toBeTruthy()
+      // The text block is the fallback, and it must agree with the structured payload.
+      expect(JSON.parse(result.content[0].text)).toEqual(result.structuredContent)
+      // The SDK validates this at call time in production; asserting it here means a
+      // payload/schema drift fails in CI rather than at a customer's first tool call.
+      expect(config.outputSchema.safeParse(result.structuredContent).success, name + ' payload must satisfy its schema').toBe(true)
+    }
+  })
+
+  it('an error result carries no structuredContent (it must not look like data)', async () => {
+    const failing: UserSupabaseClient['select'] = async () => {
+      throw new ScalyoMcpError('UPSTREAM_UNAVAILABLE', 'clients returned 500')
+    }
+    const tools = registerAndCapture(failing)
+    const result = await tools.get('get_portfolio_summary')!.handler({})
+
+    expect(result.isError).toBe(true)
+    expect(result.structuredContent).toBeUndefined()
   })
 
   it('excludes prospects from the portfolio aggregate', async () => {

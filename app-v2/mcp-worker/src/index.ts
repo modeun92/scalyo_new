@@ -24,7 +24,7 @@ import { ScalyoMcpError, toSafePayload, internalDetailOf } from './errors'
 import { audit } from './audit/mcp-audit'
 import { extractBearerToken, verifyAccessToken } from './auth/verify-token'
 import { resolveUserContext } from './auth/user-context'
-import { protectedResourceMetadata, unauthorizedResponse } from './auth/protected-resource'
+import { protectedResourceMetadata, unauthorizedResponse, canonicalResourceUrl } from './auth/protected-resource'
 import { createUserScopedSupabaseClient } from './supabase/user-client'
 import { registerScalyoTools } from './tools/index'
 
@@ -68,8 +68,7 @@ export default {
     // append the resource path. Serving both removes a whole class of "connector cannot
     // authenticate" reports.
     if (url.pathname === '/.well-known/oauth-protected-resource' || url.pathname === '/.well-known/oauth-protected-resource/mcp') {
-      const resourceUrl = new URL(MCP_ROUTE, url.origin).toString()
-      return jsonResponse(protectedResourceMetadata(config, resourceUrl))
+      return jsonResponse(protectedResourceMetadata(config, canonicalResourceUrl(config, request.url, MCP_ROUTE)))
     }
 
     if (url.pathname !== MCP_ROUTE) {
@@ -107,7 +106,20 @@ export default {
     let context
     let db
     try {
-      const user = await verifyAccessToken(config, token)
+      const user = await verifyAccessToken(config, token, canonicalResourceUrl(config, request.url, MCP_ROUTE))
+
+      // MCP-RESOURCE-BINDING: in 'observe' the request is served, but the verdict is on
+      // the record. These lines are the evidence for the flip to 'enforce' — they say
+      // what a real ChatGPT and a real Claude token actually claim as their audience.
+      audit('mcp.auth.binding', {
+        requestId,
+        userId: user.userId,
+        oauthClientId: user.oauthClientId,
+        mode: config.tokenBinding,
+        bound: user.binding.bound,
+        bindingReasons: user.binding.reasons,
+        claimedAudience: user.binding.claimedAudience,
+      })
 
       const userLimit = await env.MCP_RATE_LIMIT_USER.limit({ key: 'user:' + user.userId })
       if (!userLimit.success) throw new ScalyoMcpError('RATE_LIMITED', 'user limit for ' + user.userId)
@@ -121,6 +133,7 @@ export default {
         organizationId: context.organizationId,
         role: context.role,
         oauthClientId: context.oauthClientId,
+        detail: 'org source: ' + (context.organizationSource || 'none'),
       })
     } catch (error) {
       const known = error instanceof ScalyoMcpError ? error : new ScalyoMcpError('INTERNAL_ERROR')

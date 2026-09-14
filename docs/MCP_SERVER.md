@@ -80,6 +80,29 @@ then contradict the Scalyo UI in front of the customer.
 Every tool returns JSON. The model writes the prose — which also keeps this Worker out of
 the language policy, since it never emits a sentence that would need translating.
 
+Every tool also declares, explicitly rather than by default:
+
+| Field | Value | Why it is declared rather than implied |
+|---|---|---|
+| `title` | a human phrase ("Accounts needing attention") | what the host shows a user in a permission prompt |
+| `annotations.readOnlyHint` | `true` | lets a host skip a write confirmation, and makes the day a write tool appears a visible diff |
+| `annotations.destructiveHint` | `false` | v1 cannot destroy anything |
+| `annotations.openWorldHint` | `false` | Scalyo's own database only — no web access, no third-party call |
+| `outputSchema` | a zod object per tool | the SDK validates `structuredContent` against it on every call |
+
+Results carry **both** `structuredContent` and a compact text rendering of the same object
+(`MCP-STRUCTURED-RESULT`). The structured copy is what a host parses; the text block is the
+fallback for a client that ignores structured results. An **error** result deliberately
+carries no `structuredContent` — the SDK exempts `isError` from schema validation, and an
+error shaped like a successful payload is exactly how a model ends up reporting "0 clients"
+for a failed read (R21 / D-14).
+
+`get_server_status` returns the connected account's **email and role only** — no `userId`,
+no `organizationId`, no `requestId` (`MCP-STATUS-MINIMAL`). It is the tool an assistant
+calls first and quotes back verbatim, so every internal identifier in it ends up pasted
+into a chat transcript. The identifiers stay in the audit log, where an incident can still
+use them.
+
 ### Not exposed, deliberately
 
 No write tools. No `delete_client`, `send_email`, `invite_member`, `create_quote`, no
@@ -100,6 +123,8 @@ response so the model reports them as withheld rather than as empty.
 | RLS is the tenant boundary | `src/supabase/user-client.ts` — anon key + the user's token, never the service role |
 | The service-role key is **not bound to this Worker** | `wrangler.jsonc` / `src/env.ts` |
 | Tenant context is derived server-side | `src/auth/user-context.ts` — no tool accepts `user_id`, `organization_id` or `role` |
+| Tenant context is **deterministic** | `src/auth/user-context.ts` — `profiles.organization_id` is canonical, cross-checked against `organization_members` |
+| Tokens are checked against **this** resource | `src/auth/verify-token.ts` — issuer, expiry, audience/resource, OAuth-client allowlist |
 | No caller-built queries | column + operator allowlists, values quoted; no `sql`/`where`/`filter` parameter exists |
 | Output minimization | explicit column lists; `select=*` throws |
 | Bounded reads | default 10, max 50 per tool, hard cap 200 rows per query |
@@ -115,6 +140,86 @@ Two details worth keeping:
 - **A read failure is never an empty result (R21).** An unreachable database returns
   `UPSTREAM_UNAVAILABLE`, never `clientCount: 0` — an AI client would report that as "you
   have no customers".
+
+---
+
+## Token resource binding (`MCP-RESOURCE-BINDING`)
+
+`/auth/v1/user` proves *"this is a live Scalyo user token"*. It does **not** prove *"this
+token was issued for `https://mcp.scalyo.app/mcp`"*. Those are different guarantees, and
+without the second one a token minted for any other purpose in the same Supabase project
+is accepted by an endpoint an external AI client can reach.
+
+`checkTokenBinding()` is the second guarantee. Before the call to Supabase Auth it checks:
+
+| Check | Failure reason token |
+|---|---|
+| payload decodes | `unparseable_token` |
+| `iss` is this project's `/auth/v1` | `issuer_mismatch` |
+| `exp` is in the future | `expired` |
+| `aud` **or** the RFC 8707 `resource` claim names this resource | `audience_mismatch` |
+| `client_id` is in `MCP_ALLOWED_OAUTH_CLIENTS`, when that list is non-empty | `client_not_allowed` |
+
+A normal Scalyo **website session token** carries `aud: "authenticated"` and therefore fails
+`audience_mismatch`. That is the intended outcome: it is a valid user token that was not
+issued for MCP.
+
+The resource identifier is derived in exactly **one** place, `canonicalResourceUrl()`, so
+the value advertised in discovery and the value validated are the same string. A client
+that dutifully requests `resource=<advertised>` must not then be 401'd for an audience we
+never advertised. `MCP_RESOURCE_URL` wins; the request origin is only the `wrangler dev`
+fallback, because an attacker-chosen `Host` header must not be able to redefine what a
+token is bound to.
+
+### `MCP_TOKEN_BINDING` — observe, then enforce
+
+| Mode | Behaviour |
+|---|---|
+| `observe` | the verdict is computed and audited on every request, and the request is **served** |
+| `enforce` | a token that is not bound is rejected `UNAUTHENTICATED`, **before** the round trip to Supabase Auth |
+
+An unrecognised value reads as `observe`: a typo in a var must not take every customer
+connector offline at once.
+
+Pre-production runs in `enforce` — a wrong-resource token has to actually fail somewhere
+before production, and observing it proves nothing. **Production ships in `observe`** and
+stays there until a real ChatGPT connection and a real Claude connection have both been
+seen `bound: true` in the pre-prod audit lines:
+
+```
+event = "mcp.auth.binding"   →  mode, bound, bindingReasons, claimedAudience
+```
+
+`claimedAudience` is what the token actually claims. Read it from a live connection of each
+host, confirm it matches `MCP_RESOURCE_URL`, then flip production:
+
+```sh
+wrangler deploy --env production   # after setting MCP_TOKEN_BINDING: "enforce" in wrangler.jsonc
+```
+
+Flipping it blind is the one change in this Worker that can break every connector
+simultaneously. Whether Supabase's OAuth server emits a resource-bound audience at all is
+still open — see [MCP_OPEN_QUESTIONS.md](MCP_OPEN_QUESTIONS.md) Q1.
+
+---
+
+## Which organization a request reads (`MCP-ORG-DETERMINISTIC`)
+
+The organization comes from **`profiles.organization_id`** — the same canonical source
+`stores/auth.js` uses — and is then cross-checked against `organization_members`:
+
+| Profile org | Membership rows | Result |
+|---|---|---|
+| set | a row for that org | that org; role from the membership row |
+| set | rows, none for that org | **FORBIDDEN** — the two sources disagree and guessing would invent a tenant |
+| set | none at all | that org; role from `profiles.org_role` (the legacy owner shape) |
+| absent | exactly one | that org, source `sole_membership` |
+| absent | more than one | **FORBIDDEN** — ambiguous |
+| absent | none | no organization; org-scoped tools refuse |
+
+It used to be `organization_members limit 1`, which is whichever row Postgres felt like
+returning. With two memberships the answer to "my portfolio" could differ between two calls
+a second apart, and the user had no way to tell which company they had just been shown.
 
 ---
 
@@ -147,6 +252,11 @@ In the Supabase dashboard, **pre-production first**:
 Access tokens it issues are standard Supabase JWTs carrying `user_id`, `role` and
 `client_id`, so existing RLS applies unchanged and `/auth/v1/user` validates them.
 
+5. Confirm what the issued token carries as its **audience**. If Supabase echoes the RFC
+   8707 `resource` parameter into `aud` or a `resource` claim, the binding check above can
+   be enforced. If it does not, `MCP_TOKEN_BINDING` must stay `observe` and the binding has
+   to come from somewhere else — see [MCP_OPEN_QUESTIONS.md](MCP_OPEN_QUESTIONS.md) Q1.
+
 ### 2. Worker secrets
 
 ```sh
@@ -159,10 +269,27 @@ wrangler secret put SUPABASE_ANON_KEY --env preprod
 **Never bind `SUPABASE_SERVICE_ROLE_KEY` to this Worker.** Its absence is the control that
 keeps a future contributor from reaching for an RLS-bypassing client.
 
+The non-secret vars live in `wrangler.jsonc` per environment:
+
+| Var | preprod | production | Meaning |
+|---|---|---|---|
+| `MCP_RESOURCE_URL` | `https://mcp-preprod.scalyo.app/mcp` | `https://mcp.scalyo.app/mcp` | the one resource identifier advertised and validated |
+| `MCP_TOKEN_BINDING` | `enforce` | `observe` | see above before changing production |
+| `MCP_ALLOWED_OAUTH_CLIENTS` | empty | empty | comma-separated `client_id` allowlist; empty = any client registered with Supabase |
+| `MCP_ENABLED` | `on` | `on` | the incident kill switch |
+
 ### 3. Rate-limit namespaces
 
 Already declared in `wrangler.jsonc`, one triple per environment. The `namespace_id` values
 are arbitrary positive integers unique to the account — changing one **resets its counters**.
+
+| Namespace | Limit | Why |
+|---|---|---|
+| `MCP_RATE_LIMIT_IP` | 600 / min | pre-auth flood protection only. Deliberately **high**: ChatGPT and Claude call from a shared provider egress range, so every Scalyo customer on the same host arrives on a handful of IPs. At 60/min the first busy customer of the minute throttles every other customer, and the ticket reads "Scalyo is down", not "rate limited". |
+| `MCP_RATE_LIMIT_USER` | 120 / min | the real ceiling, per authenticated user |
+| `MCP_RATE_LIMIT_HEAVY` | 20 / min | portfolio aggregations, which read the whole client page on every call |
+
+Tune these from production telemetry, not from assumptions.
 
 ### 4. Deploy
 
@@ -248,14 +375,29 @@ Alert on: a spike in `mcp.auth.failure`, repeated `NOT_FOUND` from one `userId`
 
 ## Open items
 
-- **OAuth-client-aware authorization is not implemented.** The `client_id` claim is decoded
-  and audited, but every valid Supabase token gets the same read surface. Restricting
-  unknown OAuth clients to a narrower subset is the next security step.
+- **An OAuth token is still only restricted by MCP code, not by the database.** The same
+  token the MCP Worker uses is a normal Supabase user token: pointed straight at
+  PostgREST it gets whatever normal RLS allows, which includes writes and the tables MCP
+  deliberately withholds (notes, contacts). The MCP layer's read-only promise is therefore
+  a property of this Worker, not of the credential. Closing it is a database change —
+  drafted, with the open decisions, in
+  [MCP_OPEN_QUESTIONS.md](MCP_OPEN_QUESTIONS.md) Q2.
+- **`MCP_TOKEN_BINDING` is `observe` in production.** The binding is computed and audited
+  but not enforced until a live ChatGPT and a live Claude token have been seen `bound` in
+  pre-prod. Until then a valid Scalyo session token is still accepted.
+- **The OAuth client allowlist is empty.** `MCP_ALLOWED_OAUTH_CLIENTS` is implemented and
+  tested; the `client_id` values for ChatGPT and Claude are not yet known, so every client
+  registered with Supabase is accepted.
 - **`get_portfolio_summary` scans at most 200 accounts.** Beyond that it returns
   `partial: true` with a note rather than a quietly wrong total. A portfolio of 350+ accounts
   needs a server-side aggregate (an RPC) before the figures are complete.
 - **The ChatGPT `search`/`fetch` contract is written to the known convention** and needs
-  confirming against OpenAI's current connector requirements before publication.
+  confirming against OpenAI's current connector requirements before publication. Whether
+  to keep them at all, given they overlap `search_clients` / `get_client_overview` and may
+  make tool selection less deterministic, is
+  [MCP_OPEN_QUESTIONS.md](MCP_OPEN_QUESTIONS.md) Q3.
+- **No tool-selection evaluation exists.** The protocol tests prove the tools work; nothing
+  proves a model *picks* the right one, or that "what's the weather" calls none of them.
 - **Roles are audited, not enforced.** All four roles get the same read surface. That
   matches the product today — every role can read the portfolio in the UI — but a
   `viewer`-specific restriction would need adding here as well as in RLS.

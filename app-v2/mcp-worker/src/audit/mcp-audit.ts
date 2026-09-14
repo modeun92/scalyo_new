@@ -13,6 +13,7 @@
 export type McpAuditEvent =
   | 'mcp.auth.success'
   | 'mcp.auth.failure'
+  | 'mcp.auth.binding'
   | 'mcp.tool.started'
   | 'mcp.tool.completed'
   | 'mcp.tool.denied'
@@ -32,6 +33,13 @@ export interface McpAuditFields {
   errorCode?: string
   /** Free-text detail for failures. Must already be safe to store. */
   detail?: string
+  // --- mcp.auth.binding only (MCP-RESOURCE-BINDING). None of these is the token itself:
+  // `claimedAudience` is the token's aud/resource claim, which is a public identifier of
+  // THIS server, not a credential.
+  mode?: string
+  bound?: boolean
+  bindingReasons?: string[]
+  claimedAudience?: string[]
 }
 
 export function audit(event: McpAuditEvent, fields: McpAuditFields): void {

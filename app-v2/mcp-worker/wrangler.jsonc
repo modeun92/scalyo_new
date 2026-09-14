@@ -12,11 +12,17 @@
   // survive cold starts. namespace_id is an arbitrary positive integer, unique per
   // account; changing one RESETS its counters.
   //   IP   — pre-auth flood protection, the only limit that applies before a token is verified.
+  //          MCP-SHARED-EGRESS (14/09/2026): this is deliberately HIGH. ChatGPT and Claude
+  //          call from a shared provider egress range, so every Scalyo customer using the
+  //          same host arrives on a handful of IPs. At 60/min the first busy customer of
+  //          the minute would throttle every other customer, and the support ticket reads
+  //          as "Scalyo is down", not as a rate limit. Per-user is where the real ceiling
+  //          lives; this one only has to stop an unauthenticated flood.
   //   USER — per authenticated Scalyo user, the normal ceiling.
   //   HEAVY— portfolio aggregations, which read the whole client list on every call.
   // `period` accepts only 10 or 60.
   "ratelimits": [
-    { "name": "MCP_RATE_LIMIT_IP",   "namespace_id": "2001", "simple": { "limit": 60,  "period": 60 } },
+    { "name": "MCP_RATE_LIMIT_IP",   "namespace_id": "2001", "simple": { "limit": 600, "period": 60 } },
     { "name": "MCP_RATE_LIMIT_USER", "namespace_id": "2002", "simple": { "limit": 120, "period": 60 } },
     { "name": "MCP_RATE_LIMIT_HEAVY","namespace_id": "2003", "simple": { "limit": 20,  "period": 60 } }
   ],
@@ -25,26 +31,57 @@
     "SCALYO_MCP_ENV": "development",
     // MCP-KILL-SWITCH: set to "off" to disable the MCP surface without touching the
     // Pages deploy. `wrangler deploy --var MCP_ENABLED:off` is the incident lever.
-    "MCP_ENABLED": "on"
+    "MCP_ENABLED": "on",
+
+    // MCP-RESOURCE-BINDING (14/09/2026): MCP_RESOURCE_URL is the ONE string advertised in
+    // /.well-known/oauth-protected-resource and checked against the token's aud/resource.
+    // Empty here on purpose — `wrangler dev` derives it from the request origin, and a
+    // development default pointing at a real hostname is how a pre-prod token ends up
+    // accepted in production.
+    "MCP_RESOURCE_URL": "",
+    // 'observe' audits the binding verdict and serves; 'enforce' rejects. Read
+    // docs/MCP_SERVER.md before flipping production — an unverified flip 401s every
+    // connector at once.
+    "MCP_TOKEN_BINDING": "observe",
+    // Empty = any client registered with Supabase's OAuth server. Fill it with the
+    // ChatGPT and Claude client_ids once they are known and stable.
+    "MCP_ALLOWED_OAUTH_CLIENTS": ""
   },
 
   "env": {
     "preprod": {
       "name": "scalyo-mcp-preprod",
-      "vars": { "SCALYO_MCP_ENV": "preprod", "MCP_ENABLED": "on" },
+      "vars": {
+        "SCALYO_MCP_ENV": "preprod",
+        "MCP_ENABLED": "on",
+        "MCP_RESOURCE_URL": "https://mcp-preprod.scalyo.app/mcp",
+        // Pre-prod runs in enforce so the acceptance test is real: a wrong-resource token
+        // must FAIL somewhere before production, and observing it here proves nothing.
+        "MCP_TOKEN_BINDING": "enforce",
+        "MCP_ALLOWED_OAUTH_CLIENTS": ""
+      },
       "routes": [{ "pattern": "mcp-preprod.scalyo.app", "custom_domain": true }],
       "ratelimits": [
-        { "name": "MCP_RATE_LIMIT_IP",   "namespace_id": "2011", "simple": { "limit": 60,  "period": 60 } },
+        { "name": "MCP_RATE_LIMIT_IP",   "namespace_id": "2011", "simple": { "limit": 600, "period": 60 } },
         { "name": "MCP_RATE_LIMIT_USER", "namespace_id": "2012", "simple": { "limit": 120, "period": 60 } },
         { "name": "MCP_RATE_LIMIT_HEAVY","namespace_id": "2013", "simple": { "limit": 20,  "period": 60 } }
       ]
     },
     "production": {
       "name": "scalyo-mcp",
-      "vars": { "SCALYO_MCP_ENV": "production", "MCP_ENABLED": "on" },
+      "vars": {
+        "SCALYO_MCP_ENV": "production",
+        "MCP_ENABLED": "on",
+        "MCP_RESOURCE_URL": "https://mcp.scalyo.app/mcp",
+        // Stays "observe" until a real ChatGPT and a real Claude connection have been seen
+        // BOUND in the pre-prod mcp.auth.binding audit lines. Flipping this blind is the
+        // one change here that can take every customer connector offline at once.
+        "MCP_TOKEN_BINDING": "observe",
+        "MCP_ALLOWED_OAUTH_CLIENTS": ""
+      },
       "routes": [{ "pattern": "mcp.scalyo.app", "custom_domain": true }],
       "ratelimits": [
-        { "name": "MCP_RATE_LIMIT_IP",   "namespace_id": "2021", "simple": { "limit": 60,  "period": 60 } },
+        { "name": "MCP_RATE_LIMIT_IP",   "namespace_id": "2021", "simple": { "limit": 600, "period": 60 } },
         { "name": "MCP_RATE_LIMIT_USER", "namespace_id": "2022", "simple": { "limit": 120, "period": 60 } },
         { "name": "MCP_RATE_LIMIT_HEAVY","namespace_id": "2023", "simple": { "limit": 20,  "period": 60 } }
       ]
