@@ -43,6 +43,13 @@ export interface TokenClaims {
   client_id?: unknown
   /** RFC 8707 resource indicator, when the authorization server echoes it into the token. */
   resource?: unknown
+  /**
+   * Stamped by the Supabase Custom Access Token Hook on OAuth-issued tokens
+   * (docs/MCP_ACCESS_TOKEN_HOOK.md). It is what `public.is_mcp_session()` keys off in
+   * RLS, so seeing it here is how we know the hook is actually live before relying on
+   * the database restrictions that depend on it.
+   */
+  ai_agent?: unknown
 }
 
 export interface TokenBindingResult {
@@ -52,6 +59,17 @@ export interface TokenBindingResult {
   reasons: string[]
   /** What the token claimed as its audience/resource, for the audit line. Never the token. */
   claimedAudience: string[]
+  /**
+   * Whether the token carries `ai_agent: true`.
+   *
+   * MCP-AI-CLAIM (14/09/2026): audited, NOT enforced, and deliberately not part of
+   * `bound`. This is the observation that tells us whether the access-token hook is
+   * deployed and whether `is_mcp_session()` will actually match in RLS. Enforcing it
+   * before the hook is live would reject every real connection; treating its absence as
+   * "not an AI session" is what the database already does, so the audit line is the only
+   * place the gap is visible.
+   */
+  aiAgentClaim: boolean
 }
 
 export function extractBearerToken(request: Request): string | null {
@@ -108,8 +126,10 @@ export function checkTokenBinding(
   const reasons: string[] = []
 
   if (!claims) {
-    return { bound: false, reasons: ['unparseable_token'], claimedAudience: [] }
+    return { bound: false, reasons: ['unparseable_token'], claimedAudience: [], aiAgentClaim: false }
   }
+
+  const aiAgentClaim = claims.ai_agent === true || claims.ai_agent === 'true'
 
   const expectedIssuer = config.supabaseUrl + '/auth/v1'
   if (typeof claims.iss !== 'string' || normalizeResourceUrl(claims.iss) !== normalizeResourceUrl(expectedIssuer)) {
@@ -136,7 +156,7 @@ export function checkTokenBinding(
     if (!clientId || !config.allowedOauthClients.includes(clientId)) reasons.push('client_not_allowed')
   }
 
-  return { bound: reasons.length === 0, reasons, claimedAudience }
+  return { bound: reasons.length === 0, reasons, claimedAudience, aiAgentClaim }
 }
 
 export async function verifyAccessToken(

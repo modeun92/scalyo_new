@@ -182,11 +182,32 @@ describe('the advertised resource and the validated resource are the same string
     expect(canonicalResourceUrl(config({ resourceUrl: null }), 'http://localhost:8787/mcp', '/mcp')).toBe('http://localhost:8787/mcp')
   })
 
-  it('reads the mode fail-safe: an unrecognised value is observe, never enforce', () => {
-    const env = { SUPABASE_URL: 'https://x.supabase.co', SUPABASE_ANON_KEY: 'k', MCP_TOKEN_BINDING: 'ENFORCE_MAYBE' } as unknown as Env
+  it('REFUSES to start on an unrecognised binding mode (MCP-BINDING-MODE-STRICT)', () => {
+    const env = { SUPABASE_URL: 'https://x.supabase.co', SUPABASE_ANON_KEY: 'k' } as unknown as Env
+
+    // The typo that used to read as `observe`: the deploy meant to start enforcing would
+    // have kept serving unbound tokens, with nobody watching the audit field any more.
+    expect(() => getConfig({ ...env, MCP_TOKEN_BINDING: 'enfroce' } as unknown as Env)).toThrow(/MCP_TOKEN_BINDING/)
+    expect(() => getConfig({ ...env, MCP_TOKEN_BINDING: 'yes' } as unknown as Env)).toThrow()
+
+    // Valid values, case- and whitespace-tolerant. An absent value is still `observe`.
     expect(getConfig(env).tokenBinding).toBe('observe')
     expect(getConfig({ ...env, MCP_TOKEN_BINDING: 'enforce' } as unknown as Env).tokenBinding).toBe('enforce')
-    expect(getConfig({ ...env, MCP_TOKEN_BINDING: 'ENFORCE' } as unknown as Env).tokenBinding).toBe('enforce')
+    expect(getConfig({ ...env, MCP_TOKEN_BINDING: ' ENFORCE ' } as unknown as Env).tokenBinding).toBe('enforce')
+    expect(getConfig({ ...env, MCP_TOKEN_BINDING: 'observe' } as unknown as Env).tokenBinding).toBe('observe')
+  })
+
+  it('reports the ai_agent claim without enforcing it (MCP-AI-CLAIM)', () => {
+    const withClaim = checkTokenBinding(config(), decodeTokenClaims(jwt({ iss: ISSUER, aud: RESOURCE, exp: FUTURE, ai_agent: true })), RESOURCE)
+    expect(withClaim.aiAgentClaim).toBe(true)
+    expect(withClaim.bound).toBe(true)
+
+    // Absent claim: still bound. The hook not being live yet must not reject connections —
+    // it makes the RLS restrictions inert, which is what the audit line is there to show.
+    const without = checkTokenBinding(config(), decodeTokenClaims(jwt({ iss: ISSUER, aud: RESOURCE, exp: FUTURE })), RESOURCE)
+    expect(without.aiAgentClaim).toBe(false)
+    expect(without.bound).toBe(true)
+    expect(without.reasons).not.toContain('ai_agent_missing')
   })
 
   it('parses the OAuth client allowlist tolerantly', () => {
@@ -197,7 +218,12 @@ describe('the advertised resource and the validated resource are the same string
 
 // ---------------------------------------------------------------------------------------
 
-const USER = { userId: 'u1', email: 'u1@example.com', oauthClientId: null, binding: { bound: true, reasons: [], claimedAudience: [] } }
+const USER = {
+  userId: 'u1',
+  email: 'u1@example.com',
+  oauthClientId: null,
+  binding: { bound: true, reasons: [], claimedAudience: [], aiAgentClaim: false },
+}
 
 /** Stub that answers per table, so a test can describe an inconsistent database. */
 function stubDb(tables: Record<string, unknown[]>): UserSupabaseClient {

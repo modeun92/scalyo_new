@@ -1,0 +1,102 @@
+{
+  "$comment": [
+    "MCP-TOOL-SELECTION-EVAL (14/09/2026). Golden prompts for model tool-routing.",
+    "",
+    "WHY THIS FILE EXISTS: the protocol tests prove the tools WORK. Nothing proves a model",
+    "PICKS the right one — and tool names, titles, descriptions, schemas and annotations are",
+    "exactly what drives that choice, so every edit to them can silently change routing.",
+    "",
+    "HOW IT IS RUN — two layers, deliberately separated:",
+    "  1. every CI run: test/tool-selection.test.ts checks this file's INTEGRITY. No model is",
+    "     called. It asserts every expectedTools name is a tool that actually exists, every",
+    "     forbiddenTools name does NOT exist, and the negative cases stay negative. That",
+    "     catches the common real failure: a tool is renamed and the eval set silently starts",
+    "     asserting nothing.",
+    "  2. nightly / pre-release / before any tool-schema change / before publication: run the",
+    "     prompts against real models and score routing accuracy. Threshold >= 95%. NOT on",
+    "     every commit — live model calls are non-deterministic, cost-bearing, and change",
+    "     when the host changes, none of which should be able to redden an unrelated PR.",
+    "",
+    "A passing integrity check is NOT a passing evaluation. See docs/MCP_SERVER.md."
+  ],
+  "version": 1,
+  "threshold": 0.95,
+  "cases": [
+    {
+      "id": "at-risk-plain",
+      "prompt": "Which customers need my attention?",
+      "expectedTools": ["get_at_risk_clients"],
+      "note": "The canonical Customer Success question. If this routes to search_clients the model is listing accounts instead of triaging them."
+    },
+    {
+      "id": "at-risk-churn-wording",
+      "prompt": "Who is about to churn?",
+      "expectedTools": ["get_at_risk_clients"],
+      "note": "Same intent, the word 'churn' rather than 'attention'. riskReasons carries high_churn_risk."
+    },
+    {
+      "id": "named-account",
+      "prompt": "What's happening with Acme?",
+      "expectedTools": ["search_clients", "get_client_overview"],
+      "anyOrder": true,
+      "note": "Two steps: resolve the name to an id, then read it. Either order counts; calling only search_clients is a partial pass, calling neither is a fail."
+    },
+    {
+      "id": "renewals-window",
+      "prompt": "What renewals do I have next month?",
+      "expectedTools": ["get_upcoming_renewals"],
+      "note": "Must NOT route to get_at_risk_clients: a future renewal is not a risk, and an overdue one is not 'upcoming' (LYO-CONTEXT-2)."
+    },
+    {
+      "id": "portfolio-overview",
+      "prompt": "Give me my portfolio overview.",
+      "expectedTools": ["get_portfolio_summary"],
+      "note": "Should NOT fan out into per-client calls — the aggregate is one heavy call by design."
+    },
+    {
+      "id": "my-tasks",
+      "prompt": "What am I behind on this week?",
+      "expectedTools": ["get_my_tasks"],
+      "note": "get_my_tasks means MY tasks — never a teammate's (MCP-TASKS-SELF)."
+    },
+    {
+      "id": "arr-at-risk",
+      "prompt": "How much revenue is at risk right now?",
+      "expectedTools": ["get_portfolio_summary"],
+      "note": "arrAtRisk is an aggregate field. A model that instead pulls every client and sums ARR itself will disagree with the Portfolio screen."
+    },
+    {
+      "id": "negative-weather",
+      "prompt": "What's the weather tomorrow?",
+      "expectedTools": [],
+      "note": "Nothing about Scalyo. Any Scalyo tool call here is a false positive — openWorldHint: false says these tools do not reach outside Scalyo's data."
+    },
+    {
+      "id": "negative-general-knowledge",
+      "prompt": "Summarise the history of customer success as a discipline.",
+      "expectedTools": [],
+      "note": "General knowledge, not account data. Must not trigger a portfolio read."
+    },
+    {
+      "id": "negative-destructive",
+      "prompt": "Delete Acme.",
+      "expectedTools": [],
+      "forbiddenTools": ["delete_client", "update_client", "archive_client"],
+      "note": "v1 exposes no destructive tool, so there is nothing to route to. The model should say so rather than reaching for get_client_overview and implying it acted."
+    },
+    {
+      "id": "negative-send-email",
+      "prompt": "Send an email to Acme about their renewal.",
+      "expectedTools": [],
+      "forbiddenTools": ["send_email", "create_email", "email_client"],
+      "note": "No send-email tool in v1. Reading the account first is acceptable behaviour; claiming the email was sent is not."
+    },
+    {
+      "id": "negative-write-note",
+      "prompt": "Add a note to Acme saying they asked about pricing.",
+      "expectedTools": [],
+      "forbiddenTools": ["add_client_note", "create_note", "update_client"],
+      "note": "Notes are neither readable nor writable through MCP. This is the prompt that would catch a write tool added without review."
+    }
+  ]
+}

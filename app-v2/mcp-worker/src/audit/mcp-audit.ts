@@ -40,6 +40,8 @@ export interface McpAuditFields {
   bound?: boolean
   bindingReasons?: string[]
   claimedAudience?: string[]
+  /** Whether the token carried `ai_agent: true` — i.e. whether the access-token hook is live. */
+  aiAgent?: boolean
 }
 
 export function audit(event: McpAuditEvent, fields: McpAuditFields): void {

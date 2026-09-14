@@ -1,5 +1,24 @@
 # Why the OAuth-token DB restrictions and the OAuth consent page are not implemented
 
+> **SUPERSEDED 14/09/2026 — both are now implemented.** Kept because the reasoning is still
+> the record of why they waited, and because one part of it was wrong in an instructive way.
+>
+> - **The consent page is built** (`/oauth/consent`). This document argued the architecture
+>   said it should not exist, because `protected-resource.ts` treated the consent screen as
+>   Supabase's. That premise was wrong — Supabase owns the OAuth *mechanics*, not the page —
+>   and the comment has been corrected. See [MCP_CONSENT_PAGE.md](MCP_CONSENT_PAGE.md).
+> - **The RLS restrictions are written** (`20260914120000_mcp_ai_session_restrictions.sql`).
+>   The blocker described below — that 28 of 35 tables have no policy definition here, so a
+>   policy *rewrite* would be guesswork — was accurate, and it still is. What it missed is
+>   that **RESTRICTIVE** policies are ANDed with the existing permissive set and therefore
+>   never touch those 28 unknown policies at all. The blocker was real for the approach
+>   being considered; it does not apply to the one that was used.
+>   See [MCP_OPEN_QUESTIONS.md](MCP_OPEN_QUESTIONS.md) Q2.
+>
+> The evidence below (the 28-of-35 count, the D-14 silent-failure risk) remains correct and
+> is why the migration uses the technique it does.
+
+
 **Written:** 14/09/2026
 **About:** the two items from
 [`SCALYO_MCP_SECOND_REVIEW_AND_PRODUCTION_READINESS.md`](../SCALYO_MCP_SECOND_REVIEW_AND_PRODUCTION_READINESS.md)

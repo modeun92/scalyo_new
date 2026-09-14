@@ -64,14 +64,14 @@ ChatGPT where to find the authorization server, and it is the step that makes Sc
 
 | Tool | Returns |
 |---|---|
-| `get_server_status` | Connection check and the identity of the connected Scalyo user. |
+| `get_server_status` | Connection check: role and organization status only — no identifiers, no email. |
 | `get_portfolio_summary` | Client count, total ARR, ARR at risk, average health, status distribution, renewals, overdue tasks. |
 | `search_clients` | Accounts by name, optionally filtered by effective status, lifecycle or renewal date. |
 | `get_client_overview` | One account in detail, by id. |
 | `get_at_risk_clients` | Accounts needing attention, ranked, each with machine-readable `riskReasons`. |
 | `get_upcoming_renewals` | Renewals within N days, strictly future-dated. |
 | `get_my_tasks` | The signed-in user's own tasks, each flagged overdue or not. |
-| `search` / `fetch` | Thin adapters over `search_clients` / `get_client_overview` for ChatGPT's connector contract. They add **no** new data access. |
+| `search` / `fetch` | Thin adapters over `search_clients` / `get_client_overview`, needed **only** for ChatGPT Company Knowledge. They add **no** new data access. Ordinary MCP use, Claude included, does not need them — delete them if Company Knowledge is dropped ([MCP_OPEN_QUESTIONS.md](MCP_OPEN_QUESTIONS.md) Q3). |
 
 Tools express **goals, not tables**. `get_at_risk_clients` exists instead of a generic
 `list_clients` precisely so the model does not invent its own definition of "at risk" and
@@ -97,11 +97,16 @@ carries no `structuredContent` — the SDK exempts `isError` from schema validat
 error shaped like a successful payload is exactly how a model ends up reporting "0 clients"
 for a failed read (R21 / D-14).
 
-`get_server_status` returns the connected account's **email and role only** — no `userId`,
-no `organizationId`, no `requestId` (`MCP-STATUS-MINIMAL`). It is the tool an assistant
-calls first and quotes back verbatim, so every internal identifier in it ends up pasted
-into a chat transcript. The identifiers stay in the audit log, where an incident can still
-use them.
+`get_server_status` returns **role and organization status only** — no `userId`, no
+`organizationId`, no `requestId`, and no **email** (`MCP-STATUS-MINIMAL`). It is the tool an
+assistant calls first and quotes back verbatim, so anything identifying in it ends up
+pasted into a chat transcript that leaves the EU; an email address is personal data under
+GDPR and "which account am I connected as" does not justify shipping it to a third-party
+model on every connection check. All of it stays in the audit log.
+
+Connector results deep-link to `https://scalyo.app/app/clients/<id>` (`MCP-CLIENT-URL`).
+The authenticated area is mounted under `/app` — the shorter `/clients/<id>` 404s, and it
+404s *in the user's browser*, so no tool call would ever have reported it.
 
 ### Not exposed, deliberately
 
@@ -125,6 +130,8 @@ response so the model reports them as withheld rather than as empty.
 | Tenant context is derived server-side | `src/auth/user-context.ts` — no tool accepts `user_id`, `organization_id` or `role` |
 | Tenant context is **deterministic** | `src/auth/user-context.ts` — `profiles.organization_id` is canonical, cross-checked against `organization_members` |
 | Tokens are checked against **this** resource | `src/auth/verify-token.ts` — issuer, expiry, audience/resource, OAuth-client allowlist |
+| An AI token is read-only **in the database too** | `supabase/migrations/20260914120000_mcp_ai_session_restrictions.sql` — RESTRICTIVE policies keyed on `is_mcp_session()` |
+| A misconfigured binding mode refuses to start | `src/env.ts` — an unrecognised `MCP_TOKEN_BINDING` throws (`MCP-BINDING-MODE-STRICT`) |
 | No caller-built queries | column + operator allowlists, values quoted; no `sql`/`where`/`filter` parameter exists |
 | Output minimization | explicit column lists; `select=*` throws |
 | Bounded reads | default 10, max 50 per tool, hard cap 200 rows per query |
@@ -178,8 +185,12 @@ token is bound to.
 | `observe` | the verdict is computed and audited on every request, and the request is **served** |
 | `enforce` | a token that is not bound is rejected `UNAUTHENTICATED`, **before** the round trip to Supabase Auth |
 
-An unrecognised value reads as `observe`: a typo in a var must not take every customer
-connector offline at once.
+An unrecognised value is a **hard startup error** (`MCP-BINDING-MODE-STRICT`, third review
+§10). It used to read as `observe`, which is backwards for a security control:
+`MCP_TOKEN_BINDING=enfroce` would have meant the deploy that was supposed to *start*
+enforcing quietly kept serving unbound tokens, with the only evidence an audit field nobody
+was watching any more *because the flip was believed done*. Now `getConfig()` throws, the
+Worker serves 500 and audits it, and somebody notices in a minute.
 
 Pre-production runs in `enforce` — a wrong-resource token has to actually fail somewhere
 before production, and observing it proves nothing. **Production ships in `observe`** and
@@ -373,15 +384,75 @@ Alert on: a spike in `mcp.auth.failure`, repeated `NOT_FOUND` from one `userId`
 
 ---
 
+## Making an AI token read-only in the database
+
+The Worker is read-only. The **token** was not: pointed straight at Supabase REST it got
+whatever normal user RLS allowed, including writes and the tables MCP withholds. So the
+read-only promise was a property of this Worker, not of the credential.
+
+`supabase/migrations/20260914120000_mcp_ai_session_restrictions.sql` closes that with
+**RESTRICTIVE** policies keyed on `public.is_mcp_session()` (the `ai_agent` JWT claim):
+
+```
+final access = (any permissive policy passes) AND (every restrictive policy passes)
+```
+
+Restrictive policies are ANDed with the existing permissive set, so the 28 tables whose
+policies live only in the Supabase dashboard are never read, rewritten or replaced — which
+is what made this writable from the repository at all. For a website session
+`is_mcp_session()` is false, so every restriction passes and behaviour is unchanged.
+`service_role` bypasses RLS, so the Pages API functions are unaffected.
+
+It denies INSERT/UPDATE/DELETE on all 35 tables and SELECT on 15 sensitive ones, while
+leaving `clients`, `tasks`, `profiles`, `organization_members`, `organizations` and
+`client_metrics` readable — exactly what the tools need.
+
+**It is inert until the access-token hook is live**, because nothing stamps `ai_agent` yet.
+A deployed migration is not a deployed control; the Worker's audit line says which state
+you are in:
+
+```
+event = "mcp.auth.binding"  →  aiAgent: true   (the hook is live)
+```
+
+Order: hook ([MCP_ACCESS_TOKEN_HOOK.md](MCP_ACCESS_TOKEN_HOOK.md)) → migration →
+`MCP_TOKEN_BINDING=enforce` → the consent page's "it cannot…" list
+([MCP_CONSENT_PAGE.md](MCP_CONSENT_PAGE.md)).
+
+---
+
+## Tool-selection evaluation
+
+Protocol tests prove the tools work. Nothing there proves a model *picks* the right one —
+and names, titles, descriptions, schemas and annotations are exactly what drives that
+choice, so any edit to them can silently change routing.
+
+| Layer | When | What it does |
+|---|---|---|
+| `test/tool-selection.test.ts` | every CI run | integrity only, **no model called**: every `expectedTools` name exists, every `forbiddenTools` name does not, negatives stay negative, every business tool has a prompt |
+| `test/evals/golden-prompts.json` | nightly / pre-release / before any tool-schema change / before publication | run the 12 prompts against real models, score routing accuracy, threshold **95%** |
+
+The integrity layer catches the failure that would otherwise be invisible: rename a tool
+and the eval set silently starts asserting nothing about a server that no longer exists.
+The `forbiddenTools` list doubles as a guard on v1's read-only promise — the day
+`add_client_note` or `send_email` is registered, that test fails and forces both the eval
+set and the consent copy to be revisited.
+
+**A passing integrity check is not a passing evaluation.** Also keep a manual smoke test in
+ChatGPT and in Claude before release: host orchestration differs from raw model behaviour.
+
+---
+
 ## Open items
 
-- **An OAuth token is still only restricted by MCP code, not by the database.** The same
-  token the MCP Worker uses is a normal Supabase user token: pointed straight at
-  PostgREST it gets whatever normal RLS allows, which includes writes and the tables MCP
-  deliberately withholds (notes, contacts). The MCP layer's read-only promise is therefore
-  a property of this Worker, not of the credential. Closing it is a database change —
-  drafted, with the open decisions, in
-  [MCP_OPEN_QUESTIONS.md](MCP_OPEN_QUESTIONS.md) Q2.
+- **The access-token hook is drafted, not applied** — and until it is, both the database
+  restrictions and the resource binding are inert. It is the highest-blast-radius change in
+  the whole MCP effort (it runs on every token issuance in the project, website logins
+  included), so it is deliberately not shipped from here:
+  [MCP_ACCESS_TOKEN_HOOK.md](MCP_ACCESS_TOKEN_HOOK.md).
+- **The consent page's three Supabase API calls are unverified**, and the "it cannot…"
+  promises are flagged off until the hook and the migration are live:
+  [MCP_CONSENT_PAGE.md](MCP_CONSENT_PAGE.md).
 - **`MCP_TOKEN_BINDING` is `observe` in production.** The binding is computed and audited
   but not enforced until a live ChatGPT and a live Claude token have been seen `bound` in
   pre-prod. Until then a valid Scalyo session token is still accepted.
@@ -393,11 +464,10 @@ Alert on: a spike in `mcp.auth.failure`, repeated `NOT_FOUND` from one `userId`
   needs a server-side aggregate (an RPC) before the figures are complete.
 - **The ChatGPT `search`/`fetch` contract is written to the known convention** and needs
   confirming against OpenAI's current connector requirements before publication. Whether
-  to keep them at all, given they overlap `search_clients` / `get_client_overview` and may
-  make tool selection less deterministic, is
+  to keep them at all is the one still-undecided question:
   [MCP_OPEN_QUESTIONS.md](MCP_OPEN_QUESTIONS.md) Q3.
-- **No tool-selection evaluation exists.** The protocol tests prove the tools work; nothing
-  proves a model *picks* the right one, or that "what's the weather" calls none of them.
+- **The live model evaluation has never been run.** The cases and the integrity check
+  exist; the nightly model run does not.
 - **Roles are audited, not enforced.** All four roles get the same read surface. That
   matches the product today — every role can read the portfolio in the UI — but a
   `viewer`-specific restriction would need adding here as well as in RLS.

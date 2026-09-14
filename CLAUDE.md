@@ -85,7 +85,9 @@ different live tables — identity/plan/trial vs AI-context/currency.
 | setup, scripts, env vars, deploy, the Cloudflare MCP servers in `.mcp.json` | [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) |
 | the Scalyo MCP server (Claude / ChatGPT integration) | [docs/MCP_SERVER.md](docs/MCP_SERVER.md) — **customer-facing**, not the `.mcp.json` dev tooling |
 | what is still undecided about MCP before it goes public | [docs/MCP_OPEN_QUESTIONS.md](docs/MCP_OPEN_QUESTIONS.md) — five open items, each with what is needed to close it |
-| why MCP's two remaining P0s are still open | [docs/MCP_WHY_NOT_IMPLEMENTED.md](docs/MCP_WHY_NOT_IMPLEMENTED.md) — AI-token RLS and the consent page: the evidence, and what would unblock each |
+| why MCP's two P0s were open, and how they were closed | [docs/MCP_WHY_NOT_IMPLEMENTED.md](docs/MCP_WHY_NOT_IMPLEMENTED.md) — superseded 14/09/2026; kept for the reasoning |
+| the Supabase access-token hook MCP security depends on | [docs/MCP_ACCESS_TOKEN_HOOK.md](docs/MCP_ACCESS_TOKEN_HOOK.md) — **a proposal**, not applied; the binding and the RLS restrictions are inert without it |
+| the OAuth consent screen at `/oauth/consent` | [docs/MCP_CONSENT_PAGE.md](docs/MCP_CONSENT_PAGE.md) — Scalyo owns it, Supabase owns the OAuth backend |
 | deploying: Pages settings, env vars, the release runbook, rollback | [docs/DEPLOY_CLOUDFLARE.md](docs/DEPLOY_CLOUDFLARE.md) — **the live deploy** |
 | moving the deploy to Fly.io (**proposal — the live deploy is still Cloudflare Pages**) | [docs/DEPLOY_FLY.md](docs/DEPLOY_FLY.md) |
 
@@ -215,6 +217,28 @@ broke something visible. Do not relax one without saying so explicitly.
 - **`get_server_status` returns no internal ids.** It is the tool an assistant calls first
   and quotes back verbatim, so a `userId` in it ends up pasted into a chat transcript that
   leaves the EU. Email and role only; the ids stay in the audit log (`MCP-STATUS-MINIMAL`).
+- **An MCP OAuth token is a normal Supabase user token.** The Worker being read-only says
+  nothing about what the credential can do: pointed straight at Supabase REST it gets
+  whatever normal RLS allows. `20260914120000_mcp_ai_session_restrictions.sql` closes that
+  with **RESTRICTIVE** policies keyed on `public.is_mcp_session()` — restrictive policies
+  are ANDed with the existing permissive set, so the 28 tables whose policies live only in
+  the dashboard are never rewritten. It is **inert until the access-token hook stamps
+  `ai_agent`**; `event = "mcp.auth.binding" → aiAgent` says which state you are in. A
+  deployed migration is not a deployed control.
+- **`MCP_TOKEN_BINDING` refuses to start on a typo.** `enfroce` used to read as `observe`,
+  so the deploy meant to *start* enforcing would quietly keep serving unbound tokens —
+  with nobody watching the audit field any more, because the flip was believed done
+  (`MCP-BINDING-MODE-STRICT`).
+- **Connector deep links need `/app`.** The authenticated area is mounted at `/app`, so
+  `search`/`fetch` must return `https://scalyo.app/app/clients/<id>`. The short form 404s
+  *in the user's browser*, where no tool call would ever report it (`MCP-CLIENT-URL`).
+- **The consent screen's "it cannot…" promises are about the TOKEN, not the tool list.**
+  `RESTRICTIONS_DEPLOYED` in `OAuthConsentView.vue` keeps them hidden until the hook and
+  the migration are both live. Do not flip it to make the screen look complete.
+- **`/oauth/consent` has neither `meta.guest` nor `meta.requiresAuth`** — same reason as
+  `/join` (INV-GUEST). `guest` bounces a signed-in user to the dashboard; `requiresAuth`
+  redirects to `{ name: 'login' }`, which drops the query string. The `authorization_id`
+  lives only in that query, so either one silently breaks the flow.
 - **Oxygen data is legally self-only.** The only aggregation path is
   `oxygen_team_aggregate` (owner-only, literal `n ≥ 5`, fail-closed behind an org flag).
   Changing this is a legal change.
@@ -241,6 +265,11 @@ broke something visible. Do not relax one without saying so explicitly.
   **If you touched `app-v2/mcp-worker`**: `npm run typecheck && npm test` in that directory,
   and `npm run test:isolation` against pre-prod before any production deploy — a skipped
   isolation run is not a pass (see [docs/MCP_SERVER.md](docs/MCP_SERVER.md)).
+  **If you renamed, added or removed an MCP tool**: `test/tool-selection.test.ts` fails
+  until `test/evals/golden-prompts.json` is updated — that is deliberate, an eval set
+  naming tools that no longer exist asserts nothing. Its integrity check calls no model;
+  the live routing evaluation is a separate nightly/pre-release run and a passing
+  integrity check is not a passing evaluation.
 
 ## Things that are intentionally the way they are
 
@@ -268,19 +297,18 @@ Tracked, not fixed in this snapshot:
   checking anything; `account/delete.js` and `account/export.js` still carry a hard-coded
   **production** Supabase URL fallback; `/api/coach` bypasses rate limit, gating and quota.
   Read it before touching account deletion, alerts, or the plan config.
-- The MCP server ships **read-only**, and that read-only-ness is a property of the Worker,
-  not of the token: an MCP OAuth token pointed straight at Supabase REST still gets normal
-  user RLS, which allows writes and the tables MCP withholds. Restricting it at the
-  database level needs the live policy set and a decision — **28 of the 35 tables have no
-  write policy anywhere in this repo**, so the migration cannot be written from here
-  without inventing policy expressions. Reason and evidence:
-  [docs/MCP_WHY_NOT_IMPLEMENTED.md](docs/MCP_WHY_NOT_IMPLEMENTED.md); decisions:
-  [docs/MCP_OPEN_QUESTIONS.md](docs/MCP_OPEN_QUESTIONS.md) Q2.
-- **There is no OAuth consent page, and by the current architecture there is nowhere to put
-  one**: `mcp-worker/src/auth/protected-resource.ts` makes Supabase the authorization
-  server, so Supabase renders the consent screen. Note the consent copy the review proposes
-  ("cannot modify customers / view private notes") is **not true of the token** until the
-  item above is fixed — fix that first, then write the copy.
+- **The MCP security model is written but not yet switched on.** The access-token hook
+  ([docs/MCP_ACCESS_TOKEN_HOOK.md](docs/MCP_ACCESS_TOKEN_HOOK.md)) is a proposal, and
+  without it the resource binding stays in `observe`, the RLS restrictions are inert, and
+  the consent page's "it cannot…" list stays hidden. Order: hook → migration →
+  `enforce` → consent promises. Each step verifiable before the next.
+- **The consent page's three Supabase authorization-server calls are unverified** (no
+  frontend `node_modules` here; the methods are recent). They are isolated in
+  `src/lib/oauthConsent.js` and fail visibly rather than silently —
+  [docs/MCP_CONSENT_PAGE.md](docs/MCP_CONSENT_PAGE.md) has the one-command check.
+- **One product question is still open**: is ChatGPT Company Knowledge a launch
+  requirement? If not, delete `search`/`fetch`
+  ([docs/MCP_OPEN_QUESTIONS.md](docs/MCP_OPEN_QUESTIONS.md) Q3).
 - **MCP token resource binding runs in `observe` in production.** Issuer, expiry,
   audience/resource and the OAuth-client allowlist are all validated and audited
   (`event = "mcp.auth.binding"`), but a failed verdict is not acted on until a live ChatGPT

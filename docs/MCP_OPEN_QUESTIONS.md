@@ -1,218 +1,193 @@
 # MCP — open questions from the second review
 
 **Raised:** 14/09/2026
-**Source:** [`SCALYO_MCP_SECOND_REVIEW_AND_PRODUCTION_READINESS.md`](../SCALYO_MCP_SECOND_REVIEW_AND_PRODUCTION_READINESS.md)
-**Status of the rest of that review:** implemented — see the change summary at the bottom.
-**Why the two P0 items here were not simply fixed:** [MCP_WHY_NOT_IMPLEMENTED.md](MCP_WHY_NOT_IMPLEMENTED.md).
+**Answered:** 14/09/2026 by [`SCALYO_MCP_OPEN_QUESTIONS_ANSWERS.md`](../SCALYO_MCP_OPEN_QUESTIONS_ANSWERS.md)
+**Source:** [`SCALYO_MCP_SECOND_REVIEW_AND_PRODUCTION_READINESS.md`](../SCALYO_MCP_SECOND_REVIEW_AND_PRODUCTION_READINESS.md),
+[`SCALYO_MCP_THIRD_REVIEW_AND_FINAL_FIX_LIST.md`](../SCALYO_MCP_THIRD_REVIEW_AND_FINAL_FIX_LIST.md)
 
-These five items could not be settled from the repository. Each needs either an
-observation against a live Supabase project, a product decision, or a database change
-whose blast radius reaches the website. Each says what is blocked, what I would do, and
-what I need in order to do it.
+## Status
+
+All five have decisions. Four are built; what is left is live verification, not design.
+
+| | Question | Decision | State |
+|---|---|---|---|
+| Q1 | resource binding | Supabase does **not** bind by default — add a Custom Access Token Hook | hook **drafted, not applied** ([MCP_ACCESS_TOKEN_HOOK.md](MCP_ACCESS_TOKEN_HOOK.md)); Worker side done |
+| Q2 | AI-token DB restrictions | **yes, before public launch** — not deferred to the first write tool | migration **written** (`20260914120000`), inert until the hook is live |
+| Q3 | `search` / `fetch` | remove **unless** ChatGPT Company Knowledge is a launch requirement | **still open — the only undecided item.** Kept, URL bug fixed, comment clarified |
+| Q4 | consent UI | **Scalyo owns it**, Supabase owns the OAuth backend | **built** — `/oauth/consent` ([MCP_CONSENT_PAGE.md](MCP_CONSENT_PAGE.md)) |
+| Q5 | tool-selection evals | cases in the repo; live model runs nightly/pre-release, not per commit | **built** — `test/evals/golden-prompts.json` + integrity test |
+
+The two blockers that were previously "cannot be done from this repository" are now done.
+What changed is explained in each section below — in Q2's case, because the answer pointed
+at a technique that removed the blocker, not because the earlier reasoning was ignored.
 
 ---
 
-## Q1 — Does Supabase's OAuth server actually bind the token to the MCP resource?
+## Q1 — Does Supabase's OAuth server bind the token to the MCP resource?
 
-**Blocker 1 in the review. Half-implemented; the other half is unknowable from here.**
+**Answered: no, not by default.** Supabase OAuth access tokens carry `aud: "authenticated"`
+and a `client_id`, not a resource-specific audience.
 
-### What is done
+**Decision:** add a Supabase **Custom Access Token Hook** that stamps
+`aud = https://mcp.scalyo.app/mcp` and `ai_agent: true` onto OAuth-issued tokens, leaving
+website session tokens untouched. Then enforce.
 
-`src/auth/verify-token.ts` now validates issuer, expiry, audience/resource (RFC 8707) and
-an OAuth-client allowlist, with a full test suite. `canonicalResourceUrl()` guarantees the
-advertised and validated resource are the same string. `MCP_TOKEN_BINDING` chooses whether
-a failed verdict is audited (`observe`) or acted on (`enforce`).
+**Built:** the Worker half — issuer, expiry, audience/resource, client allowlist, and now
+the `ai_agent` observation (`MCP-AI-CLAIM`), audited on every request as
+`event = "mcp.auth.binding" → aiAgent`.
 
-### What is not
+**Not applied:** the hook itself, drafted in
+[MCP_ACCESS_TOKEN_HOOK.md](MCP_ACCESS_TOKEN_HOOK.md). It runs on **every token issuance in
+the project**, website logins included, and its safety rests on one assumption this
+repository cannot check: that `client_id` is present on OAuth tokens and absent on session
+tokens. If that is inverted, the hook rewrites the `aud` of every login in the product.
+The doc gives the two queries that settle it.
 
-**I do not know what a Supabase-OAuth-issued access token puts in `aud`.** The repository
-contains no sample token and no Supabase project I can query. Three outcomes are possible:
-
-| If the token carries… | Then |
-|---|---|
-| `aud` (or `resource`) = `https://mcp.scalyo.app/mcp` | flip production to `enforce`. Done. |
-| `aud` = `"authenticated"`, plus a distinguishable `client_id` | the audience check can never pass. Bind on `client_id` instead: fill `MCP_ALLOWED_OAUTH_CLIENTS` with the ChatGPT and Claude client ids, and drop `audience_mismatch` from the enforced set. Weaker — it identifies the *client*, not the *resource* — but real. |
-| `aud` = `"authenticated"` and no `client_id` either | there is nothing to bind to, and no amount of Worker code fixes it. The options are a Supabase Auth Hook adding a custom claim at issuance, or accepting that any valid Scalyo token reaches MCP and saying so in the risk register. |
-
-### What I need
-
-From a **pre-production** ChatGPT connection and a **pre-production** Claude connection,
-the `mcp.auth.binding` audit line each one produces:
-
-```
-event = "mcp.auth.binding"  →  mode, bound, bindingReasons, claimedAudience, oauthClientId
-```
-
-Pre-prod already ships in `enforce`, so if the binding does not hold the connection fails
-there — which is the point. Production ships in `observe` so that a wrong guess here cannot
-take every customer connector offline at once.
-
-**Do not flip production to `enforce` before those two lines exist.**
+**Remaining:** run those two checks, deploy the hook to pre-prod, confirm
+`aiAgent: true` and `bound: true` from a real ChatGPT and a real Claude connection, then
+flip production to `enforce`. Production stays `observe` until then — but note an
+unrecognised value is now a hard startup error rather than a silent `observe`
+(`MCP-BINDING-MODE-STRICT`, third review §10).
 
 ---
 
 ## Q2 — Restricting the OAuth token at the database level
 
-**Blocker 2 in the review. Not implemented: it is a database change, not a Worker change.**
+**Answered: yes, and before public launch** — explicitly not deferred until the first write
+tool, because the credential is the security boundary, not the tool list.
 
-### The problem, stated precisely
+**Built:** `supabase/migrations/20260914120000_mcp_ai_session_restrictions.sql`.
 
-The MCP Worker is read-only. The *token* is not. The same access token, pointed straight at
-`https://<project>.supabase.co/rest/v1/clients`, gets whatever normal RLS grants that user —
-which today includes `UPDATE`, and includes the tables MCP deliberately withholds
-(`client_notes`, contacts, Oxygen rows). So MCP's read-only, privacy-minimised surface is a
-property of **this Worker**, not of the credential it holds. Anyone who can complete the
-OAuth consent flow can also just use the token directly.
+### What unblocked it
 
-Whether that is a real escalation depends on who the attacker is:
+I previously said this could not be written from here: adding `and not is_ai_session()` to
+a policy means **rewriting** that policy, and 28 of 35 tables have no policy definition in
+the repository. That reasoning was correct about *replacing* policies — and it missed the
+technique the answer names:
 
-- **the user themselves** — no escalation at all. They can already do those things in the
-  Scalyo UI. The token grants them nothing new.
-- **the AI host, or anything that reaches the token inside it** — a genuine escalation. The
-  user consented to "view my portfolio" and handed over a credential that can also write.
+> Where practical, use **restrictive** policies that narrow access rather than replacing
+> existing permissive policies.
 
-The second reading is the one that matters for a consent screen that promises "it cannot
-modify customers".
+PostgreSQL ANDs restrictive policies with the permissive set:
 
-### The shape of the fix
-
-RLS policies that can tell an AI/OAuth session from a normal website session, and refuse
-writes and sensitive tables for the former. Sketch, **not a migration** — the claim name is
-a guess and the policy names are certainly wrong for this schema:
-
-```sql
--- Is the current request an MCP/OAuth session rather than the website?
-create or replace function public.is_ai_session() returns boolean
-language sql stable as $$
-  select coalesce(
-    (current_setting('request.jwt.claims', true)::jsonb ->> 'client_id') is not null,
-    false
-  );
-$$;
-
--- Every write policy gains: and not public.is_ai_session()
--- Every sensitive-table select policy gains the same.
+```
+final access = (any permissive policy passes) AND (every restrictive policy passes)
 ```
 
-### The four things I cannot decide
+So the existing 28 unknown policies are never read, never touched, never rewritten. The
+blocker was real for the approach I was considering; it does not apply to this one.
 
-1. **Which claim actually identifies an MCP session.** Same unknown as Q1. If
-   OAuth-issued tokens carry `client_id` and session tokens do not, `is_ai_session()` is
-   trivial. If they do not, this needs a Supabase Auth Hook stamping a custom claim, which
-   is a change to *authentication for the whole product*, not just MCP.
-2. **The blast radius.** **28 of the 35 tables the code touches have no write policy
-   anywhere in this repository** (counted in
-   [MCP_WHY_NOT_IMPLEMENTED.md](MCP_WHY_NOT_IMPLEMENTED.md) §1) — they were created in the
-   dashboard, matching `CLAUDE.md`'s note that only 8 of 35 have a `CREATE TABLE` here.
-   Adding a clause to a policy means rewriting it, which means knowing its current `USING`
-   and `WITH CHECK` expressions; for 28 tables I would be inventing them. A rewrite that is
-   too permissive is a cross-tenant hole introduced by a security fix; one that stops
-   matching breaks the **website's** writes — silently, because a PostgREST `UPDATE`
-   matching zero rows returns 204 with `error = null` (`D-14`).
-3. **Which tables are "sensitive" is a legal call, not a technical one.** The review's list
-   (`client_notes`, contacts, billing, integration secrets, Oxygen) matches what
-   `clients.service.ts` already withholds, but Oxygen in particular is described in
-   `CLAUDE.md` as *legally* self-only — extending a DENY there is a legal decision.
-4. **Whether it is worth it before launch at all**, given the "user themselves" reading
-   above. A defensible alternative is to ship read-only v1 without it and treat it as a
-   hard prerequisite for the first **write** tool, when the escalation stops being
-   theoretical.
+### Why the migration is safe to apply
 
-### What I need
+For a normal website session `public.is_mcp_session()` is false, so `not is_mcp_session()`
+is true, so every restrictive policy passes and behaviour is **identical to today**. Only a
+JWT carrying `ai_agent: true` is affected. `service_role` bypasses RLS entirely, so the
+Pages API functions are unaffected.
 
-A decision on (4) first. If it is "do it before launch", then: confirmation of the claim
-from Q1, plus a dump of the live policies (`select * from pg_policies where schemaname =
-'public'`) so a migration can be written against what actually exists rather than against
-`SCHEMA_FROM_CODE.sql`, which is explicitly reconstructed and marked inferred.
+It denies INSERT/UPDATE/DELETE on all 35 tables, and SELECT on 15 sensitive ones
+(`client_notes`, `ai_conversations`, `org_integrations`, `oxygen_*`, `api_keys`, …) while
+leaving `clients`, `tasks`, `profiles`, `organization_members`, `organizations` and
+`client_metrics` readable — which is exactly what the MCP tools need.
+
+### It is currently INERT, on purpose
+
+`is_mcp_session()` reads the `ai_agent` claim, which only exists once the Q1 hook is
+deployed. Until then every check returns false and the migration protects nothing. That
+ordering is deliberate — the migration is safe to apply first and starts working the
+moment the hook lands — but **a deployed migration is not a deployed control**. The
+Worker's `aiAgent` audit field is how you tell which state you are in.
+
+Verification, including direct-Supabase-REST misuse with an MCP token, is in §4 of the
+migration; rollback is §5.
 
 ---
 
 ## Q3 — Keep or remove the generic `search` / `fetch` tools?
 
-**A product decision. Kept, unchanged, pending an answer.**
+**The one item still genuinely open**, because both documents answer it conditionally and
+neither states the condition.
 
-The review (§7) suggests removing them: they overlap `search_clients` and
-`get_client_overview`, and two tools that can answer the same question make a model's
-choice less deterministic.
+> Remove them **unless ChatGPT Company Knowledge is an explicit launch requirement**.
 
-The counter-argument is in the code comment that introduced them: ChatGPT's connector
-surface expects exactly this `search` + `fetch` pair, and without them Scalyo may not
-install cleanly as a ChatGPT connector at all. They add no data access — both go through
-the same RLS-scoped client and the same column allowlists as the business tools.
+Nobody has said whether it is. So:
 
-So the question is really: **is ChatGPT connector installation a launch requirement?**
+**Kept**, and the two real defects fixed:
 
-| If ChatGPT is a launch target | If Claude-first | 
-|---|---|
-| keep them, and verify the exact contract against OpenAI's current connector documentation before publication — it has changed before | delete both, along with `registerChatGptCompatibilityTools`, its tests and the doc rows; six focused tools select more reliably |
+- **the URL bug** (third review §6): results linked to `https://scalyo.app/clients/<id>`,
+  but the Vue route is `/app/clients/:id` — the authenticated area is mounted under
+  `/app`. Every ChatGPT citation led to a 404, and because it 404s *in the user's browser*
+  rather than in the tool call, nothing on our side would ever have reported it. Now
+  `https://scalyo.app/app/clients/<id>`, with a regression test.
+- **the comment**, which said "so the same endpoint installs cleanly in both Claude and
+  ChatGPT" — misleading, since Claude needs neither. It now says plainly that these exist
+  only for Company Knowledge and that deleting them is the right move if that is dropped.
 
-I did not remove them, because deleting a working ChatGPT integration path on my own
-reading of a "consider" is a bigger mistake than carrying two extra tools.
+**To close this:** answer one question — *is ChatGPT Company Knowledge a launch
+requirement?* If no, delete `registerChatGptCompatibilityTools`, its tests, and the doc
+rows; six focused tools route more reliably. If yes, verify the contract against OpenAI's
+current connector documentation before publication.
 
 ---
 
-## Q4 — The OAuth consent screen: whose is it, and what does it say?
+## Q4 — The OAuth consent screen: whose is it?
 
-**Verification task. Nothing in this repository can confirm it.**
+**Answered: Scalyo's.** Supabase owns the OAuth backend — codes, PKCE, tokens, dynamic
+client registration, revocation — but not the page the user reads. That corrects the
+assumption in `protected-resource.ts`, which treated the consent screen as Supabase's too.
 
-`src/auth/protected-resource.ts` is explicit that **Supabase is the authorization server**
-and Scalyo is only the resource server: Supabase owns the login, the consent screen,
-dynamic client registration and revocation. This Worker has no `/authorize` route by
-design.
+**Built:** `/oauth/consent` — `OAuthConsentView.vue`, `lib/oauthConsent.js`, 25 i18n keys
+in FR/EN/KO. Details in [MCP_CONSENT_PAGE.md](MCP_CONSENT_PAGE.md).
 
-The review (§10) asks for a Scalyo-hosted consent page at `https://scalyo.app/oauth/consent`
-that names the requesting client and lists what it may and may not do. Those two pictures
-disagree, and the disagreement matters:
+Two things worth knowing before it ships:
 
-- if Supabase's own consent screen is used, its wording is whatever Supabase renders —
-  Scalyo cannot promise "it cannot modify customers" on a screen it does not control, and
-  in any case that promise is not currently true at the database level (Q2);
-- if a Scalyo-hosted consent page is required, that is a front-end feature that does not
-  exist in this repository, and it needs the Supabase OAuth server configured to redirect
-  to it.
+- **The "it cannot…" list is behind `RESTRICTIONS_DEPLOYED`, currently `false`.** Those are
+  claims about the *token*, and they are false until the Q1 hook and the Q2 migration are
+  both live. Both reviews say the same thing: do not show those promises before the
+  restrictions exist.
+- **The three Supabase authorization-server calls are unverified.** The frontend has no
+  `node_modules` here and these client methods are recent. They are isolated in one file,
+  and if the API is absent the page shows an explicit failure rather than an Allow button
+  that does nothing — on a grant screen, a swallowed error that still looks like consent is
+  the worst possible D-14. [MCP_CONSENT_PAGE.md](MCP_CONSENT_PAGE.md) has the one-command
+  check.
 
-Also unverified, because they live in the Supabase dashboard rather than in code: dynamic
-client registration being enabled, the revoke/disconnect path working end to end, and
-whether a revoked connection actually stops working (the Worker's one-network-hop-per-
-request design exists precisely to make revocation immediate — that property is worth
-testing, not assuming).
-
-**What I need:** confirmation of which consent screen is in play, and — if it is Supabase's —
-whether its wording can carry the four "it cannot…" lines the review specifies. If it
-cannot, either the consent copy or Q2 has to give.
+**Remaining:** verify those method names; point the Supabase OAuth server's redirect at
+this route; run the approve/deny/revoke/PKCE checklist against pre-prod.
 
 ---
 
 ## Q5 — Tool-selection evaluation
 
-**Agreed and not built.** The review (§14) is right that protocol tests prove the tools
-work while proving nothing about whether a model *picks* the right one. Titles,
-annotations and output schemas — all added in this change — are exactly the inputs that
-influence that choice, so there is now something to evaluate.
+**Answered:** keep the cases in the repository; do **not** run live-model calls on every
+commit. Two layers.
 
-This needs a golden-prompt set run against real models ("Which customers need my
-attention?" → `get_at_risk_clients`; "What's the weather tomorrow?" → no Scalyo tool;
-"Delete Acme." → no matching tool exists), which means live model calls in CI.
+**Built:**
 
-**What I need:** whether that belongs in this repository's test suite at all, given it
-costs model calls and is non-deterministic, or whether it should be a manual pre-release
-checklist item in `docs/MCP_SERVER.md`.
+- `test/evals/golden-prompts.json` — 12 cases: 7 positive (including two-step
+  name→overview routing) and 5 negative (weather, general knowledge, delete, send email,
+  write a note), with a 95% routing threshold.
+- `test/tool-selection.test.ts` — runs on **every** CI run and calls no model. It asserts
+  every `expectedTools` name is a tool that actually exists, every `forbiddenTools` name
+  does **not** exist, negative cases stay negative, and every business tool has at least
+  one prompt. That catches the failure that would otherwise be invisible: rename a tool and
+  the eval set silently starts asserting nothing about a server that no longer exists.
+- The `forbiddenTools` assertion doubles as a guard on v1's read-only promise — the day
+  `add_client_note` or `send_email` is registered, that test fails and forces the eval set
+  *and* the consent copy to be revisited deliberately.
+
+**Remaining:** the live model run (nightly / pre-release / before any tool-schema change).
+A passing integrity check is not a passing evaluation.
 
 ---
 
-## What was implemented in the same change
+## What is still needed from a live environment
 
-Everything else from the review that lives in `app-v2/mcp-worker`:
+Nothing below can be settled from this repository:
 
-| Review item | Where |
-|---|---|
-| §3 resource/audience validation | `src/auth/verify-token.ts` `checkTokenBinding()`; `src/auth/protected-resource.ts` `canonicalResourceUrl()`; `test/token-binding.test.ts` |
-| §5 tool titles and read-only annotations | `src/tools/index.ts` — `title` + `READ_ONLY` on all nine tools |
-| §6 `outputSchema` and `structuredContent` | `src/tools/index.ts` — a zod output schema per tool, both result forms, compact text fallback |
-| §11 deterministic organization context | `src/auth/user-context.ts` — `profiles.organization_id` canonical, cross-checked; refuses to guess |
-| §12 provider-aware pre-auth rate limit | `wrangler.jsonc` — IP limit 60 → 600/min |
-| §13 reduced `get_server_status` output | `src/tools/index.ts` — email and role only; no internal ids |
-
-`npm run typecheck` and `npm test` pass (86 tests; the 9 live tenant-isolation tests skip
-without pre-prod credentials, which is not a pass — see
-[MCP_SERVER.md](MCP_SERVER.md#before-every-deploy)).
+1. `select auth.jwt() ->> 'client_id'` for a website session (expect null) and the
+   `oauthClientId` audit field for a connector (expect non-null) — gates Q1 and Q2.
+2. Deploy the access-token hook to pre-prod; confirm `aiAgent: true`, `bound: true`.
+3. Apply the migration to pre-prod; run its §4 checks, **especially 4.3** (the website
+   still writes — it touches 35 tables) and 4.4 (direct REST misuse is refused).
+4. Verify the three Supabase consent-API method names.
+5. Answer Q3: is ChatGPT Company Knowledge a launch requirement?

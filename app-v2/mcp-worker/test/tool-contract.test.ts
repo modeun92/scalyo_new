@@ -131,22 +131,40 @@ describe('tool registration', () => {
 })
 
 describe('tool behaviour', () => {
-  it('get_server_status confirms the connection without handing back internal ids', async () => {
+  it('get_server_status returns no identifiers and no personal data (MCP-STATUS-MINIMAL)', async () => {
     const tools = registerAndCapture(EMPTY)
     const result = await tools.get('get_server_status')!.handler({})
     const payload = parse(result)
 
     expect(payload.connected).toBe(true)
     expect(payload.readOnly).toBe(true)
-    expect(payload.account).toBe('a@example.com')
     expect(payload.role).toBe('member')
     expect(payload.organizationConnected).toBe(true)
 
-    // MCP-STATUS-MINIMAL: the ids stay in the audit log, not in a chat transcript.
+    // Everything identifying stays in the audit log, not in a chat transcript that
+    // leaves the EU. The email is personal data and went out in the third review (§8).
     const serialized = JSON.stringify(payload)
     expect(serialized).not.toContain('user-a')
     expect(serialized).not.toContain('org-a')
     expect(serialized).not.toContain('req-1')
+    expect(serialized).not.toContain('a@example.com')
+    expect(payload.account).toBeUndefined()
+  })
+
+  it('connector results deep-link to the real Vue route, not a 404 (MCP-CLIENT-URL)', async () => {
+    const rows = [{ id: 'c1', name: 'Acme', health: 8, status: null, arr: 1, mrr: null, renewal_date: null, lifecycle: 'client', churn_risk: null }]
+    const select: UserSupabaseClient['select'] = async () => rows as never[]
+    const tools = registerAndCapture(select)
+
+    const searched = parse(await tools.get('search')!.handler({ query: 'Acme' }))
+    const fetched = parse(await tools.get('fetch')!.handler({ id: '00000000-0000-4000-8000-000000000001' }))
+
+    // The authenticated area is mounted at /app (router/index.js). /clients/<id> 404s in
+    // the user's browser, where no tool call would ever have reported it.
+    for (const url of [searched.results[0].url, fetched.url]) {
+      expect(url).toBe('https://scalyo.app/app/clients/c1')
+      expect(url).not.toMatch(/scalyo\.app\/clients\//)
+    }
   })
 
   it('a database failure surfaces as an error, never as an empty portfolio (R21)', async () => {

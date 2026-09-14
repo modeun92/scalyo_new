@@ -119,6 +119,9 @@ export default {
         bound: user.binding.bound,
         bindingReasons: user.binding.reasons,
         claimedAudience: user.binding.claimedAudience,
+        // Whether the Supabase access-token hook is stamping ai_agent yet. Until this is
+        // true in pre-prod, the RLS restrictions keyed on is_mcp_session() are inert.
+        aiAgent: user.binding.aiAgentClaim,
       })
 
       const userLimit = await env.MCP_RATE_LIMIT_USER.limit({ key: 'user:' + user.userId })

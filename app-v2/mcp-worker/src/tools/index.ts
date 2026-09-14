@@ -173,7 +173,6 @@ const serverStatusOutput = z.object({
   environment: z.string(),
   connected: z.boolean(),
   readOnly: z.boolean(),
-  account: z.string().nullable(),
   role: z.string().nullable(),
   organizationConnected: z.boolean(),
 })
@@ -258,26 +257,27 @@ export function registerScalyoTools(server: McpServer, deps: ToolDeps): void {
     {
       title: 'Check the Scalyo connection',
       description:
-        'Confirms the Scalyo MCP connection works and reports which Scalyo account the other tools will read from, ' +
-        'as the signed-in email address and that account\'s role. Use it to diagnose a connection, not to obtain identifiers. Read-only.',
+        'Confirms the Scalyo MCP connection works and reports the role and organization status of the Scalyo account ' +
+        'the other tools will read from. It returns no identifiers and no personal data by design. Read-only.',
       inputSchema: {},
       outputSchema: serverStatusOutput,
       annotations: { ...READ_ONLY, title: 'Check the Scalyo connection' },
     },
     async () =>
       runTool(deps, 'get_server_status', {}, async () => ({
-        // MCP-STATUS-MINIMAL (14/09/2026): no userId, no organizationId, no requestId.
-        // A status tool is the one an assistant calls first and quotes back verbatim, so
-        // every internal identifier in it ends up pasted into a chat transcript that
-        // leaves the EU. They stay in the audit log, where an incident can still use
-        // them. The email is what a human needs to recognise their own account.
+        // MCP-STATUS-MINIMAL (14/09/2026): no userId, no organizationId, no requestId —
+        // and no email either (third review §8). A status tool is the one an assistant
+        // calls first and quotes back verbatim, so anything identifying in it ends up
+        // pasted into a chat transcript that leaves the EU. An email address is personal
+        // data under GDPR; "which account am I connected as" does not justify shipping it
+        // to a third-party model on every connection check. All of it stays in the audit
+        // log, where an incident can still use it.
         payload: {
           server: 'scalyo-mcp',
           version: '1.0.0',
           environment: deps.environment,
           connected: true,
           readOnly: true,
-          account: deps.context.email,
           role: deps.context.role,
           organizationConnected: deps.context.organizationId !== null,
         },
@@ -433,14 +433,35 @@ export function registerScalyoTools(server: McpServer, deps: ToolDeps): void {
 /**
  * CHATGPT-COMPAT (14/09/2026): ChatGPT's connector surface expects a generic `search`
  * returning {id,title,url} results and a `fetch` returning one document by id. The
- * business tools above are the real API; these two are a thin adapter over them so the
- * same endpoint installs cleanly in both Claude and ChatGPT.
+ * business tools above are the real API; these two are a thin adapter over them.
+ *
+ * WHEN THESE ARE NEEDED: only for ChatGPT **Company Knowledge**, which expects a generic
+ * `search` returning {id,title,url} and a `fetch` returning one document by id. Ordinary
+ * MCP use — Claude connectors included — does not need them: search_clients and
+ * get_client_overview already cover it, and they return richer Customer Success fields.
+ * If Company Knowledge is dropped as a product goal, delete this whole function, its
+ * tests and its documentation rows; two tools that answer the same question make a
+ * model's choice less deterministic for no gain.
  *
  * They add NO new data access — `search` is search_clients, `fetch` is
  * get_client_overview, both through the same RLS-scoped client and the same column
  * allowlists. Verify the exact contract against OpenAI's current connector documentation
  * before publication; it has changed before.
  */
+/**
+ * The deep link a connector citation opens.
+ *
+ * MCP-CLIENT-URL (14/09/2026): the Vue route is `/app/clients/:id` (router/index.js — the
+ * authenticated area is mounted under `/app`), NOT `/clients/:id`. The short form 404s,
+ * and because it 404s *in the user's browser* rather than in the tool call, nothing here
+ * would ever have reported it — a ChatGPT citation simply led nowhere.
+ */
+const CLIENT_URL_BASE = 'https://scalyo.app/app/clients/'
+
+function clientUrl(clientId: string): string {
+  return CLIENT_URL_BASE + clientId
+}
+
 function registerChatGptCompatibilityTools(server: McpServer, deps: ToolDeps): void {
   server.registerTool(
     'search',
@@ -463,7 +484,7 @@ function registerChatGptCompatibilityTools(server: McpServer, deps: ToolDeps): v
             results: result.clients.map((c) => ({
               id: c.id,
               title: c.name || 'Untitled account',
-              url: 'https://scalyo.app/clients/' + c.id,
+              url: clientUrl(c.id),
             })),
           },
           resultCount: result.count,
@@ -490,7 +511,7 @@ function registerChatGptCompatibilityTools(server: McpServer, deps: ToolDeps): v
             id: client.id,
             title: client.name || 'Untitled account',
             text: JSON.stringify(client, null, 2),
-            url: 'https://scalyo.app/clients/' + client.id,
+            url: clientUrl(client.id),
             metadata: { effectiveStatus: client.effectiveStatus, riskReasons: client.riskReasons },
           },
           resultCount: 1,

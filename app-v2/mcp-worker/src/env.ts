@@ -35,14 +35,23 @@ export interface Env {
  * MCP-TOKEN-BINDING (14/09/2026): how hard the resource binding is enforced.
  *
  *   observe — the binding is checked and every failure is audited, but the request is
- *             served. This is the ONLY safe default: if Supabase's OAuth server does not
- *             yet put the MCP resource in `aud`/`resource`, an `enforce` default would
- *             401 every connector on the first deploy and look like an outage.
+ *             served. Correct during rollout, when it is not yet known whether Supabase
+ *             stamps the MCP resource into `aud`.
  *   enforce — a token not bound to this resource is rejected as UNAUTHENTICATED.
  *
- * The flip to `enforce` is a deliberate step: run pre-prod in `enforce` first, read the
- * `mcp.auth.binding` audit lines from a real ChatGPT and a real Claude connection, and
- * only then set it in production. See docs/MCP_SERVER.md.
+ * MCP-BINDING-MODE-STRICT (14/09/2026, third review §10): an UNRECOGNISED value is a
+ * hard startup error, not a silent fall back to `observe`. It used to fall back, and the
+ * reasoning was "a typo must not take every connector offline" — which is exactly
+ * backwards for a security control. `MCP_TOKEN_BINDING=enfroce` would have read as
+ * `observe`, so the deploy that was supposed to START enforcing would quietly keep
+ * serving unbound tokens, and the only evidence would be an audit field nobody was
+ * watching any more *because the flip was believed done*. A misconfigured security
+ * control must fail loudly: getConfig() throws, index.ts serves 500 and audits it, and
+ * the endpoint is down in a way somebody notices in a minute.
+ *
+ * The flip to `enforce` is still a deliberate step: run pre-prod in `enforce` first, read
+ * the `mcp.auth.binding` audit lines from a real ChatGPT and a real Claude connection,
+ * and only then set it in production. See docs/MCP_SERVER.md.
  */
 export type TokenBindingMode = 'observe' | 'enforce'
 
@@ -84,16 +93,21 @@ export function getConfig(env: Env): ScalyoMcpConfig {
   const rawResource = (env.MCP_RESOURCE_URL || '').trim()
   const binding = (env.MCP_TOKEN_BINDING || 'observe').trim().toLowerCase()
 
+  // MCP-BINDING-MODE-STRICT: fail closed on a value we do not recognise.
+  if (binding !== 'observe' && binding !== 'enforce') {
+    throw new Error(
+      'Invalid MCP_TOKEN_BINDING: "' + env.MCP_TOKEN_BINDING + '". Expected "observe" or "enforce". ' +
+      'This is a security control — it is not defaulted.'
+    )
+  }
+
   return {
     supabaseUrl,
     supabaseAnonKey: required(env, 'SUPABASE_ANON_KEY'),
     environment: env.SCALYO_MCP_ENV || 'unknown',
     enabled: (env.MCP_ENABLED || 'on') !== 'off',
     resourceUrl: rawResource ? normalizeResourceUrl(rawResource) : null,
-    // An unrecognised value is NOT treated as 'enforce': a typo in a var must not take
-    // the connector offline. It is treated as 'observe' and the mismatch shows up in the
-    // audit lines, which is the loud-but-serving failure we want here.
-    tokenBinding: binding === 'enforce' ? 'enforce' : 'observe',
+    tokenBinding: binding,
     allowedOauthClients: (env.MCP_ALLOWED_OAUTH_CLIENTS || '')
       .split(',')
       .map((id) => id.trim())

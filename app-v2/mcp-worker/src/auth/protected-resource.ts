@@ -9,11 +9,19 @@
 //   4. discover Supabase's endpoints, register dynamically, run the OAuth flow
 //   5. retry /mcp with the issued token
 //
-// Scalyo is the RESOURCE server only. Supabase is the AUTHORIZATION server — it owns the
-// login, the consent screen, dynamic client registration and revocation. That is why this
-// Worker has no /authorize route, no KV namespace and no workers-oauth-provider: building
-// our own consent UI here would duplicate an OAuth 2.1 server Supabase already operates
-// against the same user table.
+// Scalyo is the RESOURCE server. Supabase is the AUTHORIZATION server — it owns the login,
+// dynamic client registration, code/token issuance and revocation. That is why this Worker
+// has no /authorize route, no KV namespace and no workers-oauth-provider: re-implementing
+// an OAuth 2.1 server Supabase already operates against the same user table would be pure
+// duplication.
+//
+// CORRECTION (14/09/2026, third review §5): this comment used to say Supabase owns the
+// CONSENT SCREEN too. It does not, and treating it as Supabase's is how the consent page
+// went unbuilt. The split is finer: Supabase owns the OAuth mechanics; the page the user
+// reads before granting an AI client access to their portfolio is Scalyo's, at
+// /oauth/consent (app-v2/frontend/src/views/OAuthConsentView.vue). The sentence "it cannot
+// modify your customers" is a claim about Scalyo's data model and is not Supabase's to
+// make. See docs/MCP_CONSENT_PAGE.md.
 //
 // Omitting step 2 is the usual reason a hand-built MCP server "works with a pasted token"
 // but cannot be installed as a connector.

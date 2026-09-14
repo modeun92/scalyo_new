@@ -112,6 +112,20 @@ const routes = [
     component: () => import('@/views/JoinView.vue')
   },
   {
+    // OAUTH-CONSENT-OWNER: Scalyo's own consent screen for the Supabase OAuth 2.1
+    // authorization server (ChatGPT / Claude connecting to the Scalyo MCP server).
+    //
+    // NO meta.guest and NO meta.requiresAuth, exactly as /join above (INV-GUEST):
+    //   - meta.guest would bounce an already-signed-in user to the dashboard, losing the
+    //     ?authorization_id= the whole flow depends on;
+    //   - meta.requiresAuth redirects to { name: 'login' }, which drops the query string
+    //     — and the authorization_id exists ONLY in that query.
+    // The view handles the signed-out case itself and links to /login?redirect=<this URL>.
+    path: '/oauth/consent',
+    name: 'oauth-consent',
+    component: () => import('@/views/OAuthConsentView.vue')
+  },
+  {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
     component: () => import('@/views/NotFoundView.vue')
