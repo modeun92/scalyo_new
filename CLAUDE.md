@@ -227,8 +227,12 @@ broke something visible. Do not relax one without saying so explicitly.
   `n >= 5` legal threshold. `EXECUTE` on each `_unguarded` twin is revoked from
   `authenticated`; without that the guard is decoration.
 - **`public.mcp_security_check()` is the release gate.** Non-empty result = do not deploy.
-  It catches RLS disabled on a protected table, a missing `mcp_no_*` policy, an unguarded
-  authenticated `SECURITY DEFINER` function added later, and missing Storage policies.
+  It checks every expected policy **by name** (`MCP-GATE-EXACT`) — asking only whether
+  *some* `mcp_no_*` policy exists would report `insert` present + `update`/`delete` missing
+  as "protected", which is worse than no gate: it turns an unknown into a false assurance
+  and the release proceeds because of it. It is **not** granted to `authenticated`
+  (`MCP-GATE-PRIVATE`): it enumerates exactly which controls are missing, which is a map of
+  the holes for anyone holding a user token.
 - **`truncated` and `partial` are different statements.** `truncated` = more matched than
   the caller's `limit`; `partial` = the 200-row scan ceiling was hit, so matches were never
   fetched. Conflating them makes a model report "3 at-risk accounts" when the 4th sat past
@@ -330,6 +334,11 @@ Tracked, not fixed in this snapshot:
   aggregate; that is a scale decision ([docs/MCP_OPEN_QUESTIONS.md](docs/MCP_OPEN_QUESTIONS.md) Q6).
 - **`app-v2/frontend` has no test runner**, so the OAuth consent helper is covered by review
   and a live checklist only, not by automated tests.
+- **Neither MCP security migration has ever run against a real Postgres**, and the
+  access-token hook has never been deployed. Until the pre-production sequence in
+  [docs/MCP_SERVER.md](docs/MCP_SERVER.md) is executed, the MCP security model is
+  "designed and reviewed", not "working" — and that difference is invisible from inside the
+  code ([docs/MCP_OPEN_QUESTIONS.md](docs/MCP_OPEN_QUESTIONS.md) Q7).
 - **MCP token resource binding runs in `observe` in production.** Issuer, expiry,
   audience/resource and the OAuth-client allowlist are all validated and audited
   (`event = "mcp.auth.binding"`), but a failed verdict is not acted on until a live ChatGPT

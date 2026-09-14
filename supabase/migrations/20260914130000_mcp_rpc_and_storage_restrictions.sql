@@ -259,21 +259,34 @@ begin
 end $$;
 
 -- ============================================================
--- §3 — Release gate: RLS disabled is a FAILURE, not a warning (fourth review §10)
+-- §3 — Release gate (fourth review §10, fifth review §7 and §8)
 -- ============================================================
--- A restrictive policy on a table with RLS disabled protects nothing. The previous
--- migration only raised a warning, which is invisible in a deploy log nobody reads.
--- This function returns one row per problem; the release pipeline must block on a
--- non-empty result.
-create or replace function public.mcp_security_check()
-returns table(object_name text, problem text)
-language plpgsql
-stable
-set search_path = public
+-- A non-empty result from public.mcp_security_check() must BLOCK a production deploy.
+--
+-- MCP-GATE-EXACT (14/09/2026, fifth review §7): the first version asked only whether SOME
+-- policy named `mcp_no_%` existed on a table. That would have passed this state:
+--
+--     mcp_no_insert_clients   present
+--     mcp_no_update_clients   MISSING      <- writes allowed
+--     mcp_no_delete_clients   MISSING      <- deletes allowed
+--
+-- A gate that reports "protected" for a half-protected table is worse than no gate: it
+-- converts an unknown into a false assurance, and the release proceeds because of it.
+-- Every expected policy is therefore checked BY NAME.
+
+-- The canonical lists. Defined as functions so the gate and any future migration read the
+-- SAME set from one place.
+--
+-- PARITY (hand-synced): these must match the arrays inside
+-- 20260914120000_mcp_ai_session_restrictions.sql §2 and §3. A table added there and not
+-- here would be protected but unverified; added here and not there, the gate reports it
+-- missing — which is the safe direction. Check C below catches the first case.
+create or replace function public.mcp_protected_tables()
+returns text[]
+language sql
+immutable
 as $fn$
-declare
-  t text;
-  tables text[] := array[
+  select array[
     'activity_log', 'ai_conversations', 'ai_messages', 'alpha_feedback', 'api_keys',
     'chat_channel_members', 'chat_channels', 'chat_messages', 'client_metrics',
     'client_notes', 'clients', 'copils', 'email_templates', 'invitations', 'notifications',
@@ -282,30 +295,121 @@ declare
     'profiles', 'projects', 'promo_codes', 'quotes', 'roadmaps', 'sent_emails', 'snapshots',
     'tasks', 'team_members', 'user_profiles', 'webhooks'
   ];
+$fn$;
+
+create or replace function public.mcp_sensitive_tables()
+returns text[]
+language sql
+immutable
+as $fn$
+  select array[
+    'activity_log', 'ai_conversations', 'ai_messages', 'alpha_feedback', 'api_keys',
+    'client_notes', 'invitations', 'org_email_config', 'org_integrations',
+    'oxygen_checkins', 'oxygen_daily', 'oxygen_recoveries', 'promo_codes', 'sent_emails',
+    'webhooks'
+  ];
+$fn$;
+
+create or replace function public.mcp_security_check()
+returns table(object_name text, problem text)
+language plpgsql
+stable
+set search_path = public
+as $fn$
+declare
+  t text;
+  verb text;
+  pol text;
 begin
-  foreach t in array tables loop
+  -- The whole model rests on this one function. Without it every mcp_no_* policy and
+  -- every wrapper guard references something that does not exist.
+  if to_regprocedure('public.is_mcp_session()') is null then
+    object_name := 'public.is_mcp_session()';
+    problem := 'MISSING — run 20260914120000_mcp_ai_session_restrictions.sql first; nothing below is enforced without it';
+    return next;
+  end if;
+
+  -- ---------------------------------------------------------------- A: write protection
+  foreach t in array public.mcp_protected_tables() loop
     if to_regclass('public.' || t) is null then
-      continue;   -- absent tables are reported by the migration's own notices
+      continue;   -- absent in this project; the migrations report it as a notice
     end if;
 
+    -- RLS off means every restrictive policy on the table is inert. RELEASE BLOCKER.
     if not (select relrowsecurity from pg_class where oid = to_regclass('public.' || t)) then
       object_name := 'public.' || t;
-      problem := 'RLS DISABLED — the mcp_no_* restrictive policies on this table are not enforced';
+      problem := 'RLS DISABLED — every mcp_no_* policy on this table is inert (release blocker)';
       return next;
     end if;
 
+    foreach verb in array array['insert', 'update', 'delete'] loop
+      pol := 'mcp_no_' || verb || '_' || t;
+      if not exists (
+        select 1 from pg_policies
+        where schemaname = 'public' and tablename = t and policyname = pol
+      ) then
+        object_name := 'public.' || t;
+        problem := 'missing policy ' || pol || ' — an AI session can ' || upper(verb) || ' this table';
+        return next;
+      end if;
+    end loop;
+  end loop;
+
+  -- ---------------------------------------------------------------- B: sensitive reads
+  foreach t in array public.mcp_sensitive_tables() loop
+    if to_regclass('public.' || t) is null then
+      continue;
+    end if;
+
+    pol := 'mcp_no_select_' || t;
     if not exists (
       select 1 from pg_policies
-      where schemaname = 'public' and tablename = t and policyname like 'mcp_no_%'
+      where schemaname = 'public' and tablename = t and policyname = pol
     ) then
       object_name := 'public.' || t;
-      problem := 'no mcp_no_* policy present — run 20260914120000_mcp_ai_session_restrictions.sql';
+      problem := 'missing policy ' || pol || ' — an AI session can READ this sensitive table';
       return next;
     end if;
   end loop;
 
-  -- An unguarded SECURITY DEFINER function still callable by authenticated is a hole of
-  -- exactly the kind §2 closes, including any added after this migration was written.
+  -- ---------------------------------------------------------------- C: list drift
+  -- A table carrying mcp_no_* policies but absent from mcp_protected_tables() is
+  -- protected by the other migration and NOT verified here. That is the drift direction
+  -- this gate would otherwise never notice.
+  for t in
+    select distinct pg_policies.tablename
+    from pg_policies
+    where schemaname = 'public' and policyname like 'mcp\_no\_%'
+      and not (pg_policies.tablename = any (public.mcp_protected_tables()))
+  loop
+    object_name := 'public.' || t;
+    problem := 'has mcp_no_* policies but is not in mcp_protected_tables() — the gate does not verify it';
+    return next;
+  end loop;
+
+  -- ---------------------------------------------------------------- D: storage, by name
+  if to_regclass('storage.objects') is null then
+    object_name := 'storage.objects';
+    problem := 'not present — expected in a Supabase project; storage restrictions unverifiable';
+    return next;
+  else
+    foreach verb in array array['select', 'insert', 'update', 'delete'] loop
+      pol := 'mcp_no_storage_' || verb;
+      if not exists (
+        select 1 from pg_policies
+        where schemaname = 'storage' and tablename = 'objects' and policyname = pol
+      ) then
+        object_name := 'storage.objects';
+        problem := 'missing policy ' || pol || ' — an AI session can ' || upper(verb) ||
+                   ' objects (§1 may have hit insufficient_privilege; re-run it as the storage owner)';
+        return next;
+      end if;
+    end loop;
+  end if;
+
+  -- ---------------------------------------------------------------- E: unguarded RPCs
+  -- Catches a SECURITY DEFINER function added AFTER this migration as well as one this
+  -- migration failed to rename.
   for t in
     select p.proname || '(' || pg_get_function_identity_arguments(p.oid) || ')'
     from pg_proc p
@@ -315,6 +419,7 @@ begin
       and has_function_privilege('authenticated', p.oid, 'execute')
       and p.proname not like '%\_unguarded'
       and p.proname not in ('is_mcp_session', 'mcp_guard', 'mcp_security_check',
+                            'mcp_protected_tables', 'mcp_sensitive_tables',
                             'can_read_chat_message', 'is_chat_member', 'get_my_org_id')
       and pg_get_functiondef(p.oid) not like '%mcp_guard()%'
   loop
@@ -323,30 +428,47 @@ begin
     return next;
   end loop;
 
-  if to_regclass('storage.objects') is not null
-     and not exists (select 1 from pg_policies where schemaname = 'storage' and tablename = 'objects' and policyname like 'mcp_no_%') then
-    object_name := 'storage.objects';
-    problem := 'no mcp_no_storage_* policy present — an AI token can still write objects';
+  -- ---------------------------------------------------------------- F: leaky originals
+  -- A renamed original that authenticated can still execute makes its wrapper decoration.
+  for t in
+    select p.proname || '(' || pg_get_function_identity_arguments(p.oid) || ')'
+    from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public'
+      and p.proname like '%\_unguarded'
+      and has_function_privilege('authenticated', p.oid, 'execute')
+  loop
+    object_name := 'public.' || t;
+    problem := 'unguarded original is still EXECUTE-able by authenticated — the wrapper can be bypassed';
     return next;
-  end if;
+  end loop;
 end;
 $fn$;
 
 comment on function public.mcp_security_check() is
-  'Release gate for the MCP AI-session controls. A non-empty result must BLOCK a production deploy. See docs/MCP_SERVER.md.';
+  'Release gate for the MCP AI-session controls. A non-empty result must BLOCK a production deploy. Checks every expected policy BY NAME. See docs/MCP_SERVER.md.';
 
-grant execute on function public.mcp_security_check() to authenticated;
+-- MCP-GATE-PRIVATE (fifth review §8): NOT executable by authenticated. It enumerates
+-- exactly which controls are missing, which is a map of the holes for anyone holding a
+-- user token. Release tooling runs it as the migration/service role.
+revoke all on function public.mcp_protected_tables() from public, anon, authenticated;
+revoke all on function public.mcp_sensitive_tables() from public, anon, authenticated;
+revoke all on function public.mcp_security_check() from public, anon, authenticated;
+grant execute on function public.mcp_security_check() to service_role;
 
--- Run it, and make the migration itself noisy if anything is wrong:
+-- Run it now, and make the migration noisy if anything is wrong:
 --   select * from public.mcp_security_check();
--- Expect zero rows.
 do $$
 declare
   n int;
+  r record;
 begin
   select count(*) into n from public.mcp_security_check();
   if n > 0 then
-    raise warning 'mcp_security_check() reports % problem(s) — run: select * from public.mcp_security_check();', n;
+    raise warning 'mcp_security_check(): % problem(s) — THIS IS A RELEASE BLOCKER', n;
+    for r in select * from public.mcp_security_check() loop
+      raise warning '  % : %', r.object_name, r.problem;
+    end loop;
   else
     raise notice 'mcp_security_check(): clean';
   end if;

@@ -1,10 +1,11 @@
 # MCP — open questions
 
-**Raised:** 14/09/2026 (second review) · **Last updated:** 14/09/2026 (fourth review)
-**Reviews:** [second](reviews/SCALYO_MCP_SECOND_REVIEW_AND_PRODUCTION_READINESS.md) ·
-[third](reviews/SCALYO_MCP_THIRD_REVIEW_AND_FINAL_FIX_LIST.md) ·
+**Raised:** 14/09/2026 (second review) · **Last updated:** 14/09/2026 (fifth report)
+**Reviews:** [second](reviews/SCALYO_MCP_02nd_REVIEW_AND_PRODUCTION_READINESS.md) ·
+[third](reviews/SCALYO_MCP_03rd_REVIEW_AND_FINAL_FIX_LIST.md) ·
 [answers](reviews/SCALYO_MCP_OPEN_QUESTIONS_ANSWERS.md) ·
-[fourth](SCALYO_MCP_FOURTH_REVIEW_AND_LAUNCH_CHECKLIST.md)
+[fourth](reviews/SCALYO_MCP_04th_REVIEW_AND_LAUNCH_CHECKLIST.md) ·
+[fifth](reviews/SCALYO_MCP_05th_STATE_AND_PREPROD_REPORT.md)
 **Why the two P0s waited:** [MCP_WHY_NOT_IMPLEMENTED.md](MCP_WHY_NOT_IMPLEMENTED.md) (superseded)
 
 ## Status
@@ -20,6 +21,7 @@ project or a product decision — verification, not design.
 | Q4 | consent UI | **Scalyo owns it** | **built**; three P0 bugs from the fourth review fixed |
 | Q5 | tool-selection evals | cases in repo; live model run nightly/pre-release | **built**; live run never executed |
 | Q6 | scale past 200 accounts | *new from the fourth review* | honesty shipped (`partial`), completeness is a product call |
+| Q7 | nothing has met a real Postgres or a real token | *new from the fifth report* | a process question: who runs the pre-prod sequence, and when |
 
 ---
 
@@ -96,6 +98,15 @@ is never retyped, so the migration cannot silently revert the concurrency fix in
 of which would be worse than the gap being closed. `EXECUTE` on each `_unguarded` twin is
 revoked from `authenticated`; without that revoke the guard is decoration, because
 `/rest/v1/rpc/open_dm_unguarded` would still answer.
+
+### The gate, hardened (fifth report §7–§8)
+
+`mcp_security_check()` originally asked only whether *some* `mcp_no_*` policy existed on a
+table — so `mcp_no_insert_clients` present with `update`/`delete` missing would have read as
+protected. It now checks every expected policy **by name**, all four Storage policies
+individually, plus list drift and `*_unguarded` originals still executable. It is also no
+longer executable by `authenticated`: it enumerates exactly which controls are missing,
+which is a map of the holes for anyone holding a user token.
 
 ### Still inert, on purpose
 
@@ -215,6 +226,32 @@ incomplete answer to *"which customers need my attention?"*, the most-used quest
 product.
 
 Honesty is shipped. Completeness is a product decision about scale.
+
+---
+
+## Q7 — New: nothing here has met a real Postgres or a real token
+
+The fifth report's own framing, and it is the right one: *"the final confidence must come
+from the real Supabase and connector environment rather than additional speculative code
+changes."*
+
+What is written but never executed:
+
+| Artefact | Never run against |
+|---|---|
+| `20260914120000` + `20260914130000` | a real Postgres — dynamic SQL, policy creation, function renames, wrappers, grants |
+| `mcp_security_check()` | a real schema |
+| the access-token hook | any Supabase project |
+| `lib/oauthConsent.js` | a real Supabase OAuth server (and the frontend has no test runner) |
+| the golden-prompt set | a real model |
+| `test/tenant-isolation.test.ts` | pre-prod — it **skips** without credentials, and a skipped run is not a pass |
+
+This is not a defect list. It is the honest boundary of what a repository can prove about
+itself, and the reason the fifth report says **"do not invent fixes for these locally"**.
+
+**The open question is a process one:** who runs the pre-production sequence, and when? Until
+someone does, the security model's status is "designed and reviewed", not "working" — and
+the difference is invisible from inside the code.
 
 ---
 

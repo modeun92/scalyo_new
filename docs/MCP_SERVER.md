@@ -458,16 +458,64 @@ concurrency fix in `toggle_chat_reaction` or the legal threshold in
 revoked from `authenticated` — without that revoke the guard is decoration, because
 `/rest/v1/rpc/open_dm_unguarded` would still answer.
 
-`public.mcp_security_check()` is the release gate: it returns one row per problem — RLS
-disabled on a protected table, a missing `mcp_no_*` policy, an unguarded authenticated
-`SECURITY DEFINER` function (including one added after this was written), missing Storage
-policies. **A non-empty result must block a production deploy.** RLS being disabled used to
-be only a `raise warning`, which is invisible in a deploy log nobody reads.
+### The release gate
 
-Order: hook ([MCP_ACCESS_TOKEN_HOOK.md](MCP_ACCESS_TOKEN_HOOK.md)) → both migrations →
-`select * from public.mcp_security_check()` returns zero rows →
-`MCP_TOKEN_BINDING=enforce` → the consent page's "it cannot…" list
-([MCP_CONSENT_PAGE.md](MCP_CONSENT_PAGE.md)).
+`public.mcp_security_check()` returns one row per problem. **A non-empty result must block a
+production deploy.**
+
+It checks **every expected policy by name** (`MCP-GATE-EXACT`), not merely that *some*
+`mcp_no_*` policy exists on the table. The looser version would have reported this state as
+protected:
+
+```
+mcp_no_insert_clients   present
+mcp_no_update_clients   MISSING     <- writes allowed
+mcp_no_delete_clients   MISSING     <- deletes allowed
+```
+
+A gate that says "protected" about a half-protected table is worse than no gate: it turns
+an unknown into a false assurance, and the release proceeds *because of it*.
+
+| Check | Catches |
+|---|---|
+| A | RLS disabled on a protected table (**release blocker** — every restrictive policy on it is inert), and each of `mcp_no_insert/update/delete_<table>` missing |
+| B | `mcp_no_select_<table>` missing on any of the 15 sensitive tables |
+| C | a table carrying `mcp_no_*` policies but absent from `mcp_protected_tables()` — list drift the gate would otherwise never notice |
+| D | each of the four `mcp_no_storage_*` policies, by name (a `SELECT`-only failure is invisible to a "some policy exists" test) |
+| E | an authenticated `SECURITY DEFINER` function with no `mcp_guard()`, **including one added after this migration** |
+| F | a `*_unguarded` original still `EXECUTE`-able by `authenticated` — which would make its wrapper decoration |
+
+The expected table lists live in `mcp_protected_tables()` / `mcp_sensitive_tables()` so the
+gate and any future migration read one source. They are hand-synced with the arrays in
+`20260914120000`; check C exists because that sync can drift.
+
+**The gate is not executable by `authenticated`** (`MCP-GATE-PRIVATE`). It enumerates
+exactly which controls are missing, which is a map of the holes for anyone holding a user
+token. Release tooling runs it as the service/migration role.
+
+### Pre-production order
+
+Each step is verifiable before the next, and none of it can be validated from this
+repository (fifth review §17):
+
+1. **Read the real JWT claims.** Website session: `client_id` absent. Connector token:
+   `client_id` present. *If that is not true, stop — the hook design is wrong.*
+2. **Deploy the Custom Access Token Hook** ([MCP_ACCESS_TOKEN_HOOK.md](MCP_ACCESS_TOKEN_HOOK.md));
+   confirm `ai_agent: true` and the expected audience on a real token.
+3. **Apply both migrations**, then `select * from public.mcp_security_check();` → zero rows.
+4. **Direct abuse tests** with a real MCP token: REST writes, sensitive reads, Storage
+   read/upload/replace/delete, and `rpc/open_dm`, `rpc/toggle_chat_reaction`,
+   `rpc/set_chat_message_pinned`. All denied.
+5. **Normal website regression** — update a customer, create a task, use chat, upload
+   media, use the RPC features. This is the step that catches a migration mistake, and it
+   matters more than any of the MCP checks: the restrictions touch 35 tables plus Storage.
+6. **OAuth consent**: first authorization, approve, deny, repeat authorization,
+   already-authorized redirect, scope display, revocation.
+7. **Live ChatGPT**, then **live Claude**: OAuth completes, binding succeeds,
+   `aiAgent == true`, tools list and execute, wrong-resource token denied.
+8. `MCP_TOKEN_BINDING=enforce` in production.
+9. Flip `RESTRICTIONS_DEPLOYED` so the consent page may state its "it cannot…" promises
+   ([MCP_CONSENT_PAGE.md](MCP_CONSENT_PAGE.md)).
 
 ---
 
@@ -516,6 +564,12 @@ ChatGPT and in Claude before release: host orchestration differs from raw model 
   confirming against OpenAI's current connector requirements before publication. Whether
   to keep them at all is the one still-undecided question:
   [MCP_OPEN_QUESTIONS.md](MCP_OPEN_QUESTIONS.md) Q3.
+- **Neither migration has ever run against a real Postgres.** They contain dynamic SQL,
+  policy creation, function renames, `SECURITY DEFINER` wrappers and grants; static review
+  cannot prove any of it. Pre-flight queries, verification and rollback are in their
+  headers. This is the single largest untested surface in the MCP work.
+- **Storage policy creation may need the storage owner role.** §1 warns rather than
+  failing silently, and check D of the release gate catches the result.
 - **The live model evaluation has never been run.** The cases and the integrity check
   exist; the nightly model run does not.
 - **The `partial` flag is honesty, not completeness.** An organization with more than 200
