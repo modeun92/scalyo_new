@@ -161,9 +161,18 @@ const clientSummarySchema = z.object({
   riskReasons: z.array(z.string()),
 })
 
+/**
+ * `truncated` and `partial` say different things, and both are load-bearing:
+ *   truncated — more results matched than the caller's `limit` asked for
+ *   partial   — the scan ceiling was hit, so matches may exist that were never fetched
+ * A model that treats an incomplete list as complete reports a wrong count with total
+ * confidence (MCP-PARTIAL-HONEST).
+ */
 const clientListOutput = z.object({
   count: z.number(),
   truncated: z.boolean(),
+  partial: z.boolean(),
+  partialNote: z.string().nullable(),
   clients: z.array(clientSummarySchema),
 })
 

@@ -33,6 +33,21 @@ const CLIENT_FILTERABLE_COLUMNS = [
 /** Named so a future contributor sees the decision rather than an absence. */
 export const EXCLUDED_COLUMNS = ['contacts', 'notes', 'logo', 'churned_at', 'user_id', 'csm_id'] as const
 
+/**
+ * Ceiling for any read that ranks or filters IN THE WORKER rather than in PostgREST.
+ *
+ * MCP-PARTIAL-HONEST (14/09/2026, fourth review §11): hitting this ceiling means rows
+ * that would have matched were never fetched, so the answer is incomplete. Every such
+ * result carries `partial: true` and says so, exactly as get_portfolio_summary already
+ * did. `truncated` is a different statement — "more matched than your limit asked for" —
+ * and conflating the two is how a model tells a customer "you have 3 at-risk accounts"
+ * when the 4th simply sat past the scan window (R21: silence is not zero).
+ *
+ * The real fix at scale is a database-side filter or an RPC; until then the flag is what
+ * keeps the answer honest.
+ */
+const SCAN_LIMIT = 200
+
 export interface ClientRow {
   id: string
   name: string | null
@@ -143,7 +158,7 @@ export async function searchClients(db: UserSupabaseClient, input: SearchClients
 
   // Over-fetch, because `status` is an EFFECTIVE status computed from two columns and
   // cannot be expressed as a PostgREST filter. Capped so this stays a bounded read.
-  const overFetch = input.status ? Math.min(input.limit * 5, 200) : input.limit
+  const overFetch = input.status ? Math.min(input.limit * 5, SCAN_LIMIT) : input.limit
 
   const rows = await db.select<ClientRow>('clients', {
     columns: CLIENT_LIST_COLUMNS,
@@ -156,9 +171,18 @@ export async function searchClients(db: UserSupabaseClient, input: SearchClients
   const reference = new Date()
   const filtered = input.status ? rows.filter((r) => healthStatus(r.health, r.status) === input.status) : rows
 
+  // The fetch ceiling was reached, so matching accounts may exist beyond it — and with a
+  // `status` filter applied after the fetch, some of what WAS fetched got discarded, which
+  // makes the shortfall invisible without this flag.
+  const partial = rows.length >= overFetch
+
   return {
     count: Math.min(filtered.length, input.limit),
     truncated: filtered.length > input.limit,
+    partial,
+    partialNote: partial
+      ? 'Only the first ' + rows.length + ' accounts were scanned; accounts matching beyond that are not included.'
+      : null,
     clients: filtered.slice(0, input.limit).map((r) => toClientSummary(r, reference)),
   }
 }
@@ -199,7 +223,7 @@ export async function getAtRiskClients(db: UserSupabaseClient, limit: number) {
   const rows = await db.select<ClientRow>('clients', {
     columns: CLIENT_LIST_COLUMNS,
     order: { column: 'name', ascending: true },
-    limit: 200,
+    limit: SCAN_LIMIT,
     allowedColumns: CLIENT_FILTERABLE_COLUMNS,
   })
 
@@ -215,10 +239,19 @@ export async function getAtRiskClients(db: UserSupabaseClient, limit: number) {
       return (b.arr ?? -1) - (a.arr ?? -1)
     })
 
+  // "Which customers need my attention?" is the question this tool answers, and an
+  // incomplete answer to it is worse than a refusal: the account that goes unmentioned is
+  // the one nobody calls.
+  const partial = rows.length >= SCAN_LIMIT
+
   return {
     count: Math.min(scored.length, limit),
     truncated: scored.length > limit,
     scannedClients: rows.length,
+    partial,
+    partialNote: partial
+      ? 'More than ' + SCAN_LIMIT + ' accounts are visible; only the first ' + SCAN_LIMIT + ' by name were assessed for risk.'
+      : null,
     clients: scored.slice(0, limit),
   }
 }
@@ -227,6 +260,7 @@ export async function getUpcomingRenewals(db: UserSupabaseClient, withinDays: nu
   const reference = new Date()
   const today = reference.toISOString().slice(0, 10)
   const horizon = new Date(reference.getTime() + withinDays * 86400000).toISOString().slice(0, 10)
+  const renewalScan = Math.min(limit * 2, SCAN_LIMIT)
 
   const rows = await db.select<ClientRow>('clients', {
     columns: CLIENT_LIST_COLUMNS,
@@ -237,16 +271,25 @@ export async function getUpcomingRenewals(db: UserSupabaseClient, withinDays: nu
       { column: 'renewal_date', op: 'lte', value: horizon },
     ],
     order: { column: 'renewal_date', ascending: true },
-    limit: Math.min(limit * 2, 200),
+    limit: renewalScan,
     allowedColumns: CLIENT_FILTERABLE_COLUMNS,
   })
 
   const upcoming = rows.filter(isCustomer).map((r) => toClientSummary(r, reference))
 
+  // Prospects are dropped AFTER the fetch, so a window full of prospects can push real
+  // renewals past the ceiling. Ordered by renewal_date, so what is missing is the LATEST
+  // ones in the window — which is exactly what a user planning a month would notice.
+  const partial = rows.length >= renewalScan
+
   return {
     windowDays: withinDays,
     count: Math.min(upcoming.length, limit),
     truncated: upcoming.length > limit,
+    partial,
+    partialNote: partial
+      ? 'Only the first ' + rows.length + ' renewals in this window were scanned; later ones are not included.'
+      : null,
     clients: upcoming.slice(0, limit),
   }
 }

@@ -56,6 +56,19 @@
         </div>
 
         <!--
+          Requested OAuth scopes, verbatim (fourth review §5). Shown as the raw scope
+          tokens the client asked for: they are protocol identifiers, not prose, so they
+          are NOT translated (rule 4) and NOT prettified into a friendlier wording that
+          could misdescribe what was granted. The human-readable summary is the two lists.
+        -->
+        <div v-if="scopes.length" class="consent_block">
+          <p class="consent_block_title">{{ t('oauth_consent_scopes_title') }}</p>
+          <ul class="consent_list consent_scopes">
+            <li v-for="scope in scopes" :key="scope"><code>{{ scope }}</code></li>
+          </ul>
+        </div>
+
+        <!--
           OAUTH-CONSENT-PROMISES (14/09/2026): the "cannot" list renders ONLY when the
           database restrictions it describes are actually deployed. Those promises are
           about the TOKEN, not about the MCP tool list — until
@@ -156,6 +169,7 @@ const authorizationId = computed(
 
 const currentEmail = computed(() => authStore.user?.email || '')
 const showCannotList = computed(() => RESTRICTIONS_DEPLOYED)
+const scopes = computed(() => details.value?.scopes || [])
 
 // R21: no invented name. An unidentified client is described as unidentified, because
 // "an application is requesting access to your customers" is safer than a made-up name.
@@ -168,20 +182,37 @@ onMounted(async () => {
   try {
     if (!authorizationId.value) {
       error.value = t('oauth_consent_missing_id')
+      loading.value = false
       return
     }
     if (!isOAuthConsentSupported()) {
       unavailable.value = true
+      loading.value = false
       return
     }
     // Details are readable only for a signed-in user; the sign-in branch renders first.
-    if (!isAuthenticated.value) return
+    if (!isAuthenticated.value) {
+      loading.value = false
+      return
+    }
 
-    details.value = await getAuthorizationDetails(authorizationId.value)
+    const result = await getAuthorizationDetails(authorizationId.value)
+
+    // ALREADY AUTHORIZED (fourth review §4): the user has granted this client before, so
+    // there is no pending authorization to consent to. Asking again would show a second
+    // consent form whose Allow button has nothing to approve. Hand control straight back.
+    // `loading` is deliberately left true — the page is navigating away, and flashing the
+    // consent form for one frame on the way out is exactly the confusion this avoids.
+    if (result.status === 'redirect') {
+      window.location.assign(result.redirectUrl)
+      return
+    }
+
+    details.value = result
+    loading.value = false
   } catch (e) {
     console.error('OAuth consent details failed:', e?.message || e)
     error.value = t('oauth_consent_error')
-  } finally {
     loading.value = false
   }
 })
@@ -255,5 +286,7 @@ h1 { font-size:22px;font-weight:700;color:#1a1a2e;margin-bottom:8px; }
 .consent_list { margin:0;padding-left:20px;font-size:14px;line-height:1.7;color:#374151; }
 .consent_can li::marker { content:'✓  ';color:#16a34a; }
 .consent_cannot li::marker { content:'✗  ';color:#dc2626; }
+.consent_scopes li { list-style:none; }
+.consent_scopes code { background:#f3f4f6;border-radius:4px;padding:1px 6px;font-size:13px;color:#374151; }
 .consent_revoke { font-size:12px;color:#6b7280;margin:0 0 16px; }
 </style>

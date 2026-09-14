@@ -67,6 +67,28 @@ nothing. Flip the constant in the same change that confirms §4.4 of the migrati
 
 The "can" list is true today — it describes exactly what the six read-only tools return.
 
+## Three bugs the fourth review caught
+
+All three would have surfaced only at the first live ChatGPT authorization — the single
+most expensive moment to fail, because the user is mid-grant and sees only that Scalyo is
+broken.
+
+| Bug | Was | Now |
+|---|---|---|
+| argument shape (§3) | `call({ authorization_id })` | `call(authorizationId)` — the methods take a bare string |
+| already authorized (§4) | rendered a second consent form whose Allow button had no pending authorization to approve | a response with no `authorization_id` returns `{ status: 'redirect' }` and the page navigates immediately |
+| scope parsing (§5) | read `data.scopes` as an array → always empty, so the screen showed **no** requested scopes and the user approved an unspecified grant | `parseScopes()` splits the OAuth `scope` string (`"openid email profile"`), with the array form still accepted |
+
+The requested scopes are now displayed verbatim, as `<code>` tokens. They are protocol
+identifiers, not prose: **not translated** (rule 4) and not prettified into friendlier
+wording that could misdescribe what was granted.
+
+On the redirect path `loading` is deliberately left `true` — the page is navigating away,
+and flashing the consent form for one frame on the way out is exactly the confusion the
+fix removes.
+
+---
+
 ## Verifying the client API
 
 **This is the part that could not be verified when the page was written.** The frontend has
@@ -75,9 +97,9 @@ recent. Every call is therefore isolated in `src/lib/oauthConsent.js`
 (`OAUTH-CONSENT-SURFACE`), which expects:
 
 ```js
-supabase.auth.oauth.getAuthorizationDetails({ authorization_id })
-supabase.auth.oauth.approveAuthorization({ authorization_id })
-supabase.auth.oauth.denyAuthorization({ authorization_id })
+supabase.auth.oauth.getAuthorizationDetails(authorizationId)   // bare string, not an object
+supabase.auth.oauth.approveAuthorization(authorizationId)
+supabase.auth.oauth.denyAuthorization(authorizationId)
 ```
 
 Before enabling this route in production:
@@ -113,10 +135,14 @@ page is never reached and Supabase renders its own screen instead.
       exercised against a live project
 - [ ] expired and wrong-resource tokens are rejected (pre-prod runs `enforce`)
 - [ ] the page renders correctly in FR, EN and KO
+- [ ] **repeat authorization**: authorize once, then start the flow again from the same
+      host — the second attempt must redirect straight through, never show a second form
+- [ ] the requested scopes are listed, and match what the host asked for
 
 ## Not built
 
 A **connected-AI-apps settings page** (list connections, revoke from inside Scalyo). The
 review lists it under P2/distribution. Revocation itself is Supabase's, and today the user
-revokes from the AI host. `oauth_consent_revoke_hint` currently points at Scalyo settings —
-**when that screen is built, verify the wording matches where the control actually is.**
+revokes from the AI host, which is what `oauth_consent_revoke_hint` now says. **When that
+screen is built, update that key** — a consent screen must not point at a control that does
+not exist, which is what the first wording did.

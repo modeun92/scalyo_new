@@ -217,6 +217,22 @@ broke something visible. Do not relax one without saying so explicitly.
 - **`get_server_status` returns no internal ids.** It is the tool an assistant calls first
   and quotes back verbatim, so a `userId` in it ends up pasted into a chat transcript that
   leaves the EU. Email and role only; the ids stay in the audit log (`MCP-STATUS-MINIMAL`).
+- **Table RLS is not the whole credential boundary.** `SECURITY DEFINER` RPCs run with the
+  OWNER's privileges, so a restrictive policy on the table they write does not stop them —
+  `/rest/v1/rpc/open_dm` would create a chat channel for an AI session. Supabase Storage has
+  its own policies too. Both are closed by
+  `20260914130000_mcp_rpc_and_storage_restrictions.sql`, which guards six RPCs by
+  **rename-and-wrap** (`<name>_unguarded` + a wrapper calling `mcp_guard()`) so no original
+  body is ever retyped — retyping `oxygen_team_aggregate` would risk silently reverting its
+  `n >= 5` legal threshold. `EXECUTE` on each `_unguarded` twin is revoked from
+  `authenticated`; without that the guard is decoration.
+- **`public.mcp_security_check()` is the release gate.** Non-empty result = do not deploy.
+  It catches RLS disabled on a protected table, a missing `mcp_no_*` policy, an unguarded
+  authenticated `SECURITY DEFINER` function added later, and missing Storage policies.
+- **`truncated` and `partial` are different statements.** `truncated` = more matched than
+  the caller's `limit`; `partial` = the 200-row scan ceiling was hit, so matches were never
+  fetched. Conflating them makes a model report "3 at-risk accounts" when the 4th sat past
+  the window (`MCP-PARTIAL-HONEST`).
 - **An MCP OAuth token is a normal Supabase user token.** The Worker being read-only says
   nothing about what the credential can do: pointed straight at Supabase REST it gets
   whatever normal RLS allows. `20260914120000_mcp_ai_session_restrictions.sql` closes that
@@ -309,6 +325,11 @@ Tracked, not fixed in this snapshot:
 - **One product question is still open**: is ChatGPT Company Knowledge a launch
   requirement? If not, delete `search`/`fetch`
   ([docs/MCP_OPEN_QUESTIONS.md](docs/MCP_OPEN_QUESTIONS.md) Q3).
+- **Beyond 200 accounts the risk/search/renewal tools are honest but incomplete** —
+  they return `partial: true` rather than a wrong total. Completeness needs a server-side
+  aggregate; that is a scale decision ([docs/MCP_OPEN_QUESTIONS.md](docs/MCP_OPEN_QUESTIONS.md) Q6).
+- **`app-v2/frontend` has no test runner**, so the OAuth consent helper is covered by review
+  and a live checklist only, not by automated tests.
 - **MCP token resource binding runs in `observe` in production.** Issuer, expiry,
   audience/resource and the OAuth-client allowlist are all validated and audited
   (`event = "mcp.auth.binding"`), but a failed verdict is not acted on until a live ChatGPT

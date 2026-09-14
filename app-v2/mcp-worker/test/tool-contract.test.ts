@@ -214,6 +214,42 @@ describe('tool behaviour', () => {
     expect(result.structuredContent).toBeUndefined()
   })
 
+  it('flags a scan that hit its ceiling as partial, not merely truncated (MCP-PARTIAL-HONEST)', async () => {
+    // 200 rows back = the scan ceiling. Accounts beyond it were never fetched, so the
+    // answer is incomplete — a different statement from "more matched than your limit".
+    const full = Array.from({ length: 200 }, (_, i) => ({
+      id: 'c' + i, name: 'Client ' + i, health: 2, status: null, arr: 100, mrr: null,
+      renewal_date: null, lifecycle: 'client', churn_risk: null,
+    }))
+    const select: UserSupabaseClient['select'] = async (table) => (table === 'clients' ? (full as never[]) : [])
+    const tools = registerAndCapture(select)
+
+    const atRisk = parse(await tools.get('get_at_risk_clients')!.handler({ limit: 10 }))
+    expect(atRisk.partial).toBe(true)
+    expect(atRisk.partialNote).toContain('200')
+    expect(atRisk.truncated).toBe(true) // both are true here, and they mean different things
+    expect(atRisk.scannedClients).toBe(200)
+  })
+
+  it('does not claim partial when the whole result fitted inside the scan', async () => {
+    const few = [
+      { id: 'c1', name: 'Acme', health: 2, status: null, arr: 100, mrr: null, renewal_date: null, lifecycle: 'client', churn_risk: null },
+    ]
+    const select: UserSupabaseClient['select'] = async (table) => (table === 'clients' ? (few as never[]) : [])
+    const tools = registerAndCapture(select)
+
+    const atRisk = parse(await tools.get('get_at_risk_clients')!.handler({ limit: 10 }))
+    expect(atRisk.partial).toBe(false)
+    expect(atRisk.partialNote).toBeNull()
+    expect(atRisk.truncated).toBe(false)
+
+    // R21: a complete empty answer must not read as partial either.
+    const empty = registerAndCapture(EMPTY)
+    const none = parse(await empty.get('get_at_risk_clients')!.handler({ limit: 10 }))
+    expect(none.partial).toBe(false)
+    expect(none.count).toBe(0)
+  })
+
   it('excludes prospects from the portfolio aggregate', async () => {
     const rows = [
       { id: '1', name: 'Customer', health: 8, status: null, arr: 1000, mrr: null, renewal_date: null, lifecycle: 'client', churn_risk: null },

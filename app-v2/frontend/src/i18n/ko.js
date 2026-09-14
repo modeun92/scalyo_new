@@ -984,6 +984,7 @@ export default {
   oauth_consent_logged_as: '{email} 계정으로 로그인됨',
   oauth_consent_missing_id: '이 인증 링크가 올바르지 않습니다. 연결하려는 애플리케이션에서 다시 시작해 주세요.',
   oauth_consent_revoke_hint: '연결하려는 애플리케이션에서 언제든지 이 연결을 해제할 수 있습니다.',
+  oauth_consent_scopes_title: '요청된 기술 권한:',
   oauth_consent_signin_required: '이 요청을 검토하려면 Scalyo 계정으로 로그인하세요.',
   oauth_consent_title: '{client}을(를) Scalyo에 연결',
   oauth_consent_unavailable_body: '현재 Scalyo가 이 인증 요청을 처리할 수 없어 접근 권한이 부여되지 않았습니다. 잠시 후 다시 시도하거나 지원팀에 문의하세요.',

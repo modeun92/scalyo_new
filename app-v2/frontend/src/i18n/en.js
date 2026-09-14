@@ -983,6 +983,7 @@ export default {
   oauth_consent_logged_as: 'Signed in as {email}',
   oauth_consent_missing_id: 'This authorization link is incomplete. Start the connection again from the application you want to connect.',
   oauth_consent_revoke_hint: 'You can disconnect this application at any time from the application you are connecting.',
+  oauth_consent_scopes_title: 'Technical permissions requested:',
   oauth_consent_signin_required: 'Sign in to your Scalyo account to review this request.',
   oauth_consent_title: 'Connect {client} to Scalyo',
   oauth_consent_unavailable_body: 'Scalyo cannot process this authorization request right now, so no access was granted. Please try again later or contact support.',

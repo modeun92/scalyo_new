@@ -104,6 +104,18 @@ pasted into a chat transcript that leaves the EU; an email address is personal d
 GDPR and "which account am I connected as" does not justify shipping it to a third-party
 model on every connection check. All of it stays in the audit log.
 
+Every list-shaped result carries **two different honesty flags** (`MCP-PARTIAL-HONEST`):
+
+| Flag | Means |
+|---|---|
+| `truncated` | more results matched than the caller's `limit` asked for |
+| `partial` | the 200-row scan ceiling was hit, so matches may exist that were **never fetched** |
+
+They are not the same statement, and conflating them is how a model tells a customer "you
+have 3 at-risk accounts" when the 4th simply sat past the scan window. `partialNote` says
+it in words. The real fix at scale is a database-side filter or an RPC; until then the flag
+is what keeps the answer honest.
+
 Connector results deep-link to `https://scalyo.app/app/clients/<id>` (`MCP-CLIENT-URL`).
 The authenticated area is mounted under `/app` — the shorter `/clients/<id>` 404s, and it
 404s *in the user's browser*, so no tool call would ever have reported it.
@@ -131,6 +143,8 @@ response so the model reports them as withheld rather than as empty.
 | Tenant context is **deterministic** | `src/auth/user-context.ts` — `profiles.organization_id` is canonical, cross-checked against `organization_members` |
 | Tokens are checked against **this** resource | `src/auth/verify-token.ts` — issuer, expiry, audience/resource, OAuth-client allowlist |
 | An AI token is read-only **in the database too** | `supabase/migrations/20260914120000_mcp_ai_session_restrictions.sql` — RESTRICTIVE policies keyed on `is_mcp_session()` |
+| …including Storage and SECURITY DEFINER RPCs | `supabase/migrations/20260914130000_mcp_rpc_and_storage_restrictions.sql` |
+| A release gate that fails on a missing control | `public.mcp_security_check()` — must return zero rows before a production deploy |
 | A misconfigured binding mode refuses to start | `src/env.ts` — an unrecognised `MCP_TOKEN_BINDING` throws (`MCP-BINDING-MODE-STRICT`) |
 | No caller-built queries | column + operator allowlists, values quoted; no `sql`/`where`/`filter` parameter exists |
 | Output minimization | explicit column lists; `select=*` throws |
@@ -415,7 +429,43 @@ you are in:
 event = "mcp.auth.binding"  →  aiAgent: true   (the hook is live)
 ```
 
-Order: hook ([MCP_ACCESS_TOKEN_HOOK.md](MCP_ACCESS_TOKEN_HOOK.md)) → migration →
+### Two doors table policies do not close
+
+Restricting `public.<tables>` is not the whole credential boundary
+(`20260914130000_mcp_rpc_and_storage_restrictions.sql`):
+
+- **Supabase Storage.** `storage.objects` has its own policies. A token that cannot
+  `UPDATE` a row in `public.clients` could still upload, overwrite or delete a COPIL media
+  file. v1 MCP has no storage tool, so **all four verbs are denied**, `SELECT` included —
+  adding a read back later is one policy drop; discovering an AI client read COPIL media
+  is an incident.
+- **`SECURITY DEFINER` RPCs.** These run with the *function owner's* privileges, so a
+  restrictive policy on the table they write does not stop them — that is what
+  `SECURITY DEFINER` means. `POST /rest/v1/rpc/open_dm` would have created a chat channel
+  for an AI session.
+
+Six authenticated RPCs are guarded: `open_dm`, `toggle_chat_reaction`,
+`set_chat_message_pinned` (writes) and `get_org_member_names`, `get_org_email_status`,
+`oxygen_team_aggregate` (reads outside the v1 contract — the last is **legally self-only**
+Oxygen data, and owner-only + `n >= 5` protects it from colleagues, not from an AI client
+holding an owner's token).
+
+**How they are guarded matters.** Each original is *renamed* to `<name>_unguarded` and a
+same-signature wrapper takes the public name, calls `public.mcp_guard()`, then forwards.
+The original body is never retyped, so the migration cannot silently revert the
+concurrency fix in `toggle_chat_reaction` or the legal threshold in
+`oxygen_team_aggregate` while "adding security". `EXECUTE` on each `_unguarded` original is
+revoked from `authenticated` — without that revoke the guard is decoration, because
+`/rest/v1/rpc/open_dm_unguarded` would still answer.
+
+`public.mcp_security_check()` is the release gate: it returns one row per problem — RLS
+disabled on a protected table, a missing `mcp_no_*` policy, an unguarded authenticated
+`SECURITY DEFINER` function (including one added after this was written), missing Storage
+policies. **A non-empty result must block a production deploy.** RLS being disabled used to
+be only a `raise warning`, which is invisible in a deploy log nobody reads.
+
+Order: hook ([MCP_ACCESS_TOKEN_HOOK.md](MCP_ACCESS_TOKEN_HOOK.md)) → both migrations →
+`select * from public.mcp_security_check()` returns zero rows →
 `MCP_TOKEN_BINDING=enforce` → the consent page's "it cannot…" list
 ([MCP_CONSENT_PAGE.md](MCP_CONSENT_PAGE.md)).
 
@@ -468,6 +518,12 @@ ChatGPT and in Claude before release: host orchestration differs from raw model 
   [MCP_OPEN_QUESTIONS.md](MCP_OPEN_QUESTIONS.md) Q3.
 - **The live model evaluation has never been run.** The cases and the integrity check
   exist; the nightly model run does not.
+- **The `partial` flag is honesty, not completeness.** An organization with more than 200
+  accounts gets a truthful "incomplete" rather than a wrong total, but it still does not get
+  the whole picture. A server-side aggregate (an RPC) is the real fix.
+- **`app-v2/frontend` has no test runner**, so `lib/oauthConsent.js` — argument shape,
+  already-authorized redirect, scope parsing — is covered by review and the live checklist
+  in [MCP_CONSENT_PAGE.md](MCP_CONSENT_PAGE.md), not by an automated test.
 - **Roles are audited, not enforced.** All four roles get the same read surface. That
   matches the product today — every role can read the portfolio in the UI — but a
   `viewer`-specific restriction would need adding here as well as in RLS.
