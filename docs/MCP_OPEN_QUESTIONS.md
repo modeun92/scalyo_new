@@ -3,6 +3,7 @@
 **Raised:** 14/09/2026
 **Source:** [`SCALYO_MCP_SECOND_REVIEW_AND_PRODUCTION_READINESS.md`](../SCALYO_MCP_SECOND_REVIEW_AND_PRODUCTION_READINESS.md)
 **Status of the rest of that review:** implemented — see the change summary at the bottom.
+**Why the two P0 items here were not simply fixed:** [MCP_WHY_NOT_IMPLEMENTED.md](MCP_WHY_NOT_IMPLEMENTED.md).
 
 These five items could not be settled from the repository. Each needs either an
 observation against a live Supabase project, a product decision, or a database change
@@ -99,11 +100,15 @@ $$;
    OAuth-issued tokens carry `client_id` and session tokens do not, `is_ai_session()` is
    trivial. If they do not, this needs a Supabase Auth Hook stamping a custom claim, which
    is a change to *authentication for the whole product*, not just MCP.
-2. **The blast radius.** Per `CLAUDE.md`, 27 of the 35 tables the code touches have no
-   `CREATE TABLE` in this repository — they were made in the dashboard. I cannot enumerate
-   the live write policies from here, so I cannot write a migration that reliably adds
-   `and not is_ai_session()` to each without risking a policy that silently stops matching
-   and breaks the **website**. That is a production outage, not a degraded AI feature.
+2. **The blast radius.** **28 of the 35 tables the code touches have no write policy
+   anywhere in this repository** (counted in
+   [MCP_WHY_NOT_IMPLEMENTED.md](MCP_WHY_NOT_IMPLEMENTED.md) §1) — they were created in the
+   dashboard, matching `CLAUDE.md`'s note that only 8 of 35 have a `CREATE TABLE` here.
+   Adding a clause to a policy means rewriting it, which means knowing its current `USING`
+   and `WITH CHECK` expressions; for 28 tables I would be inventing them. A rewrite that is
+   too permissive is a cross-tenant hole introduced by a security fix; one that stops
+   matching breaks the **website's** writes — silently, because a PostgREST `UPDATE`
+   matching zero rows returns 204 with `error = null` (`D-14`).
 3. **Which tables are "sensitive" is a legal call, not a technical one.** The review's list
    (`client_notes`, contacts, billing, integration secrets, Oxygen) matches what
    `clients.service.ts` already withholds, but Oxygen in particular is described in

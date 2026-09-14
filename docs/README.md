@@ -22,6 +22,7 @@ view to the narrowest.
 | 15 | [MOCK_CODE_AUDIT.md](MOCK_CODE_AUDIT.md) | audit of mock, hard-coded and "pretending to work" code — 24 findings, 4 critical |
 | 16 | [MCP_SERVER.md](MCP_SERVER.md) | the customer-facing Scalyo MCP server — the Claude / ChatGPT integration, its security model, setup and release checklist |
 | 17 | [MCP_OPEN_QUESTIONS.md](MCP_OPEN_QUESTIONS.md) | the five MCP items that need a decision or a live observation before production — OAuth audience binding, AI-token RLS restrictions, `search`/`fetch`, the consent screen, tool-selection evals |
+| 18 | [MCP_WHY_NOT_IMPLEMENTED.md](MCP_WHY_NOT_IMPLEMENTED.md) | why the two P0 items — AI-token database restrictions and the OAuth consent page — were **not** fixed, with the evidence: 28 of 35 tables have no repo-visible write policy, and Supabase owns the consent screen |
 
 Repository scope and known hygiene items: [`../REVIEW_NOTES.md`](../REVIEW_NOTES.md).
 Operational environment table: `../app-v2/frontend/functions/api/_config/SECURITY.md`.

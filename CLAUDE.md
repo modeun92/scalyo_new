@@ -85,6 +85,7 @@ different live tables — identity/plan/trial vs AI-context/currency.
 | setup, scripts, env vars, deploy, the Cloudflare MCP servers in `.mcp.json` | [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) |
 | the Scalyo MCP server (Claude / ChatGPT integration) | [docs/MCP_SERVER.md](docs/MCP_SERVER.md) — **customer-facing**, not the `.mcp.json` dev tooling |
 | what is still undecided about MCP before it goes public | [docs/MCP_OPEN_QUESTIONS.md](docs/MCP_OPEN_QUESTIONS.md) — five open items, each with what is needed to close it |
+| why MCP's two remaining P0s are still open | [docs/MCP_WHY_NOT_IMPLEMENTED.md](docs/MCP_WHY_NOT_IMPLEMENTED.md) — AI-token RLS and the consent page: the evidence, and what would unblock each |
 | deploying: Pages settings, env vars, the release runbook, rollback | [docs/DEPLOY_CLOUDFLARE.md](docs/DEPLOY_CLOUDFLARE.md) — **the live deploy** |
 | moving the deploy to Fly.io (**proposal — the live deploy is still Cloudflare Pages**) | [docs/DEPLOY_FLY.md](docs/DEPLOY_FLY.md) |
 
@@ -270,7 +271,16 @@ Tracked, not fixed in this snapshot:
 - The MCP server ships **read-only**, and that read-only-ness is a property of the Worker,
   not of the token: an MCP OAuth token pointed straight at Supabase REST still gets normal
   user RLS, which allows writes and the tables MCP withholds. Restricting it at the
-  database level needs the live policy set and a decision — [docs/MCP_OPEN_QUESTIONS.md](docs/MCP_OPEN_QUESTIONS.md) Q2.
+  database level needs the live policy set and a decision — **28 of the 35 tables have no
+  write policy anywhere in this repo**, so the migration cannot be written from here
+  without inventing policy expressions. Reason and evidence:
+  [docs/MCP_WHY_NOT_IMPLEMENTED.md](docs/MCP_WHY_NOT_IMPLEMENTED.md); decisions:
+  [docs/MCP_OPEN_QUESTIONS.md](docs/MCP_OPEN_QUESTIONS.md) Q2.
+- **There is no OAuth consent page, and by the current architecture there is nowhere to put
+  one**: `mcp-worker/src/auth/protected-resource.ts` makes Supabase the authorization
+  server, so Supabase renders the consent screen. Note the consent copy the review proposes
+  ("cannot modify customers / view private notes") is **not true of the token** until the
+  item above is fixed — fix that first, then write the copy.
 - **MCP token resource binding runs in `observe` in production.** Issuer, expiry,
   audience/resource and the OAuth-client allowlist are all validated and audited
   (`event = "mcp.auth.binding"`), but a failed verdict is not acted on until a live ChatGPT
