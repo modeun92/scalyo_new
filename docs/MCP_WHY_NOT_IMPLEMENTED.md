@@ -21,7 +21,7 @@
 
 **Written:** 14/09/2026
 **About:** the two items from
-[`SCALYO_MCP_SECOND_REVIEW_AND_PRODUCTION_READINESS.md`](../SCALYO_MCP_SECOND_REVIEW_AND_PRODUCTION_READINESS.md)
+[`SCALYO_MCP_SECOND_REVIEW_AND_PRODUCTION_READINESS.md`](reviews/SCALYO_MCP_SECOND_REVIEW_AND_PRODUCTION_READINESS.md)
 (§4 / P0.2 and §10 / P0.5) that were **not** fixed in the 14/09/2026 MCP change.
 **Companion:** [MCP_OPEN_QUESTIONS.md](MCP_OPEN_QUESTIONS.md) — the decisions needed to close them.
 

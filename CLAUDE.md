@@ -21,7 +21,7 @@ quotes, team chat, and **Oxygen** — a private CSM well-being and workload loop
 product's stated differentiator.
 
 This repository is an application-code snapshot for review: no `node_modules`, no build
-output, no `.env`. See [`REVIEW_NOTES.md`](REVIEW_NOTES.md).
+output, no `.env`. See [`REVIEW_NOTES.md`](docs/REVIEW_NOTES.md).
 
 ## Stack and layout
 
@@ -319,7 +319,7 @@ Tracked, not fixed in this snapshot:
   that rather than a wrong total). Listed in
   [docs/MCP_SERVER.md](docs/MCP_SERVER.md#open-items).
 - Upstream hygiene: macOS duplicate files, a committed `.env.production`, session notes at
-  the repository root (see [`REVIEW_NOTES.md`](REVIEW_NOTES.md)).
+  the repository root (see [`REVIEW_NOTES.md`](docs/REVIEW_NOTES.md)).
 
 ---
 

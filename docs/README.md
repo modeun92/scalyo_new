@@ -26,7 +26,7 @@ view to the narrowest.
 | 19 | [MCP_ACCESS_TOKEN_HOOK.md](MCP_ACCESS_TOKEN_HOOK.md) | the Supabase Custom Access Token Hook that stamps `aud` and `ai_agent` on MCP tokens — **a proposal**; everything that depends on it is shipped and inert until it is applied |
 | 20 | [MCP_CONSENT_PAGE.md](MCP_CONSENT_PAGE.md) | the Scalyo-owned OAuth consent screen at `/oauth/consent` — what it promises, why the "it cannot…" list is flagged off, and how to verify the Supabase client API |
 
-Repository scope and known hygiene items: [`../REVIEW_NOTES.md`](../REVIEW_NOTES.md).
+Repository scope and known hygiene items: [`../REVIEW_NOTES.md`](REVIEW_NOTES.md).
 Operational environment table: `../app-v2/frontend/functions/api/_config/SECURITY.md`.
 
 ## The four rules that explain most of the code

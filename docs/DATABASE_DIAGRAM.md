@@ -1,6 +1,6 @@
 # Database diagram
 
-**Generated** 7 September 2026 · Companion to [`DATABASE_TABLES_REPORT.md`](DATABASE_TABLES_REPORT.md) and [`docs/SCHEMA_FROM_CODE.sql`](docs/SCHEMA_FROM_CODE.sql).
+**Generated** 7 September 2026 · Companion to [`DATABASE_TABLES_REPORT.md`](DATABASE_TABLES_REPORT.md) and [`docs/SCHEMA_FROM_CODE.sql`](SCHEMA_FROM_CODE.sql).
 
 35 tables, 55 relationships. Everything here is derived from the 25 `.sql` files and the application's CRUD call sites — no documentation was used.
 

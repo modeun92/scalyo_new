@@ -136,7 +136,7 @@ The protocol every migration header documents:
 
 ## Known hygiene items
 
-These are documented in [`REVIEW_NOTES.md`](../REVIEW_NOTES.md) and are not fixed in this
+These are documented in [`REVIEW_NOTES.md`](REVIEW_NOTES.md) and are not fixed in this
 snapshot:
 
 - macOS duplicate files (`App 2.vue`, `main 2.js`, …) still exist in the upstream

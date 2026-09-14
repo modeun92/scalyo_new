@@ -6,7 +6,7 @@ a steering-committee deck builder (COPIL), an email studio, quotes, team chat, a
 "Oxygen" — a private well-being and workload loop for the CSM.
 
 This repository is an **application-code snapshot** taken for review (see
-[`REVIEW_NOTES.md`](REVIEW_NOTES.md)). It contains the front end, the serverless
+[`REVIEW_NOTES.md`](docs/REVIEW_NOTES.md)). It contains the front end, the serverless
 back end, and the database migrations — no `node_modules`, no build output, no `.env`.
 
 ## Stack at a glance
