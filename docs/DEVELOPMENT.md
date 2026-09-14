@@ -70,6 +70,37 @@ implicit live link. Missing Supabase values make `src/lib/supabase.js` throw.
 
 Locally, put these in `.dev.vars` (git-ignored).
 
+## Cloudflare MCP servers (agent tooling)
+
+`.mcp.json` at the repository root registers Cloudflare's **hosted** remote MCP servers so an
+MCP-capable agent (Claude Code, Claude Desktop, …) can read the live Cloudflare state of this
+deploy instead of guessing. It is tooling only — it ships no application code and has no effect
+on the build or on Pages.
+
+| Server | URL | What it is for here |
+|---|---|---|
+| `cloudflare-docs` | `https://docs.mcp.cloudflare.com/mcp` | Current Pages / Functions / Workers reference, instead of stale recall |
+| `cloudflare-observability` | `https://observability.mcp.cloudflare.com/mcp` | Logs and analytics for `functions/api/**` — the only way to see a `CF-502-MASQUE` 409 in the wild |
+| `cloudflare-builds` | `https://builds.mcp.cloudflare.com/mcp` | Build status and build logs for the deploy |
+| `cloudflare-bindings` | `https://bindings.mcp.cloudflare.com/mcp` | KV / D1 / R2 / AI bindings — dormant today, present for when one is added |
+
+**Authentication is per developer, not committed.** Every server is OAuth; nothing in
+`.mcp.json` is a secret. On first use run `/mcp` in Claude Code and authenticate each server in
+the browser against your own Cloudflare account. Tokens are stored by the client, never in the
+repository.
+
+Two caveats worth knowing before trusting an answer from these:
+
+- **This is a Pages project, not a Workers project.** `cloudflare-builds` targets *Workers
+  Builds*; a Pages git-integration build may not appear there. When it does not, the full API
+  server (`https://mcp.cloudflare.com/mcp`, ~2 500 endpoints) or the GraphQL analytics server
+  (`https://graphql.mcp.cloudflare.com/mcp`) does cover Pages — add either to `.mcp.json` if you
+  need it. They are left out by default because every registered server spends context on tool
+  definitions in every request.
+- **Read-only is not guaranteed.** These servers expose write operations against a real
+  Cloudflare account. Treat an agent with them connected the same as an agent with dashboard
+  access.
+
 ## Database work
 
 Migrations live in `supabase/migrations/` (canonical) and, for three files, in
