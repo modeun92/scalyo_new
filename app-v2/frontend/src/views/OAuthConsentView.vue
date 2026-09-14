@@ -219,12 +219,41 @@ async function deny() {
 </script>
 
 <style scoped>
-.consent_loading { display: flex; align-items: center; gap: 8px; justify-content: center; padding: 24px 0; }
-.consent_account { font-size: 13px; color: var(--text-muted, #6b7280); margin: 4px 0 16px; text-align: center; }
-.consent_block { margin: 0 0 16px; }
-.consent_block_title { font-size: 13px; font-weight: 600; margin: 0 0 6px; }
-.consent_list { margin: 0; padding-left: 18px; font-size: 14px; line-height: 1.7; }
-.consent_can li::marker { content: '✓  '; color: #16a34a; }
-.consent_cannot li::marker { content: '✗  '; color: #dc2626; }
-.consent_revoke { font-size: 12px; color: var(--text-muted, #6b7280); margin: 0 0 16px; }
+/*
+ * AUTH-SHELL-SCOPED (14/09/2026): .auth_page / .auth_card / .auth_logo / .button_primary
+ * and friends are NOT global — main.css carries only their dark-theme overrides. Every
+ * auth view (LoginView, JoinView, ResetPasswordConfirmView) declares its own scoped copy,
+ * so this one must too. Reusing the class names without the declarations renders an
+ * unstyled page, and an unstyled page is a real problem *here*: this is the screen where
+ * a user decides whether to hand an AI company access to their customer portfolio, and a
+ * broken-looking consent screen is indistinguishable from a phishing one.
+ * Values mirror ResetPasswordConfirmView.vue — keep them in step.
+ */
+.auth_page { min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#f8f9fb,#ede9fe);padding:20px; }
+.auth_card { background:#fff;border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,.08);padding:40px;width:100%;max-width:440px; }
+.auth_logo { display:flex;align-items:center;gap:10px;margin-bottom:24px; }
+.auth_brand { font-size:22px;font-weight:700;color:#1a1a2e; }
+h1 { font-size:22px;font-weight:700;color:#1a1a2e;margin-bottom:8px; }
+.auth_sub { color:#6b7280;margin-bottom:20px;font-size:14px; }
+.auth_error { background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:8px;padding:10px 14px;font-size:14px;margin-bottom:16px; }
+.button_primary { background:#7c3aed;color:#fff;border:none;border-radius:8px;padding:12px;font-size:15px;font-weight:600;cursor:pointer;transition:background .2s;display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none; }
+.button_primary:hover:not(:disabled) { background:#6d28d9; }
+.button_primary:disabled { opacity:.6;cursor:not-allowed; }
+.button_secondary { background:#fff;color:#374151;border:1.5px solid #e5e7eb;border-radius:8px;padding:12px;font-size:15px;font-weight:600;cursor:pointer;transition:border-color .2s;display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;margin-top:8px; }
+.button_secondary:hover:not(:disabled) { border-color:#7c3aed; }
+.button_secondary:disabled { opacity:.6;cursor:not-allowed; }
+.full { width:100%; }
+.spinner { width:16px;height:16px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0; }
+@keyframes spin { to { transform:rotate(360deg); } }
+.blocked_header { text-align:center;padding:16px 0; }
+.success_icon { font-size:52px;margin-bottom:16px; }
+
+.consent_loading { display:flex;align-items:center;gap:8px;justify-content:center;padding:24px 0;color:#6b7280; }
+.consent_account { font-size:13px;color:#6b7280;margin:4px 0 16px; }
+.consent_block { margin:0 0 16px; }
+.consent_block_title { font-size:13px;font-weight:600;color:#374151;margin:0 0 6px; }
+.consent_list { margin:0;padding-left:20px;font-size:14px;line-height:1.7;color:#374151; }
+.consent_can li::marker { content:'✓  ';color:#16a34a; }
+.consent_cannot li::marker { content:'✗  ';color:#dc2626; }
+.consent_revoke { font-size:12px;color:#6b7280;margin:0 0 16px; }
 </style>
