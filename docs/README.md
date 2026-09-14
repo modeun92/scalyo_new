@@ -20,6 +20,7 @@ view to the narrowest.
 | 13 | [SCHEMA_REVIEW.md](SCHEMA_REVIEW.md) | review of the current schema against the `Database Plan.txt` redesign — what it fixes, what has to change before it is DDL, and the adoption path |
 | 14 | [NEW_SCHEMA.sql](NEW_SCHEMA.sql) | the proposed core-domain schema. **A proposal, not a migration** |
 | 15 | [MOCK_CODE_AUDIT.md](MOCK_CODE_AUDIT.md) | audit of mock, hard-coded and "pretending to work" code — 24 findings, 4 critical |
+| 16 | [MCP_SERVER.md](MCP_SERVER.md) | the customer-facing Scalyo MCP server — the Claude / ChatGPT integration, its security model, setup and release checklist |
 
 Repository scope and known hygiene items: [`../REVIEW_NOTES.md`](../REVIEW_NOTES.md).
 Operational environment table: `../app-v2/frontend/functions/api/_config/SECURITY.md`.

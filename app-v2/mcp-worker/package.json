@@ -1,0 +1,27 @@
+{
+  "name": "scalyo-mcp-worker",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Scalyo MCP server — read-only, RLS-preserving MCP surface for Claude / ChatGPT. Deployed as a Cloudflare Worker, separate from the Pages app.",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy:preprod": "wrangler deploy --env preprod",
+    "deploy:prod": "wrangler deploy --env production",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
+    "test": "vitest run",
+    "test:isolation": "vitest run test/tenant-isolation.test.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/server": "2.0.0",
+    "agents": "^0.23.0",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260911.1",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.0",
+    "wrangler": "^4.131.1",
+    "@types/node": "^24.0.0"
+  }
+}

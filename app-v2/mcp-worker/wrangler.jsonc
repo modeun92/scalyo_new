@@ -1,0 +1,53 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "scalyo-mcp",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-01",
+  "observability": { "enabled": true },
+
+  // MCP-RATELIMIT (14/09/2026): three DISTINCT namespaces, not one shared limiter.
+  // The in-memory Map in functions/api/_services/rate-limit.service.js resets on every
+  // Worker cold start, so on a distributed public endpoint it is a speed bump, not a
+  // control — an attacker just lands on a cold isolate. These are account-level and
+  // survive cold starts. namespace_id is an arbitrary positive integer, unique per
+  // account; changing one RESETS its counters.
+  //   IP   — pre-auth flood protection, the only limit that applies before a token is verified.
+  //   USER — per authenticated Scalyo user, the normal ceiling.
+  //   HEAVY— portfolio aggregations, which read the whole client list on every call.
+  // `period` accepts only 10 or 60.
+  "ratelimits": [
+    { "name": "MCP_RATE_LIMIT_IP",   "namespace_id": "2001", "simple": { "limit": 60,  "period": 60 } },
+    { "name": "MCP_RATE_LIMIT_USER", "namespace_id": "2002", "simple": { "limit": 120, "period": 60 } },
+    { "name": "MCP_RATE_LIMIT_HEAVY","namespace_id": "2003", "simple": { "limit": 20,  "period": 60 } }
+  ],
+
+  "vars": {
+    "SCALYO_MCP_ENV": "development",
+    // MCP-KILL-SWITCH: set to "off" to disable the MCP surface without touching the
+    // Pages deploy. `wrangler deploy --var MCP_ENABLED:off` is the incident lever.
+    "MCP_ENABLED": "on"
+  },
+
+  "env": {
+    "preprod": {
+      "name": "scalyo-mcp-preprod",
+      "vars": { "SCALYO_MCP_ENV": "preprod", "MCP_ENABLED": "on" },
+      "routes": [{ "pattern": "mcp-preprod.scalyo.app", "custom_domain": true }],
+      "ratelimits": [
+        { "name": "MCP_RATE_LIMIT_IP",   "namespace_id": "2011", "simple": { "limit": 60,  "period": 60 } },
+        { "name": "MCP_RATE_LIMIT_USER", "namespace_id": "2012", "simple": { "limit": 120, "period": 60 } },
+        { "name": "MCP_RATE_LIMIT_HEAVY","namespace_id": "2013", "simple": { "limit": 20,  "period": 60 } }
+      ]
+    },
+    "production": {
+      "name": "scalyo-mcp",
+      "vars": { "SCALYO_MCP_ENV": "production", "MCP_ENABLED": "on" },
+      "routes": [{ "pattern": "mcp.scalyo.app", "custom_domain": true }],
+      "ratelimits": [
+        { "name": "MCP_RATE_LIMIT_IP",   "namespace_id": "2021", "simple": { "limit": 60,  "period": 60 } },
+        { "name": "MCP_RATE_LIMIT_USER", "namespace_id": "2022", "simple": { "limit": 120, "period": 60 } },
+        { "name": "MCP_RATE_LIMIT_HEAVY","namespace_id": "2023", "simple": { "limit": 20,  "period": 60 } }
+      ]
+    }
+  }
+}

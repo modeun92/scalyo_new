@@ -33,6 +33,7 @@ output, no `.env`. See [`REVIEW_NOTES.md`](REVIEW_NOTES.md).
 | AI | Mistral (EU); DeepSeek only as an anonymized emergency fallback |
 | Payments | Stripe (Payment Links, Billing Portal, webhooks) |
 | Email | Resend, with a per-organization key encrypted at rest |
+| MCP | Cloudflare Worker (`agents` SDK, `createMcpHandler`), Supabase OAuth 2.1 |
 
 ```
 app-v2/frontend/
@@ -40,6 +41,7 @@ app-v2/frontend/
   functions/api/  routes at the top level; _-prefixed folders are shared code
   scripts/        build-blog.js · check-i18n.mjs · proof-paywall-member.mjs
   public/         static assets, _headers, robots.txt, press kits
+app-v2/mcp-worker/  the customer-facing MCP server — a SEPARATE Cloudflare Worker (TypeScript)
 supabase/
   migrations/     schema + RLS (canonical)
   functions/      Deno Edge Functions
@@ -81,6 +83,7 @@ different live tables — identity/plan/trial vs AI-context/currency.
 | known mock / false-signal code | [docs/MOCK_CODE_AUDIT.md](docs/MOCK_CODE_AUDIT.md) |
 | conventions and doctrine | [docs/CODE_STYLE.md](docs/CODE_STYLE.md) |
 | setup, scripts, env vars, deploy, the Cloudflare MCP servers in `.mcp.json` | [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) |
+| the Scalyo MCP server (Claude / ChatGPT integration) | [docs/MCP_SERVER.md](docs/MCP_SERVER.md) — **customer-facing**, not the `.mcp.json` dev tooling |
 | deploying: Pages settings, env vars, the release runbook, rollback | [docs/DEPLOY_CLOUDFLARE.md](docs/DEPLOY_CLOUDFLARE.md) — **the live deploy** |
 | moving the deploy to Fly.io (**proposal — the live deploy is still Cloudflare Pages**) | [docs/DEPLOY_FLY.md](docs/DEPLOY_FLY.md) |
 
@@ -130,8 +133,11 @@ broke something visible. Do not relax one without saying so explicitly.
    `toISOString().slice(0,10)`. `datetime-local` strings are local time and are converted
    on write; an invalid string writes nothing.
 8. **Health scores are /10 through `lib/health`.** No local threshold, no ×10, never a raw
-   `client.status` for a colour. The thresholds are mirrored in
-   `_services/context.service.js` — parity is mandatory.
+   `client.status` for a colour. The thresholds are mirrored in **two** other files —
+   `_services/context.service.js` and `app-v2/mcp-worker/src/domain/health.ts` — and parity
+   across all three is mandatory. The MCP copy exists because a separate Worker cannot
+   import from the Pages app; `mcp-worker/test/health-parity.test.ts` reads the other two
+   and fails on drift, which is the only automated guard any of the three has.
 9. **Money through `lib/formatters.fmtCurrency`.** Currency is a property of the account
    (`user_profiles.currency`), not of the language. Zero conversion. The offered codes live
    once in `src/config/currencies.js`; the account picks one in Settings → Preferences
@@ -182,6 +188,16 @@ broke something visible. Do not relax one without saying so explicitly.
 - **Chat realtime can report `SUBSCRIBED` and deliver nothing.** The client cannot tell that
   apart from a healthy socket, so the safety-net sweep in `stores/chat.js` runs *even when
   `connected` is true*. Do not turn it back into a fallback armed only on error.
+- **The MCP Worker must never get the service-role key.** `functions/api/_utils/supabase.js`
+  `createSupabaseClient()` bypasses RLS, and its neutral name hides that. The MCP surface is
+  reachable by an external AI client, so one missing organization filter there is a
+  cross-tenant leak, not a bug report. `app-v2/mcp-worker` therefore reads through
+  `SUPABASE_ANON_KEY` + the user's own token only, and `SUPABASE_SERVICE_ROLE_KEY` is
+  deliberately absent from its bindings — the secret not existing is the control.
+- **An MCP tool that accepted `organization_id` would be a data leak.** An AI client passes
+  whatever a prompt tells it to. Tenant context is derived server-side in
+  `mcp-worker/src/auth/user-context.ts`; the tool schemas contain no identity field and a
+  test enforces it.
 - **Oxygen data is legally self-only.** The only aggregation path is
   `oxygen_team_aggregate` (owner-only, literal `n ≥ 5`, fail-closed behind an org flag).
   Changing this is a legal change.
@@ -205,6 +221,9 @@ broke something visible. Do not relax one without saying so explicitly.
   `node scripts/proof-paywall-member.mjs` if you touched the computeds in
   `src/stores/auth.js`. Both need `npm install` first — `node_modules` is not in this
   snapshot.
+  **If you touched `app-v2/mcp-worker`**: `npm run typecheck && npm test` in that directory,
+  and `npm run test:isolation` against pre-prod before any production deploy — a skipped
+  isolation run is not a pass (see [docs/MCP_SERVER.md](docs/MCP_SERVER.md)).
 
 ## Things that are intentionally the way they are
 
@@ -232,10 +251,14 @@ Tracked, not fixed in this snapshot:
   checking anything; `account/delete.js` and `account/export.js` still carry a hard-coded
   **production** Supabase URL fallback; `/api/coach` bypasses rate limit, gating and quota.
   Read it before touching account deletion, alerts, or the plan config.
+- The MCP server ships **read-only** with no OAuth-client-aware authorization: every valid
+  Supabase token gets the same read surface, and `get_portfolio_summary` scans at most 200
+  accounts (it reports `partial: true` beyond that rather than a wrong total). Listed in
+  [docs/MCP_SERVER.md](docs/MCP_SERVER.md#open-items).
 - Upstream hygiene: macOS duplicate files, a committed `.env.production`, session notes at
   the repository root (see [`REVIEW_NOTES.md`](REVIEW_NOTES.md)).
 
 ---
 
-*Last updated: 2026-09-09. If you changed something described above and did not update
+*Last updated: 2026-09-14. If you changed something described above and did not update
 this file, you are not done.*

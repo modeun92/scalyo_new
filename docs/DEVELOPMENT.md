@@ -77,6 +77,12 @@ MCP-capable agent (Claude Code, Claude Desktop, …) can read the live Cloudflar
 deploy instead of guessing. It is tooling only — it ships no application code and has no effect
 on the build or on Pages.
 
+> **Not the Scalyo MCP server.** The customer-facing one — the thing a Scalyo user connects to
+> Claude or ChatGPT to ask about their own portfolio — is a separate Cloudflare Worker in
+> `app-v2/mcp-worker/`, documented in [MCP_SERVER.md](MCP_SERVER.md). The two share a protocol
+> and nothing else: this file exposes *Cloudflare's* data to *us*, that Worker exposes *a
+> customer's own Scalyo data* to *their* AI client.
+
 | Server | URL | What it is for here |
 |---|---|---|
 | `cloudflare-docs` | `https://docs.mcp.cloudflare.com/mcp` | Current Pages / Functions / Workers reference, instead of stale recall |
