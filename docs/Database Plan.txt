@@ -28,6 +28,7 @@ Profit
 Churn
 	company-id
 	from company-id
+	issued-at
 	description
 Issue (Interaction)
 	From (person-id) // who approached first?
@@ -64,7 +65,6 @@ Worker : Person
 	Clients (by id) // for what companies does it do CSM?
 	Working Status // quit, vacation, available
 	Assigned Tasks (by id)
-	Vacations (by id)
 Visitor : Person
 	Client (by id)
 	- Updating the profit
@@ -91,13 +91,12 @@ Organization : Company
 	Workers (by id)
 	Partners (by id) // they could be our workers or collaborators(free-lancer) that don't use our web service, but certainly referred.
 	Clients (by id)
+	Profits (by id)
+	Churns (by id)
 Client : Company
 	Organization (by id) // maybe it could be multiple
 	Visitors (by id)
 	Workers (by id) // who manage(s) this client?
-	Profits (by id)
-	Churns (by id)
-	Companies (by id) // the client of the organization has clients and the organization manages
 	Interactions (by id)
 	IsValid (it can stop the contract)
 Emoji
