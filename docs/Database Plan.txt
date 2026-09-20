@@ -114,3 +114,25 @@ Chat Room
 	Messages (by id)
 	ChatInfos json // joining (by whom of whom), deleting (by whom), pinned (by whom)
 	pinned message (by id)
+
+
+
+
+
+// QUESTION : I don't know if this means client_group can be linked to only one organization
+CREATE TABLE client_group (
+    company_id BIGINT PRIMARY KEY
+        REFERENCES company(id)
+        ON DELETE CASCADE,
+
+    organization_id BIGINT NOT NULL
+        REFERENCES organization(company_id)
+        ON DELETE RESTRICT,
+
+    status client_status NOT NULL,
+
+    UNIQUE (company_id, organization_id)
+);
+
+
+
