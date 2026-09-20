@@ -38,6 +38,9 @@ is an older, superseded file.
 | `20260729250000_oxygen_team` | `oxygen_team_enabled` legal gate + the `oxygen_team_aggregate` function |
 | `20260903100000_copil_media_bucket` | Private `copil-media` Storage bucket with per-user prefix policies |
 | `20260909120000_chat_reactions_rpc` | `can_read_chat_message`, `toggle_chat_reaction`, `set_chat_message_pinned` RPCs — reacting to or pinning **another member's** message; publishes `chat_channels` to `supabase_realtime` |
+| `20260920100000_core_v2_schema` | The `core_v2` tables, enums, RLS and RLS helpers — created **alongside** the current schema, touching none of it. See [core_v2](#core_v2--the-new-core-schema-additive) below |
+| `20260920110000_core_v2_sync_triggers` | Bridge columns `organizations.core_organization_id` / `clients.core_client_group_id` + fail-open triggers that mirror `organizations`, `profiles`, `organization_members`, `clients` into `core_v2` |
+| `20260920120000_core_v2_backfill` | One-time, idempotent mirror of the rows that already exist (re-uses the triggers) |
 | `20260721000000_copils_client_id` (front) | Idempotent guarantee that `copils.client_id` exists |
 | `20260721010000_notify_client_note` (front) | Trigger notifying a client's owner when a colleague adds a note |
 | `20260801120000_planning_recurrence` (front) | `planning_events.recurrence` + `series_id` |
@@ -99,6 +102,71 @@ aggregate is only reachable through the `oxygen_team_aggregate` function.
 | `org_integrations` | Integration rows; `access_token` / `refresh_token` / `config` are revoked from the client |
 | `alpha_feedback` | In-product feedback widget |
 | `promo_codes` | Alpha / founding codes |
+
+## core_v2 — the new core schema (additive)
+
+`docs/new_database_code.txt` is a ground-up redesign of the core model, derived from the C++
+class model in `docs/Database Plan.txt`. It is built **next to** the current schema, not in
+place of it. **Nothing in the application reads or writes it yet**: `organizations`,
+`profiles`, `user_profiles`, `clients`, `organization_members` and `invitations` remain the
+source of truth for every screen, plan check, seat count and invitation.
+
+| New table | Is a projection of | Notes |
+|---|---|---|
+| `company` (+ `organization`, `client_group`) | `organizations` / non-prospect `clients` | `country_code` and `currency_code` are **nullable** (`CORE-V2-COUNTRY`): `organizations` has no country and no per-org currency. `photo_path` ← `clients.logo`. |
+| `organization_client_group` | `clients.organization_id` | Unique on `client_group_id`: a client group belongs to one organization |
+| `personage` + `member` / `viewer` (+ `manager`) | `profiles` + `organization_members` | Linked to the login by `member.auth_user_id` / `viewer.auth_user_id` (nullable, unique, `ON DELETE SET NULL`) |
+| `organization_worker` | `profiles.organization_id` | `ACTIVE` while in the organization, `ENDED` (kept) after removal; one organization per personage |
+| `member_authority` | the role + `organization_members.can_send_email` | The `authority` enum is the source's four verbs **plus** `INVITE`, `SEND_EMAIL`, `ASSIGN_CLIENT_GROUP` (`CORE-V2-AUTHORITY`). owner + admin → manager (VIEW, CREATE, UPDATE, DELETE, INVITE, ASSIGN_CLIENT_GROUP) · member → VIEW, CREATE, UPDATE · viewer → none. `SEND_EMAIL` mirrors `can_send_email` for any member/manager and is implicit for the billing owner (`api/email.js` sends as the owner's own config). `ASSIGN_CLIENT_GROUP` gates changing a client group's assignee (`member_client_group`); nothing enforces it yet — today any org member can reassign a CSM |
+| `organization.owner_personage_id` | `organizations.owner_id` | The new model has no owner/admin distinction, so the billing owner is recorded here |
+| `subscription` | `organizations.plan` changes | A **history log**, one row per change, lossy tiers (starter → BASIC, growth/elite → PRO, enterprise → ENTERPRISE, none → FREE). `issue_date` is when it was *recorded*. Read by nothing. |
+| `issue`, `profit`, `churn` | — | No source and no UI yet; the only `core_v2` tables a user can write, gated on their own `member_authority` |
+| `country`, `currency`, `language_region` | — | Foreign-key targets seeded from `config/currencies.js`, `countryLaws.js` and the three locales. **Never rendered** — display names still come from `Intl` + i18n |
+| `company_link`, `personage_link`, `organization_position`, `member_client_group`, `manager_team`, `client_group_viewer` | — | Created, **left empty**: no current data maps to them (`csm_id` is deliberately not carried into `member_client_group`) |
+
+**How it stays in sync.** `SECURITY DEFINER` triggers on the four old tables (part 2) mirror
+every write; part 3 backfills what already exists by re-using those triggers.
+`core_v2_sync_user(user_id)` is the single place that turns a login + organization + role into
+`personage` / `member` / `manager` / `organization_worker` / `member_authority` rows.
+
+- **Fail-open (`CORE-V2-FAILOPEN`).** Every trigger body catches its own errors and emits a
+  `WARNING`; the original write always succeeds. A projection bug is silent drift, not a failed
+  signup — re-running part 3 heals it, and its closing report counts what is unmirrored.
+- **Bridge columns are not trusted (`CORE-V2-NO-TRUST`).** A user can `UPDATE` their own
+  `organizations` row and any teammate can update a `clients` row, so a supplied
+  `core_organization_id` / `core_client_group_id` could point at another tenant's company. The
+  BEFORE triggers discard the supplied value and restore the stored one. There is deliberately
+  no `profiles.core_personage_id`: the link is `member/viewer.auth_user_id`, which users cannot write.
+- **Deletes cascade the mirror.** Deleting a profile deletes its `personage` (name + email are
+  personal data); deleting an organization or client deletes its company. `issue` / `profit` /
+  `churn` are `ON DELETE RESTRICT`, so if any exist the mirror delete fails with a warning and
+  the old delete still goes through.
+- **Prospects are not client groups** (same rule as `clientsOnly`). A client with no
+  `organization_id` has no client group either.
+
+**Deviations from the literal DDL in `docs/new_database_code.txt`** (each tagged in the SQL):
+`CORE-V2-COUNTRY` (nullable country/currency — R21); `CORE-V2-CG-ORG` (the source DDL indexes and
+validates against `client_group.organization_id`, a column that does not exist — the link is
+`organization_client_group`, and run as written the index fails and the scope trigger raises on
+every write); `CORE-V2-AUTH-LINK`; `CORE-V2-OWNER`.
+
+**RLS (`CORE-V2-RLS`).** Read: an `ACTIVE` `organization_worker` reads their organization's rows
+(a removed teammate reads nothing); a viewer also reads client groups attached through
+`client_group_viewer`; `subscription` is manager-only. Write: the mirror tables have **no**
+user write policy and the privilege is revoked — a user write would be overwritten by the next
+sync. An MCP/AI token cannot write `issue` / `profit` / `churn` (restrictive `mcp_no_*`
+policies, created only if `is_mcp_session()` exists).
+
+**Known limits.** The per-entity read/write matrix in `plans.config.js` `ROLES` has no equivalent
+in the new schema (`member_authority` is one flat grant set per member) and is not reconstructed.
+`arr`/`mrr` and `health`/`nps`/`churn_risk`/`renewal_date`/`lifecycle`/`pipeline_stage`/`notes`
+are not carried over. Company currency is filled from the owner's `user_profiles.currency` once
+and not re-synced when they change it. The account-erasure flow (`account/delete.js`) does not
+know about `core_v2`; it is covered only through the `profiles` DELETE trigger.
+
+**Not applied anywhere yet.** Pre-prod first, checks in each file's header, then prod on an
+explicit go. The three files have been syntax-checked with a Postgres parser but never run
+against a real database.
 
 ## RLS model
 
