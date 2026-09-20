@@ -56,11 +56,15 @@ Three migrations also live under `app-v2/frontend/supabase/migrations/`.
 `20260920100000_core_v2_schema`, `…110000_core_v2_sync_triggers` and `…120000_core_v2_backfill`.
 Nothing in the app reads it: `organizations` / `profiles` / `clients` / `organization_members`
 stay the source of truth, and fail-open `SECURITY DEFINER` triggers mirror them into `core_v2`
-(bridge columns `organizations.core_organization_id`, `clients.core_client_group_id`). No store,
-view or `/api` route changed. Do not read `core_v2` for plan, seats, roles or health, and when you
-add a column to `organizations` / `clients` / `profiles` decide whether it belongs in the mirror.
+(bridge columns `organizations.core_organization_id`, `clients.core_client_group_id`,
+`clients.core_prospect_id`). No store, view or `/api` route changed. **The old core tables are to be
+deleted** (decided 20/09/2026), in stages — reads, then writes, then repointing the ~30 tables that
+reference the old uuids, then a drop migration — so a column the product still needs must get a
+home in `core_v2`; `arr`, `mrr`, `health`, `nps`, `churn_risk`, `renewal_date`, `contacts` are
+decided *dropped*. Prospects mirror into an independent `prospect` table, not `client_group`.
+Do not read `core_v2` for plan, seats or health, and when you add a column to `organizations` / `clients` / `profiles` decide whether it belongs in the mirror.
 Details, deviations and limits: [docs/DATABASE.md](docs/DATABASE.md#core_v2--the-new-core-schema-additive).
-**Tested on a local Postgres 16 with Supabase stand-ins (~100 assertions pass); NOT applied to any Supabase project — pre-prod first.**
+**Tested on a local Postgres 16 with Supabase stand-ins (~140 assertions pass); NOT applied to any Supabase project — pre-prod first.**
 
 **`supabase/migrations/` is canonical for RLS and for changes — NOT for schema** (verified
 07/09/2026). Only **8 of the 35 tables** the code touches have a `CREATE TABLE` anywhere in

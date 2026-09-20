@@ -86,13 +86,15 @@ begin
   raise notice 'core_v2 backfill: % profiles processed, % failed', v_done, v_failed;
 end $$;
 
--- Clients, prospects excluded (the same rule as the live trigger and as clientsOnly). A client
--- with no organization has nothing to attach to and is left out.
+-- Clients and prospects (the same split as the live trigger: a prospect goes to `prospect`, a
+-- client to client_group). A row with no organization has nothing to attach to and is left out.
+-- Runs AFTER the people step above: the CSM of a client is assigned only if that login is
+-- already a member (and core_v2_sync_user also assigns it later, if the member appears after).
 update public.clients
    set name = name
- where core_client_group_id is null
-   and organization_id is not null
-   and lifecycle is distinct from 'prospect';
+ where organization_id is not null
+   and ((lifecycle is distinct from 'prospect' and core_client_group_id is null)
+     or (lifecycle = 'prospect' and core_prospect_id is null));
 
 -- ============================================================
 -- §3 — Closing report
@@ -105,6 +107,7 @@ do $$
 declare
   v_orgs integer;
   v_clients integer;
+  v_prospects integer;
   v_people integer;
   v_norole integer;
 begin
@@ -117,6 +120,14 @@ begin
    where c.core_client_group_id is null
      and c.organization_id is not null
      and c.lifecycle is distinct from 'prospect'
+     and exists (select 1 from public.organizations o
+                  where o.id = c.organization_id and o.core_organization_id is not null);
+
+  select count(*) into v_prospects
+    from public.clients c
+   where c.core_prospect_id is null
+     and c.organization_id is not null
+     and c.lifecycle = 'prospect'
      and exists (select 1 from public.organizations o
                   where o.id = c.organization_id and o.core_organization_id is not null);
 
@@ -133,11 +144,11 @@ begin
      and not exists (select 1 from public.member m where m.auth_user_id = p.id)
      and not exists (select 1 from public.viewer v where v.auth_user_id = p.id);
 
-  raise notice 'core_v2 backfill — unmirrored: % organizations, % clients, % people', v_orgs, v_clients, v_people;
+  raise notice 'core_v2 backfill — unmirrored: % organizations, % clients, % prospects, % people', v_orgs, v_clients, v_prospects, v_people;
   if v_norole > 0 then
     raise notice 'core_v2 backfill — % people skipped on purpose: in an organization with no recognised role (owner/admin/member/viewer)', v_norole;
   end if;
-  if v_orgs + v_clients + v_people > 0 then
+  if v_orgs + v_clients + v_prospects + v_people > 0 then
     raise warning 'core_v2 backfill incomplete — see the WARNINGs above, fix, and re-run this file (it is idempotent)';
   end if;
 end $$;
@@ -149,15 +160,21 @@ end $$;
 --
 --   select count(*) from public.organizations where core_organization_id is null;
 --
--- 4.2 — Every non-prospect client that belongs to an organization has a client group. Expect 0.
+-- 4.2 — Every non-prospect client that belongs to an organization has a client group, and every
+--       prospect has a prospect row. Expect 0 / 0.
 --
 --   select count(*) from public.clients
 --    where core_client_group_id is null and organization_id is not null
 --      and lifecycle is distinct from 'prospect';
 --
--- 4.3 — A prospect never became a client group. Expect 0.
+--   select count(*) from public.clients
+--    where core_prospect_id is null and organization_id is not null and lifecycle = 'prospect';
 --
---   select count(*) from public.clients where lifecycle = 'prospect' and core_client_group_id is not null;
+-- 4.3 — Prospects landed in `prospect`, not in client_group. Expect: prospect rows = prospect
+--       clients that have an organization; no client group carries a prospect's name by accident.
+--
+--   select (select count(*) from public.prospect) as prospect_rows,
+--          (select count(*) from public.clients where lifecycle = 'prospect' and organization_id is not null) as prospect_clients;
 --
 -- 4.4 — Every person in an organization has a member or viewer row and an ACTIVE worker row.
 --       Expect 0 (a person with an unrecognised role is the only legitimate exception).
