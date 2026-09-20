@@ -26,9 +26,10 @@
 --                     "ClientGroup itself belongs to an Organization" (singular) true.
 --   CORE-V2-AUTH-LINK member.auth_user_id / viewer.auth_user_id (UUID, UNIQUE, nullable) link a
 --                     personage to a Supabase login. Nullable: a teammate exists before they sign up.
---                     ON DELETE SET NULL, not CASCADE: deleting a login must never be blocked by,
---                     or silently swallow, a row that holds a person's name and email — the
---                     profiles DELETE trigger in part 2 removes the personage explicitly.
+--                     NO foreign key to auth.users (a plain unique uuid): SET NULL would null the
+--                     link before the profiles DELETE trigger in part 2 can use it to erase the
+--                     personage, CASCADE would delete the member row and leave the personage (name
+--                     + email) behind. Integrity is kept by the triggers, which are the only writers.
 --   CORE-V2-AUTHORITY the authority enum gains INVITE, SEND_EMAIL and ASSIGN_CLIENT_GROUP (see §1).
 --   CORE-V2-OWNER     organization.owner_personage_id — the new model has no owner/admin
 --                     distinction, and the billing owner must stay identifiable.
@@ -197,14 +198,20 @@ create table if not exists public.personage_link (
 );
 
 -- CORE-V2-AUTH-LINK
+-- NO foreign key to auth.users, deliberately: with ON DELETE SET NULL the cascade that nulls this
+-- column runs BEFORE the profiles DELETE trigger (part 2) looks the personage up by it, so the
+-- trigger finds nothing and the person's name + email survive their own erasure (found by the
+-- local test run: deleting an auth user left a member row with auth_user_id NULL). Left as a
+-- plain unique uuid, the profile trigger still finds the personage, and an orphan (a login
+-- deleted without its profile) stays discoverable — see §12.6.
 create table if not exists public.viewer (
   personage_id bigint primary key references public.personage(id) on delete cascade,
-  auth_user_id uuid unique references auth.users(id) on delete set null
+  auth_user_id uuid unique
 );
 
 create table if not exists public.member (
   personage_id bigint primary key references public.personage(id) on delete cascade,
-  auth_user_id uuid unique references auth.users(id) on delete set null
+  auth_user_id uuid unique
 );
 
 create table if not exists public.manager (
@@ -772,6 +779,15 @@ end $$;
 --
 --   select tablename, policyname from pg_policies
 --   where schemaname = 'public' and tablename in ('issue','profit','churn') and policyname like 'mcp_no_%';
+
+-- 12.6 — No orphaned people: a member / viewer whose login no longer exists. Expect 0. A non-zero
+--        result is personal data the erasure flow missed (a login deleted without its profile).
+--
+--   select 'member' as kind, m.personage_id from public.member m
+--    where m.auth_user_id is not null and not exists (select 1 from auth.users u where u.id = m.auth_user_id)
+--   union all
+--   select 'viewer', v.personage_id from public.viewer v
+--    where v.auth_user_id is not null and not exists (select 1 from auth.users u where u.id = v.auth_user_id);
 
 -- ============================================================
 -- §13 — Rollback

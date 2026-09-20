@@ -98,13 +98,15 @@ update public.clients
 -- §3 — Closing report
 -- ============================================================
 -- Counts what the run could NOT mirror. Everything here should be 0; a non-zero value means a
--- WARNING above explains it (or, for people, a role outside owner/admin/member/viewer, which is
--- deliberately not guessed at).
+-- WARNING above explains it. People whose role is outside owner/admin/member/viewer are reported
+-- on a separate NOTICE line and do not raise the "incomplete" warning: they are skipped on
+-- purpose, and re-running cannot change that.
 do $$
 declare
   v_orgs integer;
   v_clients integer;
   v_people integer;
+  v_norole integer;
 begin
   select count(*) into v_orgs
     from public.organizations o
@@ -118,14 +120,23 @@ begin
      and exists (select 1 from public.organizations o
                   where o.id = c.organization_id and o.core_organization_id is not null);
 
-  select count(*) into v_people
+  -- A person in an organization with a role core_v2_role_kind() does not recognise is NOT a
+  -- failure: the sync refuses to guess a permission level, by design. They are counted apart, so
+  -- that "incomplete" only ever means something a re-run can fix.
+  select count(*) filter (where public.core_v2_role_kind(coalesce(nullif(om.role, ''), p.org_role)) is not null),
+         count(*) filter (where public.core_v2_role_kind(coalesce(nullif(om.role, ''), p.org_role)) is null)
+    into v_people, v_norole
     from public.profiles p
     join public.organizations o on o.id = p.organization_id
+    left join public.organization_members om on om.organization_id = p.organization_id and om.user_id = p.id
    where o.core_organization_id is not null
      and not exists (select 1 from public.member m where m.auth_user_id = p.id)
      and not exists (select 1 from public.viewer v where v.auth_user_id = p.id);
 
   raise notice 'core_v2 backfill — unmirrored: % organizations, % clients, % people', v_orgs, v_clients, v_people;
+  if v_norole > 0 then
+    raise notice 'core_v2 backfill — % people skipped on purpose: in an organization with no recognised role (owner/admin/member/viewer)', v_norole;
+  end if;
   if v_orgs + v_clients + v_people > 0 then
     raise warning 'core_v2 backfill incomplete — see the WARNINGs above, fix, and re-run this file (it is idempotent)';
   end if;

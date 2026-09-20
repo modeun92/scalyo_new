@@ -60,7 +60,7 @@ stay the source of truth, and fail-open `SECURITY DEFINER` triggers mirror them 
 view or `/api` route changed. Do not read `core_v2` for plan, seats, roles or health, and when you
 add a column to `organizations` / `clients` / `profiles` decide whether it belongs in the mirror.
 Details, deviations and limits: [docs/DATABASE.md](docs/DATABASE.md#core_v2--the-new-core-schema-additive).
-**Written and syntax-checked, never run against a real Postgres, not applied to any project.**
+**Tested on a local Postgres 16 with Supabase stand-ins (~100 assertions pass); NOT applied to any Supabase project — pre-prod first.**
 
 **`supabase/migrations/` is canonical for RLS and for changes — NOT for schema** (verified
 07/09/2026). Only **8 of the 35 tables** the code touches have a `CREATE TABLE` anywhere in

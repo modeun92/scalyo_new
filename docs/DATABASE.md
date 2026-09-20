@@ -115,7 +115,7 @@ source of truth for every screen, plan check, seat count and invitation.
 |---|---|---|
 | `company` (+ `organization`, `client_group`) | `organizations` / non-prospect `clients` | `country_code` and `currency_code` are **nullable** (`CORE-V2-COUNTRY`): `organizations` has no country and no per-org currency. `photo_path` ← `clients.logo`. |
 | `organization_client_group` | `clients.organization_id` | Unique on `client_group_id`: a client group belongs to one organization |
-| `personage` + `member` / `viewer` (+ `manager`) | `profiles` + `organization_members` | Linked to the login by `member.auth_user_id` / `viewer.auth_user_id` (nullable, unique, `ON DELETE SET NULL`) |
+| `personage` + `member` / `viewer` (+ `manager`) | `profiles` + `organization_members` | Linked to the login by `member.auth_user_id` / `viewer.auth_user_id` (nullable, unique, **no foreign key** to `auth.users` — `SET NULL` would null the link before the erasure trigger could use it; orphans are found with check 12.6) |
 | `organization_worker` | `profiles.organization_id` | `ACTIVE` while in the organization, `ENDED` (kept) after removal; one organization per personage |
 | `member_authority` | the role + `organization_members.can_send_email` | The `authority` enum is the source's four verbs **plus** `INVITE`, `SEND_EMAIL`, `ASSIGN_CLIENT_GROUP` (`CORE-V2-AUTHORITY`). owner + admin → manager (VIEW, CREATE, UPDATE, DELETE, INVITE, ASSIGN_CLIENT_GROUP) · member → VIEW, CREATE, UPDATE · viewer → none. `SEND_EMAIL` mirrors `can_send_email` for any member/manager and is implicit for the billing owner (`api/email.js` sends as the owner's own config). `ASSIGN_CLIENT_GROUP` gates changing a client group's assignee (`member_client_group`); nothing enforces it yet — today any org member can reassign a CSM |
 | `organization.owner_personage_id` | `organizations.owner_id` | The new model has no owner/admin distinction, so the billing owner is recorded here |
@@ -164,9 +164,17 @@ are not carried over. Company currency is filled from the owner's `user_profiles
 and not re-synced when they change it. The account-erasure flow (`account/delete.js`) does not
 know about `core_v2`; it is covered only through the `profiles` DELETE trigger.
 
-**Not applied anywhere yet.** Pre-prod first, checks in each file's header, then prod on an
-explicit go. The three files have been syntax-checked with a Postgres parser but never run
-against a real database.
+**Not applied to Supabase yet.** Pre-prod first, checks in each file's header, then prod on an
+explicit go. The three files **were** run (20/09/2026) on a local PostgreSQL 16.4 with stand-ins
+for Supabase's `auth` schema and roles and for the six old tables (columns from
+`SCHEMA_FROM_CODE.sql`): apply, re-apply (idempotent), backfill of seeded legacy data, live
+trigger behaviour (join / role change / can_send_email / removal / re-join / plan change / client
+lifecycle), forged bridge values, fail-open with a deliberately broken projection, erasure, and
+RLS from a member, an admin, a viewer, an ended worker, `anon` and an `ai_agent` token — about 100
+assertions, all passing. That run found two bugs that are now fixed: the `auth.users` foreign key
+defeating the erasure trigger, and the backfill report calling a deliberate skip a failure. What
+it **cannot** show: the real Supabase role grants, the real column sets and any existing
+`updated_at` / seat-limit triggers on the dashboard-created tables — hence the pre-prod run.
 
 ## RLS model
 
