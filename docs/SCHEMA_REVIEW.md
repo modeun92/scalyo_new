@@ -1,5 +1,15 @@
 # Schema review — `SCHEMA_FROM_CODE.sql` vs. `Database Plan.txt`
 
+> **Version note (17/09/2026).** This document reviews the version of `Database Plan.txt`
+> that existed on 10/09/2026. The plan has since grown by 70 lines — a work-management
+> hierarchy (`task_param`, `Milestone`, `Task`, `Repeatable_Task`, `Terminal_Task`,
+> `Task_Viewer`, `Comment`), a `Plan` entity, `Profit-Planner`, `Churn` moved onto
+> `Organization`, `Visitor` renamed `Viewer`, and the `Client.Companies` recursion removed.
+> Everything below is still correct about what it covers; it simply does not cover any of
+> that. For the current plan see [`database_plan_view.md`](database_plan_view.md),
+> [`better_idea.md`](better_idea.md) and
+> [`database_old_and_new_comparison.md`](database_old_and_new_comparison.md).
+
 > **What this is.** A review of the current reconstructed schema against the redesign
 > sketched in [`Database Plan.txt`](Database%20Plan.txt), and the reasoning behind the
 > proposal in [`NEW_SCHEMA.sql`](NEW_SCHEMA.sql).

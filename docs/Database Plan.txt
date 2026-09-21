@@ -18,17 +18,70 @@ Person
 	Photo Image link (for profile)
 	info links (SNS, web, youtube etc. / optional)
 	IsValid // absent or present
-Profit
+Profit (Invoice)
 	company-id
 	from company-id
 	amount
-	currency
+	currency	// should never change, if it gets changed then we need to know when, from what currency
 	issued-at
 	description (json)
+Profit-Planner : Profit
+	interval // only about future
+
 Churn
 	company-id
-	from company-id
 	description
+task_param
+	order
+	type string
+		case priotiry: { low, middle, important, urgent }
+Terminal_Task
+	id
+	assignees : Workers
+	startedAt
+	finishedAt
+	// too small to be an item in Task management
+	// it will be inside the content only
+	// it is very optional to use.
+Task_Viewer_Tab
+	id
+	description : json
+Task_Viewer
+	id
+	Worker (by id)
+	Task_Viewer_Tabs (by id)
+Comment
+	id
+	who
+	content : json
+Milestone
+	id
+	priority : task_param
+	assignees : Workers
+	Clients (by id)
+	createdBy (by id) : worker
+	expected_duration
+	difficulty
+	duedate
+	starting
+	createdAt
+	deletedAt
+	startedAt
+	finishedAt
+	description : json // with this I can calculate how long it really took to proceed
+		when on hold?
+		what happened mean while?
+		can be .md with mermaid
+		can be .html
+	Tasks (by id) // tasks or sub tasks
+	logs : json
+	Comments (by id)
+Task : Milestone
+	id
+	status : task_param
+Repeatable_Task : Task
+	interval // only future
+	// before confirmation and being present, there will be empty things a lot.
 Issue (Interaction)
 	From (person-id) // who approached first?
 	To (person-id) //
@@ -60,12 +113,15 @@ Issue (Interaction)
 		2. the common with "Task"
 			1) due date - optional for Issue
 			2) duration
+	$templates
+		1. 
 Worker : Person
 	Clients (by id) // for what companies does it do CSM?
 	Working Status // quit, vacation, available
 	Assigned Tasks (by id)
+	Authorities
 	Vacations (by id)
-Visitor : Person
+Viewer : Person
 	Client (by id)
 	- Updating the profit
 	- viewing the infos (only about its company)
@@ -86,18 +142,21 @@ Employee : Worker
 	- CSM jobs
 	- Updating the profit (only for assigned)
 Partner : Person
+Plan
+	id
+	paidAt
+	type int // with this, I can calculate until when it is left
 Organization : Company
-	Plan
+	Plans (by id)
 	Workers (by id)
 	Partners (by id) // they could be our workers or collaborators(free-lancer) that don't use our web service, but certainly referred.
 	Clients (by id)
+	Churns (by id)
+	Profits (by id)
 Client : Company
 	Organization (by id) // maybe it could be multiple
-	Visitors (by id)
-	Workers (by id) // who manage(s) this client?
-	Profits (by id)
-	Churns (by id)
-	Companies (by id) // the client of the organization has clients and the organization manages
+	Viewers (by id)
+	assignees (by id) : Worker// who manage(s) this client?
 	Interactions (by id)
 	IsValid (it can stop the contract)
 Emoji

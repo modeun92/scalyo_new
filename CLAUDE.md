@@ -76,7 +76,8 @@ different live tables — identity/plan/trial vs AI-context/currency.
 | tables, RLS, RPCs, migrations | [docs/DATABASE.md](docs/DATABASE.md) |
 | what the columns actually are | [docs/SCHEMA_FROM_CODE.sql](docs/SCHEMA_FROM_CODE.sql) — reference, **not** a migration |
 | a product feature | [docs/MODULES.md](docs/MODULES.md) |
-| the proposed schema redesign | [docs/SCHEMA_REVIEW.md](docs/SCHEMA_REVIEW.md) + [docs/NEW_SCHEMA.sql](docs/NEW_SCHEMA.sql) — **proposals, not migrations** |
+| the proposed schema redesign | [docs/SCHEMA_REVIEW.md](docs/SCHEMA_REVIEW.md) + [docs/NEW_SCHEMA.sql](docs/NEW_SCHEMA.sql) — **proposals, not migrations**; SCHEMA_REVIEW reviews the **pre-17/09/2026** `Database Plan.txt` |
+| the redesign as it stands now (work model, `Plan`, `Comment`) | [docs/database_plan_view.md](docs/database_plan_view.md) (review) · [docs/better_idea.md](docs/better_idea.md) (counter-proposals) · [docs/database_old_and_new_comparison.md](docs/database_old_and_new_comparison.md) (table-by-table) — **all three are proposals, not migrations** |
 | plans, seats, roles, gating, Stripe | [docs/BILLING_AND_PLANS.md](docs/BILLING_AND_PLANS.md) |
 | secrets, GDPR, AI residency, Oxygen privacy | [docs/SECURITY_AND_PRIVACY.md](docs/SECURITY_AND_PRIVACY.md) |
 | the business model, entitlements, monetization logic | [docs/BUSINESS.md](docs/BUSINESS.md) |
