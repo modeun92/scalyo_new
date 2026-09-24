@@ -50,6 +50,22 @@ docs/             the documentation set — see below
 
 Three migrations also live under `app-v2/frontend/supabase/migrations/`.
 
+**`core_v2` — a second, additive schema (20/09/2026).** `docs/new_database_code.txt`
+(`company` / `organization` / `client_group` / `personage` / `member` / `manager` / `viewer` /
+`issue` / `profit` / `churn` / `subscription`) is built **alongside** the schema above by
+`20260920100000_core_v2_schema`, `…110000_core_v2_sync_triggers` and `…120000_core_v2_backfill`.
+Nothing in the app reads it: `organizations` / `profiles` / `clients` / `organization_members`
+stay the source of truth, and fail-open `SECURITY DEFINER` triggers mirror them into `core_v2`
+(bridge columns `organizations.core_organization_id`, `clients.core_client_group_id`,
+`clients.core_prospect_id`). No store, view or `/api` route changed. **The old core tables are to be
+deleted** (decided 20/09/2026), in stages — reads, then writes, then repointing the ~30 tables that
+reference the old uuids, then a drop migration — so a column the product still needs must get a
+home in `core_v2`; `arr`, `mrr`, `health`, `nps`, `churn_risk`, `renewal_date`, `contacts` are
+decided *dropped*. Prospects mirror into an independent `prospect` table, not `client_group`.
+Do not read `core_v2` for plan, seats or health, and when you add a column to `organizations` / `clients` / `profiles` decide whether it belongs in the mirror.
+Details, deviations and limits: [docs/DATABASE.md](docs/DATABASE.md#core_v2--the-new-core-schema-additive).
+**Tested on a local Postgres 16 with Supabase stand-ins (~140 assertions pass); NOT applied to any Supabase project — pre-prod first.**
+
 **`supabase/migrations/` is canonical for RLS and for changes — NOT for schema** (verified
 07/09/2026). Only **8 of the 35 tables** the code touches have a `CREATE TABLE` anywhere in
 the repo (`chat_channels`, `chat_messages`, `chat_channel_members`, `client_notes`,
@@ -354,5 +370,5 @@ Tracked, not fixed in this snapshot:
 
 ---
 
-*Last updated: 2026-09-14. If you changed something described above and did not update
+*Last updated: 2026-09-20. If you changed something described above and did not update
 this file, you are not done.*

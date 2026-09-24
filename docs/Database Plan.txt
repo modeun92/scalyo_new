@@ -30,6 +30,8 @@ Profit-Planner : Profit
 
 Churn
 	company-id
+	from company-id
+	issued-at
 	description
 task_param
 	order
