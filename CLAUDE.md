@@ -118,6 +118,7 @@ trigger while the old front end may still be live, until its drop migration. `pr
 | plans, seats, roles, gating, Stripe | [docs/BILLING_AND_PLANS.md](docs/BILLING_AND_PLANS.md) |
 | secrets, GDPR, AI residency, Oxygen privacy | [docs/SECURITY_AND_PRIVACY.md](docs/SECURITY_AND_PRIVACY.md) |
 | the business model, entitlements, monetization logic | [docs/BUSINESS.md](docs/BUSINESS.md) |
+| break-even / when net profit arrives (3 staff, rent + deposit, investor 6%, per-plan AI cost and support hours, Enterprise on-premise setup + dedicated CSM) | `docs/Scalyo_손익분기_시뮬레이터.xlsx` (KRW, Korean tax and payroll) — **the maintained one**; its price table is copied from `_config/prices.js` by hand, so a price change must be made there too · `docs/Scalyo_simulateur_seuil_rentabilite_Coree_FR.xlsx` — a French **translation of that Korean model** (same KRW figures, Korean tax and payroll, notes explaining Korean institutions), made 24/09/2026; it does not follow later Korean changes unless regenerated · `docs/Scalyo_simulateur_seuil_rentabilite_FR.xlsx` (EUR, French IS and employer charges) — **frozen as of 24/09/2026** by decision, not updated with later changes. Both use **example assumptions** |
 | known mock / false-signal code | [docs/MOCK_CODE_AUDIT.md](docs/MOCK_CODE_AUDIT.md) |
 | conventions and doctrine | [docs/CODE_STYLE.md](docs/CODE_STYLE.md) |
 | setup, scripts, env vars, deploy, the Cloudflare MCP servers in `.mcp.json` | [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) |
