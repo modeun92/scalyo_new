@@ -837,6 +837,8 @@ Both are queried by current code. They are not duplicates, and neither is a left
 
 `user_profiles` is queried at `stores/profile.js` (including the `setCurrency` upsert), `functions/api/billing.js` and `functions/api/_services/context.service.js`. Its defining file sits outside `supabase/migrations/`, in a directory whose own header says *"Run this in Supabase SQL Editor"* — so the sole definition of a live, actively-queried table is stored where the migration tooling will never see it.
 
+> **Update 24/09/2026 — superseded.** Stage 1 of retiring the old core tables moved all three call sites to core_v2 RPCs (`20260924100000_core_v2_stage1_user_profiles.sql`); no application code queries `user_profiles` any more. The table stays, mirrored by a trigger, until its drop migration. See [DATABASE.md](DATABASE.md#retiring-the-old-core-tables).
+
 ### 7.2 Three tables belong to code that is switched off
 
 `api_keys`, `webhooks` and `team_members` are reached only from the Integrations module, which the router redirects away from. They have no SQL and no other caller. Their presence here reflects dormant code, not live usage.

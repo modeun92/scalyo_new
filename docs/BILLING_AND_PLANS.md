@@ -100,8 +100,10 @@ used by the webhook, is derived from it.
 - If the org has a real Stripe subscription, amounts come from Stripe (proration and
   discounts included, via `create_preview` with a fallback to `invoices/upcoming` for
   older API versions).
-- Otherwise, the price table × the number of seats, in the **account** currency
-  (`user_profiles.currency`).
+- Otherwise, the price table × the number of seats, in the **organization's** currency
+  (core_v2 `company.currency_code`, reached through `organizations.core_organization_id`;
+  `CURRENCY-ORG`, 24/09/2026 — it was the person's own `user_profiles.currency`). An account with
+  no organization has none and is quoted in EUR.
 - For a `member` or `viewer`, the API returns plan and seats but **no amount at all**
   (`can_view_amounts: false`).
 

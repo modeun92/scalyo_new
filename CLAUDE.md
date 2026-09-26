@@ -54,17 +54,35 @@ Three migrations also live under `app-v2/frontend/supabase/migrations/`.
 (`company` / `organization` / `client_group` / `personage` / `member` / `manager` / `viewer` /
 `issue` / `profit` / `churn` / `subscription`) is built **alongside** the schema above by
 `20260920100000_core_v2_schema`, `…110000_core_v2_sync_triggers` and `…120000_core_v2_backfill`.
-Nothing in the app reads it: `organizations` / `profiles` / `clients` / `organization_members`
-stay the source of truth, and fail-open `SECURITY DEFINER` triggers mirror them into `core_v2`
-(bridge columns `organizations.core_organization_id`, `clients.core_client_group_id`,
-`clients.core_prospect_id`). No store, view or `/api` route changed. **The old core tables are to be
+`organizations` / `profiles` / `clients` / `organization_members` stay the source of truth, and
+fail-open `SECURITY DEFINER` triggers mirror them into `core_v2` (one bridge column,
+`organizations.core_organization_id`; a client's mirror is found by `company.public_id =
+clients.id`, so the old client uuid survives as the company's public id — `CORE-V2-PUBLIC-ID`).
+The only app code that reads or writes `core_v2` is stage 1 below (the profile store, the
+questionnaire, the currency picker, `api/billing.js`, the AI context). **The old core tables are to be
 deleted** (decided 20/09/2026), in stages — reads, then writes, then repointing the ~30 tables that
 reference the old uuids, then a drop migration — so a column the product still needs must get a
-home in `core_v2`; `arr`, `mrr`, `health`, `nps`, `churn_risk`, `renewal_date`, `contacts` are
-decided *dropped*. Prospects mirror into an independent `prospect` table, not `client_group`.
-Do not read `core_v2` for plan, seats or health, and when you add a column to `organizations` / `clients` / `profiles` decide whether it belongs in the mirror.
+home in `core_v2`. `health`, `nps`, `churn_risk`, `renewal_date` live on `client_group` and contacts
+are viewers linked to the company (kept 24/09/2026, reversing the 20/09 "drop"); `arr` / `mrr` become
+`profit` rows — **ARR = the last 12 months of profit, MRR = ARR / 12**. A prospect is an independent
+`prospect` row on its own `company`, and the client group it becomes is created on that same company.
+A person's role and seniority live on `organization_worker` (composite FK to `organization_role`),
+not on `member`. **The old tables are being retired one at a time** — `user_profiles` →
+`organization_members` → `clients` → `organizations` + `profiles` — each by reads, then writes,
+then a new drop migration ([docs/DATABASE.md](docs/DATABASE.md#retiring-the-old-core-tables)).
+**Stage 1 (`user_profiles`) is written, not deployed**: `20260924100000_core_v2_stage1_user_profiles.sql`
+adds `organization_worker.onboarding_completed`, an append-only `consent` log linked to the
+organization, and the RPCs `core_v2_my_profile` / `core_v2_set_organization_currency` (managers
+only) / `core_v2_complete_onboarding`, which the front end now calls instead of `user_profiles`.
+Apply it **before** that front end ships. **Stage 3a (`clients`) was started before stage 2, on
+request (24/09/2026)** and is schema + mirror + backfill only — the app still reads and writes
+`clients`; 3b (reads), 3c (writes, the revenue list, the 7 foreign keys to `company.public_id`)
+and 3d (drop) are to do. Plan tier, seats, trial and Stripe ids wait for a subscription-information table,
+and the tier is **never** a column of `organization` or `organization_worker` (`CORE-V2-PLAN-HOME`, 24/09/2026).
+All five old core tables go (confirmed 26/09/2026). The 30 old tables that stay keep their client ids (→ `company.public_id`) and their person ids (login uuids, found through `member` / `viewer.auth_user_id`, FK to `auth.users`); their `organization_id` targets are decided per table — see [docs/DATABASE.md](docs/DATABASE.md#retiring-the-old-core-tables).
+Do not read `core_v2` for plan or seats, nor for client data before stage 3b; when you add a column to `organizations` / `clients` / `profiles` decide whether it belongs in the mirror.
 Details, deviations and limits: [docs/DATABASE.md](docs/DATABASE.md#core_v2--the-new-core-schema-additive).
-**Tested on a local Postgres 16 with Supabase stand-ins (~140 assertions pass); NOT applied to any Supabase project — pre-prod first.**
+**Tested on a local Postgres 16 with Supabase stand-ins (196 assertions pass, stages 1 and 3a included, last run 24/09/2026); NOT applied to any Supabase project — pre-prod first.**
 
 **`supabase/migrations/` is canonical for RLS and for changes — NOT for schema** (verified
 07/09/2026). Only **8 of the 35 tables** the code touches have a `CREATE TABLE` anywhere in
@@ -75,11 +93,13 @@ dashboard and exist here only as `ALTER`s and RLS policies. A checkout cannot re
 database. `docs/SCHEMA_FROM_CODE.sql` reconstructs the rest from the CRUD call sites, with
 every inferred column marked as such.
 
-`app-v2/frontend/_migrations/001_user_profiles.sql` is described as superseded but is **not
-dead**: it is the only definition of `user_profiles`, which `stores/profile.setCurrency`,
-`functions/api/billing.js` and `_services/context.service.js` all still query, and which
-carries the `currency` column rule 9 depends on. `profiles` and `user_profiles` are two
-different live tables — identity/plan/trial vs AI-context/currency.
+`app-v2/frontend/_migrations/001_user_profiles.sql` is the only definition of `user_profiles`
+(and of the `create_user_profile()` trigger on `auth.users`). Since stage 1 of the retirement
+(24/09/2026) **no application code queries `user_profiles`**: `stores/profile`, `api/billing.js`
+and `_services/context.service.js` read and write core_v2 through three RPCs
+(`20260924100000_core_v2_stage1_user_profiles.sql`). The table stays, mirrored into core_v2 by a
+trigger while the old front end may still be live, until its drop migration. `profiles` and
+`user_profiles` are two different tables — identity/plan/trial vs the old questionnaire/currency.
 
 ## Documentation map — read the right one before you edit
 
@@ -90,6 +110,7 @@ different live tables — identity/plan/trial vs AI-context/currency.
 | routing, stores, components, i18n, formatting | [docs/FRONTEND.md](docs/FRONTEND.md) |
 | any `/api/*` endpoint or shared service | [docs/BACKEND_API.md](docs/BACKEND_API.md) |
 | tables, RLS, RPCs, migrations | [docs/DATABASE.md](docs/DATABASE.md) |
+| the core_v2 schema as a picture | [docs/DATABASE_DIAGRAM_CORE_V2.md](docs/DATABASE_DIAGRAM_CORE_V2.md) — Mermaid ER diagrams + the old→new mirror flow + the 30 old tables that stay and where their client / organization / person references land, **maintained by hand**: update it with any core_v2 migration change. `docs/DATABASE_DIAGRAM.md` is the OLD schema (7/09/2026) |
 | what the columns actually are | [docs/SCHEMA_FROM_CODE.sql](docs/SCHEMA_FROM_CODE.sql) — reference, **not** a migration |
 | a product feature | [docs/MODULES.md](docs/MODULES.md) |
 | the proposed schema redesign | [docs/SCHEMA_REVIEW.md](docs/SCHEMA_REVIEW.md) + [docs/NEW_SCHEMA.sql](docs/NEW_SCHEMA.sql) — **proposals, not migrations**; SCHEMA_REVIEW reviews the **pre-17/09/2026** `Database Plan.txt` |
@@ -159,11 +180,14 @@ broke something visible. Do not relax one without saying so explicitly.
    across all three is mandatory. The MCP copy exists because a separate Worker cannot
    import from the Pages app; `mcp-worker/test/health-parity.test.ts` reads the other two
    and fails on drift, which is the only automated guard any of the three has.
-9. **Money through `lib/formatters.fmtCurrency`.** Currency is a property of the account
-   (`user_profiles.currency`), not of the language. Zero conversion. The offered codes live
-   once in `src/config/currencies.js`; the account picks one in Settings → Preferences
-   (`stores/profile.setCurrency`). A KPI's unit suffix comes from `formatters.kpiUnit`,
-   never from a literal in `config/kpis.js`.
+9. **Money through `lib/formatters.fmtCurrency`.** Currency is a property of the
+   **organization** (core_v2 `company.currency_code`) and of each profit amount
+   (`profit.currency_code`) — never of a person, never of the language (`CURRENCY-ORG`,
+   24/09/2026; it was the per-person `user_profiles.currency` before). Zero conversion. The
+   offered codes live once in `src/config/currencies.js` and must match the core_v2 `currency`
+   seed; a **manager** picks one in Settings → Preferences (`stores/profile.setCurrency` → RPC
+   `core_v2_set_organization_currency`, which refuses anyone else). A KPI's unit suffix comes
+   from `formatters.kpiUnit`, never from a literal in `config/kpis.js`.
 10. **No native `confirm()`.** Use the shared `ConfirmDialog`.
 11. **Partial updates must be partial-safe.** A field absent from the input is not sent.
     Insert defaults live in the `add*` functions, not in the mapper.
@@ -365,10 +389,14 @@ Tracked, not fixed in this snapshot:
 - `get_portfolio_summary` scans at most 200 accounts (it reports `partial: true` beyond
   that rather than a wrong total). Listed in
   [docs/MCP_SERVER.md](docs/MCP_SERVER.md#open-items).
+- **Consent withdrawal is promised but not offered.** The questionnaire's legal note
+  (`onboarding_wizard_consent_legal`) says consent can be withdrawn at any time in settings; no
+  settings screen does it. The core_v2 `consent` log (stage 1) is append-only, so withdrawal is
+  one more row — the missing piece is the screen and a write RPC.
 - Upstream hygiene: macOS duplicate files, a committed `.env.production`, session notes at
   the repository root (see [`REVIEW_NOTES.md`](docs/REVIEW_NOTES.md)).
 
 ---
 
-*Last updated: 2026-09-20. If you changed something described above and did not update
+*Last updated: 2026-09-26. If you changed something described above and did not update
 this file, you are not done.*

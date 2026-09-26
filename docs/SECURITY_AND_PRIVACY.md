@@ -110,6 +110,14 @@ The invitation token is a capability, and it is handled as one:
   does, and it applies GDPR minimization: explicit columns, never notes, never emails or
   phone numbers, capped list lengths.
 - DeepSeek is never named in the front end.
+- **AI and analytics consent** is asked in the personal questionnaire (`OnboardingWizard`; AI
+  consent is required to finish it). Since stage 1 (24/09/2026) it is recorded in the core_v2
+  `consent` table: **append-only**, one row per consent given or withdrawn, linked to the
+  organization, current state = the latest row per person and kind (`CORE-V2-CONSENT`). Users
+  read only their own rows and cannot write the table directly; it is deleted with the person
+  on erasure. Before, three columns on `user_profiles` were overwritten in place, so a
+  withdrawal left no trace of the earlier consent. **Open gap:** the wizard's legal note promises
+  withdrawal "at any time in settings", and no settings screen offers it yet.
 
 ## Well-being data
 
