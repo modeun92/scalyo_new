@@ -46,7 +46,9 @@
     </div>
 
     <!-- Currency — CURRENCY-ACCOUNT (04/09): the account currency was in the database but on no
-         screen, so everything rendered in euro whatever the account billed in (error_list §5). -->
+         screen, so everything rendered in euro whatever the account billed in (error_list §5).
+         CURRENCY-ORG (24/09/2026): it is now the ORGANIZATION's currency, changed by a manager
+         only — every teammate sees it, so a member sees the picker but cannot move it. -->
     <div class="settings_view_section">
       <h3>💱 {{ t('setting_currency_title') }}</h3>
       <p class="settings_view_note">{{ t('setting_currency_desc') }}</p>
@@ -54,7 +56,7 @@
         <select
           class="settings_currency_select"
           :value="selectedCurrency"
-          :disabled="currencySaving"
+          :disabled="currencySaving || !profileStore.isManager"
           @change="changeCurrency($event)"
         >
           <option v-for="code in currencyOptions" :key="code" :value="code">
@@ -63,6 +65,7 @@
         </select>
         <span class="settings_currency_sample">{{ currencySample }}</span>
       </div>
+      <p v-if="profileStore.profile && !profileStore.isManager" class="settings_view_note">{{ t('setting_currency_manager_only') }}</p>
       <p class="settings_view_note settings_currency_warning">⚠️ {{ t('setting_currency_no_conversion') }}</p>
       <p v-if="currencySaved" class="settings_saved">✓ {{ t('setting_currency_saved') }}</p>
       <p v-if="currencyError" class="settings_view_field_error">{{ t('setting_currency_error') }}</p>
@@ -189,7 +192,7 @@ const currencyOptions = computed(() => SUPPORTED_CURRENCIES.includes(selectedCur
   : [selectedCurrency.value, ...SUPPORTED_CURRENCIES])
 const currencySample = computed(() => fmtCurrency(1234567, { compact: true }))
 // AppLayout loads the profile on mount; this guard covers a direct hit on /app/settings
-// where the store may not be populated yet — without it the picker shows EUR for a KRW account.
+// where the store may not be populated yet — without it the picker shows EUR for a KRW organization.
 if (!profileStore.profile) profileStore.load()
 
 const currencySaving = ref(false)

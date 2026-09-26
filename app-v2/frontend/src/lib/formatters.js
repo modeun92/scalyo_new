@@ -1,5 +1,6 @@
 // A-11 / MIN-C7 — CENTRAL localized formatters (decision by Lidia 18/07):
-// the CURRENCY is a property of the ACCOUNT (user_profiles.currency, default EUR),
+// the CURRENCY is a property of the ORGANIZATION (core_v2 company.currency_code, read through
+// stores/profile — CURRENCY-ORG 24/09/2026; it was user_profiles.currency, per person, before),
 // never of the display language — only the FORMATTING (separators, symbol position)
 // follows the locale. Zero conversion: the symbol does not change with the
 // language. Before this module, three divergent conventions coexisted

@@ -14,13 +14,17 @@
 // their value. 1 200 stored becomes "$1,200", not the euro amount converted to dollars.
 // The list stays a superset of the billing currencies in stores/countryLaws.js
 // (EUR · CHF · CAD · USD · KRW) — a quote keeps the currency of its own billing country.
+// CURRENCY-ORG (24/09/2026): the value is now the organization's (core_v2 company.currency_code),
+// and core_v2_set_organization_currency refuses any code missing from the core_v2 `currency`
+// table — seeded with these same 20 codes in 20260920100000_core_v2_schema.sql §9. Adding a code
+// here without adding it there makes the picker offer a currency whose save always fails.
 export const SUPPORTED_CURRENCIES = [
   'EUR', 'USD', 'GBP', 'CHF', 'KRW', 'JPY', 'CNY', 'CAD', 'AUD', 'NZD',
   'SGD', 'HKD', 'INR', 'BRL', 'MXN', 'AED', 'SEK', 'NOK', 'DKK', 'PLN',
 ]
 
-// Same default as the database column (user_profiles.currency DEFAULT 'EUR'): a profile
-// that has never chosen keeps rendering exactly as before this file existed.
+// Same default as the old database column (user_profiles.currency DEFAULT 'EUR'): an
+// organization with no currency (company.currency_code NULL, never invented) renders in euro.
 export const DEFAULT_CURRENCY = 'EUR'
 
 export function isSupportedCurrency(code) {

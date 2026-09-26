@@ -12,11 +12,15 @@ function isoFromUnix(seconds) {
   return seconds ? new Date(seconds * 1000).toISOString() : null
 }
 
-// ACCOUNT currency (user_profiles.currency, decision 18/07) — missing/invalid → null (→ EUR default).
-async function accountCurrency(db, userId) {
+// CURRENCY-ORG (24/09/2026): the ORGANIZATION's currency (core_v2 company.currency_code, reached
+// through the organizations.core_organization_id bridge) — it was the person's own
+// user_profiles.currency (decision 18/07), so two teammates could be quoted the same plan in two
+// currencies. Missing/invalid → null (→ EUR default); an account with no organization has none.
+async function organizationCurrency(db, account) {
   try {
-    const row = await db.selectOne('user_profiles', 'id=eq.' + userId)
-    return normalizeCurrency(row?.currency)
+    if (!account?.core_organization_id) return null
+    const row = await db.selectOne('company', 'id=eq.' + account.core_organization_id)
+    return normalizeCurrency(row?.currency_code)
   } catch (_) {
     return null
   }
@@ -131,7 +135,7 @@ export async function onRequestGet(context) {
         prices: grid.prices,
       })
     }
-    const table = tableBilling(orgPlan, seats, await accountCurrency(db, user.id))
+    const table = tableBilling(orgPlan, seats, await organizationCurrency(db, account))
     return jsonResponse({ ...base, ...table, source: 'table', plan_mismatch: false, currency: table.currency.toUpperCase() })
   } catch (err) {
     return errorResponse(500, err.message || 'Server error')

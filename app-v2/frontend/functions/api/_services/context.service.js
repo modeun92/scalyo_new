@@ -91,7 +91,9 @@ export async function buildRichContext(env, userId, userJwt, message = '') {
   const [clients, tasks, profile] = await Promise.all([
     restGet(env, 'clients?select=' + CLIENT_COLUMNS, userJwt),
     restGet(env, 'tasks?select=' + TASK_COLUMNS + '&user_id=eq.' + userId, userJwt),
-    restGet(env, 'user_profiles?select=currency&id=eq.' + userId, userJwt),
+    // CURRENCY-ORG (24/09/2026): the organization's currency, through the caller's own core_v2
+    // profile (a STABLE RPC, so PostgREST serves it on GET) — no longer user_profiles.currency.
+    restGet(env, 'rpc/core_v2_my_profile', userJwt),
   ])
 
   // Failure to read the portfolio → EMPTY context: the prompt will say "no data
@@ -99,7 +101,7 @@ export async function buildRichContext(env, userId, userJwt, message = '') {
   if (clients === null) return { summary: '' }
 
   const cl = clients
-  const currency = (Array.isArray(profile) && profile[0] && profile[0].currency) || 'EUR'
+  const currency = (profile && profile.currency) || 'EUR'
   // Lesson COUNT-353-352: portfolio stats EXCLUDE prospects (clientsOnly).
   const portfolio = cl.filter(c => c.lifecycle !== 'prospect')
   const now = new Date()
