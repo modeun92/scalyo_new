@@ -12,14 +12,20 @@
 --   organizations        -> company + organization                 (+ subscription history rows)
 --   profiles +           -> personage + member | viewer (+ manager) + organization_worker
 --   organization_members    (+ joined_at) + member_authority + organization.owner_personage_id
---   user_profiles        -> member.role_id (organization_role) + member.seniority
---   clients (client)     -> company + client_group (+ industry, notes) + organization_client_group
---   clients (prospect)   -> prospect (independent of client_group; linked once it is won)
+--   user_profiles        -> NOT here: 20260924100000_core_v2_stage1_user_profiles.sql owns it
+--                           (only the one-time currency fill in core_v2_org_sync reads it)
+--   clients              -> company (public_id = clients.id, name, logo) — shared by both lifecycles
+--     (client)              + client_group (industry, notes, health, nps, churn_risk, health_status,
+--                             renewal_date, created_at) + organization_client_group
+--     (prospect)            + prospect (independent of client_group; the same company when won)
+--   clients.contacts     -> personage + viewer (no login) + client_group_viewer (role, is_primary)
+--   clients.arr (mrr×12) -> ONE opening profit row per client group (ARR = last 12 months of profit)
+--   clients.churned_at   -> churn row + client_group.status CHURNED
 --   clients.csm_id       -> member_client_group (the client's CSM) / prospect.member_id
--- NOT mirrored, on purpose (decided with the owner of this change): arr, mrr, health, nps,
--- churn_risk, renewal_date, contacts (clients); plan / seats / trial / Stripe ids /
--- is_founding / oxygen_team_enabled (organizations) — those wait for the subscription-information
--- table and the Oxygen module; invitations.
+-- NOT mirrored, on purpose (decided with the owner of this change): clients.csm (a text copy of
+-- the CSM's name, derived from member instead), clients.status is mirrored as health_status;
+-- plan / seats / trial / Stripe ids / is_founding / oxygen_team_enabled (organizations) — those
+-- wait for the subscription-information table and the Oxygen module; invitations.
 --
 -- ROLE MAPPING (coarse — see docs/DATABASE.md). owner + admin -> manager (VIEW, CREATE, UPDATE,
 -- DELETE, INVITE, ASSIGN_CLIENT_GROUP — canInvite is true for both in plans.config.js ROLES, and
@@ -38,37 +44,26 @@
 -- changes behaviour". The price is that a failure is silent drift, not an outage: part 3 is
 -- idempotent and re-running it heals the drift; §Verification below counts it.
 --
--- CORE-V2-NO-TRUST — the bridge columns added below (organizations.core_organization_id,
--- clients.core_client_group_id, clients.core_prospect_id) are writable by whoever can UPDATE the row, which for
--- organizations is the owner (org_manage) and for clients any teammate. If the sync believed
--- the value on NEW it would let a user point their own row at ANOTHER tenant's company and have
--- the next sync rename it. So the BEFORE triggers discard whatever value the statement supplied
--- and restore the stored one (NULL on INSERT); only this file's own code assigns it.
--- (profiles gets no bridge column: the link to the personage is member/viewer.auth_user_id, a
--- table users cannot write. The plan's `profiles.core_personage_id` was dropped for that reason —
--- it would be a second, forgeable copy of a link that already exists.)
+-- CORE-V2-NO-TRUST — the bridge column added below (organizations.core_organization_id) is
+-- writable by whoever can UPDATE the row, which for organizations is the owner (org_manage). If
+-- the sync believed the value on NEW it would let a user point their own row at ANOTHER tenant's
+-- company and have the next sync rename it. So the BEFORE trigger discards whatever value the
+-- statement supplied and restores the stored one (NULL on INSERT); only this file assigns it.
+-- clients and profiles get NO bridge column. A client's mirror is found by company.public_id =
+-- clients.id (CORE-V2-PUBLIC-ID) and a person's by member/viewer.auth_user_id — links held in
+-- tables users cannot write. The 20/09 draft had clients.core_client_group_id / core_prospect_id,
+-- a second, forgeable copy of a link that the id itself already is.
 --
 -- PRE-PROD (wxbape…) FIRST, PROD on an explicit go (R8). Idempotent: safe to re-run.
 
 -- ============================================================
--- §1 — Bridge columns
+-- §1 — Bridge column
 -- ============================================================
 alter table public.organizations
   add column if not exists core_organization_id bigint
   references public.organization(company_id) on delete set null;
 
-alter table public.clients
-  add column if not exists core_client_group_id bigint
-  references public.client_group(company_id) on delete set null;
-
--- A prospect row of `clients` (lifecycle = 'prospect') mirrors into `prospect`, not client_group.
-alter table public.clients
-  add column if not exists core_prospect_id bigint
-  references public.prospect(id) on delete set null;
-
 create index if not exists idx_organizations_core_organization on public.organizations (core_organization_id);
-create index if not exists idx_clients_core_client_group       on public.clients (core_client_group_id);
-create index if not exists idx_clients_core_prospect           on public.clients (core_prospect_id);
 
 -- ============================================================
 -- §2 — Pure mappings
@@ -85,25 +80,6 @@ as $fn$
     when 'member' then 'member'
     when 'viewer' then 'viewer'
     else null            -- unknown role: mirror nothing rather than guess a permission level
-  end;
-$fn$;
-
--- user_profiles.seniority (text) -> member.seniority (int rank, higher = more senior). The old
--- SENIORITY_OPTIONS order, made numeric. Anything else -> NULL (no invented rank).
-create or replace function public.core_v2_seniority_rank(p_seniority text)
-returns integer
-language sql
-immutable
-as $fn$
-  select case lower(btrim(coalesce(p_seniority, '')))
-    when 'junior'   then 1
-    when 'mid'      then 2
-    when 'senior'   then 3
-    when 'lead'     then 4
-    when 'director' then 5
-    when 'vp'       then 6
-    when 'c_level'  then 7
-    else null
   end;
 $fn$;
 
@@ -197,9 +173,6 @@ declare
   v_can_email boolean;
   v_is_owner boolean;
   v_joined timestamptz;
-  v_up_role text;
-  v_rank integer;
-  v_role_id bigint;
 begin
   select p.first_name, p.last_name, p.locale, p.organization_id, p.org_role
     into v_first, v_last, v_locale, v_org, v_profile_role
@@ -232,12 +205,6 @@ begin
   end if;
 
   select u.email into v_email from auth.users u where u.id = p_user;
-
-  -- The person's job identity, from the onboarding questionnaire. No row -> both NULL.
-  select nullif(btrim(up.role), ''), public.core_v2_seniority_rank(up.seniority)
-    into v_up_role, v_rank
-    from public.user_profiles up
-   where up.id = p_user;
 
   -- 'fr-FR' -> 'fr'. A locale outside language_region becomes NULL, never a guess.
   v_lang := lower(split_part(coalesce(v_locale, ''), '-', 1));
@@ -301,39 +268,24 @@ begin
     select v_pid, a from unnest(v_wanted) a
     on conflict do nothing;
 
-    -- Role: a per-organization list (organization_role), the persisted key ('csm', 'head_cs', …)
-    -- as the name; the screen renders it through i18n. Resolved INSIDE this member's organization,
-    -- which is the only thing that keeps member.role_id honest (member carries no organization).
-    v_role_id := null;
-    if v_up_role is not null then
-      insert into public.organization_role (organization_id, name)
-      values (v_core_org, v_up_role)
-      on conflict (organization_id, name) do nothing;
-      select r.id into v_role_id
-        from public.organization_role r
-       where r.organization_id = v_core_org and r.name = v_up_role;
-    end if;
-    update public.member
-       set role_id = v_role_id, seniority = v_rank
-     where personage_id = v_pid
-       and (role_id, seniority) is distinct from (v_role_id, v_rank);
-
     -- CSM assignment (Member::p_Clients): every client of this organization whose csm_id is this
     -- login. Covers the case where the person is mirrored AFTER the client was (the client trigger
     -- cannot assign a member that does not exist yet).
     insert into public.member_client_group (member_id, client_group_id)
-    select v_pid, c.core_client_group_id
+    select v_pid, co.id
       from public.clients c
+      join public.company co on co.public_id = c.id
       join public.organization_client_group ocg
-        on ocg.client_group_id = c.core_client_group_id and ocg.organization_id = v_core_org
+        on ocg.client_group_id = co.id and ocg.organization_id = v_core_org
      where c.csm_id = p_user
     on conflict do nothing;
     update public.prospect pr
        set member_id = v_pid
      where pr.organization_id = v_core_org
        and pr.member_id is distinct from v_pid
-       and pr.id in (select c.core_prospect_id from public.clients c
-                      where c.csm_id = p_user and c.core_prospect_id is not null);
+       and pr.company_id in (select co.id from public.clients c
+                               join public.company co on co.public_id = c.id
+                              where c.csm_id = p_user);
   end if;
 
   -- uq_organization_worker_person: one organization per personage. Joining another organization
@@ -341,6 +293,11 @@ begin
   delete from public.organization_worker
    where personage_id = v_pid and organization_id <> v_core_org;
   -- joined_at is organization_members.joined_at, NULL when there is no such row (never invented).
+  -- CORE-V2-UP-MIRROR (24/09/2026): role_id / seniority / onboarding_completed are NOT touched
+  -- here. They are the person's own questionnaire answers, written by core_v2_complete_onboarding
+  -- (and, while the old front end is live, mirrored from user_profiles) — 20260924100000. The
+  -- 20/09 draft re-read them from user_profiles on every profile or membership write, which would
+  -- overwrite an answer given through the new RPC with the stale copy in the old table.
   insert into public.organization_worker (organization_id, personage_id, job_status, joined_at)
   values (v_core_org, v_pid, 'ACTIVE', v_joined)
   on conflict (organization_id, personage_id) do update
@@ -447,29 +404,6 @@ create trigger trg_core_v2_profile_delete
   after delete on public.profiles
   for each row execute function public.core_v2_profile_delete();
 
--- user_profiles -> core_v2: role and seniority are the only two columns that feed the projection.
--- Fires on the onboarding save, not on the currency / preference writes.
-create or replace function public.core_v2_user_profile_sync()
-returns trigger
-language plpgsql
-security definer
-set search_path = public
-as $fn$
-begin
-  begin
-    perform public.core_v2_sync_user(new.id);
-  exception when others then
-    raise warning 'core_v2 user_profiles sync failed for %: % (%)', new.id, sqlerrm, sqlstate;
-  end;
-  return new;
-end;
-$fn$;
-
-drop trigger if exists trg_core_v2_user_profile_sync on public.user_profiles;
-create trigger trg_core_v2_user_profile_sync
-  after insert or update of role, seniority on public.user_profiles
-  for each row execute function public.core_v2_user_profile_sync();
-
 -- ============================================================
 -- §4 — Organizations -> company + organization (+ subscription history)
 -- ============================================================
@@ -497,8 +431,11 @@ begin
   begin
     v_cid := new.core_organization_id;
 
-    -- The organization's currency is the account currency of its owner (user_profiles.currency,
-    -- DEFAULT 'EUR'); a code the currency table does not know stays NULL rather than failing.
+    -- CORE-V2-CURRENCY-ORG (24/09/2026): currency belongs to the organization (and to each profit
+    -- amount), never to a person; a manager changes it through core_v2_set_organization_currency.
+    -- The first value is filled in ONCE from the owner's old account currency (user_profiles.currency,
+    -- DEFAULT 'EUR'); a code the currency table does not know stays NULL rather than failing. This
+    -- read goes with the migration that drops user_profiles.
     select up.currency into v_currency
       from public.user_profiles up
      where up.id = new.owner_id;
@@ -578,28 +515,39 @@ create trigger trg_core_v2_org_subscription_log
   after insert or update of plan on public.organizations
   for each row execute function public.core_v2_org_subscription_log();
 
--- Deleting an organization deletes its mirror. subscription and the client-group companies go
--- first (subscription is ON DELETE RESTRICT). issue / profit / churn are RESTRICT too and are
--- user data with no old-table source: if any exist the delete fails, is reported as a WARNING,
--- and the mirror is left for a person to decide about — the old delete is never blocked.
+-- Deleting an organization deletes its mirror: subscription, the rows mirrored from clients
+-- (opening profit, churn — RESTRICT), the contacts' personal data, then the companies of its client
+-- groups and prospects, then its own. issue / profit / churn rows a USER wrote are RESTRICT too and
+-- have no old-table source: if any exist the delete fails, is reported as a WARNING, and the
+-- mirror is left for a person to decide about — the old delete is never blocked.
 create or replace function public.core_v2_org_delete()
 returns trigger
 language plpgsql
 security definer
 set search_path = public
 as $fn$
+declare
+  v_company bigint;
 begin
   if old.core_organization_id is null then
     return old;
   end if;
   begin
     delete from public.subscription where organization_id = old.core_organization_id;
-    delete from public.company
-     where id in (
-       select ocg.client_group_id
-         from public.organization_client_group ocg
-        where ocg.organization_id = old.core_organization_id
-     );
+    delete from public.profit
+     where organization_id = old.core_organization_id and description ->> 'source' = 'clients.arr';
+    delete from public.churn
+     where organization_id = old.core_organization_id and description ->> 'source' = 'clients.churned_at';
+    for v_company in
+      select ocg.client_group_id from public.organization_client_group ocg
+       where ocg.organization_id = old.core_organization_id
+      union
+      select pr.company_id from public.prospect pr
+       where pr.organization_id = old.core_organization_id
+    loop
+      perform public.core_v2_sync_contacts(v_company, '[]'::jsonb);
+      delete from public.company where id = v_company;
+    end loop;
     delete from public.company where id = old.core_organization_id;
   exception when others then
     raise warning 'core_v2 organization delete failed for %: % (%)', old.id, sqlerrm, sqlstate;
@@ -614,18 +562,82 @@ create trigger trg_core_v2_org_delete
   for each row execute function public.core_v2_org_delete();
 
 -- ============================================================
--- §5 — Clients -> company + client_group + organization_client_group
+-- §5 — Clients -> company + client_group | prospect (+ contacts, opening profit, churn)
 -- ============================================================
--- A client row goes one of two ways, on its lifecycle:
---   prospect -> `prospect` (independent of client_group, like `issue`; carries the pipeline stage);
---   client   -> company + client_group + organization_client_group, and if a prospect row was
---               mirrored for it earlier, that prospect is linked to the new group (a WON prospect).
--- A row that goes client -> prospect gets a prospect row and leaves its existing client group
--- untouched: pipeline moves forward, and deleting a client group could hit RESTRICT-ed issues.
--- A client with no organization_id has nothing to attach to: no group, no prospect.
+-- CORE-V2-PUBLIC-ID (24/09/2026): every clients row owns ONE company, found by public_id =
+-- clients.id — for its whole life, prospect then client. On its lifecycle it then gets:
+--   prospect -> a `prospect` row on that company (independent of client_group; carries the stage);
+--   client   -> a client_group on that SAME company + organization_client_group. A prospect row
+--               already there stays as the funnel history and is marked WON when the stage says so.
+-- A row that goes client -> prospect gets a prospect row and leaves its client group untouched:
+-- pipeline moves forward, and deleting a client group could hit RESTRICT-ed issues.
+-- A client with no organization_id has nothing to attach to: no company at all.
 --
 -- The CSM (clients.csm_id, a login) becomes member_client_group.member_id / prospect.member_id
 -- when that login is a MEMBER; a viewer or an unknown login leaves the assignment empty.
+--
+-- AFTER, not BEFORE: nothing is written back onto the clients row any more (the 20/09 draft
+-- assigned bridge columns there), so the mirror reads the row as committed, defaults and every
+-- other BEFORE trigger included.
+
+-- CORE-V2-CONTACTS (24/09/2026): clients.contacts (jsonb [{name, role, email, phone, is_primary}])
+-- -> one personage + viewer (no login) + client_group_viewer per contact, on the company. The list
+-- has no ids to match on, so the mirror REPLACES the company's login-less contacts on every change:
+-- their personages are deleted (they belong to nothing else) and recreated. A contact who has a
+-- login, or who also works somewhere or is a contact of another company, is never deleted here.
+-- The name is kept whole in first_name and last_name is '': splitting "Jean-Marc Dupont" or
+-- "김철수" into two parts would be a guess, and a wrong guess reads like a fact (R21).
+-- is_primary: the old store's rule — the first contact flagged primary, else the first contact.
+-- Called with '[]' to erase a company's contacts (client / organization delete).
+create or replace function public.core_v2_sync_contacts(p_company bigint, p_contacts jsonb)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $fn$
+declare
+  r record;
+  v_pid bigint;
+  v_primary bigint;
+begin
+  delete from public.personage ps
+   where ps.id in (
+           select cgv.viewer_id
+             from public.client_group_viewer cgv
+             join public.viewer v on v.personage_id = cgv.viewer_id
+            where cgv.client_group_id = p_company and v.auth_user_id is null)
+     and not exists (select 1 from public.organization_worker w where w.personage_id = ps.id)
+     and not exists (select 1 from public.client_group_viewer o
+                      where o.viewer_id = ps.id and o.client_group_id <> p_company);
+
+  if jsonb_typeof(p_contacts) is distinct from 'array' then
+    return;
+  end if;
+
+  select coalesce(
+           min(e.n) filter (where e.value -> 'is_primary' = 'true'::jsonb),
+           min(e.n))
+    into v_primary
+    from jsonb_array_elements(p_contacts) with ordinality as e(value, n)
+   where nullif(btrim(e.value ->> 'name'), '') is not null;
+
+  for r in
+    select e.value as c, e.n
+      from jsonb_array_elements(p_contacts) with ordinality as e(value, n)
+     where nullif(btrim(e.value ->> 'name'), '') is not null
+     order by e.n
+  loop
+    insert into public.personage (first_name, last_name, email_address, phone_number)
+    values (btrim(r.c ->> 'name'), '',
+            nullif(btrim(r.c ->> 'email'), ''), nullif(btrim(r.c ->> 'phone'), ''))
+    returning id into v_pid;
+    insert into public.viewer (personage_id) values (v_pid);
+    insert into public.client_group_viewer (client_group_id, viewer_id, role, is_primary)
+    values (p_company, v_pid, nullif(btrim(r.c ->> 'role'), ''), r.n = v_primary);
+  end loop;
+end;
+$fn$;
+
 create or replace function public.core_v2_client_sync()
 returns trigger
 language plpgsql
@@ -634,21 +646,14 @@ set search_path = public
 as $fn$
 declare
   v_cid bigint;
-  v_pid bigint;
   v_org bigint;
   v_csm bigint;
   v_status public.client_status;
   v_stage public.pipeline_stage;
+  v_amount numeric;
+  v_currency text;
+  v_new_company boolean := false;
 begin
-  -- CORE-V2-NO-TRUST: never believe a bridge value the statement supplied.
-  if tg_op = 'UPDATE' then
-    new.core_client_group_id := old.core_client_group_id;
-    new.core_prospect_id := old.core_prospect_id;
-  else
-    new.core_client_group_id := null;
-    new.core_prospect_id := null;
-  end if;
-
   begin
     if new.organization_id is null then
       return new;
@@ -674,59 +679,73 @@ begin
     end if;
     v_stage := public.core_v2_pipeline_stage(new.pipeline_stage);
 
-    -- ── prospect ──
-    if new.lifecycle is not distinct from 'prospect' then
-      v_pid := new.core_prospect_id;
-      if v_pid is null then
-        insert into public.prospect (organization_id, name, industry, photo_path, notes, pipeline_stage, member_id)
-        values (v_org, coalesce(new.name, ''), nullif(btrim(new.industry), ''),
-                nullif(btrim(new.logo), ''), nullif(btrim(new.notes), ''),
-                coalesce(v_stage, 'NEW'), v_csm)
-        returning id into v_pid;
-      else
-        update public.prospect
-           set organization_id = v_org,
-               name = coalesce(new.name, ''),
-               industry = nullif(btrim(new.industry), ''),
-               photo_path = nullif(btrim(new.logo), ''),
-               notes = nullif(btrim(new.notes), ''),
-               pipeline_stage = coalesce(v_stage, 'NEW'),
-               member_id = v_csm
-         where id = v_pid
-           and (organization_id, name, industry, photo_path, notes, pipeline_stage, member_id)
-               is distinct from (v_org, coalesce(new.name, ''), nullif(btrim(new.industry), ''),
-                                 nullif(btrim(new.logo), ''), nullif(btrim(new.notes), ''),
-                                 coalesce(v_stage, 'NEW'), v_csm);
-      end if;
-      new.core_prospect_id := v_pid;
-      return new;
-    end if;
-
-    -- ── client ──
-    v_cid := new.core_client_group_id;
-    v_status := case
-      when new.churned_at is not null then 'CHURNED'::public.client_status
-      else 'ACTIVE'::public.client_status
-    end;
-
+    -- ── the company, shared by both lifecycles ──
+    -- country_code / currency_code stay NULL: clients carries neither (CORE-V2-COUNTRY, R21).
+    select co.id into v_cid from public.company co where co.public_id = new.id;
     if v_cid is null then
-      -- country_code / currency_code stay NULL: clients carries neither (CORE-V2-COUNTRY, R21).
-      insert into public.company (name, photo_path)
-      values (coalesce(new.name, ''), nullif(btrim(new.logo), ''))
+      insert into public.company (public_id, name, photo_path)
+      values (new.id, coalesce(new.name, ''), nullif(btrim(new.logo), ''))
       returning id into v_cid;
-      insert into public.client_group (company_id, status, industry, notes)
-      values (v_cid, v_status, nullif(btrim(new.industry), ''), nullif(btrim(new.notes), ''));
+      v_new_company := true;
     else
       update public.company
          set name = coalesce(new.name, ''), photo_path = nullif(btrim(new.logo), '')
        where id = v_cid
          and (name, photo_path) is distinct from (coalesce(new.name, ''), nullif(btrim(new.logo), ''));
-      update public.client_group
-         set status = v_status, industry = nullif(btrim(new.industry), ''), notes = nullif(btrim(new.notes), '')
-       where company_id = v_cid
-         and (status, industry, notes)
-             is distinct from (v_status, nullif(btrim(new.industry), ''), nullif(btrim(new.notes), ''));
     end if;
+
+    -- A company created just now gets its contacts whatever the statement was: the backfill
+    -- reaches existing rows through a no-op UPDATE, where contacts are "unchanged", and skipping
+    -- them there left every existing client without a single contact (caught by the local run).
+    if v_new_company or tg_op = 'INSERT' or new.contacts is distinct from old.contacts then
+      perform public.core_v2_sync_contacts(v_cid, new.contacts);
+    end if;
+
+    -- ── prospect ──
+    if new.lifecycle is not distinct from 'prospect' then
+      insert into public.prospect (organization_id, company_id, industry, notes, pipeline_stage, member_id)
+      values (v_org, v_cid, nullif(btrim(new.industry), ''), nullif(btrim(new.notes), ''),
+              coalesce(v_stage, 'NEW'), v_csm)
+      on conflict (company_id) do update
+        set organization_id = excluded.organization_id,
+            industry = excluded.industry,
+            notes = excluded.notes,
+            pipeline_stage = excluded.pipeline_stage,
+            member_id = excluded.member_id
+      where (prospect.organization_id, prospect.industry, prospect.notes, prospect.pipeline_stage, prospect.member_id)
+            is distinct from (excluded.organization_id, excluded.industry, excluded.notes,
+                              excluded.pipeline_stage, excluded.member_id);
+      return new;
+    end if;
+
+    -- ── client ──
+    v_status := case
+      when new.churned_at is not null then 'CHURNED'::public.client_status
+      else 'ACTIVE'::public.client_status
+    end;
+
+    -- CORE-V2-CLIENT-HEALTH: health / nps / churn_risk / status copied as stored — never a
+    -- default: the old store's `health ?? 5` is a display fallback, not data (R21).
+    insert into public.client_group (company_id, status, industry, notes, health, nps, churn_risk,
+                                     health_status, renewal_date, created_at)
+    values (v_cid, v_status, nullif(btrim(new.industry), ''), nullif(btrim(new.notes), ''),
+            new.health, new.nps, new.churn_risk, nullif(btrim(new.status), ''), new.renewal_date,
+            new.created_at)
+    on conflict (company_id) do update
+      set status = excluded.status,
+          industry = excluded.industry,
+          notes = excluded.notes,
+          health = excluded.health,
+          nps = excluded.nps,
+          churn_risk = excluded.churn_risk,
+          health_status = excluded.health_status,
+          renewal_date = excluded.renewal_date,
+          created_at = coalesce(excluded.created_at, client_group.created_at)
+    where (client_group.status, client_group.industry, client_group.notes, client_group.health,
+           client_group.nps, client_group.churn_risk, client_group.health_status, client_group.renewal_date)
+          is distinct from (excluded.status, excluded.industry, excluded.notes, excluded.health,
+                            excluded.nps, excluded.churn_risk, excluded.health_status, excluded.renewal_date)
+       or (client_group.created_at is null and excluded.created_at is not null);
 
     -- A client group belongs to exactly one organization (uq_organization_client_group_client).
     delete from public.organization_client_group
@@ -744,17 +763,55 @@ begin
       on conflict do nothing;
     end if;
 
-    -- A prospect that became this client: link it, and record the win when the stage says so.
-    if new.core_prospect_id is not null then
+    -- A prospect that became this client: record the win on its funnel row.
+    if v_stage = 'WON' then
       update public.prospect
-         set client_group_id = v_cid,
-             pipeline_stage = case when v_stage = 'WON' then v_stage else pipeline_stage end
-       where id = new.core_prospect_id
-         and (client_group_id is distinct from v_cid
-              or (v_stage = 'WON' and pipeline_stage is distinct from 'WON'));
+         set pipeline_stage = 'WON'
+       where company_id = v_cid and pipeline_stage is distinct from 'WON';
     end if;
 
-    new.core_client_group_id := v_cid;
+    -- CORE-V2-ARR-PROFIT (24/09/2026): ARR = the client group's profit rows dated in the last 12
+    -- months, MRR = ARR / 12 (decided 24/09/2026). The old arr — or mrr × 12 when arr is empty —
+    -- becomes ONE opening profit row, marked source 'clients.arr'. A later arr edit (old front end)
+    -- changes that row's amount and never adds one: the ARR is a SUM, so a row per edit would count
+    -- the same revenue twice. An emptied arr removes it. The row is dated when it was first
+    -- recorded here, so it leaves the 12-month window a year later (accepted 24/09/2026).
+    -- Currency: the organization's (CURRENCY-ORG); EUR when it has none — what every screen already
+    -- labels those amounts with (DEFAULT_CURRENCY).
+    v_amount := coalesce(new.arr, new.mrr * 12);
+    if v_amount is null then
+      delete from public.profit
+       where client_group_id = v_cid and description ->> 'source' = 'clients.arr';
+    else
+      update public.profit
+         set amount = v_amount, organization_id = v_org
+       where client_group_id = v_cid and description ->> 'source' = 'clients.arr'
+         and (amount, organization_id) is distinct from (v_amount, v_org);
+      if not exists (select 1 from public.profit
+                      where client_group_id = v_cid and description ->> 'source' = 'clients.arr') then
+        select coalesce(c.currency_code, 'EUR') into v_currency from public.company c where c.id = v_org;
+        insert into public.profit (organization_id, client_group_id, amount, currency_code, issue_date, description)
+        values (v_org, v_cid, v_amount, v_currency, now(), jsonb_build_object('source', 'clients.arr'));
+      end if;
+    end if;
+
+    -- churned_at -> ONE churn row, marked source 'clients.churned_at', dated when the churn
+    -- happened; it follows the date while the old table is the source, and goes if churned_at is
+    -- cleared (a churn entered by mistake must not stay in the churn rate).
+    if new.churned_at is null then
+      delete from public.churn
+       where client_group_id = v_cid and description ->> 'source' = 'clients.churned_at';
+    else
+      update public.churn
+         set issue_date = new.churned_at, organization_id = v_org
+       where client_group_id = v_cid and description ->> 'source' = 'clients.churned_at'
+         and (issue_date, organization_id) is distinct from (new.churned_at, v_org);
+      if not exists (select 1 from public.churn
+                      where client_group_id = v_cid and description ->> 'source' = 'clients.churned_at') then
+        insert into public.churn (organization_id, client_group_id, issue_date, description)
+        values (v_org, v_cid, new.churned_at, jsonb_build_object('source', 'clients.churned_at'));
+      end if;
+    end if;
   exception when others then
     raise warning 'core_v2 client sync failed for %: % (%)', new.id, sqlerrm, sqlstate;
   end;
@@ -763,25 +820,33 @@ begin
 end;
 $fn$;
 
-drop trigger if exists trg_zz_core_v2_client_sync on public.clients;
-create trigger trg_zz_core_v2_client_sync
-  before insert or update on public.clients
+drop trigger if exists trg_core_v2_client_sync on public.clients;
+create trigger trg_core_v2_client_sync
+  after insert or update on public.clients
   for each row execute function public.core_v2_client_sync();
 
+-- Deleting a client deletes its mirror: the rows mirrored from it (opening profit, churn —
+-- RESTRICT), its contacts' personal data, then the company (prospect, client group and links go by
+-- cascade). issue / profit / churn rows a USER wrote block it (RESTRICT) and it is left, with a
+-- WARNING, for a person to decide about.
 create or replace function public.core_v2_client_delete()
 returns trigger
 language plpgsql
 security definer
 set search_path = public
 as $fn$
+declare
+  v_cid bigint;
 begin
   begin
-    if old.core_prospect_id is not null then
-      delete from public.prospect where id = old.core_prospect_id;
+    select co.id into v_cid from public.company co where co.public_id = old.id;
+    if v_cid is null then
+      return old;
     end if;
-    if old.core_client_group_id is not null then
-      delete from public.company where id = old.core_client_group_id;
-    end if;
+    delete from public.profit where client_group_id = v_cid and description ->> 'source' = 'clients.arr';
+    delete from public.churn where client_group_id = v_cid and description ->> 'source' = 'clients.churned_at';
+    perform public.core_v2_sync_contacts(v_cid, '[]'::jsonb);
+    delete from public.company where id = v_cid;
   exception when others then
     raise warning 'core_v2 client delete failed for %: % (%)', old.id, sqlerrm, sqlstate;
   end;
@@ -812,14 +877,13 @@ revoke all on function public.core_v2_org_subscription_log()          from publi
 revoke all on function public.core_v2_org_delete()                    from public, anon, authenticated;
 revoke all on function public.core_v2_client_sync()                   from public, anon, authenticated;
 revoke all on function public.core_v2_client_delete()                 from public, anon, authenticated;
-revoke all on function public.core_v2_user_profile_sync()             from public, anon, authenticated;
-revoke all on function public.core_v2_seniority_rank(text)            from public, anon, authenticated;
+revoke all on function public.core_v2_sync_contacts(bigint, jsonb)     from public, anon, authenticated;
 revoke all on function public.core_v2_pipeline_stage(text)            from public, anon, authenticated;
 
 -- ============================================================
 -- §7 — Verification (run AFTER applying, in pre-prod)
 -- ============================================================
--- 7.1 — The nine triggers exist. Expect 9 rows.
+-- 7.1 — The eight triggers exist. Expect 8 rows (9 once 20260924100000 adds the user_profiles mirror).
 --
 --   select event_object_table as tbl, trigger_name
 --   from information_schema.triggers
@@ -858,33 +922,35 @@ revoke all on function public.core_v2_pipeline_stage(text)            from publi
 --
 --   select 'organizations' as tbl, id::text from public.organizations where core_organization_id is null
 --   union all
---   select 'clients', id::text from public.clients
---    where core_client_group_id is null and organization_id is not null
---      and lifecycle is distinct from 'prospect'
+--   select 'clients', c.id::text from public.clients c
+--     join public.organizations o on o.id = c.organization_id and o.core_organization_id is not null
+--    where not exists (select 1 from public.company co where co.public_id = c.id)
 --   union all
---   select 'prospects', id::text from public.clients
---    where core_prospect_id is null and organization_id is not null and lifecycle = 'prospect';
+--   select 'client_groups', c.id::text from public.clients c join public.company co on co.public_id = c.id
+--    where c.lifecycle is distinct from 'prospect'
+--      and not exists (select 1 from public.client_group g where g.company_id = co.id)
+--   union all
+--   select 'prospects', c.id::text from public.clients c join public.company co on co.public_id = c.id
+--    where c.lifecycle = 'prospect'
+--      and not exists (select 1 from public.prospect p where p.company_id = co.id);
 
 -- ============================================================
 -- §8 — Rollback
 -- ============================================================
 --   drop trigger if exists trg_core_v2_profile_sync         on public.profiles;
 --   drop trigger if exists trg_core_v2_profile_delete       on public.profiles;
---   drop trigger if exists trg_core_v2_user_profile_sync    on public.user_profiles;
 --   drop trigger if exists trg_core_v2_member_sync          on public.organization_members;
 --   drop trigger if exists trg_zz_core_v2_org_sync          on public.organizations;
 --   drop trigger if exists trg_core_v2_org_subscription_log on public.organizations;
 --   drop trigger if exists trg_core_v2_org_delete           on public.organizations;
---   drop trigger if exists trg_zz_core_v2_client_sync       on public.clients;
+--   drop trigger if exists trg_core_v2_client_sync          on public.clients;
 --   drop trigger if exists trg_core_v2_client_delete        on public.clients;
 --   drop function if exists public.core_v2_profile_sync(), public.core_v2_member_sync(),
 --     public.core_v2_profile_delete(), public.core_v2_org_sync(), public.core_v2_org_subscription_log(),
 --     public.core_v2_org_delete(), public.core_v2_client_sync(), public.core_v2_client_delete(),
---     public.core_v2_user_profile_sync(), public.core_v2_seniority_rank(text),
+--     public.core_v2_sync_contacts(bigint, jsonb),
 --     public.core_v2_pipeline_stage(text),
 --     public.core_v2_sync_user(uuid), public.core_v2_end_membership(uuid),
 --     public.core_v2_role_kind(text), public.core_v2_subscription_type(text);
 --   -- Optional, once nothing reads them:
 --   alter table public.organizations drop column if exists core_organization_id;
---   alter table public.clients       drop column if exists core_client_group_id;
---   alter table public.clients       drop column if exists core_prospect_id;

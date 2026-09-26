@@ -7,9 +7,10 @@
 -- IT REUSES THE TRIGGERS, IT DOES NOT COPY THEIR LOGIC. Two implementations of "how an organization
 -- becomes a company" would drift, and the drift would be invisible until a re-sync disagreed with
 -- the backfill. So:
---   * organizations / clients — a no-op `set name = name` UPDATE on the rows that have no bridge
---     value yet. That fires the part-2 BEFORE trigger, which creates the mirror and assigns the
---     bridge column. Rows that already have one are not touched, which is what makes a re-run safe.
+--   * organizations / clients — a no-op `set name = name` UPDATE on the rows that are not mirrored
+--     yet (organizations: no bridge value; clients: no company whose public_id is the row's id).
+--     That fires the part-2 trigger, which creates the mirror. Rows already mirrored are not
+--     touched, which is what makes a re-run safe.
 --   * people — core_v2_sync_user(user_id), the same function the profiles / organization_members
 --     triggers call.
 --   * subscription — one baseline row per organization that has none, so the history starts from
@@ -86,15 +87,15 @@ begin
   raise notice 'core_v2 backfill: % profiles processed, % failed', v_done, v_failed;
 end $$;
 
--- Clients and prospects (the same split as the live trigger: a prospect goes to `prospect`, a
--- client to client_group). A row with no organization has nothing to attach to and is left out.
+-- Clients and prospects (the same split as the live trigger: a company for every row, then a
+-- `prospect` or a client_group on it, plus contacts, the opening profit row and churn). A row with
+-- no organization has nothing to attach to and is left out.
 -- Runs AFTER the people step above: the CSM of a client is assigned only if that login is
 -- already a member (and core_v2_sync_user also assigns it later, if the member appears after).
-update public.clients
+update public.clients c
    set name = name
- where organization_id is not null
-   and ((lifecycle is distinct from 'prospect' and core_client_group_id is null)
-     or (lifecycle = 'prospect' and core_prospect_id is null));
+ where c.organization_id is not null
+   and not exists (select 1 from public.company co where co.public_id = c.id);
 
 -- ============================================================
 -- §3 — Closing report
@@ -117,19 +118,23 @@ begin
 
   select count(*) into v_clients
     from public.clients c
-   where c.core_client_group_id is null
-     and c.organization_id is not null
+   where c.organization_id is not null
      and c.lifecycle is distinct from 'prospect'
      and exists (select 1 from public.organizations o
-                  where o.id = c.organization_id and o.core_organization_id is not null);
+                  where o.id = c.organization_id and o.core_organization_id is not null)
+     and not exists (select 1 from public.company co
+                       join public.client_group g on g.company_id = co.id
+                      where co.public_id = c.id);
 
   select count(*) into v_prospects
     from public.clients c
-   where c.core_prospect_id is null
-     and c.organization_id is not null
+   where c.organization_id is not null
      and c.lifecycle = 'prospect'
      and exists (select 1 from public.organizations o
-                  where o.id = c.organization_id and o.core_organization_id is not null);
+                  where o.id = c.organization_id and o.core_organization_id is not null)
+     and not exists (select 1 from public.company co
+                       join public.prospect p on p.company_id = co.id
+                      where co.public_id = c.id);
 
   -- A person in an organization with a role core_v2_role_kind() does not recognise is NOT a
   -- failure: the sync refuses to guess a permission level, by design. They are counted apart, so
@@ -163,12 +168,15 @@ end $$;
 -- 4.2 — Every non-prospect client that belongs to an organization has a client group, and every
 --       prospect has a prospect row. Expect 0 / 0.
 --
---   select count(*) from public.clients
---    where core_client_group_id is null and organization_id is not null
---      and lifecycle is distinct from 'prospect';
+--   select count(*) from public.clients c
+--    where c.organization_id is not null and c.lifecycle is distinct from 'prospect'
+--      and not exists (select 1 from public.company co join public.client_group g on g.company_id = co.id
+--                       where co.public_id = c.id);
 --
---   select count(*) from public.clients
---    where core_prospect_id is null and organization_id is not null and lifecycle = 'prospect';
+--   select count(*) from public.clients c
+--    where c.organization_id is not null and c.lifecycle = 'prospect'
+--      and not exists (select 1 from public.company co join public.prospect p on p.company_id = co.id
+--                       where co.public_id = c.id);
 --
 -- 4.3 — Prospects landed in `prospect`, not in client_group. Expect: prospect rows = prospect
 --       clients that have an organization; no client group carries a prospect's name by accident.
@@ -234,12 +242,12 @@ end $$;
 --   Drop the part-2 triggers first (part 2 §Rollback) or the next write re-creates the mirror. Then:
 --
 --   delete from public.subscription;
+--   delete from public.profit;  delete from public.churn;  delete from public.issue;
 --   delete from public.company;     -- cascades organization, client_group, organization_client_group,
 --                                   -- organization_position, organization_worker
 --   delete from public.personage;   -- cascades member, viewer, manager, member_authority, ...
 --
---   DO NOT use `truncate ... cascade` here: organizations.core_organization_id and
---   clients.core_client_group_id are foreign keys INTO these tables, so TRUNCATE CASCADE would
---   also truncate the live `organizations` and `clients` tables. `delete` fires ON DELETE SET NULL
---   on the bridge columns instead. (issue / profit / churn are ON DELETE RESTRICT: delete those
---   rows first if you have written any.)
+--   DO NOT use `truncate ... cascade` here: organizations.core_organization_id is a foreign key
+--   INTO these tables, so TRUNCATE CASCADE would also truncate the live `organizations` table.
+--   `delete` fires ON DELETE SET NULL on the bridge column instead. issue / profit / churn are
+--   ON DELETE RESTRICT: delete them first (the mirror writes profit and churn rows itself).
