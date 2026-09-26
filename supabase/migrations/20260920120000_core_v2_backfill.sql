@@ -11,13 +11,15 @@
 --     yet (organizations: no bridge value; clients: no company whose public_id is the row's id).
 --     That fires the part-2 trigger, which creates the mirror. Rows already mirrored are not
 --     touched, which is what makes a re-run safe.
+--   * client_notes — the same, `set content = content`, on the notes that have no issue yet
+--     (CORE-V2-NOTES). trg_notify_client_note is AFTER INSERT only: nobody is notified.
 --   * people — core_v2_sync_user(user_id), the same function the profiles / organization_members
 --     triggers call.
 --   * subscription — one baseline row per organization that has none, so the history starts from
 --     the plan the organization is on today.
 --
 -- SIDE EFFECT TO KNOW ABOUT: the no-op UPDATE also fires any other BEFORE UPDATE trigger on those
--- tables. If `organizations` / `clients` carry an `updated_at` trigger, every backfilled row's
+-- tables. If `organizations` / `clients` / `client_notes` carry an `updated_at` trigger, every backfilled row's
 -- updated_at moves to the time of this run, once. Check for it first (§1) — and note that any
 -- screen sorting or showing "last modified" will then show the backfill date for those rows.
 --
@@ -35,7 +37,7 @@
 --   select event_object_table, trigger_name, action_statement
 --   from information_schema.triggers
 --   where event_object_schema = 'public'
---     and event_object_table in ('organizations', 'clients')
+--     and event_object_table in ('organizations', 'clients', 'client_notes')
 --     and event_manipulation = 'UPDATE'
 --     and trigger_name not like '%core_v2%';
 --
@@ -44,7 +46,10 @@
 --   select (select count(*) from public.organizations)                                        as orgs,
 --          (select count(*) from public.profiles where organization_id is not null)           as people_in_orgs,
 --          (select count(*) from public.clients
---            where organization_id is not null and lifecycle is distinct from 'prospect')     as clients;
+--            where organization_id is not null and lifecycle is distinct from 'prospect')     as clients,
+--          (select count(*) from public.clients
+--            where organization_id is not null and lifecycle = 'prospect')                    as prospects,
+--          (select count(*) from public.client_notes)                                         as notes;
 
 -- ============================================================
 -- §2 — Backfill
@@ -87,15 +92,24 @@ begin
   raise notice 'core_v2 backfill: % profiles processed, % failed', v_done, v_failed;
 end $$;
 
--- Clients and prospects (the same split as the live trigger: a company for every row, then a
--- `prospect` or a client_group on it, plus contacts, the opening profit row and churn). A row with
--- no organization has nothing to attach to and is left out.
+-- Clients and prospects (the same as the live trigger: a company and a client group for every
+-- row — status PROSPECT for a prospect — plus contacts, the CSM, and for a client the opening profit
+-- row and churn). A row with no organization has nothing to attach to and is left out.
 -- Runs AFTER the people step above: the CSM of a client is assigned only if that login is
 -- already a member (and core_v2_sync_user also assigns it later, if the member appears after).
 update public.clients c
    set name = name
  where c.organization_id is not null
    and not exists (select 1 from public.company co where co.public_id = c.id);
+
+-- Notes, AFTER the clients: a note is attached to its client's client group, which must exist.
+-- A note whose client has no mirror is left out, as that client is.
+update public.client_notes n
+   set content = content
+ where exists (select 1 from public.company co where co.public_id = n.client_id)
+   and not exists (select 1 from public.issue i
+                    where i.description ->> 'source' = 'client_notes'
+                      and i.description ->> 'note_id' = n.id::text);
 
 -- ============================================================
 -- §3 — Closing report
@@ -109,6 +123,7 @@ declare
   v_orgs integer;
   v_clients integer;
   v_prospects integer;
+  v_notes integer;
   v_people integer;
   v_norole integer;
 begin
@@ -116,25 +131,25 @@ begin
     from public.organizations o
    where o.core_organization_id is null;
 
-  select count(*) into v_clients
+  -- CORE-V2-PROSPECT: a client and a prospect are both a client group; what differs is the status.
+  select count(*) filter (where c.lifecycle is distinct from 'prospect'),
+         count(*) filter (where c.lifecycle = 'prospect')
+    into v_clients, v_prospects
     from public.clients c
    where c.organization_id is not null
-     and c.lifecycle is distinct from 'prospect'
      and exists (select 1 from public.organizations o
                   where o.id = c.organization_id and o.core_organization_id is not null)
      and not exists (select 1 from public.company co
                        join public.client_group g on g.company_id = co.id
-                      where co.public_id = c.id);
+                      where co.public_id = c.id
+                        and (g.status = 'PROSPECT') = (c.lifecycle is not distinct from 'prospect'));
 
-  select count(*) into v_prospects
-    from public.clients c
-   where c.organization_id is not null
-     and c.lifecycle = 'prospect'
-     and exists (select 1 from public.organizations o
-                  where o.id = c.organization_id and o.core_organization_id is not null)
-     and not exists (select 1 from public.company co
-                       join public.prospect p on p.company_id = co.id
-                      where co.public_id = c.id);
+  select count(*) into v_notes
+    from public.client_notes n
+   where exists (select 1 from public.company co where co.public_id = n.client_id)
+     and not exists (select 1 from public.issue i
+                      where i.description ->> 'source' = 'client_notes'
+                        and i.description ->> 'note_id' = n.id::text);
 
   -- A person in an organization with a role core_v2_role_kind() does not recognise is NOT a
   -- failure: the sync refuses to guess a permission level, by design. They are counted apart, so
@@ -149,11 +164,11 @@ begin
      and not exists (select 1 from public.member m where m.auth_user_id = p.id)
      and not exists (select 1 from public.viewer v where v.auth_user_id = p.id);
 
-  raise notice 'core_v2 backfill — unmirrored: % organizations, % clients, % prospects, % people', v_orgs, v_clients, v_prospects, v_people;
+  raise notice 'core_v2 backfill — unmirrored: % organizations, % clients, % prospects, % notes, % people', v_orgs, v_clients, v_prospects, v_notes, v_people;
   if v_norole > 0 then
     raise notice 'core_v2 backfill — % people skipped on purpose: in an organization with no recognised role (owner/admin/member/viewer)', v_norole;
   end if;
-  if v_orgs + v_clients + v_prospects + v_people > 0 then
+  if v_orgs + v_clients + v_prospects + v_notes + v_people > 0 then
     raise warning 'core_v2 backfill incomplete — see the WARNINGs above, fix, and re-run this file (it is idempotent)';
   end if;
 end $$;
@@ -165,24 +180,28 @@ end $$;
 --
 --   select count(*) from public.organizations where core_organization_id is null;
 --
--- 4.2 — Every non-prospect client that belongs to an organization has a client group, and every
---       prospect has a prospect row. Expect 0 / 0.
+-- 4.2 — Every client and prospect that belongs to an organization has a client group. Expect 0.
 --
 --   select count(*) from public.clients c
---    where c.organization_id is not null and c.lifecycle is distinct from 'prospect'
+--    where c.organization_id is not null
 --      and not exists (select 1 from public.company co join public.client_group g on g.company_id = co.id
 --                       where co.public_id = c.id);
 --
---   select count(*) from public.clients c
---    where c.organization_id is not null and c.lifecycle = 'prospect'
---      and not exists (select 1 from public.company co join public.prospect p on p.company_id = co.id
---                       where co.public_id = c.id);
+-- 4.3 — Prospects carry PROSPECT and a stage, clients do not (CORE-V2-PROSPECT), and no prospect
+--       has an opening profit or churn row. Expect the two counts equal, then 0.
 --
--- 4.3 — Prospects landed in `prospect`, not in client_group. Expect: prospect rows = prospect
---       clients that have an organization; no client group carries a prospect's name by accident.
---
---   select (select count(*) from public.prospect) as prospect_rows,
+--   select (select count(*) from public.client_group where status = 'PROSPECT') as prospect_groups,
 --          (select count(*) from public.clients where lifecycle = 'prospect' and organization_id is not null) as prospect_clients;
+--
+--   select count(*) from public.client_group g
+--     join public.profit p on p.client_group_id = g.company_id and p.description ->> 'source' = 'clients.arr'
+--    where g.status = 'PROSPECT';
+--
+-- 4.3b — Every note of a mirrored client is an issue (CORE-V2-NOTES). Expect the two counts equal.
+--
+--   select (select count(*) from public.issue where description ->> 'source' = 'client_notes') as note_issues,
+--          (select count(*) from public.client_notes n
+--            where exists (select 1 from public.company co where co.public_id = n.client_id)) as notes;
 --
 -- 4.4 — Every person in an organization has a member or viewer row and an ACTIVE worker row.
 --       Expect 0 (a person with an unrecognised role is the only legitimate exception).

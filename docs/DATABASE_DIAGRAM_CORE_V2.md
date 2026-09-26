@@ -3,11 +3,11 @@
 **Generated** 26 September 2026 from the migrations as they stand in the working tree:
 `supabase/migrations/20260920100000_core_v2_schema.sql`, `…110000_core_v2_sync_triggers.sql`,
 `…120000_core_v2_backfill.sql` and `20260924100000_core_v2_stage1_user_profiles.sql` — stage 1
-(`user_profiles`) and stage 3a (`clients`) included. **26 tables, 42 foreign keys, 8 enums** —
-plus, in §8, the 30 old tables that stay and where their references land.
+(`user_profiles`) and stage 3a (`clients`, `client_notes`) included. **25 tables, 39 foreign keys, 9 enums** —
+plus, in §8, the 29 old tables that stay and where their references land.
 
 > **Not applied to any Supabase project yet.** Tested on a local PostgreSQL 16 with Supabase stand-ins
-> (196 assertions). The old schema is drawn in [DATABASE_DIAGRAM.md](DATABASE_DIAGRAM.md) (7 September 2026);
+> (219 assertions). The old schema is drawn in [DATABASE_DIAGRAM.md](DATABASE_DIAGRAM.md) (7 September 2026);
 > the decisions behind this one are in [DATABASE.md](DATABASE.md#core_v2--the-new-core-schema-additive).
 > Maintained by hand: update it in the same change as any core_v2 migration — a stale diagram is worse than none.
 
@@ -25,15 +25,15 @@ Each table's columns appear once, in the diagram of its own group; other diagram
 
 ## 1. Identity — companies and people
 
-Every account is a `company`, every human a `personage`. `organization`, `client_group` and `prospect`
-hang off `company`; `member` and `viewer` off `personage`. A prospect and the client group it becomes
-share one company, so notes and contacts follow the account. A contact is a viewer linked to a company.
+Every account is a `company`, every human a `personage`. `organization` and `client_group` hang off
+`company`; `member` and `viewer` off `personage`. A prospect is a client group whose status is `PROSPECT`,
+so winning it changes a status and nothing moves. A contact is a viewer linked to a client group.
 
 ```mermaid
 erDiagram
   company {
     bigint id PK "identity"
-    uuid public_id UK "not null; the old clients.id for a mirrored client; URLs and the 7 client_id tables keep it"
+    uuid public_id UK "not null; the old clients.id — maps old client uuids to their new client_group ids"
     text name "not null"
     text country_code FK "NULL — organizations has no country"
     text currency_code FK "the organization's currency; a manager changes it"
@@ -45,7 +45,8 @@ erDiagram
   }
   client_group {
     bigint company_id PK, FK "cascade"
-    client_status status "not null; ACTIVE · INACTIVE · CHURNED"
+    client_status status "not null; PROSPECT · ACTIVE · INACTIVE · CHURNED"
+    pipeline_stage pipeline_stage "required for a PROSPECT; WON or NULL for a client"
     text industry
     text notes
     numeric health "/10 — lib/health is the only scale"
@@ -54,15 +55,6 @@ erDiagram
     text health_status "the manual flag ← clients.status (critical / watch / todo)"
     date renewal_date
     timestamptz created_at "NULL when unknown"
-  }
-  prospect {
-    bigint id PK
-    bigint organization_id FK "not null; the seller; cascade"
-    bigint company_id FK, UK "not null; won = a client_group appears on this same company"
-    text industry
-    text notes
-    pipeline_stage pipeline_stage "not null; default NEW"
-    bigint member_id FK "the deal owner (clients.csm_id); set null"
   }
   organization_client_group {
     bigint organization_id PK, FK
@@ -96,10 +88,10 @@ erDiagram
     uuid auth_user_id UK "NULL for a contact"
   }
   client_group_viewer {
-    bigint client_group_id PK, FK "a COMPANY, so a prospect's contacts are kept"
+    bigint client_group_id PK, FK "a prospect's too; cascade"
     bigint viewer_id PK, FK
     text role "what the contact is for this client"
-    boolean is_primary "not null; default false; one per company"
+    boolean is_primary "not null; default false; one per client group"
   }
   personage_link {
     bigint id PK
@@ -109,8 +101,6 @@ erDiagram
   }
   company ||--o| organization : "is a"
   company ||--o| client_group : "is a"
-  company ||--o| prospect : "sold as"
-  organization ||--o{ prospect : "sells"
   organization ||--o{ organization_client_group : "owns"
   client_group ||--o| organization_client_group : "belongs via"
   company ||--o{ company_link : "has"
@@ -118,7 +108,7 @@ erDiagram
   personage ||--o| viewer : "is a"
   member ||--o| manager : "is a"
   personage ||--o{ personage_link : "has"
-  company ||--o{ client_group_viewer : "has contact"
+  client_group ||--o{ client_group_viewer : "has contact"
   viewer ||--o{ client_group_viewer : "is contact"
   organization ||--o{ organization_worker : "employs"
   personage ||--o| organization_worker : "works in"
@@ -175,13 +165,13 @@ erDiagram
   manager ||--o{ manager_team : "leads"
   member ||--o{ manager_team : "in team"
   manager |o--o{ organization : "billing owner"
-  member |o--o{ prospect : "deal owner"
 ```
 
 ## 3. Records
 
 Attached to an organization, a client group, or both (if both, the client group must belong to that
-organization — a trigger checks it). ARR is computed from `profit`, never stored.
+organization — a trigger checks it). ARR is computed from `profit`, never stored. A note is an `issue`
+with `status = 'NOTE'` (it replaces `client_notes`), read by the organization only.
 
 ```mermaid
 erDiagram
@@ -191,11 +181,14 @@ erDiagram
     bigint client_group_id FK "restrict; at least one of the two"
     bigint member_id FK "set null"
     bigint viewer_id FK "set null"
-    issue_status status "not null"
-    timestamptz start_date "not null"
+    issue_status status "not null; NOTE: read by the organization only"
+    timestamptz start_date "not null; for a note, when it was written"
     timestamptz end_date "≥ start_date"
-    jsonb description
+    jsonb description "source = 'client_notes' + note_id on a mirrored note (unique)"
     bigint parent_issue_id FK "set null"
+    issue_kind kind "a note's: NOTE · CALL · EMAIL · MEETING"
+    text content "a note's text; required for a NOTE"
+    text author_name "the signature, kept when the account goes"
   }
   profit {
     bigint id PK
@@ -269,8 +262,8 @@ erDiagram
 
 ## 5. Where the data comes from today
 
-Until each old table is retired it stays the source of truth: four fail-open triggers copy every write
-into core_v2. The stage-1 front end is the only code that writes core_v2 directly.
+Until each old table is retired it stays the source of truth: fail-open triggers on five of them copy
+every write into core_v2. The stage-1 front end is the only code that writes core_v2 directly.
 
 ```mermaid
 flowchart LR
@@ -280,7 +273,8 @@ flowchart LR
   O["organizations"]:::old -- "core_v2_org_sync<br/>core_v2_org_subscription_log" --> O2["company · organization<br/>+ one subscription row per plan change"]:::v2
   P["profiles<br/>+ organization_members"]:::old -- "core_v2_sync_user" --> P2["personage · member | viewer · manager<br/>organization_worker · member_authority · billing owner"]:::v2
   U["user_profiles<br/>retiring — stage 1"]:::old -- "core_v2_user_profile_mirror" --> U2["organization_worker answers · consent<br/>completed questionnaires only"]:::v2
-  C["clients<br/>retiring — stage 3"]:::old -- "core_v2_client_sync" --> C2["company (public_id = clients.id)<br/>client_group | prospect · contacts<br/>opening profit row · churn row · CSM"]:::v2
+  C["clients<br/>retiring — stage 3"]:::old -- "core_v2_client_sync" --> C2["company (public_id = clients.id)<br/>client_group: PROSPECT · ACTIVE · CHURNED<br/>contacts · CSM · opening profit row · churn row"]:::v2
+  N["client_notes<br/>retiring — stage 3"]:::old -- "core_v2_note_sync" --> N2["issue (status NOTE)<br/>kind · content · author_name<br/>one issue per note"]:::v2
   F["stage-1 front end"]:::fe -- "RPCs, user's token<br/>core_v2_complete_onboarding<br/>core_v2_set_organization_currency" --> F2["organization_worker answers · consent<br/>company.currency_code"]:::v2
 ```
 
@@ -290,9 +284,10 @@ flowchart LR
 |---|---|
 | `authority` | VIEW · CREATE · UPDATE · DELETE · INVITE · SEND_EMAIL · ASSIGN_CLIENT_GROUP |
 | `job_status` | ACTIVE · INACTIVE · ON_LEAVE · ENDED |
-| `client_status` | ACTIVE · INACTIVE · CHURNED |
+| `client_status` | PROSPECT · ACTIVE · INACTIVE · CHURNED |
 | `pipeline_stage` | NEW · CONTACTED · QUALIFIED · WON · LOST |
-| `issue_status` | OPEN · IN_PROGRESS · RESOLVED · CLOSED |
+| `issue_status` | OPEN · IN_PROGRESS · RESOLVED · CLOSED · NOTE |
+| `issue_kind` | NOTE · CALL · EMAIL · MEETING |
 | `subscription_type` | FREE · BASIC · PRO · ENTERPRISE — tiers still undecided |
 | `consent_kind` | AI · ANALYTICS |
 | `person_title` | MR · MS · MRS · DR · MX |
@@ -303,24 +298,27 @@ Each tag is grep-able in the SQL, next to the code it explains.
 
 | Tag | What it decides |
 |---|---|
-| `CORE-V2-PUBLIC-ID` | `company.public_id` is the old `clients.id`; a prospect and its client group share one company. |
-| `CORE-V2-CONTACTS` | `client_group_viewer` points at `company` and carries `role` / `is_primary`; prospects keep their contacts. |
+| `CORE-V2-PUBLIC-ID` | `company.public_id` is the old `clients.id` — the mirror's link and the map to new ids. |
+| `CORE-V2-PROSPECT` | A prospect is a `client_group` with `status = 'PROSPECT'` and a `pipeline_stage`; winning it changes the status of the same row (26/09/2026). |
+| `CORE-V2-NOTES` | `client_notes` is replaced by `issue`: `status = 'NOTE'`, `kind` / `content` / `author_name`, read by the organization only (26/09/2026). |
+| `CORE-V2-NOTES-AI` | An AI (MCP) session may read notes in `issue` — looser than `client_notes`, which `20260914120000` keeps it out of (decided 26/09/2026). |
+| `CORE-V2-CONTACTS` | `client_group_viewer` carries `role` / `is_primary`; a prospect's contacts are its client group's. |
 | `CORE-V2-CLIENT-HEALTH` | `health`, `nps`, `churn_risk`, `health_status`, `renewal_date`, `created_at` on `client_group` (kept 24/09/2026). |
 | `CORE-V2-ARR-PROFIT` | ARR = a client group's `profit` rows dated in the last 12 months; MRR = ARR ÷ 12; one opening row from `clients.arr`. |
 | `CORE-V2-CONSENT` | `consent` is append-only; the latest row per person and kind is the current state. |
 | `CORE-V2-PLAN-HOME` | The plan tier is never a column of `organization` or `organization_worker`. |
 | `CORE-V2-AUTH-LINK` | `member` / `viewer.auth_user_id` link a login, with no foreign key to `auth.users`, on purpose. |
 | `CORE-V2-AUTHORITY` | The `authority` enum adds `INVITE`, `SEND_EMAIL`, `ASSIGN_CLIENT_GROUP` to the four verbs. |
-| `CORE-V2-COLUMNS` | Columns the source DDL had no home for: `organization_role`, worker role / seniority / `joined_at` / `onboarding_completed`, client_group `industry` / `notes`, `prospect`. |
+| `CORE-V2-COLUMNS` | Columns the source DDL had no home for: `organization_role`, worker role / seniority / `joined_at` / `onboarding_completed`, client_group `industry` / `notes` / `pipeline_stage`, issue `kind` / `content` / `author_name`. |
 | `CORE-V2-CG-ORG` | A client group's organization is `organization_client_group`, unique on `client_group_id`. |
 | `CORE-V2-OWNER` | `organization.owner_personage_id` records the billing owner. |
 | `CORE-V2-COUNTRY` | `company.country_code` / `currency_code` are nullable — no invented value. |
 
 ## 8. Old tables that stay
 
-**30 old tables have no core_v2 counterpart and are not retired** — every old table except the five
-core ones (`organizations`, `profiles`, `organization_members`, `clients`, `user_profiles`). They point at
-those five, so each reference has to land somewhere when its target is dropped. Sources:
+**29 old tables have no core_v2 counterpart and are not retired** — every old table except the five
+core ones (`organizations`, `profiles`, `organization_members`, `clients`, `user_profiles`) and
+`client_notes`, which becomes `issue` rows (decided 26/09/2026). They point at those five, so each reference has to land somewhere when its target is dropped. Sources:
 [SCHEMA_FROM_CODE.sql](SCHEMA_FROM_CODE.sql) and [DATABASE_DIAGRAM.md](DATABASE_DIAGRAM.md) §12, checked
 against the code for `planning_events.user_id` and `notifications.user_id` / `target_id`.
 
@@ -329,14 +327,16 @@ against the code for `planning_events.user_id` and `notifications.user_id` / `ta
 All five old core tables go — `clients`, `organizations`, `profiles`, `organization_members` and
 `user_profiles` (confirmed 26/09/2026).
 
-- **Client ids** (8 tables) keep their values: `company.public_id` is the old `clients.id`, so the
-  foreign keys move and nothing is rewritten — the `/app/clients/<id>` routes in `notifications` included.
-  Repointed in stage 3c.
-- **Person columns** (28 tables) keep their values — they are login uuids — and a person is found
+- **Client ids** (7 tables) move to `client_group(company_id)` (decided 26/09/2026, replacing the
+  24/09 `company.public_id` plan). bigint: every row is rewritten through `company.public_id` = the old
+  `clients.id`, and the `/app/clients/<id>` URLs, MCP links and `notifications.target_id` / `route` change
+  with them. A prospect is a client group (26/09/2026), so its rows move the same way; `client_metrics`
+  stays clients-only, which a foreign key can no longer check — the application holds that rule. Stage 3c.
+- **Person columns** (27 tables) keep their values — they are login uuids — and a person is found
   through `member.auth_user_id` / `viewer.auth_user_id` (decided 26/09/2026). The foreign key goes to
   `auth.users`, the id space of both: one column cannot reference two tables, and a member → viewer change
   deletes the `member` row, which would cascade to (or block on) everything that person wrote.
-- **Organization ids** (9 tables) are decided per table (26/09/2026). `organization` has no `id` column:
+- **Organization ids** (8 tables) are decided per table (26/09/2026). `organization` has no `id` column:
   its key is `company_id`, the same number as its `company.id`, so "organization.id" is an FK to
   `organization(company_id)`. Both decided targets are bigint, so those columns change type from uuid and
   every row is rewritten; `company.id` also admits a client company, `organization(company_id)` only an
@@ -347,9 +347,8 @@ All five old core tables go — `clients`, `organizations`, `profiles`, `organiz
 | `chat_channels` | `company.id` — decided 26/09/2026 |
 | `chat_messages` | `company.id` — decided 26/09/2026 |
 | `invitations` | `organization.company_id` — decided 26/09/2026 |
-| `client_notes` | on hold |
+| `client_metrics` | `organization.company_id` — decided 26/09/2026 |
 | `quotes` | on hold |
-| `client_metrics` | not decided |
 | `email_templates` | not decided |
 | `promo_codes` | not decided |
 | `activity_log` | not decided |
@@ -360,24 +359,19 @@ flowchart LR
   classDef v2 fill:#6A3BD22E,stroke:#6A3BD2,stroke-width:2px;
   classDef open fill:#80808014,stroke:#808080,stroke-dasharray:3 3;
   classDef src fill:#80808008,stroke:#808080;
-  S1["client_id — 8 tables<br/>notes · metrics · copils · quotes<br/>tasks · playbooks · planning_events<br/>notifications.target_id (no FK)"]:::src -- today --> O1["clients<br/>retires — stage 3"]:::old -- "same ids" --> N1["company.public_id<br/>decided 24/09/2026"]:::v2
-  S2["organization_id — 9 tables<br/>notes · metrics · quotes · chat ×2<br/>email_templates · invitations<br/>promo_codes · activity_log"]:::src -- today --> O2["organizations<br/>retires — stage 4"]:::old
+  S1["client_id — 7 tables<br/>metrics · copils · quotes · tasks<br/>playbooks · planning_events<br/>notifications.target_id (no FK)"]:::src -- today --> O1["clients<br/>retires — stage 3"]:::old -- "uuid → id" --> N1["client_group.company_id<br/>decided 26/09 · bigint<br/>prospects move too; metrics: clients only"]:::v2
+  S2["organization_id — 8 tables<br/>metrics · quotes · chat ×2<br/>email_templates · invitations<br/>promo_codes · activity_log"]:::src -- today --> O2["organizations<br/>retires — stage 4"]:::old
   O2 -- "chat ×2" --> N2a["company.id<br/>decided 26/09 · bigint"]:::v2
-  O2 -- "invitations" --> N2b["organization.company_id<br/>decided 26/09 · bigint"]:::v2
-  O2 -- "client_notes · quotes" --> N2c["on hold"]:::open
-  O2 -- "4 others" --> N2d["not decided"]:::open
-  S3["person columns — 28 tables<br/>user_id · author_id · csm_id<br/>owner_id · created_by · invited_by"]:::src -- today --> O3["profiles<br/>retires — stage 4"]:::old -- "same login uuid" --> N3["member / viewer .auth_user_id<br/>decided 26/09<br/>FK target: auth.users"]:::v2
+  O2 -- "invitations · client_metrics" --> N2b["organization.company_id<br/>decided 26/09 · bigint"]:::v2
+  O2 -- "quotes" --> N2c["on hold"]:::open
+  O2 -- "3 others" --> N2d["not decided"]:::open
+  S3["person columns — 27 tables<br/>user_id · author_id · csm_id<br/>owner_id · created_by · invited_by"]:::src -- today --> O3["profiles<br/>retires — stage 4"]:::old -- "same login uuid" --> N3["member / viewer .auth_user_id<br/>decided 26/09<br/>FK target: auth.users"]:::v2
 ```
 
 ### 8.2 Client work
 
 ```mermaid
 erDiagram
-  client_notes {
-    uuid client_id FK "FK; clients, cascade"
-    uuid organization_id "inferred"
-    uuid author_id FK "FK; profiles, set null"
-  }
   client_metrics {
     uuid client_id FK "FK; clients, cascade"
     uuid organization_id "inferred"
@@ -415,9 +409,6 @@ erDiagram
   snapshots {
     uuid user_id "inferred"
   }
-  clients ||--o{ client_notes : "client_id"
-  organizations ||..o{ client_notes : "organization_id"
-  profiles ||--o{ client_notes : "author_id"
   clients ||--o{ client_metrics : "client_id"
   organizations ||..o{ client_metrics : "organization_id"
   profiles ||--o{ client_metrics : "user_id"
@@ -558,13 +549,12 @@ are in [SCHEMA_FROM_CODE.sql](SCHEMA_FROM_CODE.sql).
 
 | Table | Module | Client | Organization | Person | Within its module |
 |---|---|---|---|---|---|
-| `client_notes` | Client work | `client_id` (FK → clients, cascade) | `organization_id` (inferred)<br>*on hold* | `author_id` (FK → profiles, set null) | — |
-| `client_metrics` | Client work | `client_id` (FK → clients, cascade) | `organization_id` (inferred)<br>*not decided* | `user_id` (FK → profiles, set null) | — |
-| `copils` | Client work | `client_id` (FK → clients, set null) | — | `user_id` (inferred) | — |
-| `quotes` | Client work | `client_id` (FK → clients, set null) | `organization_id` (inferred)<br>*on hold* | `user_id` (FK → profiles, set null) | — |
-| `tasks` | Client work | `client_id` (inferred) | — | `user_id` (inferred) | `project_id` (inferred — projects) |
-| `playbooks` | Client work | `client_id` (inferred) | — | `user_id` (inferred)<br>`csm_id` (inferred) | — |
-| `planning_events` | Client work | `client_id` (inferred) | — | `user_id` (in code — NOT NULL, RLS auth.uid()) | — |
+| `client_metrics` | Client work | `client_id` (FK → clients, cascade)<br>**→ `client_group.company_id`**<br>*clients only — an application rule* | `organization_id` (inferred)<br>**→ `organization.company_id`** | `user_id` (FK → profiles, set null) | — |
+| `copils` | Client work | `client_id` (FK → clients, set null)<br>**→ `client_group.company_id`**<br>*prospects move too* | — | `user_id` (inferred) | — |
+| `quotes` | Client work | `client_id` (FK → clients, set null)<br>**→ `client_group.company_id`**<br>*prospects move too* | `organization_id` (inferred)<br>*on hold* | `user_id` (FK → profiles, set null) | — |
+| `tasks` | Client work | `client_id` (inferred)<br>**→ `client_group.company_id`**<br>*prospects move too* | — | `user_id` (inferred) | `project_id` (inferred — projects) |
+| `playbooks` | Client work | `client_id` (inferred)<br>**→ `client_group.company_id`**<br>*prospects move too* | — | `user_id` (inferred)<br>`csm_id` (inferred) | — |
+| `planning_events` | Client work | `client_id` (inferred)<br>**→ `client_group.company_id`**<br>*prospects move too* | — | `user_id` (in code — NOT NULL, RLS auth.uid()) | — |
 | `projects` | Client work | — | — | `user_id` (inferred) | — |
 | `roadmaps` | Client work | — | — | `user_id` (inferred) | — |
 | `snapshots` | Client work | — | — | `user_id` (inferred) | — |
@@ -582,7 +572,7 @@ are in [SCHEMA_FROM_CODE.sql](SCHEMA_FROM_CODE.sql).
 | `invitations` | Team and access | — | `organization_id` (inferred)<br>**→ `organization.company_id`** | `invited_by` (inferred) | — |
 | `promo_codes` | Team and access | — | `organization_id` (inferred)<br>*not decided* | — | — |
 | `activity_log` | Team and access | — | `organization_id` (inferred)<br>*not decided* | `user_id` (inferred) | — |
-| `notifications` | Notifications | `target_id` (in code — a client id, no FK; also in route /app/clients/<id>) | — | `user_id` (in code — the recipient) | — |
+| `notifications` | Notifications | `target_id` (in code — a client id, no FK; also in route /app/clients/<id>)<br>**→ `client_group.company_id`**<br>*prospects move too* | — | `user_id` (in code — the recipient) | — |
 | `org_integrations` | Integrations (dormant) | — | — | `user_id` (inferred) | — |
 | `api_keys` | Integrations (dormant) | — | — | `user_id` (inferred) | — |
 | `webhooks` | Integrations (dormant) | — | — | `user_id` (inferred) | — |

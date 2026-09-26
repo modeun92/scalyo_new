@@ -131,6 +131,14 @@ prompt on GDPR grounds (D3); MCP does not quietly reverse that decision. Adding 
 privacy review, not a refactor — `get_client_overview` names the withheld fields in its
 response so the model reports them as withheld rather than as empty.
 
+**Changed at the database level on 26/09/2026 (`CORE-V2-NOTES-AI`, not live).** In core_v2,
+notes become `issue` rows (`status = 'NOTE'`), and it was decided that an AI session **may read**
+them: no `mcp_no_select` rule is put on `issue`, where `client_notes` has one. Once the notes screen
+moves to `issue` (stage 3), an MCP token pointed straight at `/rest/v1/issue` reads notes. No tool
+exposes them yet — a tool that does is still the privacy review above, and D3 (notes kept out of the
+AI prompt) has not been revisited. Note too that no core_v2 table has an `mcp_no_select` rule at all,
+so `personage` (contact names, emails, phones) is readable the same way.
+
 ---
 
 ## Security model

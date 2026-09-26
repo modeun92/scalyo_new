@@ -34,22 +34,28 @@
 --   CORE-V2-COLUMNS   columns and tables the product needs that the source DDL has no home for, added
 --                     because the old tables are to be deleted (§7b): organization_role +
 --                     organization_worker.role_id / seniority / joined_at,
---                     client_group.industry / notes, and an independent `prospect` table.
+--                     client_group.industry / notes / pipeline_stage, and issue.kind / content /
+--                     author_name (the notes of client_notes, CORE-V2-NOTES).
 --   CORE-V2-OWNER     organization.owner_personage_id — the new model has no owner/admin
 --                     distinction, and the billing owner must stay identifiable.
---   CORE-V2-PUBLIC-ID company.public_id (uuid, unique) — the company is the identity a prospect
---                     and its client group SHARE, and public_id carries the old clients.id, so
---                     every table, URL and MCP link that holds a client uuid keeps it (§3).
---   CORE-V2-CONTACTS  client_group_viewer.client_group_id references company, not client_group,
---                     and carries role / is_primary: a prospect's contacts are kept and follow it
---                     when it is won (§6, §7b).
+--   CORE-V2-PUBLIC-ID company.public_id (uuid, unique) carries the old clients.id: the mirror's
+--                     link to its source row, and the map from the old client uuids to
+--                     client_group ids when the tables that hold them are rewritten (§3).
+--   CORE-V2-PROSPECT  a prospect is a client_group whose status is PROSPECT, with its funnel step
+--                     in client_group.pipeline_stage (decided 26/09/2026, replacing the 24/09
+--                     independent `prospect` table): winning it changes a status, nothing moves.
+--   CORE-V2-CONTACTS  client_group_viewer carries role / is_primary — what the contact is for this
+--                     client, and which one is the main contact (§6, §7b).
+--   CORE-V2-NOTES     client_notes is replaced by issue (decided 26/09/2026): a note is an issue
+--                     whose status is NOTE, with kind / content / author_name (§7), readable by
+--                     the organization only (§11).
 --
 -- RLS (CORE-V2-RLS). Every new table has RLS on.
 --   * READ  — an ACTIVE organization_worker of an organization reads that organization's rows.
 --             A viewer additionally reads the client groups they are attached to through
 --             client_group_viewer. `subscription` is billing: managers of the organization only.
 --   * WRITE — the structural mirror tables (company … member_authority, subscription,
---             organization_role, prospect) have NO
+--             organization_role) have NO
 --             write policy for users. They are a projection of the old tables, maintained by
 --             SECURITY DEFINER triggers; a user write would be overwritten by the next sync and
 --             is refused instead. issue / profit / churn are the only tables that hold data with
@@ -77,7 +83,7 @@ begin
       'organization_client_group', 'personage', 'personage_link', 'viewer', 'member', 'manager',
       'organization_position', 'organization_worker', 'member_authority', 'member_client_group',
       'manager_team', 'client_group_viewer', 'issue', 'profit', 'churn', 'subscription',
-      'organization_role', 'prospect'
+      'organization_role'
     ] loop
       if to_regclass('public.' || t) is not null then
         raise exception 'core_v2: public.% already exists but public.company does not — refusing to build on an unknown table', t;
@@ -96,7 +102,13 @@ begin
     create type public.person_title as enum ('MR', 'MS', 'MRS', 'DR', 'MX');
   end if;
   if not exists (select 1 from pg_type where typname = 'issue_status' and typnamespace = 'public'::regnamespace) then
-    create type public.issue_status as enum ('OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED');
+    -- CORE-V2-NOTES (26/09/2026): NOTE is a note from client_notes — a record, not a problem to
+    -- resolve, so it never enters an open / resolved count.
+    create type public.issue_status as enum ('OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED', 'NOTE');
+  end if;
+  -- CORE-V2-NOTES: client_notes.kind (note · call · email · meeting).
+  if not exists (select 1 from pg_type where typname = 'issue_kind' and typnamespace = 'public'::regnamespace) then
+    create type public.issue_kind as enum ('NOTE', 'CALL', 'EMAIL', 'MEETING');
   end if;
   if not exists (select 1 from pg_type where typname = 'authority' and typnamespace = 'public'::regnamespace) then
     -- CORE-V2-AUTHORITY: INVITE, SEND_EMAIL and ASSIGN_CLIENT_GROUP are added to the source enum.
@@ -117,9 +129,10 @@ begin
     create type public.job_status as enum ('ACTIVE', 'INACTIVE', 'ON_LEAVE', 'ENDED');
   end if;
   if not exists (select 1 from pg_type where typname = 'client_status' and typnamespace = 'public'::regnamespace) then
-    create type public.client_status as enum ('ACTIVE', 'INACTIVE', 'CHURNED');
+    -- CORE-V2-PROSPECT (26/09/2026): PROSPECT is a company still being sold to.
+    create type public.client_status as enum ('PROSPECT', 'ACTIVE', 'INACTIVE', 'CHURNED');
   end if;
-  -- CORE-V2-COLUMNS: the sales funnel of a prospect (stores/clients.js PIPELINE_STAGES:
+  -- CORE-V2-PROSPECT: the sales funnel of a prospect (stores/clients.js PIPELINE_STAGES:
   -- new · contacted · qualified · won · lost).
   if not exists (select 1 from pg_type where typname = 'pipeline_stage' and typnamespace = 'public'::regnamespace) then
     create type public.pipeline_stage as enum ('NEW', 'CONTACTED', 'QUALIFIED', 'WON', 'LOST');
@@ -146,13 +159,16 @@ create table if not exists public.language_region (
 );
 
 -- ============================================================
--- §3 — Company (base of Organization, ClientGroup — and of a Prospect)
+-- §3 — Company (base of Organization and ClientGroup)
 -- ============================================================
--- CORE-V2-PUBLIC-ID (24/09/2026): public_id is the company's stable external id. For a company
--- mirrored from `clients` it IS the old clients.id, so client_notes / client_metrics / copils /
--- quotes / tasks / playbooks / planning_events, the /app/clients/<id> URLs and the MCP deep links
--- keep the uuid they already hold (decided 24/09/2026). A prospect and the client group it
--- becomes share one company, so notes and tasks written during the sale follow the account.
+-- CORE-V2-PUBLIC-ID (24/09/2026): for a company mirrored from `clients`, public_id IS the old
+-- clients.id. That is how the mirror finds a client's company without a forgeable bridge column,
+-- and it is the map from old uuid to new id when the tables that hold a client id are rewritten:
+-- client_metrics, copils, quotes, tasks, playbooks, planning_events and notifications.target_id
+-- move to client_group(company_id) — bigint, every row rewritten, the /app/clients/<id> URLs and
+-- MCP links with them (decided 26/09/2026, replacing the 24/09 plan to keep the uuid there).
+-- client_notes, the eighth, is replaced by issue (CORE-V2-NOTES). A prospect is a client group
+-- (CORE-V2-PROSPECT), so a prospect's rows in those tables move the same way.
 create table if not exists public.company (
   id bigint generated by default as identity primary key,
   public_id uuid not null default gen_random_uuid() unique,
@@ -295,13 +311,12 @@ create table if not exists public.manager_team (
   check (manager_id <> member_id)
 );
 
--- ClientGroup::p_Viewers — the client's contacts (clients.contacts in the old table).
--- CORE-V2-CONTACTS (24/09/2026): client_group_id references COMPANY, not client_group. A prospect
--- has contacts too and no client_group row yet; with client_group as the target its contacts could
--- not be stored at all. The company is what a prospect and its client group share (§3), so the
--- contacts carry over when the prospect is won, with nothing to copy.
+-- ClientGroup::p_Viewers — the client's contacts (clients.contacts in the old table). A prospect
+-- is a client group (CORE-V2-PROSPECT), so its contacts are here too and stay when it is won.
+-- (The 24/09 draft pointed this at company, because the independent prospect table had no
+-- client_group row to hang contacts on.)
 create table if not exists public.client_group_viewer (
-  client_group_id bigint not null references public.company(id) on delete cascade,
+  client_group_id bigint not null references public.client_group(company_id) on delete cascade,
   viewer_id bigint not null references public.viewer(personage_id) on delete cascade,
   primary key (client_group_id, viewer_id)
 );
@@ -331,6 +346,31 @@ create index if not exists idx_issue_member       on public.issue (member_id);
 create index if not exists idx_issue_viewer       on public.issue (viewer_id);
 create index if not exists idx_issue_status       on public.issue (status);
 create index if not exists idx_issue_parent       on public.issue (parent_issue_id);
+
+-- CORE-V2-NOTES (26/09/2026): client_notes is replaced by issue. A note is an issue whose status is
+-- NOTE; kind / content / author_name are the note's own columns, which description (jsonb, free
+-- form) would hide from constraints and indexes. author_name is the name as the note displays it
+-- (client_notes.author_name, NOT NULL DEFAULT ''), kept because a note outlives its author's
+-- account — member_id goes NULL on delete, the signature must not. start_date is when the note
+-- was written. A mirrored note carries description {"source":"client_notes","note_id":<uuid>}.
+alter table public.issue add column if not exists kind public.issue_kind;
+alter table public.issue add column if not exists content text;
+alter table public.issue add column if not exists author_name text;
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'issue_note_has_content'
+                    and conrelid = 'public.issue'::regclass) then
+    alter table public.issue add constraint issue_note_has_content
+      check (status <> 'NOTE' or (kind is not null and content is not null));
+  end if;
+end $$;
+-- One issue per mirrored note: the mirror finds it here, and a second copy cannot exist.
+create unique index if not exists uq_issue_client_note
+  on public.issue ((description ->> 'note_id'))
+  where description ->> 'source' = 'client_notes';
+-- The timeline of one client: its notes, newest first.
+create index if not exists idx_issue_client_group_status_start
+  on public.issue (client_group_id, status, start_date desc);
 
 create table if not exists public.profit (
   id bigint generated by default as identity primary key,
@@ -441,8 +481,8 @@ create index if not exists idx_organization_worker_role on public.organization_w
 alter table public.organization_worker
   add column if not exists joined_at timestamptz;
 
--- clients.industry / clients.notes (client_notes, the timestamped notes table, is a separate
--- module and not part of this).
+-- clients.industry / clients.notes — the one free-text note on the client card. The timestamped
+-- notes of client_notes are issue rows (CORE-V2-NOTES, §7).
 alter table public.client_group
   add column if not exists industry text;
 alter table public.client_group
@@ -472,28 +512,24 @@ alter table public.client_group_viewer add column if not exists is_primary boole
 create unique index if not exists uq_client_group_viewer_primary
   on public.client_group_viewer (client_group_id) where is_primary;
 
--- A PROSPECT: a company still being sold to. Independent of client_group, the way issue is: it
--- references an organization and has its own life, and is not a kind of ClientGroup. Prospects
--- have no measured health and never enter the portfolio counters (clientsOnly), which is now true
--- by construction. CORE-V2-PUBLIC-ID (24/09/2026): it references a COMPANY, which holds the name
--- and logo. When the prospect is won, its client group is created on that SAME company — so "won"
--- is `exists client_group with this company_id`, notes and contacts carry over by themselves, and
--- the prospect row stays as the funnel history. (The 20/09 draft stored name / logo on the
--- prospect and linked a separate client group afterwards: two ids for one account, and every
--- note written during the sale would have been stranded on the first.)
--- member_id is the CSM who owns the opportunity (clients.csm_id in the old table).
-create table if not exists public.prospect (
-  id bigint generated by default as identity primary key,
-  organization_id bigint not null references public.organization(company_id) on delete cascade,
-  company_id bigint not null unique references public.company(id) on delete cascade,
-  industry text,
-  notes text,
-  pipeline_stage public.pipeline_stage not null default 'NEW',
-  member_id bigint references public.member(personage_id) on delete set null
-);
-
-create index if not exists idx_prospect_organization_stage on public.prospect (organization_id, pipeline_stage);
-create index if not exists idx_prospect_member on public.prospect (member_id);
+-- CORE-V2-PROSPECT (26/09/2026): a PROSPECT is a client group whose status is PROSPECT, and
+-- pipeline_stage is its step in the sales funnel. Winning it turns the status to ACTIVE on the same
+-- row — contacts, CSM, notes and every reference stay where they are. A client keeps WON as the
+-- record of how it arrived, or NULL (clients.pipeline_stage: a client has none unless won). Every
+-- portfolio counter, health aggregate and alert must filter status <> 'PROSPECT' — the rule
+-- clientsOnly holds today. (The 24/09 draft had an independent `prospect` table on the same
+-- company: a second row for one account, and contacts that could not point at a client group.)
+-- The CSM of a prospect is member_client_group, like a client's.
+alter table public.client_group add column if not exists pipeline_stage public.pipeline_stage;
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'client_group_prospect_has_stage'
+                    and conrelid = 'public.client_group'::regclass) then
+    alter table public.client_group add constraint client_group_prospect_has_stage
+      check (status <> 'PROSPECT' or pipeline_stage is not null);
+  end if;
+end $$;
+create index if not exists idx_client_group_status on public.client_group (status);
 
 -- ============================================================
 -- §8 — Scope validation
@@ -644,9 +680,8 @@ as $fn$
    where public.core_v2_personage_id() is not null;
 $fn$;
 
--- CORE-V2-PUBLIC-ID: companies the caller can see — their organizations, their client groups,
--- and the companies their organizations are selling to (prospects). Without the third set a
--- prospect's name and logo, which now live on company, would be invisible to its own sales team.
+-- Companies the caller can see — their organizations and their client groups (prospects
+-- included: a prospect is a client group, CORE-V2-PROSPECT).
 create or replace function public.core_v2_my_company_ids()
 returns setof bigint
 language sql
@@ -656,14 +691,10 @@ set search_path = public
 as $fn$
   select o from public.core_v2_my_org_ids() as o
   union
-  select g from public.core_v2_my_client_group_ids() as g
-  union
-  select p.company_id
-    from public.prospect p
-   where p.organization_id in (select public.core_v2_my_org_ids());
+  select g from public.core_v2_my_client_group_ids() as g;
 $fn$;
 
--- CORE-V2-CONTACTS: the contacts (client-side people) of the companies the caller can see. They
+-- CORE-V2-CONTACTS: the contacts (client-side people) of the client groups the caller can see. They
 -- are personages but not colleagues, so core_v2_my_colleague_ids() alone would hide every contact
 -- from the team that manages the account.
 create or replace function public.core_v2_my_contact_ids()
@@ -675,7 +706,7 @@ set search_path = public
 as $fn$
   select cgv.viewer_id
     from public.client_group_viewer cgv
-   where cgv.client_group_id in (select public.core_v2_my_company_ids());
+   where cgv.client_group_id in (select public.core_v2_my_client_group_ids());
 $fn$;
 
 -- Does the caller hold this authority in this organization? Only a member can: a viewer has no
@@ -763,7 +794,7 @@ declare
     'client_group', 'organization_client_group', 'personage', 'personage_link', 'viewer',
     'member', 'manager', 'organization_position', 'organization_worker', 'member_authority',
     'member_client_group', 'manager_team', 'client_group_viewer', 'issue', 'profit', 'churn',
-    'subscription', 'organization_role', 'prospect'
+    'subscription', 'organization_role'
   ];
   -- No user write policy exists on these, so take the privilege away too: a policy that is
   -- missing today and added by mistake tomorrow should not be the only thing between a user and
@@ -773,7 +804,7 @@ declare
     'client_group', 'organization_client_group', 'personage', 'personage_link', 'viewer',
     'member', 'manager', 'organization_position', 'organization_worker', 'member_authority',
     'member_client_group', 'manager_team', 'client_group_viewer', 'subscription',
-    'organization_role', 'prospect'
+    'organization_role'
   ];
 begin
   foreach t in array all_tables loop
@@ -824,20 +855,13 @@ drop policy if exists core_v2_organization_role_select on public.organization_ro
 create policy core_v2_organization_role_select on public.organization_role for select to authenticated
   using (organization_id in (select public.core_v2_my_org_ids()));
 
--- Prospects: read by the organization's workers, viewers included (a viewer reads every client
--- today). No user write policy — until the front end moves its writes here, prospects are a
--- projection of clients.lifecycle = 'prospect'.
-drop policy if exists core_v2_prospect_select on public.prospect;
-create policy core_v2_prospect_select on public.prospect for select to authenticated
-  using (organization_id in (select public.core_v2_my_org_ids()));
-
 drop policy if exists core_v2_organization_worker_select on public.organization_worker;
 create policy core_v2_organization_worker_select on public.organization_worker for select to authenticated
   using (organization_id in (select public.core_v2_my_org_ids()));
 
 drop policy if exists core_v2_client_group_viewer_select on public.client_group_viewer;
 create policy core_v2_client_group_viewer_select on public.client_group_viewer for select to authenticated
-  using (client_group_id in (select public.core_v2_my_company_ids()));
+  using (client_group_id in (select public.core_v2_my_client_group_ids()));
 
 drop policy if exists core_v2_member_client_group_select on public.member_client_group;
 create policy core_v2_member_client_group_select on public.member_client_group for select to authenticated
@@ -920,6 +944,22 @@ begin
   end loop;
 end $$;
 
+-- ── Notes: the organization's own people only ──────────────────────────────────────────────
+-- CORE-V2-NOTES (26/09/2026): client_notes was readable by the organization's members and nobody
+-- else. The issue read policy above also lets a viewer read the client groups they are attached to
+-- through client_group_viewer — a client-side contact, once one has a login — and an internal note
+-- about their own account ("sponsor is leaving", "price objection") is not theirs to read.
+-- RESTRICTIVE, so it is ANDed with the permissive policy and narrows NOTE rows only.
+-- CORE-V2-NOTES-AI (26/09/2026): an AI (MCP) session MAY read notes here — decided by the owner of
+-- this change, and a deliberate loosening: 20260914120000 lists client_notes as a sensitive table an
+-- AI session cannot read at all ("free-form CSM prose; routinely commercial and personal detail",
+-- and removing it is called a privacy review there). No mcp_ read rule is added on issue, so once
+-- the notes screen moves here, an assistant connected through MCP can read them. It still cannot
+-- write them (mcp_no_*, below).
+drop policy if exists core_v2_issue_note_org_only on public.issue;
+create policy core_v2_issue_note_org_only on public.issue as restrictive for select to authenticated
+  using (status <> 'NOTE' or organization_id in (select public.core_v2_my_org_ids()));
+
 -- ── An MCP/AI token cannot write issue / profit / churn ───────────────────────────────────────
 -- Same RESTRICTIVE pattern as 20260914120000 (ANDed with the permissive set, so nothing above is
 -- rewritten). Guarded: is_mcp_session() is created by that migration and this file must not fail
@@ -954,7 +994,7 @@ end $$;
 -- ============================================================
 -- §12 — Verification (run AFTER applying, in pre-prod)
 -- ============================================================
--- 12.1 — Every new table exists with RLS on. Expect 25 rows, rls = true on all.
+-- 12.1 — Every new table exists with RLS on. Expect 24 rows, rls = true on all.
 --
 --   select c.relname, c.relrowsecurity as rls
 --   from pg_class c join pg_namespace n on n.oid = c.relnamespace
@@ -963,7 +1003,7 @@ end $$;
 --     'client_group','organization_client_group','personage','personage_link','viewer','member',
 --     'manager','organization_position','organization_worker','member_authority',
 --     'member_client_group','manager_team','client_group_viewer','issue','profit','churn',
---     'subscription','organization_role','prospect')
+--     'subscription','organization_role')
 --   order by 1;
 --
 -- 12.2 — Seeds. Expect 20 / 6 / 3.
@@ -1004,7 +1044,7 @@ end $$;
 -- Nothing else depends on these objects until part 2 is applied. If part 2 is applied, roll it
 -- back first (its own §Rollback). Then:
 --
---   drop table if exists public.prospect, public.organization_role, public.subscription, public.churn, public.profit, public.issue,
+--   drop table if exists public.organization_role, public.subscription, public.churn, public.profit, public.issue,
 --     public.client_group_viewer, public.manager_team, public.member_client_group,
 --     public.member_authority, public.organization_worker, public.organization_position,
 --     public.manager, public.member, public.viewer, public.personage_link, public.personage,
@@ -1017,5 +1057,5 @@ end $$;
 --     public.core_v2_my_company_ids(), public.core_v2_my_contact_ids(),
 --     public.core_v2_has_authority(bigint, public.authority), public.core_v2_is_manager(bigint),
 --     public.core_v2_scope_org(bigint, bigint);
---   drop type if exists public.pipeline_stage, public.person_title, public.issue_status, public.authority,
+--   drop type if exists public.pipeline_stage, public.person_title, public.issue_status, public.issue_kind, public.authority,
 --     public.subscription_type, public.job_status, public.client_status;

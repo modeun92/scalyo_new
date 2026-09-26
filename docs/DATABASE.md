@@ -107,7 +107,7 @@ aggregate is only reachable through the `oxygen_team_aggregate` function.
 ## core_v2 — the new core schema (additive)
 
 Drawn in [DATABASE_DIAGRAM_CORE_V2.md](DATABASE_DIAGRAM_CORE_V2.md) (ER diagrams per group, the mirror flow,
-enums, decision tags, and the 30 old tables that stay with where their references land) — update it in the same change as any core_v2 migration.
+enums, decision tags, and the 29 old tables that stay with where their references land) — update it in the same change as any core_v2 migration.
 
 `docs/new_database_code.txt` is a ground-up redesign of the core model, derived from the C++
 class model in `docs/Database Plan.txt`. It is built **next to** the current schema, not in
@@ -131,10 +131,10 @@ decided 24/09/2026): a second copy drifts, which is what `profiles.plan` vs `org
 
 | New table | Is a projection of | Notes |
 |---|---|---|
-| `company` (+ `organization`, `client_group`) | `organizations` / **every** `clients` row, prospects included | `public_id` (uuid, unique) **is the old `clients.id`** for a mirrored client (`CORE-V2-PUBLIC-ID`, 24/09/2026): the company is the identity a prospect and its client group share, and the 7 tables holding a client uuid, the `/app/clients/<id>` URLs and the MCP links keep their value. `country_code` and `currency_code` are **nullable** (`CORE-V2-COUNTRY`). `photo_path` ← `clients.logo` (an empty logo becomes `NULL`). |
-| `client_group` (columns beyond the DDL) | `clients` | `industry`, `notes` (`CORE-V2-COLUMNS`); `health`, `nps`, `churn_risk`, `health_status` (the manual flag `clients.status` — `critical` / `watch` / `todo`, which can raise the colour), `renewal_date`, `created_at` (`CORE-V2-CLIENT-HEALTH`, kept 24/09/2026). Copied as stored, never defaulted — `health ?? 5` is a display fallback of the old store, not data. No `arr` / `mrr` column: see `profit` |
-| `prospect` | `clients` with `lifecycle = 'prospect'` | **Independent** of `client_group`, like `issue`: an organization, a **company** (name and logo live there — `CORE-V2-PUBLIC-ID`), `industry`, `notes`, a `pipeline_stage` (`NEW` · `CONTACTED` · `QUALIFIED` · `WON` · `LOST`) and an owner `member_id` (the old `csm_id`). A prospect has no health and never enters portfolio counters — true by construction. When it is won, its client group is created on the **same** company, so notes and contacts follow and the prospect row stays as funnel history (`WON`). |
-| `personage` + `viewer` + `client_group_viewer` (contacts) | `clients.contacts` | `CORE-V2-CONTACTS` (24/09/2026): one login-less viewer per contact, linked to the **company** (so a prospect's contacts are kept and carry over when won), with `role` and `is_primary` (exactly one per company, a unique index). The name is kept whole in `first_name` — never split into a guessed first / last. The list has no ids, so an edit **replaces** the company's login-less contacts and deletes their personages |
+| `company` (+ `organization`, `client_group`) | `organizations` / **every** `clients` row, prospects included | `public_id` (uuid, unique) **is the old `clients.id`** for a mirrored client (`CORE-V2-PUBLIC-ID`, 24/09/2026). It is how the mirror finds a client's company, and the map from each old client uuid to its new `client_group` id when the tables holding one are rewritten (26/09/2026). `country_code` and `currency_code` are **nullable** (`CORE-V2-COUNTRY`). `photo_path` ← `clients.logo` (an empty logo becomes `NULL`). |
+| `client_group` (columns beyond the DDL) | `clients` | `status` is the lifecycle — `PROSPECT` · `ACTIVE` · `CHURNED` (`INACTIVE` unused) — and `pipeline_stage` the funnel step (`CORE-V2-PROSPECT`, below); `industry`, `notes` (`CORE-V2-COLUMNS`); `health`, `nps`, `churn_risk`, `health_status` (the manual flag `clients.status` — `critical` / `watch` / `todo`, which can raise the colour), `renewal_date`, `created_at` (`CORE-V2-CLIENT-HEALTH`, kept 24/09/2026). Copied as stored, never defaulted — `health ?? 5` is a display fallback of the old store, not data. No `arr` / `mrr` column: see `profit` |
+| `client_group` with `status = 'PROSPECT'` | `clients` with `lifecycle = 'prospect'` | **A prospect is a client group** (`CORE-V2-PROSPECT`, decided 26/09/2026, replacing the 24/09 independent `prospect` table): same row, `status = 'PROSPECT'` and a `pipeline_stage` (`NEW` · `CONTACTED` · `QUALIFIED` · `WON` · `LOST`; `NEW` when `clients` holds none or an unknown one, as the store shows it — a check requires one). Winning it turns the status `ACTIVE` on the same row: contacts, CSM and notes stay; a client keeps `WON` as how it arrived, or `NULL`. Its deal owner is `member_client_group`, like a client's CSM. A prospect's `arr` is a deal value and is **not** mirrored as profit. Every counter, health aggregate and alert must filter `status <> 'PROSPECT'` — what `clientsOnly` does today |
+| `personage` + `viewer` + `client_group_viewer` (contacts) | `clients.contacts` | `CORE-V2-CONTACTS` (24/09/2026): one login-less viewer per contact, linked to the **client group** (a prospect's too), with `role` and `is_primary` (exactly one per client group, a unique index). The name is kept whole in `first_name` — never split into a guessed first / last. The list has no ids, so an edit **replaces** the company's login-less contacts and deletes their personages |
 | `organization_role` + `organization_worker.role_id` | the questionnaire (`core_v2_complete_onboarding`; `user_profiles.role` while the old front end is live) | A per-organization role list shaped like `organization_position` (unique by name) but **not** reached through `organization_worker.position_id`. `name` is the persisted key (`csm`, `head_cs`, …), rendered through i18n. `role_custom` is dropped. The composite foreign key `(role_id, organization_id)` makes the database refuse another organization's role, the same way `position_id` is checked (moved off `member` on 24/09/2026 for that reason). A viewer's answer is recorded too, and a member ↔ viewer change keeps it. Only a **completed** questionnaire counts: the `user_profiles` column defaults (`csm`, `mid`) are never mirrored as answers |
 | `organization_worker.seniority` | the questionnaire (as above) | A plain integer rank: junior 1 · mid 2 · senior 3 · lead 4 · director 5 · vp 6 · c_level 7; anything else is refused by the RPC (and `NULL` from the old mirror) |
 | `organization_worker.onboarding_completed` | the questionnaire (`user_profiles.onboarding_completed` while the old front end is live) | Whether the personal questionnaire (`OnboardingWizard`) was answered **in this organization**: joining another one asks again. A boolean, not a time — the backfilled rows have no true completion time. Not the organization-setup onboarding, which is `profiles.onboarding_completed` (stage 4) |
@@ -147,12 +147,13 @@ decided 24/09/2026): a second copy drifts, which is what `profiles.plan` vs `org
 | `subscription` | `organizations.plan` changes | A **history log**, one row per change, lossy tiers (starter → BASIC, growth/elite → PRO, enterprise → ENTERPRISE, none → FREE). `issue_date` is when it was *recorded*. Read by nothing. |
 | `profit` | `clients.arr` (else `mrr × 12`) | **ARR = the client group's profit rows dated in the last 12 months, MRR = ARR / 12** (`CORE-V2-ARR-PROFIT`, decided 24/09/2026). The mirror keeps ONE opening row per client group, marked `description.source = 'clients.arr'`, dated when first recorded, in the organization's currency (EUR when it has none); an arr edit changes its amount, never adds a row. After 12 months without new entries the ARR falls to 0 (accepted 24/09/2026) |
 | `churn` | `clients.churned_at` | ONE row per churned client, marked `source = 'clients.churned_at'`, dated when the churn happened; it follows the date and goes if `churned_at` is cleared, while the old table is the source |
+| `issue` with `status = 'NOTE'` | `client_notes` | **`client_notes` is replaced by `issue`** (`CORE-V2-NOTES`, decided 26/09/2026). A note is an issue whose status is `NOTE`, with three new columns — `kind` (`NOTE` · `CALL` · `EMAIL` · `MEETING`; an unknown value is a `NOTE`, the old column default), `content`, `author_name` (the signature, kept when the author's account goes; `''` becomes `NULL`) — and `start_date` = when it was written. `client_group_id` = the note's client; `organization_id` = the organization that **owns** that client group (not `client_notes.organization_id`, which nothing keeps in step), and it follows the client when it moves; the author is `member_id`, else `viewer_id`, by login. `description = {"source":"client_notes","note_id":…}` links it back, unique. **Read by the organization only** — a restrictive policy hides `NOTE` rows from a viewer attached through `client_group_viewer` (a future client-side login); an AI (MCP) session **may read them** (decided 26/09/2026, `CORE-V2-NOTES-AI`) — a deliberate loosening: `20260914120000` keeps AI sessions out of `client_notes` entirely as sensitive prose — and cannot write them. `trg_notify_client_note` stays on `client_notes` for now |
 | `issue`, `profit`, `churn` (user rows) | — | No UI yet; the only `core_v2` tables a user can write, gated on their own `member_authority`. A user-written row is `RESTRICT` and blocks the mirror delete of its client (warning, the old delete still goes through) |
 | `country`, `currency`, `language_region` | — | Foreign-key targets seeded from `config/currencies.js`, `countryLaws.js` and the three locales. **Never rendered** — display names still come from `Intl` + i18n |
-| `member_client_group` | `clients.csm_id` | The client's CSM. `csm_id` is a single assignee, so the mirror **replaces** the assignment. Only a **member who works in the client's own organization** is assigned — a viewer, a member of another organization, or a login that is not (yet) a member leaves it empty, and `core_v2_sync_user` assigns it later if that login joins |
+| `member_client_group` | `clients.csm_id` | The client's CSM — or a prospect's deal owner. `csm_id` is a single assignee, so the mirror **replaces** the assignment. Only a **member who works in the client's own organization** is assigned — a viewer, a member of another organization, or a login that is not (yet) a member leaves it empty, and `core_v2_sync_user` assigns it later if that login joins |
 | `company_link`, `personage_link`, `organization_position`, `manager_team` | — | Created, **left empty**: no current data maps to them |
 
-**How it stays in sync.** `SECURITY DEFINER` triggers on the four old tables (part 2) mirror
+**How it stays in sync.** `SECURITY DEFINER` triggers on the five old tables (part 2) mirror
 every write; part 3 backfills what already exists by re-using those triggers.
 `core_v2_sync_user(user_id)` is the single place that turns a login + organization + role into
 `personage` / `member` / `manager` / `organization_worker` / `member_authority` /
@@ -171,31 +172,31 @@ stale old copy.
   by `member/viewer.auth_user_id` — links held in tables users cannot write (the 20/09 draft's
   `clients.core_client_group_id` / `core_prospect_id` were removed on 24/09/2026).
 - **Deletes cascade the mirror.** Deleting a profile deletes its `personage` (name + email are
-  personal data); deleting a client deletes its mirrored profit / churn rows, its contacts'
-  personages, then its company; deleting an organization does the same for all its client groups
-  and prospects. A `profit` / `churn` / `issue` row a **user** wrote is `ON DELETE RESTRICT`, so the
+  personal data); deleting a client deletes its mirrored profit / churn / note rows, its contacts'
+  personages, then its company; deleting an organization does the same for all its client groups,
+  prospects included; deleting a note deletes its issue. A `profit` / `churn` / `issue` row a **user** wrote is `ON DELETE RESTRICT`, so the
   mirror delete then fails with a warning and the old delete still goes through.
-- **Prospects are not client groups, but share the company.** A `clients` row with
-  `lifecycle = 'prospect'` gets a company and a `prospect` row; a client gets a company and a
-  `client_group`. Won = the client group appears on the prospect's company. A row that goes client
-  → prospect gets a prospect row and **leaves its client group untouched** (pipeline moves forward;
-  deleting a group could hit `RESTRICT`-ed issues). A client with no `organization_id` has nothing.
+- **A prospect is a client group (`CORE-V2-PROSPECT`).** Every `clients` row gets a company and a
+  `client_group`; `lifecycle` becomes the status (`PROSPECT`, else `CHURNED` when `churned_at` is set,
+  else `ACTIVE`). Won and client → prospect both change the status of the same row; a prospect has no
+  opening profit or churn row, so going back to prospect removes them. A client with no
+  `organization_id` has nothing.
 
 **Deviations from the literal DDL in `docs/new_database_code.txt`** (each tagged in the SQL):
 `CORE-V2-COUNTRY` (nullable country/currency — R21); `CORE-V2-CG-ORG` (the source DDL indexes and
 validates against `client_group.organization_id`, a column that does not exist — the link is
 `organization_client_group`, and run as written the index fails and the scope trigger raises on
 every write); `CORE-V2-AUTH-LINK`; `CORE-V2-AUTHORITY`; `CORE-V2-COLUMNS` (`organization_role`,
-`organization_worker.role_id` / `seniority` / `joined_at`, `client_group.industry` / `notes`,
-`prospect`, the `pipeline_stage` enum); `CORE-V2-OWNER`; `CORE-V2-PUBLIC-ID` (`company.public_id`,
-`prospect.company_id`); `CORE-V2-CONTACTS` (`client_group_viewer` references `company`, carries
-`role` / `is_primary`); `CORE-V2-CLIENT-HEALTH`.
+`organization_worker.role_id` / `seniority` / `joined_at`, `client_group.industry` / `notes` /
+`pipeline_stage`, `issue.kind` / `content` / `author_name`); `CORE-V2-OWNER`; `CORE-V2-PUBLIC-ID`
+(`company.public_id`); `CORE-V2-PROSPECT` (`PROSPECT` in `client_status`, the `pipeline_stage` enum);
+`CORE-V2-CONTACTS` (`client_group_viewer` carries `role` / `is_primary`); `CORE-V2-NOTES` (`NOTE` in
+`issue_status`, the `issue_kind` enum); `CORE-V2-CLIENT-HEALTH`.
 
 **RLS (`CORE-V2-RLS`).** Read: an `ACTIVE` `organization_worker` reads their organization's rows
-(a removed teammate reads nothing), including the companies of its prospects
-(`core_v2_my_company_ids`) and the contacts of every company it can see (`core_v2_my_contact_ids`);
-a viewer also reads client groups attached through `client_group_viewer`; `subscription` is
-manager-only. Write: the mirror tables have **no**
+(a removed teammate reads nothing), its client groups — prospects included — and their contacts
+(`core_v2_my_contact_ids`); a viewer also reads client groups attached through `client_group_viewer`,
+but never their notes (`core_v2_issue_note_org_only`, restrictive); `subscription` is manager-only. Write: the mirror tables have **no**
 user write policy and the privilege is revoked — a user write would be overwritten by the next
 sync. An MCP/AI token cannot write `issue` / `profit` / `churn` (restrictive `mcp_no_*`
 policies, created only if `is_mcp_session()` exists).
@@ -217,8 +218,12 @@ for Supabase's `auth` schema and roles and for the six old tables (columns from
 `SCHEMA_FROM_CODE.sql`): apply, re-apply (idempotent), backfill of seeded legacy data, live
 trigger behaviour (join / role change / can_send_email / removal / re-join / plan change / client
 lifecycle), forged bridge values, fail-open with a deliberately broken projection, erasure, and
-RLS from a member, an admin, a viewer, an ended worker, `anon` and an `ai_agent` token — 196
-assertions, all passing (32 added 24/09/2026 with stage 1: the RPCs as member / admin / viewer /
+RLS from a member, an admin, a viewer, an ended worker, `anon` and an `ai_agent` token — 219
+assertions, all passing (re-run 26/09/2026 after prospects became client groups and notes became
+issues: the prospect status and stage, won and back again on the same row, no profit for a prospect's
+arr, notes mirrored with their author / kind / organization, edited and deleted, moving with their
+client, deleted with their client or organization, notifying nobody on backfill, read by the
+organization and an AI session but not by a client-side contact; 32 added 24/09/2026 with stage 1: the RPCs as member / admin / viewer /
 AI session / `anon`, the consent log, the transitional mirror, idempotent re-runs; then stage 3a:
 public ids, prospect companies, contacts, health, the opening profit row, churn, and the RLS of
 prospect companies and contacts — which found a fourth bug, contacts never mirrored by the backfill) (re-run after `CORE-V2-COLUMNS`: role / seniority / `joined_at`, the CSM
@@ -234,7 +239,8 @@ it **cannot** show: the real Supabase role grants, the real column sets and any 
 ## Retiring the old core tables
 
 Decided 20/09/2026 (the old tables go), 24/09/2026 (one at a time) and confirmed 26/09/2026: all five —
-`user_profiles`, `organization_members`, `clients`, `organizations`, `profiles`. Each old table goes through
+`user_profiles`, `organization_members`, `clients`, `organizations`, `profiles` — plus `client_notes`,
+replaced by `issue` (decided 26/09/2026) and retired with `clients` in stage 3. Each old table goes through
 the same three steps: the front end **reads** core_v2, then **writes** it, then a **new** migration
 drops the table and its sync trigger. Applied migration files are never deleted.
 
@@ -242,7 +248,7 @@ drops the table and its sync trigger. Applied migration files are never deleted.
 |---|---|---|---|
 | 1 | `user_profiles` | `company.currency_code`, `organization_worker` (role, seniority, `onboarding_completed`), `consent` | **Written 24/09/2026, not deployed** — see below |
 | 2 | `organization_members` | `organization_worker`, `member` / `manager`, `member_authority` | Invite / accept / removal / seat counting (13 files incl. the MCP tenant check) rewritten; seats counted from `ACTIVE` workers until the subscription-information table exists |
-| 3 | `clients` | `company` (identity, `public_id` = the old uuid) + `client_group` / `prospect`, contacts as viewers, ARR as `profit`, churn as `churn` | **3a written 24/09/2026, not applied** (schema + mirror + backfill, below). Next: 3b the store reads core_v2; 3c writes through RPCs, a per-client revenue (profit) list replacing the ARR / MRR fields, and the 7 tables' `client_id` foreign keys moved from `clients(id)` to `company(public_id)` — plus `notifications.target_id` and its `/app/clients/<id>` route, which hold a client id with no foreign key and keep working as they are; 3d the drop |
+| 3 | `clients` + `client_notes` | `company` (identity, `public_id` = the old uuid) + `client_group` (prospects as `status = 'PROSPECT'`), contacts as viewers, ARR as `profit`, churn as `churn`; the notes as `issue` rows (`status = 'NOTE'`) | **3a written 24/09/2026, reworked 26/09/2026, not applied** (schema + mirror + backfill, below). Next: 3b the store and the notes screen read core_v2; 3c writes through RPCs (a note too), a per-client revenue (profit) list replacing the ARR / MRR fields, `trg_notify_client_note` moved to `issue`, and the 7 client references rewritten to `client_group(company_id)` (see below); 3d the drop of both |
 | 4 | `organizations` + `profiles` | `company` / `organization`, `personage` / `organization_worker` | The subscription-information table (plan tier — undecided —, seats, `TRIAL`, Stripe ids; never a column of `organization` / `organization_worker`); the organization-setup onboarding flag; the RLS of ~13 migration files that finds the organization through `profiles`; the kept tables' references (decided 26/09/2026, see below) |
 
 **Stage 1 — `user_profiles`** (`20260924100000_core_v2_stage1_user_profiles.sql`)
@@ -271,23 +277,42 @@ drops the table and its sync trigger. Applied migration files are never deleted.
 
 - Decided 24/09/2026: health / NPS / churn risk / renewal date **stay** on `client_group`; ARR is
   computed from `profit` (last 12 months, MRR = ARR / 12) and users will record revenue as entries;
-  contacts use the model's viewers (`client_group_viewer`); the 7 tables that hold a client uuid
-  keep it, pointing at `company.public_id`; the core_v2 `organization` is left unchanged.
-- The app does not change in 3a: `clients` stays the source and everything is mirrored.
+  contacts use the model's viewers (`client_group_viewer`); the core_v2 `organization` is left
+  unchanged. (The 24/09 plan to keep the client uuid in the referencing tables through
+  `company.public_id` was replaced on 26/09/2026 — see below.)
+- Decided 26/09/2026: a prospect is a client group whose status is `PROSPECT`, with a
+  `pipeline_stage` column (the 24/09 independent `prospect` table is gone); `client_notes` is replaced
+  by `issue`, with a new status `NOTE` and new columns `kind` / `content` / `author_name`; an AI session
+  may read notes — which it cannot do with `client_notes` today (a privacy change, `CORE-V2-NOTES-AI`).
+- The app does not change in 3a: `clients` and `client_notes` stay the source and everything is
+  mirrored.
 
-**The kept tables' references** (the 30 old tables that stay — drawn in
+**The kept tables' references** (the 29 old tables that stay — drawn in
 [DATABASE_DIAGRAM_CORE_V2.md](DATABASE_DIAGRAM_CORE_V2.md#8-old-tables-that-stay)):
 
-- **Client ids** (8 tables, `notifications.target_id` included) keep their values and move their foreign keys
-  to `company(public_id)` — stage 3c.
+- **Client ids** (7 tables: `client_metrics`, `copils`, `quotes`, `tasks`, `playbooks`,
+  `planning_events`, `notifications.target_id`) → `client_group(company_id)` (decided 26/09/2026, replacing
+  the 24/09 `company.public_id` plan). `client_group` has no `id` column; its key is `company_id`. bigint:
+  every row is rewritten, old uuid → `company.public_id` → `company.id`, and the `/app/clients/<id>` URLs,
+  the MCP deep links and `notifications.target_id` / `route` change with them. `client_notes`, the eighth,
+  is replaced by `issue` instead. A **prospect is a client group** (26/09/2026), so its rows move the same
+  way — including `client_metrics`, which stays **clients-only** (decided 26/09/2026: hide the
+  monthly-metrics section for prospects). A foreign key cannot check a status, so that rule is the
+  application's (or a trigger's) from now on; prospect rows already stored must be deleted or kept aside
+  before the rewrite. Stage 3c.
+- **`trg_notify_client_note`** (a new note → an alert for the client's owner) reads the old `clients`
+  table: owner = `COALESCE(clients.csm_id, clients.user_id)`. It stays on `client_notes` while the notes
+  screen writes there, and moves to `issue` (on a `NOTE` insert) in stage 3c, reading the CSM from
+  `member_client_group`; the fallback — the client's creator, `clients.user_id` — is **not** mirrored into
+  core_v2, so what replaces it is not decided.
 - **Person columns** (28 tables) keep their values, the login uuid; a person is found through
   `member.auth_user_id` / `viewer.auth_user_id` (decided 26/09/2026). The foreign key goes to `auth.users`:
   one column cannot reference both `member` and `viewer`, and a member → viewer change deletes the `member`
   row — an FK to it would cascade to, or block on, everything that person wrote.
-- **Organization ids** (9 tables), decided per table on 26/09/2026: `chat_channels` / `chat_messages` →
-  `company.id`; `invitations` → `organization(company_id)` (the organization's key — there is no
-  `organization.id`); `client_notes` and `quotes` on hold; `client_metrics`, `email_templates`, `promo_codes`,
-  `activity_log` not decided. Both decided targets are bigint: those columns change type from uuid and every
+- **Organization ids** (8 tables), decided per table on 26/09/2026: `chat_channels` / `chat_messages` →
+  `company.id`; `invitations` and `client_metrics` → `organization(company_id)` (the organization's key —
+  there is no `organization.id`); `quotes` on hold (`client_notes` is no longer kept); `email_templates`, `promo_codes`,
+  `activity_log` not decided. The old uuid maps to the new key through `organizations.core_organization_id`. Both decided targets are bigint: those columns change type from uuid and every
   row is rewritten; `company.id` also admits a client company, `organization(company_id)` only an organization.
 
 ## RLS model

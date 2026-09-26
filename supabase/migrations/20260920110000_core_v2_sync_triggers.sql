@@ -14,14 +14,16 @@
 --   organization_members    (+ joined_at) + member_authority + organization.owner_personage_id
 --   user_profiles        -> NOT here: 20260924100000_core_v2_stage1_user_profiles.sql owns it
 --                           (only the one-time currency fill in core_v2_org_sync reads it)
---   clients              -> company (public_id = clients.id, name, logo) — shared by both lifecycles
---     (client)              + client_group (industry, notes, health, nps, churn_risk, health_status,
---                             renewal_date, created_at) + organization_client_group
---     (prospect)            + prospect (independent of client_group; the same company when won)
+--   clients              -> company (public_id = clients.id, name, logo)
+--                           + client_group (status PROSPECT | ACTIVE | CHURNED, pipeline_stage,
+--                             industry, notes, health, nps, churn_risk, health_status, renewal_date,
+--                             created_at) + organization_client_group — prospects included
 --   clients.contacts     -> personage + viewer (no login) + client_group_viewer (role, is_primary)
---   clients.arr (mrr×12) -> ONE opening profit row per client group (ARR = last 12 months of profit)
---   clients.churned_at   -> churn row + client_group.status CHURNED
---   clients.csm_id       -> member_client_group (the client's CSM) / prospect.member_id
+--   clients.arr (mrr×12) -> ONE opening profit row per client group (ARR = last 12 months of profit);
+--                           clients only — a prospect's arr is a deal value, not revenue
+--   clients.churned_at   -> churn row + client_group.status CHURNED (clients only)
+--   clients.csm_id       -> member_client_group (the CSM, or a prospect's deal owner)
+--   client_notes         -> issue (status NOTE, kind, content, author_name) — CORE-V2-NOTES, §5b
 -- NOT mirrored, on purpose (decided with the owner of this change): clients.csm (a text copy of
 -- the CSM's name, derived from member instead), clients.status is mirrored as health_status;
 -- plan / seats / trial / Stripe ids / is_founding / oxygen_team_enabled (organizations) — those
@@ -51,7 +53,8 @@
 -- statement supplied and restores the stored one (NULL on INSERT); only this file assigns it.
 -- clients and profiles get NO bridge column. A client's mirror is found by company.public_id =
 -- clients.id (CORE-V2-PUBLIC-ID) and a person's by member/viewer.auth_user_id — links held in
--- tables users cannot write. The 20/09 draft had clients.core_client_group_id / core_prospect_id,
+-- tables users cannot write; a note's by issue.description ->> 'note_id', unique. The 20/09 draft
+-- had clients.core_client_group_id / core_prospect_id,
 -- a second, forgeable copy of a link that the id itself already is.
 --
 -- PRE-PROD (wxbape…) FIRST, PROD on an explicit go (R8). Idempotent: safe to re-run.
@@ -84,7 +87,7 @@ as $fn$
 $fn$;
 
 -- clients.pipeline_stage (stores/clients.js PIPELINE_STAGES) -> the pipeline_stage enum.
--- Unknown or empty -> NULL; the prospect branch then falls back to NEW, as the store does.
+-- Unknown or empty -> NULL; for a prospect the client sync then falls back to NEW, as the store does.
 create or replace function public.core_v2_pipeline_stage(p_stage text)
 returns public.pipeline_stage
 language sql
@@ -279,13 +282,6 @@ begin
         on ocg.client_group_id = co.id and ocg.organization_id = v_core_org
      where c.csm_id = p_user
     on conflict do nothing;
-    update public.prospect pr
-       set member_id = v_pid
-     where pr.organization_id = v_core_org
-       and pr.member_id is distinct from v_pid
-       and pr.company_id in (select co.id from public.clients c
-                               join public.company co on co.public_id = c.id
-                              where c.csm_id = p_user);
   end if;
 
   -- uq_organization_worker_person: one organization per personage. Joining another organization
@@ -515,9 +511,10 @@ create trigger trg_core_v2_org_subscription_log
   after insert or update of plan on public.organizations
   for each row execute function public.core_v2_org_subscription_log();
 
--- Deleting an organization deletes its mirror: subscription, the rows mirrored from clients
--- (opening profit, churn — RESTRICT), the contacts' personal data, then the companies of its client
--- groups and prospects, then its own. issue / profit / churn rows a USER wrote are RESTRICT too and
+-- Deleting an organization deletes its mirror: subscription, the rows mirrored from clients and
+-- client_notes (opening profit, churn, notes — RESTRICT), the contacts' personal data, then the
+-- companies of its client groups (prospects included), then its own. issue / profit / churn rows a
+-- USER wrote are RESTRICT too and
 -- have no old-table source: if any exist the delete fails, is reported as a WARNING, and the
 -- mirror is left for a person to decide about — the old delete is never blocked.
 create or replace function public.core_v2_org_delete()
@@ -538,12 +535,14 @@ begin
      where organization_id = old.core_organization_id and description ->> 'source' = 'clients.arr';
     delete from public.churn
      where organization_id = old.core_organization_id and description ->> 'source' = 'clients.churned_at';
+    delete from public.issue
+     where description ->> 'source' = 'client_notes'
+       and (organization_id = old.core_organization_id
+            or client_group_id in (select ocg.client_group_id from public.organization_client_group ocg
+                                    where ocg.organization_id = old.core_organization_id));
     for v_company in
       select ocg.client_group_id from public.organization_client_group ocg
        where ocg.organization_id = old.core_organization_id
-      union
-      select pr.company_id from public.prospect pr
-       where pr.organization_id = old.core_organization_id
     loop
       perform public.core_v2_sync_contacts(v_company, '[]'::jsonb);
       delete from public.company where id = v_company;
@@ -562,19 +561,17 @@ create trigger trg_core_v2_org_delete
   for each row execute function public.core_v2_org_delete();
 
 -- ============================================================
--- §5 — Clients -> company + client_group | prospect (+ contacts, opening profit, churn)
+-- §5 — Clients -> company + client_group (+ contacts, CSM, opening profit, churn)
 -- ============================================================
 -- CORE-V2-PUBLIC-ID (24/09/2026): every clients row owns ONE company, found by public_id =
--- clients.id — for its whole life, prospect then client. On its lifecycle it then gets:
---   prospect -> a `prospect` row on that company (independent of client_group; carries the stage);
---   client   -> a client_group on that SAME company + organization_client_group. A prospect row
---               already there stays as the funnel history and is marked WON when the stage says so.
--- A row that goes client -> prospect gets a prospect row and leaves its client group untouched:
--- pipeline moves forward, and deleting a client group could hit RESTRICT-ed issues.
+-- clients.id, and ONE client group on it — for its whole life, prospect then client.
+-- CORE-V2-PROSPECT (26/09/2026): the lifecycle is client_group.status — PROSPECT while
+-- clients.lifecycle = 'prospect', then ACTIVE (CHURNED once churned_at is set) — and the funnel
+-- step is client_group.pipeline_stage. Winning a prospect changes the status of the same row.
 -- A client with no organization_id has nothing to attach to: no company at all.
 --
--- The CSM (clients.csm_id, a login) becomes member_client_group.member_id / prospect.member_id
--- when that login is a MEMBER; a viewer or an unknown login leaves the assignment empty.
+-- The CSM (clients.csm_id, a login) becomes member_client_group.member_id when that login is a
+-- MEMBER; a viewer or an unknown login leaves the assignment empty.
 --
 -- AFTER, not BEFORE: nothing is written back onto the clients row any more (the 20/09 draft
 -- assigned bridge columns there), so the mirror reads the row as committed, defaults and every
@@ -648,6 +645,7 @@ declare
   v_cid bigint;
   v_org bigint;
   v_csm bigint;
+  v_prospect boolean;
   v_status public.client_status;
   v_stage public.pipeline_stage;
   v_amount numeric;
@@ -677,9 +675,23 @@ begin
           on w.personage_id = m.personage_id and w.organization_id = v_org and w.job_status = 'ACTIVE'
        where m.auth_user_id = new.csm_id;
     end if;
-    v_stage := public.core_v2_pipeline_stage(new.pipeline_stage);
 
-    -- ── the company, shared by both lifecycles ──
+    -- CORE-V2-PROSPECT (26/09/2026): the lifecycle is the status. A prospect always has a stage —
+    -- NEW when clients holds none or an unknown one, which is what the store shows it as
+    -- (pipelineByStage) and what client_group_prospect_has_stage requires. A client keeps what
+    -- clients holds: WON when it was won, else nothing (clientToDb clears it).
+    v_prospect := new.lifecycle is not distinct from 'prospect';
+    v_stage := public.core_v2_pipeline_stage(new.pipeline_stage);
+    if v_prospect then
+      v_stage := coalesce(v_stage, 'NEW');
+    end if;
+    v_status := case
+      when v_prospect then 'PROSPECT'::public.client_status
+      when new.churned_at is not null then 'CHURNED'::public.client_status
+      else 'ACTIVE'::public.client_status
+    end;
+
+    -- ── the company ──
     -- country_code / currency_code stay NULL: clients carries neither (CORE-V2-COUNTRY, R21).
     select co.id into v_cid from public.company co where co.public_id = new.id;
     if v_cid is null then
@@ -694,45 +706,17 @@ begin
          and (name, photo_path) is distinct from (coalesce(new.name, ''), nullif(btrim(new.logo), ''));
     end if;
 
-    -- A company created just now gets its contacts whatever the statement was: the backfill
-    -- reaches existing rows through a no-op UPDATE, where contacts are "unchanged", and skipping
-    -- them there left every existing client without a single contact (caught by the local run).
-    if v_new_company or tg_op = 'INSERT' or new.contacts is distinct from old.contacts then
-      perform public.core_v2_sync_contacts(v_cid, new.contacts);
-    end if;
-
-    -- ── prospect ──
-    if new.lifecycle is not distinct from 'prospect' then
-      insert into public.prospect (organization_id, company_id, industry, notes, pipeline_stage, member_id)
-      values (v_org, v_cid, nullif(btrim(new.industry), ''), nullif(btrim(new.notes), ''),
-              coalesce(v_stage, 'NEW'), v_csm)
-      on conflict (company_id) do update
-        set organization_id = excluded.organization_id,
-            industry = excluded.industry,
-            notes = excluded.notes,
-            pipeline_stage = excluded.pipeline_stage,
-            member_id = excluded.member_id
-      where (prospect.organization_id, prospect.industry, prospect.notes, prospect.pipeline_stage, prospect.member_id)
-            is distinct from (excluded.organization_id, excluded.industry, excluded.notes,
-                              excluded.pipeline_stage, excluded.member_id);
-      return new;
-    end if;
-
-    -- ── client ──
-    v_status := case
-      when new.churned_at is not null then 'CHURNED'::public.client_status
-      else 'ACTIVE'::public.client_status
-    end;
-
+    -- ── the client group, prospect or client ──
     -- CORE-V2-CLIENT-HEALTH: health / nps / churn_risk / status copied as stored — never a
     -- default: the old store's `health ?? 5` is a display fallback, not data (R21).
-    insert into public.client_group (company_id, status, industry, notes, health, nps, churn_risk,
-                                     health_status, renewal_date, created_at)
-    values (v_cid, v_status, nullif(btrim(new.industry), ''), nullif(btrim(new.notes), ''),
+    insert into public.client_group (company_id, status, pipeline_stage, industry, notes, health, nps,
+                                     churn_risk, health_status, renewal_date, created_at)
+    values (v_cid, v_status, v_stage, nullif(btrim(new.industry), ''), nullif(btrim(new.notes), ''),
             new.health, new.nps, new.churn_risk, nullif(btrim(new.status), ''), new.renewal_date,
             new.created_at)
     on conflict (company_id) do update
       set status = excluded.status,
+          pipeline_stage = excluded.pipeline_stage,
           industry = excluded.industry,
           notes = excluded.notes,
           health = excluded.health,
@@ -741,11 +725,21 @@ begin
           health_status = excluded.health_status,
           renewal_date = excluded.renewal_date,
           created_at = coalesce(excluded.created_at, client_group.created_at)
-    where (client_group.status, client_group.industry, client_group.notes, client_group.health,
-           client_group.nps, client_group.churn_risk, client_group.health_status, client_group.renewal_date)
-          is distinct from (excluded.status, excluded.industry, excluded.notes, excluded.health,
-                            excluded.nps, excluded.churn_risk, excluded.health_status, excluded.renewal_date)
+    where (client_group.status, client_group.pipeline_stage, client_group.industry, client_group.notes,
+           client_group.health, client_group.nps, client_group.churn_risk, client_group.health_status,
+           client_group.renewal_date)
+          is distinct from (excluded.status, excluded.pipeline_stage, excluded.industry, excluded.notes,
+                            excluded.health, excluded.nps, excluded.churn_risk, excluded.health_status,
+                            excluded.renewal_date)
        or (client_group.created_at is null and excluded.created_at is not null);
+
+    -- A client group created just now gets its contacts whatever the statement was: the backfill
+    -- reaches existing rows through a no-op UPDATE, where contacts are "unchanged", and skipping
+    -- them there left every existing client without a single contact (caught by the local run).
+    -- After the client group, which client_group_viewer references.
+    if v_new_company or tg_op = 'INSERT' or new.contacts is distinct from old.contacts then
+      perform public.core_v2_sync_contacts(v_cid, new.contacts);
+    end if;
 
     -- A client group belongs to exactly one organization (uq_organization_client_group_client).
     delete from public.organization_client_group
@@ -754,7 +748,15 @@ begin
     values (v_org, v_cid)
     on conflict do nothing;
 
-    -- The CSM: clients.csm_id is a single assignee, so the mirror REPLACES the assignment.
+    -- CORE-V2-NOTES: a client moved to another organization takes its notes with it — they are
+    -- read by organization (core_v2_issue_note_org_only), and the old one must lose them.
+    update public.issue
+       set organization_id = v_org
+     where client_group_id = v_cid and description ->> 'source' = 'client_notes'
+       and organization_id is distinct from v_org;
+
+    -- The CSM: clients.csm_id is a single assignee, so the mirror REPLACES the assignment. The
+    -- same for a prospect (the deal owner) and a client.
     delete from public.member_client_group
      where client_group_id = v_cid and (v_csm is null or member_id <> v_csm);
     if v_csm is not null then
@@ -763,11 +765,15 @@ begin
       on conflict do nothing;
     end if;
 
-    -- A prospect that became this client: record the win on its funnel row.
-    if v_stage = 'WON' then
-      update public.prospect
-         set pipeline_stage = 'WON'
-       where company_id = v_cid and pipeline_stage is distinct from 'WON';
+    -- A prospect has no realized revenue and has not churned (stores/clients.js: "prospects have
+    -- no realized ARR"). Its arr, if any, is a deal value and is NOT mirrored — an opening profit
+    -- row would put it in the ARR. A client sent back to prospect loses both rows for the same reason.
+    if v_prospect then
+      delete from public.profit
+       where client_group_id = v_cid and description ->> 'source' = 'clients.arr';
+      delete from public.churn
+       where client_group_id = v_cid and description ->> 'source' = 'clients.churned_at';
+      return new;
     end if;
 
     -- CORE-V2-ARR-PROFIT (24/09/2026): ARR = the client group's profit rows dated in the last 12
@@ -825,9 +831,9 @@ create trigger trg_core_v2_client_sync
   after insert or update on public.clients
   for each row execute function public.core_v2_client_sync();
 
--- Deleting a client deletes its mirror: the rows mirrored from it (opening profit, churn —
--- RESTRICT), its contacts' personal data, then the company (prospect, client group and links go by
--- cascade). issue / profit / churn rows a USER wrote block it (RESTRICT) and it is left, with a
+-- Deleting a client deletes its mirror: the rows mirrored from it and from its notes (opening
+-- profit, churn, notes — RESTRICT), its contacts' personal data, then the company (client group and
+-- links go by cascade). issue / profit / churn rows a USER wrote block it (RESTRICT) and it is left, with a
 -- WARNING, for a person to decide about.
 create or replace function public.core_v2_client_delete()
 returns trigger
@@ -845,6 +851,7 @@ begin
     end if;
     delete from public.profit where client_group_id = v_cid and description ->> 'source' = 'clients.arr';
     delete from public.churn where client_group_id = v_cid and description ->> 'source' = 'clients.churned_at';
+    delete from public.issue where client_group_id = v_cid and description ->> 'source' = 'client_notes';
     perform public.core_v2_sync_contacts(v_cid, '[]'::jsonb);
     delete from public.company where id = v_cid;
   exception when others then
@@ -858,6 +865,108 @@ drop trigger if exists trg_core_v2_client_delete on public.clients;
 create trigger trg_core_v2_client_delete
   after delete on public.clients
   for each row execute function public.core_v2_client_delete();
+
+-- ============================================================
+-- §5b — Client notes -> issue (CORE-V2-NOTES)
+-- ============================================================
+-- client_notes is replaced by issue (decided 26/09/2026). Until the notes screen moves, every note
+-- written, edited or deleted in client_notes is mirrored as ONE issue: status NOTE, kind / content /
+-- author_name, start_date = when it was written, description {"source":"client_notes",
+-- "note_id":<uuid>} — the link back, unique (uq_issue_client_note). The client group is the note's
+-- client (company.public_id); the organization is the one that owns that client group, not
+-- client_notes.organization_id, which nothing keeps in step with the client and which the scope
+-- trigger would refuse when the two disagree. The author becomes member_id when their login is a
+-- member, else viewer_id when it is a viewer; a login that is neither leaves both NULL and the
+-- signature in author_name. A note whose client has no mirror (no organization) is not mirrored;
+-- the drift check in §7 lists it. trg_notify_client_note stays on client_notes (AFTER INSERT only,
+-- so the backfill's no-op UPDATE notifies nobody).
+create or replace function public.core_v2_note_sync()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $fn$
+declare
+  v_cg bigint;
+  v_org bigint;
+  v_member bigint;
+  v_viewer bigint;
+  v_kind public.issue_kind;
+  v_author text;
+begin
+  begin
+    select g.company_id, ocg.organization_id into v_cg, v_org
+      from public.company co
+      join public.client_group g on g.company_id = co.id
+      join public.organization_client_group ocg on ocg.client_group_id = g.company_id
+     where co.public_id = new.client_id;
+    if v_cg is null then
+      return new;
+    end if;
+
+    v_member := null;
+    v_viewer := null;
+    if new.author_id is not null then
+      select m.personage_id into v_member from public.member m where m.auth_user_id = new.author_id;
+      if v_member is null then
+        select v.personage_id into v_viewer from public.viewer v where v.auth_user_id = new.author_id;
+      end if;
+    end if;
+    -- client_notes.kind has no CHECK; its default is 'note', and an unknown value is kept as one.
+    v_kind := case lower(btrim(coalesce(new.kind, '')))
+      when 'call'    then 'CALL'::public.issue_kind
+      when 'email'   then 'EMAIL'::public.issue_kind
+      when 'meeting' then 'MEETING'::public.issue_kind
+      else 'NOTE'::public.issue_kind
+    end;
+    v_author := nullif(btrim(new.author_name), '');
+
+    update public.issue
+       set organization_id = v_org, client_group_id = v_cg, member_id = v_member, viewer_id = v_viewer,
+           kind = v_kind, content = new.content, author_name = v_author, start_date = new.created_at
+     where description ->> 'source' = 'client_notes' and description ->> 'note_id' = new.id::text
+       and (organization_id, client_group_id, member_id, viewer_id, kind, content, author_name, start_date)
+           is distinct from (v_org, v_cg, v_member, v_viewer, v_kind, new.content, v_author, new.created_at);
+    if not exists (select 1 from public.issue
+                    where description ->> 'source' = 'client_notes' and description ->> 'note_id' = new.id::text) then
+      insert into public.issue (organization_id, client_group_id, member_id, viewer_id, status, start_date,
+                                description, kind, content, author_name)
+      values (v_org, v_cg, v_member, v_viewer, 'NOTE', new.created_at,
+              jsonb_build_object('source', 'client_notes', 'note_id', new.id), v_kind, new.content, v_author);
+    end if;
+  exception when others then
+    raise warning 'core_v2 note sync failed for %: % (%)', new.id, sqlerrm, sqlstate;
+  end;
+  return new;
+end;
+$fn$;
+
+drop trigger if exists trg_core_v2_note_sync on public.client_notes;
+create trigger trg_core_v2_note_sync
+  after insert or update on public.client_notes
+  for each row execute function public.core_v2_note_sync();
+
+create or replace function public.core_v2_note_delete()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $fn$
+begin
+  begin
+    delete from public.issue
+     where description ->> 'source' = 'client_notes' and description ->> 'note_id' = old.id::text;
+  exception when others then
+    raise warning 'core_v2 note delete failed for %: % (%)', old.id, sqlerrm, sqlstate;
+  end;
+  return old;
+end;
+$fn$;
+
+drop trigger if exists trg_core_v2_note_delete on public.client_notes;
+create trigger trg_core_v2_note_delete
+  after delete on public.client_notes
+  for each row execute function public.core_v2_note_delete();
 
 -- ============================================================
 -- §6 — Nobody calls these but the triggers
@@ -879,11 +988,13 @@ revoke all on function public.core_v2_client_sync()                   from publi
 revoke all on function public.core_v2_client_delete()                 from public, anon, authenticated;
 revoke all on function public.core_v2_sync_contacts(bigint, jsonb)     from public, anon, authenticated;
 revoke all on function public.core_v2_pipeline_stage(text)            from public, anon, authenticated;
+revoke all on function public.core_v2_note_sync()                     from public, anon, authenticated;
+revoke all on function public.core_v2_note_delete()                   from public, anon, authenticated;
 
 -- ============================================================
 -- §7 — Verification (run AFTER applying, in pre-prod)
 -- ============================================================
--- 7.1 — The eight triggers exist. Expect 8 rows (9 once 20260924100000 adds the user_profiles mirror).
+-- 7.1 — The ten triggers exist. Expect 10 rows (11 once 20260924100000 adds the user_profiles mirror).
 --
 --   select event_object_table as tbl, trigger_name
 --   from information_schema.triggers
@@ -927,12 +1038,15 @@ revoke all on function public.core_v2_pipeline_stage(text)            from publi
 --    where not exists (select 1 from public.company co where co.public_id = c.id)
 --   union all
 --   select 'client_groups', c.id::text from public.clients c join public.company co on co.public_id = c.id
---    where c.lifecycle is distinct from 'prospect'
---      and not exists (select 1 from public.client_group g where g.company_id = co.id)
+--    where not exists (select 1 from public.client_group g
+--                       where g.company_id = co.id
+--                         and (g.status = 'PROSPECT') = (c.lifecycle is not distinct from 'prospect'))
 --   union all
---   select 'prospects', c.id::text from public.clients c join public.company co on co.public_id = c.id
---    where c.lifecycle = 'prospect'
---      and not exists (select 1 from public.prospect p where p.company_id = co.id);
+--   select 'client_notes', n.id::text from public.client_notes n
+--     join public.company co on co.public_id = n.client_id
+--    where not exists (select 1 from public.issue i
+--                       where i.description ->> 'source' = 'client_notes'
+--                         and i.description ->> 'note_id' = n.id::text);
 
 -- ============================================================
 -- §8 — Rollback
@@ -945,6 +1059,9 @@ revoke all on function public.core_v2_pipeline_stage(text)            from publi
 --   drop trigger if exists trg_core_v2_org_delete           on public.organizations;
 --   drop trigger if exists trg_core_v2_client_sync          on public.clients;
 --   drop trigger if exists trg_core_v2_client_delete        on public.clients;
+--   drop trigger if exists trg_core_v2_note_sync            on public.client_notes;
+--   drop trigger if exists trg_core_v2_note_delete          on public.client_notes;
+--   drop function if exists public.core_v2_note_sync(), public.core_v2_note_delete();
 --   drop function if exists public.core_v2_profile_sync(), public.core_v2_member_sync(),
 --     public.core_v2_profile_delete(), public.core_v2_org_sync(), public.core_v2_org_subscription_log(),
 --     public.core_v2_org_delete(), public.core_v2_client_sync(), public.core_v2_client_delete(),

@@ -57,15 +57,20 @@ Three migrations also live under `app-v2/frontend/supabase/migrations/`.
 `organizations` / `profiles` / `clients` / `organization_members` stay the source of truth, and
 fail-open `SECURITY DEFINER` triggers mirror them into `core_v2` (one bridge column,
 `organizations.core_organization_id`; a client's mirror is found by `company.public_id =
-clients.id`, so the old client uuid survives as the company's public id — `CORE-V2-PUBLIC-ID`).
+clients.id`, which also maps each old client uuid to its new id — `CORE-V2-PUBLIC-ID`).
 The only app code that reads or writes `core_v2` is stage 1 below (the profile store, the
 questionnaire, the currency picker, `api/billing.js`, the AI context). **The old core tables are to be
 deleted** (decided 20/09/2026), in stages — reads, then writes, then repointing the ~30 tables that
 reference the old uuids, then a drop migration — so a column the product still needs must get a
 home in `core_v2`. `health`, `nps`, `churn_risk`, `renewal_date` live on `client_group` and contacts
-are viewers linked to the company (kept 24/09/2026, reversing the 20/09 "drop"); `arr` / `mrr` become
-`profit` rows — **ARR = the last 12 months of profit, MRR = ARR / 12**. A prospect is an independent
-`prospect` row on its own `company`, and the client group it becomes is created on that same company.
+are viewers linked to the client group (kept 24/09/2026, reversing the 20/09 "drop"); `arr` / `mrr` become
+`profit` rows — **ARR = the last 12 months of profit, MRR = ARR / 12**. **A prospect is a client group**
+whose `status` is `PROSPECT`, with a `pipeline_stage` column; winning it turns the same row `ACTIVE`
+(`CORE-V2-PROSPECT`, 26/09/2026 — the independent `prospect` table is gone). **`client_notes` is replaced
+by `issue`**: a note is an issue with `status = 'NOTE'` and the columns `kind` / `content` /
+`author_name`, read by the organization only (`CORE-V2-NOTES`, 26/09/2026). **An AI (MCP) session may read
+notes** in `issue` (`CORE-V2-NOTES-AI`, decided 26/09/2026) — looser than today, where
+`20260914120000` keeps it out of `client_notes` as sensitive prose; it goes live when the notes screen moves.
 A person's role and seniority live on `organization_worker` (composite FK to `organization_role`),
 not on `member`. **The old tables are being retired one at a time** — `user_profiles` →
 `organization_members` → `clients` → `organizations` + `profiles` — each by reads, then writes,
@@ -76,13 +81,13 @@ organization, and the RPCs `core_v2_my_profile` / `core_v2_set_organization_curr
 only) / `core_v2_complete_onboarding`, which the front end now calls instead of `user_profiles`.
 Apply it **before** that front end ships. **Stage 3a (`clients`) was started before stage 2, on
 request (24/09/2026)** and is schema + mirror + backfill only — the app still reads and writes
-`clients`; 3b (reads), 3c (writes, the revenue list, the 7 foreign keys to `company.public_id`)
-and 3d (drop) are to do. Plan tier, seats, trial and Stripe ids wait for a subscription-information table,
+`clients` and `client_notes`; 3b (reads), 3c (writes, the revenue list, the notify trigger moved to `issue`,
+the 7 client references rewritten to `client_group(company_id)`) and 3d (drop of both) are to do. Plan tier, seats, trial and Stripe ids wait for a subscription-information table,
 and the tier is **never** a column of `organization` or `organization_worker` (`CORE-V2-PLAN-HOME`, 24/09/2026).
-All five old core tables go (confirmed 26/09/2026). The 30 old tables that stay keep their client ids (→ `company.public_id`) and their person ids (login uuids, found through `member` / `viewer.auth_user_id`, FK to `auth.users`); their `organization_id` targets are decided per table — see [docs/DATABASE.md](docs/DATABASE.md#retiring-the-old-core-tables).
+All five old core tables go (confirmed 26/09/2026), and `client_notes` with `clients`. The 29 old tables that stay move their client ids to `client_group(company_id)` (bigint, rows rewritten; a prospect is a client group, so its rows move too — `client_metrics` stays clients-only, which only the application can now enforce) and keep their person ids (login uuids, found through `member` / `viewer.auth_user_id`, FK to `auth.users`); their `organization_id` targets are decided per table — see [docs/DATABASE.md](docs/DATABASE.md#retiring-the-old-core-tables).
 Do not read `core_v2` for plan or seats, nor for client data before stage 3b; when you add a column to `organizations` / `clients` / `profiles` decide whether it belongs in the mirror.
 Details, deviations and limits: [docs/DATABASE.md](docs/DATABASE.md#core_v2--the-new-core-schema-additive).
-**Tested on a local Postgres 16 with Supabase stand-ins (196 assertions pass, stages 1 and 3a included, last run 24/09/2026); NOT applied to any Supabase project — pre-prod first.**
+**Tested on a local Postgres 16 with Supabase stand-ins (219 assertions pass, stages 1 and 3a included, last run 26/09/2026); NOT applied to any Supabase project — pre-prod first.**
 
 **`supabase/migrations/` is canonical for RLS and for changes — NOT for schema** (verified
 07/09/2026). Only **8 of the 35 tables** the code touches have a `CREATE TABLE` anywhere in
@@ -214,7 +219,8 @@ broke something visible. Do not relax one without saying so explicitly.
 - **Seats are billed at invitation, not acceptance.** Removal is fail-closed: Stripe
   before any database write.
 - **Prospects are excluded** from portfolio counters, health aggregates and alerts. Use
-  `clientsOnly`.
+  `clientsOnly`. In core_v2 a prospect is a `client_group` too (`status = 'PROSPECT'`), so any
+  query over `client_group` must filter `status <> 'PROSPECT'` itself — nothing structural does.
 - **Cloudflare Pages does not reliably resolve newly added module files** — that is why
   the `wellbeing` AI handler is inlined twice.
 - **`check-i18n.mjs` loads only `fr/en/ko.js`** — `landing.js`, `legal.js` and `dpa.js`
