@@ -1,0 +1,47 @@
+-- SCALYO — email_templates: drop owner_id.
+--
+-- ET-OWNER (27/09/2026): email_templates.owner_id is dropped (decided 27/09/2026). It was written by
+-- one place only, stores/emailStudio.saveTemplate, with the same value as created_by (the author's
+-- login id), and read by nothing — no policy, no view, no function, no API route. Two columns for
+-- one fact drift the moment a writer fills one and forgets the other, and created_by is the one the
+-- RLS of 20260708230000 checks.
+--
+-- ORDER — the front end first, then this file:
+--   1. Check the live column. email_templates was created in the Supabase dashboard, so its
+--      definition is not in this repository:
+--
+--        select is_nullable, column_default from information_schema.columns
+--         where table_schema = 'public' and table_name = 'email_templates' and column_name = 'owner_id';
+--
+--      If is_nullable = 'NO' and column_default is NULL, run this BEFORE step 2, or every save from
+--      the new front end fails on the NOT NULL:
+--
+--        alter table public.email_templates alter column owner_id drop not null;
+--
+--   2. Deploy the front end that no longer sends owner_id (stores/emailStudio.js, ET-OWNER).
+--   3. Apply this file. Applied before step 2 it breaks saving a template: the old front end still
+--      sends owner_id, and PostgREST refuses a column that does not exist (PGRST204).
+--
+-- The drop has no CASCADE on purpose: if a view or policy in the dashboard does use owner_id, the
+-- statement fails and says which, instead of silently taking that object with it.
+--
+-- PRE-PROD FIRST, PROD on an explicit go. Idempotent.
+
+alter table public.email_templates drop column if exists owner_id;
+
+-- ============================================================
+-- Verification (run AFTER applying, in pre-prod)
+-- ============================================================
+-- 1. The column is gone. Expect 0 rows.
+--
+--   select 1 from information_schema.columns
+--    where table_schema = 'public' and table_name = 'email_templates' and column_name = 'owner_id';
+--
+-- 2. Saving still works: in the Email Studio, write a subject and a body, save as a template, reload
+--    the page — the template is listed, and a teammate of the same organization sees it too.
+--
+-- ============================================================
+-- Rollback
+-- ============================================================
+--   alter table public.email_templates add column if not exists owner_id uuid;
+--   update public.email_templates set owner_id = created_by::uuid where owner_id is null;

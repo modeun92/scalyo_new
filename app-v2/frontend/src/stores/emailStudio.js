@@ -78,8 +78,9 @@ export const useEmailStudioStore = defineStore('emailStudio', () => {
   async function saveTemplate({ name, subject, body, category, lang }) {
     lastError.value = null
     try {
+      // ET-OWNER (27/09/2026): no owner_id — it always held created_by's value and nothing read it;
+      // 20260927100000 drops the column once this build is live.
       const payload = {
-        owner_id: auth.user?.id,
         created_by: auth.user?.id,
         organization_id: auth.profile?.organization_id || null, // CR-C : template partage a l'org (RLS 20260708230000)
         name,
