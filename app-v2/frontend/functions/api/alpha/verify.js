@@ -30,7 +30,9 @@ export async function onRequestPost(context) {
   const normalizedCode = code.trim().toUpperCase()
 
   try {
-    const url = `${supabaseUrl}/rest/v1/promo_codes?code=eq.${encodeURIComponent(normalizedCode)}&status=eq.active&select=id,code,plan,max_seats,valid_days,status`
+    // PROMO-USED (27/09/2026): an unused code is one with no activated_at — promo_codes.status is
+    // dropped (20260927120000). plan / max_seats stay until subscription_id carries the terms.
+    const url = `${supabaseUrl}/rest/v1/promo_codes?code=eq.${encodeURIComponent(normalizedCode)}&activated_at=is.null&select=id,code,plan,max_seats,valid_days`
 
     const resp = await fetch(url, {
       headers: {
