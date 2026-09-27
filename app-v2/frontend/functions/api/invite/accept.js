@@ -64,32 +64,23 @@ export async function onRequestPost(context) {
       })
     }
 
-    // 5. D2① — membership of ANOTHER organization: explicit refusal, zero writes.
-    //    uq_org_member covers the PAIR (organization_id, user_id): the database
-    //    allows multiple memberships. Single-org only exists in profiles.
-    const memberships = await db.select('organization_members', 'user_id=eq.' + user.id)
-    const profile = await db.selectOne('profiles', 'id=eq.' + user.id)
-    const currentOrgId =
-      (profile && profile.organization_id) ||
-      (Array.isArray(memberships) && memberships.length ? memberships[0].organization_id : null)
-    if (currentOrgId) {
-      let currentOrgName = null
-      try {
-        const currentOrg = await db.selectOne('organizations', 'id=eq.' + currentOrgId)
-        currentOrgName = currentOrg ? currentOrg.name : null
-      } catch (_) { /* name unavailable: the refusal still stands */ }
-      return errorCode(409, 'already_member_other_org', { current_organization: currentOrgName })
-    }
-
-    // 6. Member insertion. The enforce_org_seat_limit trigger may raise.
+    // 5–7. OWN-ORG (27/09/2026): every account has an organization of its own from signup, so
+    //    "already in an organization" is now the normal case. switch_to_invited_organization
+    //    (20260927130000) decides and writes in ONE transaction: an EMPTY own organization is
+    //    deleted and the account joins this one; an own organization that holds anything, or
+    //    membership of somebody else's, is refused with zero writes — never an implicit overwrite
+    //    of profiles.organization_id (INVITE-ANY-USER). Done as separate REST calls, a seat-limit
+    //    refusal after the release would have left the account with no organization at all.
+    let switched
     try {
-      await db.insert('organization_members', {
-        organization_id: invitation.organization_id,
-        user_id: user.id,
-        role: invitation.role,
+      switched = await db.rpc('switch_to_invited_organization', {
+        p_user: user.id,
+        p_org: invitation.organization_id,
+        p_role: invitation.role || 'member',
       })
-    } catch (insertErr) {
-      const msg = String((insertErr && insertErr.message) || '')
+    } catch (switchErr) {
+      const msg = String((switchErr && switchErr.message) || '')
+      // The enforce_org_seat_limit trigger raises inside the call; everything rolled back.
       if (/SEAT_LIMIT_REACHED/i.test(msg) || /seat limit/i.test(msg)) {
         return errorCode(409, 'seat_limit_reached')
       }
@@ -103,16 +94,20 @@ export async function onRequestPost(context) {
           role: invitation.role,
         })
       }
-      console.error('invite/accept — insert organization_members:', msg)
+      console.error('invite/accept — switch_to_invited_organization:', msg)
       return errorCode(500, 'server_error')
     }
-
-    // 7. Profile — SETS a missing organization, never an overwrite:
-    //    the "belongs elsewhere" case exited at step 5.
-    await db.update('profiles', 'id=eq.' + user.id, {
-      organization_id: invitation.organization_id,
-      org_role: invitation.role || 'member',
-    })
+    if (!switched || switched.ok !== true) {
+      const code = (switched && switched.code) || 'server_error'
+      if (code === 'already_member_other_org' || code === 'own_organization_not_empty') {
+        return errorCode(409, code, {
+          current_organization: (switched && switched.current_organization) || null,
+          reason: (switched && switched.reason) || null,
+        })
+      }
+      console.error('invite/accept — switch refused:', code)
+      return errorCode(500, 'server_error')
+    }
 
     // NB: there is no activated_at column on invitations (baseline 20260624131657 L577)
     await db.update('invitations', 'id=eq.' + invitation.id, { status: 'accepted' })

@@ -153,7 +153,8 @@ $fn$;
 --
 -- Truth order: profiles.organization_id says WHICH organization (the canonical source stores/
 -- auth.js uses); organization_members.role says the role for it, falling back to
--- profiles.org_role. Both are written by invite/accept.js and alpha/activate.js.
+-- profiles.org_role. Both are written by invite/accept.js and, since 27/09/2026, by
+-- ensure_own_organization / switch_to_invited_organization (20260927130000).
 create or replace function public.core_v2_sync_user(p_user uuid)
 returns void
 language plpgsql
@@ -341,7 +342,7 @@ create trigger trg_core_v2_profile_sync
   for each row execute function public.core_v2_profile_sync();
 
 -- organization_members -> core_v2. The seat table: a role written here (invite/accept.js,
--- alpha/activate.js) is re-read by core_v2_sync_user next to the profile's organization.
+-- ensure_own_organization) is re-read by core_v2_sync_user next to the profile's organization.
 create or replace function public.core_v2_member_sync()
 returns trigger
 language plpgsql

@@ -281,11 +281,17 @@ if (e.message === 'login_timeout') { clearSupabaseStorage(); await resetGoTrueCl
 return { success: false, error: error.value }
 } finally { loading.value = false }
 }
-async function register(email, password, firstName, lastName, locale = 'fr') {
+async function register(email, password, firstName, lastName, locale = 'fr', promoCode = null) {
 loading.value = true
 error.value = null
 try {
-const { data, error: err } = await supabase.auth.signUp({ email, password, options: { data: { first_name: firstName, last_name: lastName, locale }, emailRedirectTo: `${window.location.origin}/login?verified=true` } })
+// PROMO-AT-SIGNUP (27/09/2026): the alpha code travels in the signup metadata and the database
+// applies it to the account's own organization in the same transaction (20260927130000). It used
+// to be sent afterwards to /api/alpha/activate with a user id the endpoint believed blindly — and
+// with e-mail confirmation on there is no session yet to prove who is asking.
+const meta = { first_name: firstName, last_name: lastName, locale }
+if (promoCode && String(promoCode).trim()) meta.promo_code = String(promoCode).trim()
+const { data, error: err } = await supabase.auth.signUp({ email, password, options: { data: meta, emailRedirectTo: `${window.location.origin}/login?verified=true` } })
 if (err) { error.value = err.message; return { success: false, error: err.message } }
 if (data.user) { fetch(SUPABASE_URL + '/functions/v1/send-welcome-email', { method: 'POST', headers: { 'Content-Type': 'application/json', 'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY }, body: JSON.stringify({ email, firstName, lastName }) }).catch(() => {}) }
 return { success: true, needsConfirmation: !data.session, user: data.user }

@@ -112,7 +112,7 @@ const accepted = ref(false)
 const alreadyMember = ref(false)
 const confirmationRequired = ref(false)
 const registerError = ref('')
-// 'email_mismatch' | 'already_member_other_org' | 'seat_limit_reached' | 'invitation_not_valid'
+// 'email_mismatch' | 'already_member_other_org' | 'own_organization_not_empty' | 'seat_limit_reached' | 'invitation_not_valid'
 const blocked = ref('')
 const blockedDetails = ref({})
 
@@ -126,6 +126,7 @@ const roleLabel = computed(() => {
 const blockedTitle = computed(() => {
   if (blocked.value === 'email_mismatch') return t('join_mismatch_title')
   if (blocked.value === 'already_member_other_org') return t('join_other_org_title')
+  if (blocked.value === 'own_organization_not_empty') return t('join_own_org_title')
   if (blocked.value === 'seat_limit_reached') return t('join_seat_limit_title')
   return t('join_not_valid_title')
 })
@@ -140,6 +141,12 @@ const blockedBody = computed(() => {
   if (blocked.value === 'already_member_other_org') {
     const org = blockedDetails.value.current_organization
     return org ? t('join_other_org_body', { org }) : t('join_other_org_body_noname')
+  }
+  // OWN-ORG (27/09/2026): every account has an organization of its own; accepting deletes it only
+  // when it is empty, and refuses otherwise — nothing is written.
+  if (blocked.value === 'own_organization_not_empty') {
+    const org = blockedDetails.value.current_organization
+    return org ? t('join_own_org_body', { org }) : t('join_own_org_body_noname')
   }
   if (blocked.value === 'seat_limit_reached') return t('join_seat_limit_body')
   return t('join_not_valid_body')
@@ -185,7 +192,7 @@ onMounted(async () => {
 
 function applyErrorPayload(status, data) {
   const code = (data && data.code) || ''
-  if (['email_mismatch', 'already_member_other_org', 'seat_limit_reached'].includes(code)) {
+  if (['email_mismatch', 'already_member_other_org', 'own_organization_not_empty', 'seat_limit_reached'].includes(code)) {
     blocked.value = code
     blockedDetails.value = data || {}
     return true

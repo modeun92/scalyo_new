@@ -162,7 +162,6 @@ async function verifyCode() {
 
     if (resp.ok && data.valid) {
       codeVerified.value = true
-      localStorage.setItem('scalyo_promo_code', JSON.stringify({ code: inviteCode.value.trim(), plan: data.plan, maxSeats: data.maxSeats, validDays: data.validDays }))
     } else {
       codeError.value = data.error || t('alpha_code_invalid')
     }
@@ -194,35 +193,19 @@ async function handleRegister() {
   errorMsg.value = ''
   loading.value = true
 
+  // PROMO-AT-SIGNUP (27/09/2026): the code goes with the signup; the database applies it to the
+  // account's own organization in the same transaction (20260927130000). No second call, nothing
+  // left in localStorage for a later login on another device to miss.
   const result = await authStore.register(
     email.value, password.value,
     firstName.value, lastName.value,
-    currentLocale.value
+    currentLocale.value,
+    inviteCode.value.trim()
   )
 
   loading.value = false
 
   if (result.success) {
-    // Activate promo code — create org + owner
-    try {
-      const promoData = JSON.parse(localStorage.getItem('scalyo_promo_code') || '{}')
-      if (promoData.code && result.user?.id) {
-        await fetch('/api/alpha/activate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            code: promoData.code,
-            userId: result.user.id,
-            email: email.value,
-            companyName: '',
-            lang: currentLocale.value
-          })
-        })
-        localStorage.removeItem('scalyo_promo_code')
-      }
-    } catch (e) {
-      console.error('Promo activation error:', e)
-    }
     success.value = true
   } else {
     errorMsg.value = result.error

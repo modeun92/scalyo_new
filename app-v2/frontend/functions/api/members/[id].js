@@ -60,6 +60,15 @@ export async function onRequestDelete(context) {
     if (newQty !== null) {
       await db.update('organizations', 'id=eq.' + membership.organization_id, { seats_paid: newQty })
     }
+    // OWN-ORG (27/09/2026): every account has an organization, so the removed person gets their own
+    // back (20260927130000) rather than an org-less account the app no longer expects. Isolated like
+    // the log below: the removal is done, and a failure here shows in the drift check
+    // (profiles.organization_id IS NULL) and is healed by calling the same function again.
+    try {
+      await db.rpc('ensure_own_organization', { p_user: target.user_id })
+    } catch (ownErr) {
+      console.error('members/[id] ensure_own_organization:', (ownErr && ownErr.message) || ownErr)
+    }
 
     // Isolated log: a failing log must never suggest that the removal
     // failed — at this point the member is already gone (accept.js pattern, Lot 6).
