@@ -42,6 +42,10 @@ is an older, superseded file.
 | `20260920110000_core_v2_sync_triggers` | Bridge column `organizations.core_organization_id` + fail-open triggers that mirror `organizations`, `profiles`, `organization_members`, `clients` (contacts, health, ARR → profit, churn included) into `core_v2` |
 | `20260920120000_core_v2_backfill` | One-time, idempotent mirror of the rows that already exist (re-uses the triggers) |
 | `20260924100000_core_v2_stage1_user_profiles` | Stage 1 of [retiring the old core tables](#retiring-the-old-core-tables): `organization_worker.onboarding_completed`, the `consent` log, the RPCs the front end now calls instead of `user_profiles`, a transitional `user_profiles` mirror and its backfill. **Apply before the stage-1 front end** |
+| `20260927100000_email_templates_drop_owner_id` | Drops `email_templates.owner_id` — a copy of `created_by` that nothing read (`ET-OWNER`). **Apply after the front end that stops sending it**; check the column's `NOT NULL` first (header) |
+| `20260927110000_promo_codes_issued_contact_subscription` | `promo_codes` gains `issued_at` (date), `contact` (jsonb object), `subscription_id` (→ core_v2 `subscription`, `RESTRICT`); refuses to run while a code's `status` and `activated_at` disagree. **After core_v2 part 1, before the alpha API that reads `activated_at`** |
+| `20260927120000_promo_codes_drop_status_org_expires` | Drops `promo_codes.status` (used = `activated_at` set, `PROMO-USED`), `organization_id`, `expires_at` (a copy of `trial_ends_at`). **After that API is live** |
+| `20260927130000_own_organization_per_user` | Every account gets an organization of its own (`OWN-ORG`): at signup (trigger on `profiles` insert), for existing org-less accounts (backfill, their org-less rows adopted), and after a removal. Redeems the signup's alpha code in the same transaction (`PROMO-AT-SIGNUP`, replacing `/api/alpha/activate`). Invite acceptance becomes one transaction (`switch_to_invited_organization`): an **empty** own organization is deleted, a non-empty one refuses. **Deploy with the front end** that sends the code at signup, migration first |
 | `20260721000000_copils_client_id` (front) | Idempotent guarantee that `copils.client_id` exists |
 | `20260721010000_notify_client_note` (front) | Trigger notifying a client's owner when a colleague adds a note |
 | `20260801120000_planning_recurrence` (front) | `planning_events.recurrence` + `series_id` |
@@ -247,9 +251,9 @@ drops the table and its sync trigger. Applied migration files are never deleted.
 | Stage | Old table | Replaced by | Blocked on |
 |---|---|---|---|
 | 1 | `user_profiles` | `company.currency_code`, `organization_worker` (role, seniority, `onboarding_completed`), `consent` | **Written 24/09/2026, not deployed** — see below |
-| 2 | `organization_members` | `organization_worker`, `member` / `manager`, `member_authority` | Invite / accept / removal / seat counting (13 files incl. the MCP tenant check) rewritten; seats counted from `ACTIVE` workers until the subscription-information table exists |
+| 2 + 4a | `organization_members` + `profiles` (retired together, decided 27/09/2026) | `personage` (name, e-mail, language **and region**), `member` / `manager` / `viewer`, `member_authority`, `organization_worker`; the first-run tour flag on `member` | **Step A written 27/09/2026, not applied** (`20260927130000`, below). Then B reads and C writes move to core_v2, D the billing fields to `subscription`, E the drop |
 | 3 | `clients` + `client_notes` | `company` (identity, `public_id` = the old uuid) + `client_group` (prospects as `status = 'PROSPECT'`), contacts as viewers, ARR as `profit`, churn as `churn`; the notes as `issue` rows (`status = 'NOTE'`) | **3a written 24/09/2026, reworked 26/09/2026, not applied** (schema + mirror + backfill, below). Next: 3b the store and the notes screen read core_v2; 3c writes through RPCs (a note too), a per-client revenue (profit) list replacing the ARR / MRR fields, `trg_notify_client_note` moved to `issue`, and the 7 client references rewritten to `client_group(company_id)` (see below); 3d the drop of both |
-| 4 | `organizations` + `profiles` | `company` / `organization`, `personage` / `organization_worker` | The subscription-information table (plan tier — undecided —, seats, `TRIAL`, Stripe ids; never a column of `organization` / `organization_worker`); the organization-setup onboarding flag; the RLS of ~13 migration files that finds the organization through `profiles`; the kept tables' references (decided 26/09/2026, see below) |
+| 4b | `organizations` | `company` / `organization`, `subscription` | The subscription-information table (plan tier — undecided —, seats, `TRIAL`, Stripe ids; never a column of `organization` / `organization_worker`); the kept tables' references (decided 26/09/2026, see below) |
 
 **Stage 1 — `user_profiles`** (`20260924100000_core_v2_stage1_user_profiles.sql`)
 
@@ -272,6 +276,41 @@ drops the table and its sync trigger. Applied migration files are never deleted.
   `ACTIVE` worker at the time), drop the mirror trigger and its functions, drop
   `create_user_profile()` on `auth.users`, remove the `user_profiles` read from `core_v2_org_sync`,
   then drop the table.
+
+**Stage 2 + 4a — `organization_members` + `profiles`** (decided 27/09/2026: `profiles` goes, with
+`organization_members`, because the people mirror reads both and membership has one home,
+`organization_worker`)
+
+- **Every account has an organization of its own (`OWN-ORG`).** An ordinary signup used to have none:
+  only an alpha code created one, so a solo account's plan, trial and Stripe ids lived on `profiles`, its
+  clients had `organization_id` NULL (and were never mirrored into core_v2), and several policies carried
+  an "organization is null → the creator only" branch. Now: an organization at signup, as owner; accepting
+  an invitation deletes it **when empty** and refuses otherwise (`own_organization_not_empty`, decided
+  27/09/2026 — the choice screen for a non-empty one is not built; the account is told to contact support).
+- Where the `profiles` columns go (decided 27/09/2026): names, e-mail, language and region → `personage`
+  (`language_region_code` carries the region, e.g. `fr-CA`); organization and role → `organization_worker`
+  and `member` / `manager` / `viewer`; the **first-run tour** flag (`OnboardingView`, 5 steps, shown once
+  per person — not an organization setup) → `member`; `company_name` → the organization's name; plan,
+  trial, Stripe ids and seats → `subscription` (**to design first**: it has no such columns yet);
+  `is_alpha_tester` → dropped. `get_my_org_id()` keeps its uuid result and switches its source, so the
+  ~17 policies that call it are untouched; the ~30 policy lines and 8 functions that read `profiles`
+  directly are rewritten; the 4 foreign keys to `profiles` (`clients.csm_id`, `client_notes.author_id`,
+  `quotes.user_id`, `client_metrics.user_id`) move to `auth.users`.
+- **Step A — `20260927130000_own_organization_per_user.sql`** (written 27/09/2026, not applied; 24
+  assertions on the local Postgres). Writes the OLD tables and lets the core_v2 mirror follow:
+  `ensure_own_organization`, the `trg_zz_own_organization` signup trigger, a backfill (org-less rows
+  adopted), `switch_to_invited_organization` for `invite/accept.js`, `ensure_own_organization` after a
+  removal in `members/[id].js`, and `redeem_promo_code` at signup from `raw_user_meta_data.promo_code`
+  (`PROMO-AT-SIGNUP` — `/api/alpha/activate`, unauthenticated and trusting a `userId` from the body, is
+  deleted). All service-role only; the signup part is fail-open. Deploy with the front end, migration
+  first. **Limits:** a code that was taken between the signup screen's check and the signup leaves the
+  account on starter with only a WARNING in the logs; an account deletion (`account/delete.js`) still
+  leaves the person's own organization behind.
+- **Next:** B — the auth store, the team store, 15 API routes, the MCP tenant context and two Edge
+  Functions read core_v2; C — every write above moves to core_v2 RPCs and the mirror triggers on
+  `profiles` / `organization_members` are dropped; D — the billing fields move to `subscription`, once it
+  is designed; E — foreign keys to `auth.users`, the dashboard objects that still reference `profiles`
+  checked in pre-prod (policies, the signup trigger), then the drop.
 
 **Stage 3a — `clients`: schema, mirror, backfill** (in the three core_v2 files, never applied)
 
@@ -305,14 +344,48 @@ drops the table and its sync trigger. Applied migration files are never deleted.
   screen writes there, and moves to `issue` (on a `NOTE` insert) in stage 3c, reading the CSM from
   `member_client_group`; the fallback — the client's creator, `clients.user_id` — is **not** mirrored into
   core_v2, so what replaces it is not decided.
-- **Person columns** (28 tables) keep their values, the login uuid; a person is found through
+- **Person columns** (27 tables) keep their values, the login uuid; a person is found through
   `member.auth_user_id` / `viewer.auth_user_id` (decided 26/09/2026). The foreign key goes to `auth.users`:
   one column cannot reference both `member` and `viewer`, and a member → viewer change deletes the `member`
-  row — an FK to it would cascade to, or block on, everything that person wrote.
+  row — an FK to it would cascade to, or block on, everything that person wrote. **One exception:**
+  `email_templates.created_by` → `personage(id)` (below).
+- **`email_templates`** (decided 27/09/2026):
+  - `owner_id` is **dropped** — it always held `created_by`'s value and nothing read it. The front end
+    stopped sending it (`ET-OWNER`); `20260927100000_email_templates_drop_owner_id.sql` drops the column
+    after that front end is live.
+  - `organization_id` → `organization(company_id)`, like `invitations` and `client_metrics`.
+  - `created_by` → **`personage(id)`**, not the login uuid — the one exception to the person-column
+    rule. `personage` suits this where `member` would not: one column covers members and viewers, and a
+    member → viewer change keeps the personage. bigint, rows rewritten through
+    `member` / `viewer.auth_user_id`. With it, in stage 4: the RLS checks `created_by =
+    core_v2_personage_id()` instead of `auth.uid()`; the column defaults to `core_v2_personage_id()` and
+    the store stops sending it, since the front end does not know its personage id; `ON DELETE SET NULL`
+    (my call, 27/09/2026 — a template is shared with the organization, and `CASCADE` would delete it
+    from everyone when its author erases their account; a person who merely leaves keeps their
+    personage, so the link survives a removal). **Open:** a template written by someone with no
+    organization has no personage to point at (people are mirrored only inside an organization) — such
+    rows would be left `NULL` and invisible to their author.
+  - Separately, `account/delete.js` deletes `email_templates?user_id=eq.<id>`, a column this table does
+    not have, so an erased account's templates are never deleted today.
+- **`promo_codes`** (decided 27/09/2026):
+  - Dropped by `20260927120000`: `status` — "used" is `activated_at IS NOT NULL` (`PROMO-USED`; the
+    alpha API reads and stamps `activated_at` only, and claims a code only while it is still `NULL`);
+    `organization_id` — so nothing records any more which code created which organization; `expires_at`
+    — a copy of `organizations.trial_ends_at`.
+  - Added by `20260927110000`: `issued_at date` (default today; existing codes take their `created_at`
+    date, else `NULL`), `contact jsonb` (who the code was handed to, an object, free form),
+    `subscription_id bigint` → core_v2 `subscription(id)`, `ON DELETE RESTRICT` (my call — a code must not
+    silently lose its terms).
+  - The plan and seats a code grants are to be read **through `subscription_id`** (decided 27/09/2026).
+    Until then `plan` and `max_seats` stay (`PROMO-TERMS`): activation copies them into
+    `organizations.plan` (`NOT NULL`) and `seats_paid`. **Open:** a core_v2 `subscription` row belongs to an
+    organization (`organization_id NOT NULL`), and a code is handed out before its organization exists —
+    so nothing can fill `subscription_id` until the subscription-information design allows it.
 - **Organization ids** (8 tables), decided per table on 26/09/2026: `chat_channels` / `chat_messages` →
   `company.id`; `invitations` and `client_metrics` → `organization(company_id)` (the organization's key —
-  there is no `organization.id`); `quotes` on hold (`client_notes` is no longer kept); `email_templates`, `promo_codes`,
-  `activity_log` not decided. The old uuid maps to the new key through `organizations.core_organization_id`. Both decided targets are bigint: those columns change type from uuid and every
+  there is no `organization.id`); `email_templates` → `organization(company_id)` too (27/09/2026); `quotes`
+  on hold (`client_notes` is no longer kept); `promo_codes.organization_id` is **dropped** instead
+  (27/09/2026, below); `activity_log` not decided. The old uuid maps to the new key through `organizations.core_organization_id`. Both decided targets are bigint: those columns change type from uuid and every
   row is rewritten; `company.id` also admits a client company, `organization(company_id)` only an organization.
 
 ## RLS model

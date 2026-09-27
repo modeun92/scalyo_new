@@ -61,13 +61,12 @@ stays unresolved, so `customer.subscription.updated` can catch up later.
 | Route | Method | Notes |
 |---|---|---|
 | `/api/members` | GET | Members + pending invitations. Invitation **tokens are only exposed to owner/admin** — a member must not be able to copy a pending invitation link. |
-| `/api/members/[id]` | DELETE | Remove a member. Stripe **before** any write, fail-closed, `proration_behavior: 'none'`. |
+| `/api/members/[id]` | DELETE | Remove a member. Stripe **before** any write, fail-closed, `proration_behavior: 'none'`. The removed person then gets an organization of their own back (`ensure_own_organization`, `OWN-ORG`, 27/09/2026). |
 | `/api/invite` | POST | Send an invitation; grants and bills the seat immediately; rolls back on Stripe failure; returns `email_sent`. |
 | `/api/invitations/[id]` | DELETE | Revoke a pending invitation and free the seat, same fail-closed doctrine. |
 | `/api/invite/verify` | GET | Public: validate an invitation token |
-| `/api/invite/accept` | POST | Hard refusal if the target email is not the logged-in account (D1①) or if the account already belongs to another org (D2①). Idempotent when already a member. Never an implicit overwrite of `profiles.organization_id`. |
-| `/api/alpha/verify` | POST | Validate a promo/alpha code |
-| `/api/alpha/activate` | POST | Create the org from a promo code; the first 10 companies are flagged `is_founding` |
+| `/api/invite/accept` | POST | Hard refusal if the target email is not the logged-in account (D1①) or if the account already belongs to another org (D2①). Idempotent when already a member. Never an implicit overwrite of `profiles.organization_id`. OWN-ORG (27/09/2026): every account has an organization of its own, so the switch is one transaction, `switch_to_invited_organization` — an **empty** own organization is deleted and the account joins; one that holds anything is refused with `409 own_organization_not_empty`. |
+| `/api/alpha/verify` | POST | Validate a promo/alpha code before signup — unused means `activated_at` is null (`PROMO-USED`, 27/09/2026). The code is then **applied at signup by the database** (`redeem_promo_code`, `PROMO-AT-SIGNUP`); `/api/alpha/activate`, which trusted a `userId` from the body with no authentication, is deleted |
 
 ### Email (Resend)
 

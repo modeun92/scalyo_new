@@ -72,9 +72,13 @@ by `issue`**: a note is an issue with `status = 'NOTE'` and the columns `kind` /
 notes** in `issue` (`CORE-V2-NOTES-AI`, decided 26/09/2026) — looser than today, where
 `20260914120000` keeps it out of `client_notes` as sensitive prose; it goes live when the notes screen moves.
 A person's role and seniority live on `organization_worker` (composite FK to `organization_role`),
-not on `member`. **The old tables are being retired one at a time** — `user_profiles` →
-`organization_members` → `clients` → `organizations` + `profiles` — each by reads, then writes,
-then a new drop migration ([docs/DATABASE.md](docs/DATABASE.md#retiring-the-old-core-tables)).
+not on `member`. **Every account has an organization of its own** (`OWN-ORG`, 27/09/2026,
+`20260927130000`): created at signup, the alpha code redeemed in the same transaction
+(`PROMO-AT-SIGNUP` — `/api/alpha/activate` is gone), deleted when empty on accepting an invitation, given
+back after a removal. **`profiles` goes together with `organization_members`** (decided 27/09/2026):
+step A written, then reads, writes, the billing fields to `subscription` (to design), the drop. **The old tables are being retired one at a time** — `user_profiles` →
+`organization_members` + `profiles` (together since 27/09/2026) → `clients` → `organizations` — each by
+reads, then writes, then a new drop migration ([docs/DATABASE.md](docs/DATABASE.md#retiring-the-old-core-tables)).
 **Stage 1 (`user_profiles`) is written, not deployed**: `20260924100000_core_v2_stage1_user_profiles.sql`
 adds `organization_worker.onboarding_completed`, an append-only `consent` log linked to the
 organization, and the RPCs `core_v2_my_profile` / `core_v2_set_organization_currency` (managers
@@ -84,7 +88,7 @@ request (24/09/2026)** and is schema + mirror + backfill only — the app still 
 `clients` and `client_notes`; 3b (reads), 3c (writes, the revenue list, the notify trigger moved to `issue`,
 the 7 client references rewritten to `client_group(company_id)`) and 3d (drop of both) are to do. Plan tier, seats, trial and Stripe ids wait for a subscription-information table,
 and the tier is **never** a column of `organization` or `organization_worker` (`CORE-V2-PLAN-HOME`, 24/09/2026).
-All five old core tables go (confirmed 26/09/2026), and `client_notes` with `clients`. The 29 old tables that stay move their client ids to `client_group(company_id)` (bigint, rows rewritten; a prospect is a client group, so its rows move too — `client_metrics` stays clients-only, which only the application can now enforce) and keep their person ids (login uuids, found through `member` / `viewer.auth_user_id`, FK to `auth.users`); their `organization_id` targets are decided per table — see [docs/DATABASE.md](docs/DATABASE.md#retiring-the-old-core-tables).
+All five old core tables go (confirmed 26/09/2026), and `client_notes` with `clients`. The 29 old tables that stay move their client ids to `client_group(company_id)` (bigint, rows rewritten; a prospect is a client group, so its rows move too — `client_metrics` stays clients-only, which only the application can now enforce) and keep their person ids (login uuids, found through `member` / `viewer.auth_user_id`, FK to `auth.users` — except `email_templates.created_by` → `personage(id)`, 27/09/2026, whose `owner_id` is dropped by `20260927100000` after the front end stops sending it); `promo_codes` loses `status` / `organization_id` / `expires_at` and gains `issued_at` / `contact` / `subscription_id` (27/09/2026, `20260927110000` before the alpha API deploy, `…120000` after; "used" = `activated_at` set); their `organization_id` targets are decided per table — see [docs/DATABASE.md](docs/DATABASE.md#retiring-the-old-core-tables).
 Do not read `core_v2` for plan or seats, nor for client data before stage 3b; when you add a column to `organizations` / `clients` / `profiles` decide whether it belongs in the mirror.
 Details, deviations and limits: [docs/DATABASE.md](docs/DATABASE.md#core_v2--the-new-core-schema-additive).
 **Tested on a local Postgres 16 with Supabase stand-ins (219 assertions pass, stages 1 and 3a included, last run 26/09/2026); NOT applied to any Supabase project — pre-prod first.**
@@ -115,7 +119,7 @@ trigger while the old front end may still be live, until its drop migration. `pr
 | routing, stores, components, i18n, formatting | [docs/FRONTEND.md](docs/FRONTEND.md) |
 | any `/api/*` endpoint or shared service | [docs/BACKEND_API.md](docs/BACKEND_API.md) |
 | tables, RLS, RPCs, migrations | [docs/DATABASE.md](docs/DATABASE.md) |
-| the core_v2 schema as a picture | [docs/DATABASE_DIAGRAM_CORE_V2.md](docs/DATABASE_DIAGRAM_CORE_V2.md) — Mermaid ER diagrams + the old→new mirror flow + the 30 old tables that stay and where their client / organization / person references land, **maintained by hand**: update it with any core_v2 migration change. `docs/DATABASE_DIAGRAM.md` is the OLD schema (7/09/2026) |
+| the core_v2 schema as a picture | [docs/DATABASE_DIAGRAM_CORE_V2.md](docs/DATABASE_DIAGRAM_CORE_V2.md) — Mermaid ER diagrams + the old→new mirror flow + the 29 old tables that stay and where their client / organization / person references land, **maintained by hand**: update it with any core_v2 migration change. `docs/DATABASE_DIAGRAM.md` is the OLD schema (7/09/2026) |
 | what the columns actually are | [docs/SCHEMA_FROM_CODE.sql](docs/SCHEMA_FROM_CODE.sql) — reference, **not** a migration |
 | a product feature | [docs/MODULES.md](docs/MODULES.md) |
 | the proposed schema redesign | [docs/SCHEMA_REVIEW.md](docs/SCHEMA_REVIEW.md) + [docs/NEW_SCHEMA.sql](docs/NEW_SCHEMA.sql) — **proposals, not migrations**; SCHEMA_REVIEW reviews the **pre-17/09/2026** `Database Plan.txt` |

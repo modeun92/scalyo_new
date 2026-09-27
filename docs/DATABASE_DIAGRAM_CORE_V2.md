@@ -335,7 +335,10 @@ All five old core tables go — `clients`, `organizations`, `profiles`, `organiz
 - **Person columns** (27 tables) keep their values — they are login uuids — and a person is found
   through `member.auth_user_id` / `viewer.auth_user_id` (decided 26/09/2026). The foreign key goes to
   `auth.users`, the id space of both: one column cannot reference two tables, and a member → viewer change
-  deletes the `member` row, which would cascade to (or block on) everything that person wrote.
+  deletes the `member` row, which would cascade to (or block on) everything that person wrote. One
+  exception (27/09/2026): `email_templates.created_by` → `personage(id)` (bigint, rewritten), and its copy
+  `owner_id` is dropped by `20260927100000_email_templates_drop_owner_id.sql` once the front end stops
+  sending it.
 - **Organization ids** (8 tables) are decided per table (26/09/2026). `organization` has no `id` column:
   its key is `company_id`, the same number as its `company.id`, so "organization.id" is an FK to
   `organization(company_id)`. Both decided targets are bigint, so those columns change type from uuid and
@@ -349,8 +352,8 @@ All five old core tables go — `clients`, `organizations`, `profiles`, `organiz
 | `invitations` | `organization.company_id` — decided 26/09/2026 |
 | `client_metrics` | `organization.company_id` — decided 26/09/2026 |
 | `quotes` | on hold |
-| `email_templates` | not decided |
-| `promo_codes` | not decided |
+| `email_templates` | `organization.company_id` — decided 27/09/2026 |
+| `promo_codes` | dropped — 20260927120000 (decided 27/09/2026) |
 | `activity_log` | not decided |
 
 ```mermaid
@@ -362,10 +365,12 @@ flowchart LR
   S1["client_id — 7 tables<br/>metrics · copils · quotes · tasks<br/>playbooks · planning_events<br/>notifications.target_id (no FK)"]:::src -- today --> O1["clients<br/>retires — stage 3"]:::old -- "uuid → id" --> N1["client_group.company_id<br/>decided 26/09 · bigint<br/>prospects move too; metrics: clients only"]:::v2
   S2["organization_id — 8 tables<br/>metrics · quotes · chat ×2<br/>email_templates · invitations<br/>promo_codes · activity_log"]:::src -- today --> O2["organizations<br/>retires — stage 4"]:::old
   O2 -- "chat ×2" --> N2a["company.id<br/>decided 26/09 · bigint"]:::v2
-  O2 -- "invitations · client_metrics" --> N2b["organization.company_id<br/>decided 26/09 · bigint"]:::v2
+  O2 -- "invitations · client_metrics · email_templates" --> N2b["organization.company_id<br/>decided 26–27/09 · bigint"]:::v2
   O2 -- "quotes" --> N2c["on hold"]:::open
-  O2 -- "3 others" --> N2d["not decided"]:::open
+  O2 -- "activity_log" --> N2d["not decided"]:::open
+  O2 -- "promo_codes" --> N2e["dropped<br/>20260927120000"]:::open
   S3["person columns — 27 tables<br/>user_id · author_id · csm_id<br/>owner_id · created_by · invited_by"]:::src -- today --> O3["profiles<br/>retires — stage 4"]:::old -- "same login uuid" --> N3["member / viewer .auth_user_id<br/>decided 26/09<br/>FK target: auth.users"]:::v2
+  O3 -- "email_templates.created_by" --> N3b["personage.id<br/>decided 27/09 · bigint<br/>owner_id dropped"]:::v2
 ```
 
 ### 8.2 Client work
@@ -561,7 +566,7 @@ are in [SCHEMA_FROM_CODE.sql](SCHEMA_FROM_CODE.sql).
 | `chat_channels` | Team chat | — | `organization_id` (inferred)<br>**→ `company.id`** | `created_by` (FK → auth.users, set null) | — |
 | `chat_channel_members` | Team chat | — | — | `user_id` (FK → auth.users, cascade) | `channel_id` (FK → chat_channels, cascade) |
 | `chat_messages` | Team chat | — | `organization_id` (inferred)<br>**→ `company.id`** | `user_id` (FK → auth.users, cascade) | `channel_id` (FK → chat_channels, cascade)<br>`reply_to` (FK → chat_messages, set null) |
-| `email_templates` | Email | — | `organization_id` (inferred)<br>*not decided* | `owner_id` (inferred)<br>`created_by` (inferred) | — |
+| `email_templates` | Email | — | `organization_id` (inferred)<br>**→ `organization.company_id`** | `owner_id` (inferred) **dropped — 20260927100000**<br>`created_by` (inferred) **→ personage.id** | — |
 | `sent_emails` | Email | — | — | `user_id` (FK → auth.users, cascade) | — |
 | `org_email_config` | Email | — | — | `owner_id` (inferred) | — |
 | `ai_conversations` | AI assistants | — | — | `user_id` (inferred) | — |
@@ -570,7 +575,7 @@ are in [SCHEMA_FROM_CODE.sql](SCHEMA_FROM_CODE.sql).
 | `oxygen_daily` | Oxygen | — | — | `user_id` (inferred) | — |
 | `oxygen_recoveries` | Oxygen | — | — | `user_id` (inferred) | — |
 | `invitations` | Team and access | — | `organization_id` (inferred)<br>**→ `organization.company_id`** | `invited_by` (inferred) | — |
-| `promo_codes` | Team and access | — | `organization_id` (inferred)<br>*not decided* | — | — |
+| `promo_codes` | Team and access | — | `organization_id` (inferred)<br>**dropped — 20260927120000** | — | — |
 | `activity_log` | Team and access | — | `organization_id` (inferred)<br>*not decided* | `user_id` (inferred) | — |
 | `notifications` | Notifications | `target_id` (in code — a client id, no FK; also in route /app/clients/<id>)<br>**→ `client_group.company_id`**<br>*prospects move too* | — | `user_id` (in code — the recipient) | — |
 | `org_integrations` | Integrations (dormant) | — | — | `user_id` (inferred) | — |

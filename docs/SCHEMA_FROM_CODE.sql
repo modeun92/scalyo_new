@@ -202,7 +202,7 @@ CREATE TABLE IF NOT EXISTS public.email_templates (
   created_by                 text,   -- type inferred, single call site
   failed                     boolean,   -- type inferred, single call site
   organization_id            uuid,
-  owner_id                   uuid,   -- type inferred, single call site
+  owner_id                   uuid,   -- type inferred, single call site; DROPPED by 20260927100000 (ET-OWNER, 27/09/2026)
   updated_at                 timestamptz   -- type inferred, single call site
 );
 
@@ -390,14 +390,17 @@ CREATE TABLE IF NOT EXISTS public.projects (
 
 -- ==========================================================================
 -- promo_codes   [6 columns | 0 confirmed | code only]
+-- 27/09/2026: the extractor missed plan / max_seats / valid_days (read only through a select=
+-- string). 20260927110000 adds issued_at date, contact jsonb, subscription_id bigint → subscription;
+-- 20260927120000 drops status, organization_id, expires_at ("used" = activated_at IS NOT NULL).
 -- ==========================================================================
 CREATE TABLE IF NOT EXISTS public.promo_codes (
   id                         uuid,   -- type inferred, single call site
   activated_at               timestamptz,   -- type inferred, single call site
   code                       text,   -- type inferred, single call site
-  expires_at                 timestamptz,   -- type inferred, single call site
-  organization_id            uuid,   -- type inferred, single call site
-  status                     text   -- type inferred, single call site
+  expires_at                 timestamptz,   -- type inferred, single call site; DROPPED by 20260927120000
+  organization_id            uuid,   -- type inferred, single call site; DROPPED by 20260927120000
+  status                     text   -- type inferred, single call site; DROPPED by 20260927120000
 );
 
 -- ==========================================================================
