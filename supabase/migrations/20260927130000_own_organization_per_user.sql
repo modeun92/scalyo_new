@@ -433,6 +433,13 @@ begin
     -- the organization — the automatic channel, old invitations, activity lines — then the row.
     update public.profiles set organization_id = null, org_role = 'member' where id = p_user;
     delete from public.organization_members where organization_id = v_cur;
+    -- PROMO-STATUS: redeem_promo_code writes the organization into promo_codes.organization_id while
+    -- that column exists; if production gave it a foreign key, the organization could not be
+    -- deleted and every alpha tester's invitation would fail here.
+    if exists (select 1 from information_schema.columns
+                where table_schema = 'public' and table_name = 'promo_codes' and column_name = 'organization_id') then
+      execute 'update public.promo_codes set organization_id = null where organization_id = $1' using v_cur;
+    end if;
     for r in
       select * from (values ('chat_messages'), ('chat_channels'), ('invitations'), ('activity_log')) as t(tbl)
     loop
