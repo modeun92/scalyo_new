@@ -31,6 +31,8 @@
 --     EMPTY own organization is deleted and the person joins the inviting one (decided 27/09/2026);
 --     an own organization that holds anything is refused ('own_organization_not_empty'), and so is
 --     membership of somebody else's organization ('already_member_other_org').
+--   * promo_code_lookup / promo_code_find — the one test of a usable code, shared by
+--     /api/alpha/verify and the signup redemption (PROMO-STATUS).
 --   * A backfill giving every org-less profile its own organization.
 --
 -- FAIL-OPEN at signup: an error in the trigger becomes a WARNING and the signup completes, as a solo
@@ -168,6 +170,59 @@ $fn$;
 -- ============================================================
 -- §3 — A promo code, applied to the owner's organization (PROMO-AT-SIGNUP)
 -- ============================================================
+-- PROMO-STATUS (03/10/2026): the ONE test of "this code can still be used", for the screen
+-- (/api/alpha/verify → promo_code_lookup) and the signup (redeem_promo_code). Unused = no
+-- activated_at; while promo_codes still has `status` (20260927120000 drops it) it must also be
+-- 'active' — a 'revoked' or frozen code has no activated_at and would otherwise pass. Two copies of
+-- this test drifted the day status stopped being read in one place: the screen accepted codes the
+-- signup then refused. p_lock takes the row FOR UPDATE SKIP LOCKED, for the redemption only.
+create or replace function public.promo_code_find(p_code text, p_lock boolean default false)
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $fn$
+declare
+  v_id uuid;
+  v_status text := '';
+begin
+  if nullif(btrim(p_code), '') is null then
+    return null;
+  end if;
+  if exists (select 1 from information_schema.columns
+              where table_schema = 'public' and table_name = 'promo_codes' and column_name = 'status') then
+    v_status := ' and pc.status = ''active''';
+  end if;
+  execute 'select pc.id from public.promo_codes pc where pc.code = $1 and pc.activated_at is null'
+          || v_status || ' order by pc.id limit 1'
+          || case when p_lock then ' for update skip locked' else '' end
+    into v_id using upper(btrim(p_code));
+  return v_id;
+end;
+$fn$;
+
+-- What /api/alpha/verify shows before the signup: the code's terms, or NULL when it cannot be used.
+create or replace function public.promo_code_lookup(p_code text)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = public
+as $fn$
+declare
+  v_id uuid := public.promo_code_find(p_code, false);
+  v_promo jsonb;
+begin
+  if v_id is null then
+    return null;
+  end if;
+  select to_jsonb(pc) into v_promo from public.promo_codes pc where pc.id = v_id;
+  return jsonb_build_object('plan', v_promo ->> 'plan',
+                            'max_seats', nullif(v_promo ->> 'max_seats', '')::integer,
+                            'valid_days', nullif(v_promo ->> 'valid_days', '')::integer);
+end;
+$fn$;
+
 -- Returns 'applied', or why not: 'no_code' · 'no_organization' · 'not_owner' · 'invalid' (unknown,
 -- or already used). The code is CLAIMED first — one UPDATE on a row locked with SKIP LOCKED — so two
 -- signups with one code cannot both get it, and nothing is written for the loser. plan / max_seats
@@ -184,6 +239,7 @@ declare
   v_id uuid;
   v_promo jsonb;
   v_days integer;
+  v_has_status boolean;
 begin
   if nullif(btrim(p_code), '') is null then
     return 'no_code';
@@ -197,12 +253,13 @@ begin
     return 'not_owner';
   end if;
 
-  select pc.id into v_id
-    from public.promo_codes pc
-   where pc.code = upper(btrim(p_code)) and pc.activated_at is null
-   order by pc.id
-   limit 1
-   for update skip locked;
+  -- PROMO-STATUS (03/10/2026): the code is found by promo_code_find, the same test
+  -- /api/alpha/verify runs through promo_code_lookup — the screen and the signup cannot disagree.
+  -- While `status` exists it is stamped 'used', and organization_id / expires_at are filled, as
+  -- /api/alpha/activate did, so anything still reading them sees a spent code.
+  v_has_status := exists (select 1 from information_schema.columns
+                           where table_schema = 'public' and table_name = 'promo_codes' and column_name = 'status');
+  v_id := public.promo_code_find(p_code, true);
   if v_id is null then
     return 'invalid';
   end if;
@@ -210,6 +267,15 @@ begin
   returning to_jsonb(pc) into v_promo;
 
   v_days := nullif(v_promo ->> 'valid_days', '')::integer;
+  if v_has_status then
+    execute 'update public.promo_codes set status = ''used'' where id = $1' using v_id;
+  end if;
+  if v_promo ? 'organization_id' then
+    execute 'update public.promo_codes set organization_id = $2 where id = $1' using v_id, v_org;
+  end if;
+  if v_promo ? 'expires_at' and v_days is not null then
+    execute 'update public.promo_codes set expires_at = now() + make_interval(days => $2) where id = $1' using v_id, v_days;
+  end if;
   update public.organizations o
      set plan = coalesce(nullif(v_promo ->> 'plan', ''), o.plan),
          seats_paid = coalesce(nullif(v_promo ->> 'max_seats', '')::integer, o.seats_paid),
@@ -398,6 +464,8 @@ $fn$;
 revoke all on function public.own_org_adopt(uuid, uuid)                           from public, anon, authenticated;
 revoke all on function public.ensure_own_organization(uuid)                        from public, anon, authenticated;
 revoke all on function public.redeem_promo_code(uuid, text)                        from public, anon, authenticated;
+revoke all on function public.promo_code_find(text, boolean)                       from public, anon, authenticated;
+revoke all on function public.promo_code_lookup(text)                              from public, anon, authenticated;
 revoke all on function public.own_org_on_profile_insert()                          from public, anon, authenticated;
 revoke all on function public.own_org_busy(uuid, uuid)                             from public, anon, authenticated;
 revoke all on function public.switch_to_invited_organization(uuid, uuid, text)     from public, anon, authenticated;
@@ -406,6 +474,7 @@ begin
   if exists (select 1 from pg_roles where rolname = 'service_role') then
     grant execute on function public.ensure_own_organization(uuid) to service_role;
     grant execute on function public.switch_to_invited_organization(uuid, uuid, text) to service_role;
+    grant execute on function public.promo_code_lookup(text) to service_role;
   end if;
 end $$;
 
@@ -460,4 +529,5 @@ end $$;
 --   drop trigger if exists trg_zz_own_organization on public.profiles;
 --   drop function if exists public.own_org_on_profile_insert(), public.switch_to_invited_organization(uuid, uuid, text),
 --     public.own_org_busy(uuid, uuid), public.redeem_promo_code(uuid, text),
---     public.ensure_own_organization(uuid), public.own_org_adopt(uuid, uuid);
+--     public.ensure_own_organization(uuid), public.own_org_adopt(uuid, uuid),
+--     public.promo_code_lookup(text), public.promo_code_find(text, boolean);

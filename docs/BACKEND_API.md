@@ -66,7 +66,7 @@ stays unresolved, so `customer.subscription.updated` can catch up later.
 | `/api/invitations/[id]` | DELETE | Revoke a pending invitation and free the seat, same fail-closed doctrine. |
 | `/api/invite/verify` | GET | Public: validate an invitation token |
 | `/api/invite/accept` | POST | Hard refusal if the target email is not the logged-in account (D1①) or if the account already belongs to another org (D2①). Idempotent when already a member. Never an implicit overwrite of `profiles.organization_id`. OWN-ORG (27/09/2026): every account has an organization of its own, so the switch is one transaction, `switch_to_invited_organization` — an **empty** own organization is deleted and the account joins; one that holds anything is refused with `409 own_organization_not_empty`. |
-| `/api/alpha/verify` | POST | Validate a promo/alpha code before signup — unused means `activated_at` is null (`PROMO-USED`, 27/09/2026). The code is then **applied at signup by the database** (`redeem_promo_code`, `PROMO-AT-SIGNUP`); `/api/alpha/activate`, which trusted a `userId` from the body with no authentication, is deleted |
+| `/api/alpha/verify` | POST | Validate a promo/alpha code before signup through the SQL function `promo_code_lookup` — the same test the signup redemption runs (`promo_code_find`: unused, and `active` while `status` exists — `PROMO-STATUS`, 03/10/2026). The code is then **applied at signup by the database** (`redeem_promo_code`, `PROMO-AT-SIGNUP`); `/api/alpha/activate`, which trusted a `userId` from the body with no authentication, is deleted |
 
 ### Email (Resend)
 

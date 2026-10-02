@@ -30,29 +30,30 @@ export async function onRequestPost(context) {
   const normalizedCode = code.trim().toUpperCase()
 
   try {
-    // PROMO-USED (27/09/2026): an unused code is one with no activated_at — promo_codes.status is
-    // dropped (20260927120000). plan / max_seats stay until subscription_id carries the terms.
-    const url = `${supabaseUrl}/rest/v1/promo_codes?code=eq.${encodeURIComponent(normalizedCode)}&activated_at=is.null&select=id,code,plan,max_seats,valid_days`
-
-    const resp = await fetch(url, {
+    // PROMO-STATUS (03/10/2026): "is this code still usable" is decided by ONE SQL function,
+    // promo_code_lookup (20260927130000), which the signup redemption (redeem_promo_code) runs too.
+    // This route used to filter the table itself — first on status=active, then on activated_at —
+    // and the day the two tests differed, the screen accepted codes the signup then refused.
+    const resp = await fetch(`${supabaseUrl}/rest/v1/rpc/promo_code_lookup`, {
+      method: 'POST',
       headers: {
         'apikey': supabaseKey,
         'Authorization': `Bearer ${supabaseKey}`,
+        'Content-Type': 'application/json',
         'Accept': 'application/json',
       },
+      body: JSON.stringify({ p_code: normalizedCode }),
     })
 
     if (!resp.ok) {
       return errorResponse(500, t('server_error', lang))
     }
 
-    const rows = await resp.json()
+    const promo = await resp.json()
 
-    if (!rows || rows.length === 0) {
+    if (!promo) {
       return errorResponse(403, t('alpha_code_invalid', lang))
     }
-
-    const promo = rows[0]
 
     return jsonResponse({
       valid: true,

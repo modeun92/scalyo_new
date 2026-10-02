@@ -25,9 +25,10 @@
 --
 -- ORDER
 --   * AFTER 20260920100000_core_v2_schema.sql (the subscription table) — this file refuses otherwise.
---   * BEFORE the API that reads activated_at instead of status (functions/api/alpha, PROMO-USED): §0
---     refuses to run on data that API would misread, so run it first and fix what it reports.
---   * Part 2 (20260927120000) AFTER that API is live.
+--   * Its §0 refuses data on which status and activated_at disagree; run it, fix what it reports.
+--     The usable-code test itself lives in promo_code_find (20260927130000, PROMO-STATUS), which
+--     honours status while it exists; 20260927120000 checks again before dropping it.
+--   * Part 2 (20260927120000) AFTER 20260927130000 and the alpha API that uses it are live.
 --
 -- PRE-PROD FIRST, PROD on an explicit go. Idempotent.
 

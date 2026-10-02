@@ -10,11 +10,11 @@
 --                    organization's own column is the one every access check reads.
 -- plan and max_seats stay (PROMO-TERMS in 20260927110000) until activation reads subscription_id.
 --
--- ORDER — AFTER the code that no longer reads or writes these columns is live: functions/api/
--- alpha/verify.js (PROMO-USED) and the signup redemption redeem_promo_code (20260927130000, which
--- replaced /api/alpha/activate). Applied before them, every code check fails: the old API filters
--- on status=eq.active, and PostgREST rejects a column that does not exist — no alpha signup gets
--- through.
+-- ORDER — AFTER 20260927130000 and the API that uses it are live: /api/alpha/verify asks
+-- promo_code_lookup, the signup asks redeem_promo_code, and both go through promo_code_find, which
+-- reads status only while it exists (PROMO-STATUS). Applied before them, every code check fails:
+-- the old API filters on status=eq.active, and PostgREST rejects a column that does not exist — no
+-- alpha signup gets through.
 --
 -- ROLLING THE API BACK after this file needs the columns back first (Rollback below). Between the
 -- API deploy and this file, a rollback of the API alone must first run
@@ -24,6 +24,23 @@
 -- No CASCADE: if a dashboard view or policy uses one of these columns, the drop fails and names it.
 --
 -- PRE-PROD FIRST, PROD on an explicit go. Idempotent.
+
+-- PROMO-STATUS (03/10/2026): once status is gone, "usable" is activated_at IS NULL alone
+-- (promo_code_find). A code held back by its status — revoked, frozen — and never activated would
+-- become usable the moment this runs. Refuse until each one is decided: activated (spent) or deleted.
+do $$
+declare
+  v_held integer;
+begin
+  if exists (select 1 from information_schema.columns
+              where table_schema = 'public' and table_name = 'promo_codes' and column_name = 'status') then
+    execute $q$ select count(*) from public.promo_codes
+                 where activated_at is null and status is distinct from 'active' $q$ into v_held;
+    if v_held > 0 then
+      raise exception 'promo_codes: % code(s) are held back only by their status and would become usable — decide each (update ... set activated_at = now(), or delete), then re-run: select id, code, status from public.promo_codes where activated_at is null and status is distinct from ''active'';', v_held;
+    end if;
+  end if;
+end $$;
 
 alter table public.promo_codes drop column if exists status;
 alter table public.promo_codes drop column if exists organization_id;
