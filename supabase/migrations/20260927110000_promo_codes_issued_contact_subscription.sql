@@ -7,21 +7,20 @@
 --                           NULL otherwise — an unknown date is not guessed (R21).
 --   contact          jsonb  who the code was handed to, free form (e.g. {"name", "email", "company"}).
 --                           jsonb, not json: the same text, but comparable and indexable.
---   subscription_id  bigint the subscription whose terms the code grants — the plan and seats will be
---                           read through it (decided 27/09/2026). FK to the core_v2 subscription table.
+--   subscription_id  bigint the PROMO period the code opened, filled at redemption (PROMO-LINK,
+--                           20261003100000). FK to the core_v2 subscription table.
 -- and loses status, organization_id and expires_at in part 2 (20260927120000).
 --
--- PROMO-TERMS (27/09/2026): plan and max_seats are NOT dropped yet. redeem_promo_code
--- (20260927130000, at signup) copies them into organizations.plan (NOT NULL) and seats_paid; subscription_id is where they will come from,
--- but nothing can fill it yet: a core_v2 subscription row belongs to an organization
--- (organization_id NOT NULL), and a code is handed out before its organization exists. That is for
--- the subscription-information table (seats, plan tier, TRIAL) to settle; plan and max_seats go with
--- the migration that makes activation read subscription_id. Dropping them now would stop every alpha
--- signup at the organization insert.
+-- PROMO-TERMS (27/09/2026, settled 03/10/2026): plan, max_seats and valid_days STAY — they are the
+-- code's terms, held by the code because a code is handed out before any organization exists and a
+-- subscription row belongs to an organization. subscription_id records the PROMO period the
+-- redemption opened (PROMO-LINK, 20261003100000), not where the terms come from.
 --
--- ON DELETE RESTRICT on subscription_id: a code must not silently lose the terms it grants. Deleting
--- an organization in core_v2 deletes its subscription rows (part 2 of core_v2); a code pointing at one
--- of them makes that mirror delete fail with a WARNING, and the old delete still goes through.
+-- ON DELETE SET NULL on subscription_id (03/10/2026): the column records which period a code
+-- produced (PROMO-LINK), not its terms. A period outlives its organization (subscription.organization_id
+-- is SET NULL, CORE-V2-SUBSCRIPTION), so the pointer normally stays; a period that never ran — opened
+-- and closed in one transaction — is deleted (core_v2_end_period), and the code then stays used
+-- (activated_at) and loses only the pointer. RESTRICT, the 27/09 choice, would make that delete fail.
 --
 -- ORDER
 --   * AFTER 20260920100000_core_v2_schema.sql (the subscription table) — this file refuses otherwise.
@@ -91,7 +90,7 @@ begin
   if not exists (select 1 from pg_constraint where conname = 'promo_codes_subscription_fkey'
                     and conrelid = 'public.promo_codes'::regclass) then
     alter table public.promo_codes add constraint promo_codes_subscription_fkey
-      foreign key (subscription_id) references public.subscription(id) on delete restrict;
+      foreign key (subscription_id) references public.subscription(id) on delete set null;
   end if;
 end $$;
 create index if not exists idx_promo_codes_subscription on public.promo_codes (subscription_id);

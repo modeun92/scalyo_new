@@ -188,7 +188,8 @@ async function fetchOrg() {
 const orgId = profile.value?.organization_id
 if (!orgId) { org.value = null; return }
 try {
-const { data, error: err } = await supabase.from('organizations').select('id, name, plan, seats_paid, trial_ends_at, is_founding, max_clients, stripe_subscription_id').eq('id', orgId).single()
+// FOUNDING-REMOVED (03/10/2026): is_founding is no longer read — the founding programme is gone.
+const { data, error: err } = await supabase.from('organizations').select('id, name, plan, seats_paid, trial_ends_at, max_clients, stripe_subscription_id').eq('id', orgId).single()
 if (err) { console.error('fetchOrg failed:', err.message); return }
 if (data) org.value = data
 } catch (e) { console.error('fetchOrg error:', e.message || e) }

@@ -8,7 +8,7 @@
 --                    source = 'promo_code' on the organization's creation, not the code).
 --   expires_at       a copy of organizations.trial_ends_at, written at the same moment; the
 --                    organization's own column is the one every access check reads.
--- plan and max_seats stay (PROMO-TERMS in 20260927110000) until activation reads subscription_id.
+-- plan, max_seats and valid_days stay for good: they are the code's terms (PROMO-TERMS in 20260927110000).
 --
 -- ORDER — AFTER 20260927130000 and the API that uses it are live: /api/alpha/verify asks
 -- promo_code_lookup, the signup asks redeem_promo_code, and both go through promo_code_find, which
