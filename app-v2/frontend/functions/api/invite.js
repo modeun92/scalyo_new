@@ -1,9 +1,10 @@
 // POST /api/invite — Send team invitation
-// GitHub model (workstream B): inviting a non-viewer role grants the seat AND bills it
-// immediately (Stripe quantity +1, prorated). seats_paid = members + pending invitations.
-import { jsonResponse, errorResponse, errorCode } from './_utils/response.js'
+// SEAT-AT-ACCEPT (03/10/2026): a pending invitation RESERVES a seat against the plan ceiling
+// but is not billed — the seat is billed when the invitation is accepted (invite/accept.js).
+// Billed here, an invitation nobody opened was charged for its whole life, and after it expired
+// too: the lazy `expired` flip in accept.js / verify.js never touched Stripe.
+import { jsonResponse, errorResponse } from './_utils/response.js'
 import { createSupabaseClient, getAuthUser, getUserMembership } from './_utils/supabase.js'
-import { setSubscriptionQuantity } from './_utils/stripe.js'
 import { canPerform, canAddSeat, canAddViewer, getAvailableRolesForInvite, ORG_SETTINGS } from './_config/plans.config.js'
 import { t } from './_i18n/translate.js'
 
@@ -34,15 +35,16 @@ export async function onRequestPost(context) {
     const allowedRoles = getAvailableRolesForInvite(org.plan)
     if (!allowedRoles.includes(role)) return errorResponse(400, 'Invalid role for this plan')
 
-    // Committed seats = non-viewer members + pending non-viewer invitations (GitHub model)
+    // Reserved seats = non-viewer members + pending non-viewer invitations. Pending ones count
+    // here, or a full team could hand out invitations that then fail at acceptance.
     const existing = await db.select('organization_members', 'organization_id=eq.' + org.id)
     const pending = await db.select('invitations', 'organization_id=eq.' + org.id + '&status=eq.pending')
-    const seatsCommitted = existing.filter(m => m.role !== 'viewer').length
+    const seatsReserved = existing.filter(m => m.role !== 'viewer').length
       + pending.filter(i => i.role !== 'viewer').length
 
     // Seat quota (plan ceiling) for the roles that consume a seat
     if (role !== 'viewer') {
-      if (!canAddSeat(org.plan, seatsCommitted)) return errorResponse(403, 'Seat limit reached')
+      if (!canAddSeat(org.plan, seatsReserved)) return errorResponse(403, 'Seat limit reached')
     } else if (!canAddViewer(org.plan)) {
       return errorResponse(403, 'Viewers not available on this plan')
     }
@@ -63,23 +65,6 @@ export async function onRequestPost(context) {
       role: role,
       expires_at: expiresAt,
     })
-
-    // Bill the seat (seat-consuming role only) — GitHub model.
-    // Roll back the invitation if Stripe fails, so we never grant an unbilled seat.
-    if (role !== 'viewer') {
-      const newQty = seatsCommitted + 1
-      if (org.stripe_subscription_id) {
-        const billed = await setSubscriptionQuantity(env.STRIPE_SECRET_KEY, org.stripe_subscription_id, newQty, 'create_prorations')
-        if (!billed.ok) {
-          await db.remove('invitations', 'id=eq.' + invitation.id)
-          // CF-502-MASQUE: the 502 was swallowed by Cloudflare (HTML page), the
-          // application message never reached the screen. Typed as 409.
-          return errorCode(409, 'billing_failed', { billing_error: billed.error })
-        }
-      }
-      // seats_paid = committed seats (even on a trial without a subscription: counter of ordered seats)
-      await db.update('organizations', 'id=eq.' + org.id, { seats_paid: newQty })
-    }
 
     // Sending the invitation email via Resend.
     // email_sent is returned to the client: never again a silent false success (INV-EMAIL).

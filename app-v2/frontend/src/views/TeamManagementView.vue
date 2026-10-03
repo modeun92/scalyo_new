@@ -190,7 +190,7 @@ async function runConfirmAction() {
 
 // The Functions return a stable machine code (errorCode, Lot 6). The translation
 // happens HERE, where the user's language is known — the Function does not guess it.
-const KNOWN_ERRORS = ['billing_update_failed', 'billing_failed', 'cannot_remove_owner',
+const KNOWN_ERRORS = ['billing_update_failed', 'cannot_remove_owner',
   'cannot_remove_self', 'insufficient_role', 'member_not_found', 'permission_denied']
 function errorLabel(code, fallbackKey) {
   return code && KNOWN_ERRORS.includes(code) ? t('team_err_' + code) : t(fallbackKey)

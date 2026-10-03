@@ -37,13 +37,10 @@ export async function onRequestDelete(context) {
     if (target.role !== 'viewer') {
       const org = await db.selectOne('organizations', 'id=eq.' + membership.organization_id)
       const members = await db.select('organization_members', 'organization_id=eq.' + membership.organization_id)
-      const pending = await db.select('invitations',
-        'organization_id=eq.' + membership.organization_id + '&status=eq.pending')
-      // The target is still in the database at this point: we exclude it from the recount, just as
-      // invitations/[id].js excludes the invitation it is revoking.
-      const committed = members.filter(m => m.role !== 'viewer' && m.id !== target.id).length
-        + pending.filter(i => i.role !== 'viewer').length
-      newQty = Math.max(1, committed)
+      // SEAT-AT-ACCEPT (03/10/2026): billed seats = non-viewer MEMBERS; a pending invitation is
+      // billed only once accepted, so it is not counted here. The target is still in the
+      // database at this point: we exclude it from the recount.
+      newQty = Math.max(1, members.filter(m => m.role !== 'viewer' && m.id !== target.id).length)
 
       if (org && org.stripe_subscription_id) {
         const billed = await setSubscriptionQuantity(

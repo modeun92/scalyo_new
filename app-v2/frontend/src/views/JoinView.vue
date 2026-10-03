@@ -112,7 +112,7 @@ const accepted = ref(false)
 const alreadyMember = ref(false)
 const confirmationRequired = ref(false)
 const registerError = ref('')
-// 'email_mismatch' | 'already_member_other_org' | 'own_organization_not_empty' | 'seat_limit_reached' | 'invitation_not_valid'
+// 'email_mismatch' | 'already_member_other_org' | 'own_organization_not_empty' | 'seat_limit_reached' | 'billing_failed' | 'invitation_not_valid'
 const blocked = ref('')
 const blockedDetails = ref({})
 
@@ -128,6 +128,7 @@ const blockedTitle = computed(() => {
   if (blocked.value === 'already_member_other_org') return t('join_other_org_title')
   if (blocked.value === 'own_organization_not_empty') return t('join_own_org_title')
   if (blocked.value === 'seat_limit_reached') return t('join_seat_limit_title')
+  if (blocked.value === 'billing_failed') return t('join_billing_failed_title')
   return t('join_not_valid_title')
 })
 
@@ -149,6 +150,9 @@ const blockedBody = computed(() => {
     return org ? t('join_own_org_body', { org }) : t('join_own_org_body_noname')
   }
   if (blocked.value === 'seat_limit_reached') return t('join_seat_limit_body')
+  // SEAT-AT-ACCEPT (03/10/2026): the seat is billed on acceptance; if Stripe refuses, nothing
+  // was written and the invitation is still pending — the person can simply try again.
+  if (blocked.value === 'billing_failed') return t('join_billing_failed_body')
   return t('join_not_valid_body')
 })
 
@@ -192,7 +196,7 @@ onMounted(async () => {
 
 function applyErrorPayload(status, data) {
   const code = (data && data.code) || ''
-  if (['email_mismatch', 'already_member_other_org', 'own_organization_not_empty', 'seat_limit_reached'].includes(code)) {
+  if (['email_mismatch', 'already_member_other_org', 'own_organization_not_empty', 'seat_limit_reached', 'billing_failed'].includes(code)) {
     blocked.value = code
     blockedDetails.value = data || {}
     return true

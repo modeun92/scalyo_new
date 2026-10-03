@@ -18,7 +18,9 @@ export async function onRequestGet(context) {
     const members = await db.select('organization_members', 'organization_id=eq.' + orgId)
     const invitations = await db.select('invitations', 'organization_id=eq.' + orgId + '&status=eq.pending&order=created_at.desc')
 
-    // GitHub model: a seat is committed as soon as the invitation is sent → members + pending invitations (non-viewer)
+    // Seats taken against the plan ceiling = members + pending invitations (non-viewer): an
+    // invitation reserves its seat when sent. It is BILLED only once accepted (SEAT-AT-ACCEPT,
+    // 03/10/2026), so `used` may exceed `paid` while invitations are pending.
     const seatsUsed = members.filter(m => m.role !== 'viewer').length
       + invitations.filter(i => i.role !== 'viewer').length
 

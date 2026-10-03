@@ -1,10 +1,9 @@
-// DELETE /api/invitations/[id] — Revoke a pending invitation + free the seat
-// Workstream C contract (9/07): the inverse gesture of the GitHub model (invite = bill).
-// Fail-closed: if Stripe fails, the invitation stays pending (never a freed seat
-// that is not reflected on the invoice). Removal without credit, proration_behavior: 'none' (D3).
-import { jsonResponse, errorResponse, errorCode } from '../_utils/response.js'
+// DELETE /api/invitations/[id] — Revoke a pending invitation + free its reserved seat
+// SEAT-AT-ACCEPT (03/10/2026): a pending invitation is not billed (the seat is billed on
+// acceptance), so revoking one touches neither Stripe nor seats_paid — it only gives the
+// reservation back to the plan ceiling, which /api/invite and /api/members recount live.
+import { jsonResponse, errorResponse } from '../_utils/response.js'
 import { createSupabaseClient, getAuthUser, getUserMembership } from '../_utils/supabase.js'
-import { setSubscriptionQuantity } from '../_utils/stripe.js'
 import { canPerform } from '../_config/plans.config.js'
 
 export async function onRequestDelete(context) {
@@ -29,27 +28,7 @@ export async function onRequestDelete(context) {
       return errorResponse(409, 'Invitation cannot be revoked (status: ' + invitation.status + ')')
     }
 
-    if (invitation.role !== 'viewer') {
-      // Consumed seat: recomputed from the truth (members + non-viewer pending, this one excluded)
-      const org = await db.selectOne('organizations', 'id=eq.' + membership.organization_id)
-      const members = await db.select('organization_members', 'organization_id=eq.' + membership.organization_id)
-      const pending = await db.select('invitations', 'organization_id=eq.' + membership.organization_id + '&status=eq.pending')
-      const committed = members.filter(m => m.role !== 'viewer').length
-        + pending.filter(i => i.role !== 'viewer' && i.id !== invitation.id).length
-      const newQty = Math.max(1, committed)
-      // Stripe BEFORE the DB write (fail-closed) — no credit, effect at end of month
-      if (org?.stripe_subscription_id) {
-        const billed = await setSubscriptionQuantity(env.STRIPE_SECRET_KEY, org.stripe_subscription_id, newQty, 'none')
-        // CF-502-MASQUE: Cloudflare replaces the body of a Pages Function's 5xx
-        // with its own HTML page — the message never reached the client. Typed as 409.
-        if (!billed.ok) return errorCode(409, 'billing_update_failed', { billing_error: billed.error })
-      }
-      await db.update('invitations', 'id=eq.' + invitation.id, { status: 'revoked' })
-      await db.update('organizations', 'id=eq.' + membership.organization_id, { seats_paid: newQty })
-    } else {
-      // Viewer: no billed seat, plain revocation
-      await db.update('invitations', 'id=eq.' + invitation.id, { status: 'revoked' })
-    }
+    await db.update('invitations', 'id=eq.' + invitation.id, { status: 'revoked' })
 
     await db.insert('activity_log', {
       organization_id: membership.organization_id,

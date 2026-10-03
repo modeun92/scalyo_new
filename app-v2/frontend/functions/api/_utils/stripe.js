@@ -1,5 +1,5 @@
-// Stripe REST helper — synchronization of the seat count (per-seat billing, GitHub model)
-// Invite = grant the role + bill a seat immediately (create_prorations).
+// Stripe REST helper — synchronization of the seat count (per-seat billing)
+// SEAT-AT-ACCEPT (03/10/2026): accept an invitation = bill a seat (create_prorations).
 // Remove = decrement the quantity without a credit (proration_behavior: 'none' → effect at end of month).
 
 export async function stripeRequest(secretKey, method, path, body) {
@@ -24,6 +24,9 @@ export async function setSubscriptionQuantity(secretKey, subscriptionId, quantit
   const sub = await stripeRequest(secretKey, 'GET', '/subscriptions/' + subscriptionId)
   if (!sub.ok || !sub.data.items?.data?.length) return { ok: false, error: 'stripe_subscription_not_found' }
   const itemId = sub.data.items.data[0].id
+  // Already right: no update, so no proration line and no subscription.updated event. Callers
+  // re-sync to the recounted truth after the fact, and that is usually a no-op.
+  if (sub.data.items.data[0].quantity === quantity) return { ok: true, quantity }
   const upd = await stripeRequest(secretKey, 'POST', '/subscriptions/' + subscriptionId,
     'items[0][id]=' + encodeURIComponent(itemId)
     + '&items[0][quantity]=' + quantity
