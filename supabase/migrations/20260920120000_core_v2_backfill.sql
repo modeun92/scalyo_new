@@ -15,8 +15,8 @@
 --     (CORE-V2-NOTES). trg_notify_client_note is AFTER INSERT only: nobody is notified.
 --   * people — core_v2_sync_user(user_id), the same function the profiles / organization_members
 --     triggers call.
---   * subscription — one baseline row per organization that has none, so the history starts from
---     the plan the organization is on today.
+--   * subscription — core_v2_sync_subscription(organization), the function the live trigger calls:
+--     the owner's trial, the promo window, the Stripe subscription (CORE-V2-SUBSCRIPTION).
 --
 -- SIDE EFFECT TO KNOW ABOUT: the no-op UPDATE also fires any other BEFORE UPDATE trigger on those
 -- tables. If `organizations` / `clients` / `client_notes` carry an `updated_at` trigger, every backfilled row's
@@ -59,18 +59,6 @@ update public.organizations
    set name = name
  where core_organization_id is null;
 
--- Baseline subscription history. issue_date is the time of THIS run: the old tables carry no
--- plan-change timestamp and a guessed one would be a plausible-looking lie (R21). An
--- organization whose plan has no subscription_type is skipped, as in the live trigger.
-insert into public.subscription (organization_id, issue_date, type)
-select o.core_organization_id, now(), public.core_v2_subscription_type(o.plan)
-  from public.organizations o
- where o.core_organization_id is not null
-   and public.core_v2_subscription_type(o.plan) is not null
-   and not exists (
-     select 1 from public.subscription s where s.organization_id = o.core_organization_id
-   );
-
 -- People. A person in an organization is the unit; one failing profile does not stop the rest.
 do $$
 declare
@@ -90,6 +78,28 @@ begin
     end;
   end loop;
   raise notice 'core_v2 backfill: % profiles processed, % failed', v_done, v_failed;
+end $$;
+
+-- Subscription periods (CORE-V2-SUBSCRIPTION): the same function the live trigger calls, once per
+-- organization — the owner's trial, the promo window, the Stripe subscription. AFTER the people step:
+-- a period records who obtained it (organization.owner_personage_id), which that step fills in.
+-- Idempotent: a re-run finds every period unchanged and writes nothing.
+do $$
+declare
+  r record;
+  v_failed integer := 0;
+begin
+  for r in select o.id from public.organizations o where o.core_organization_id is not null order by o.id loop
+    begin
+      perform public.core_v2_sync_subscription(r.id);
+    exception when others then
+      v_failed := v_failed + 1;
+      raise warning 'core_v2 backfill: subscription of organization % skipped: % (%)', r.id, sqlerrm, sqlstate;
+    end;
+  end loop;
+  if v_failed > 0 then
+    raise warning 'core_v2 backfill: % organization(s) without their subscription periods', v_failed;
+  end if;
 end $$;
 
 -- Clients and prospects (the same as the live trigger: a company and a client group for every

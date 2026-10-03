@@ -9,7 +9,8 @@
 -- and invitation; core_v2 is a projection of them.
 --
 -- WHAT IS MIRRORED
---   organizations        -> company + organization                 (+ subscription history rows)
+--   organizations        -> company + organization  (+ subscription periods: Stripe, promo window,
+--                           the owner's trial — CORE-V2-SUBSCRIPTION)
 --   profiles +           -> personage + member | viewer (+ manager) + organization_worker
 --   organization_members    (+ joined_at) + member_authority + organization.owner_personage_id
 --   user_profiles        -> NOT here: 20260924100000_core_v2_stage1_user_profiles.sql owns it
@@ -26,8 +27,9 @@
 --   client_notes         -> issue (status NOTE, kind, content, author_name) — CORE-V2-NOTES, §5b
 -- NOT mirrored, on purpose (decided with the owner of this change): clients.csm (a text copy of
 -- the CSM's name, derived from member instead), clients.status is mirrored as health_status;
--- plan / seats / trial / Stripe ids / is_founding / oxygen_team_enabled (organizations) — those
--- wait for the subscription-information table and the Oxygen module; invitations.
+-- is_founding (the founding programme is removed) and max_clients (it follows from the plan);
+-- oxygen_team_enabled (organizations) — that waits for the Oxygen module; invitations. Plan, seats,
+-- the trial, the promo window and the Stripe ids ARE mirrored, as subscription periods (§4).
 --
 -- ROLE MAPPING (coarse — see docs/DATABASE.md). owner + admin -> manager (VIEW, CREATE, UPDATE,
 -- DELETE, INVITE, ASSIGN_CLIENT_GROUP — canInvite is true for both in plans.config.js ROLES, and
@@ -103,21 +105,17 @@ as $fn$
   end;
 $fn$;
 
--- LOSSY, best-effort. The new schema has four tiers, the product has starter / growth / elite /
--- enterprise; growth and elite both land on PRO. Harmless: organizations.plan is the real source
--- of truth and nothing reads this. An unrecognised non-empty plan returns NULL (no row logged)
--- rather than a plausible-looking tier.
-create or replace function public.core_v2_subscription_type(p_plan text)
+-- CORE-V2-SUBSCRIPTION (03/10/2026): the product plan -> the subscription type, one for one.
+-- Anything else (empty, 'none', a typo) is NULL: no type is guessed.
+create or replace function public.core_v2_plan_type(p_plan text)
 returns public.subscription_type
 language sql
 immutable
 as $fn$
   select case lower(btrim(coalesce(p_plan, '')))
-    when ''           then 'FREE'::public.subscription_type
-    when 'none'       then 'FREE'::public.subscription_type
-    when 'starter'    then 'BASIC'::public.subscription_type
-    when 'growth'     then 'PRO'::public.subscription_type
-    when 'elite'      then 'PRO'::public.subscription_type
+    when 'starter'    then 'STARTER'::public.subscription_type
+    when 'growth'     then 'GROWTH'::public.subscription_type
+    when 'elite'      then 'ELITE'::public.subscription_type
     when 'enterprise' then 'ENTERPRISE'::public.subscription_type
     else null
   end;
@@ -402,7 +400,7 @@ create trigger trg_core_v2_profile_delete
   for each row execute function public.core_v2_profile_delete();
 
 -- ============================================================
--- §4 — Organizations -> company + organization (+ subscription history)
+-- §4 — Organizations -> company + organization (+ subscription periods)
 -- ============================================================
 -- BEFORE, so the bridge column is assigned on the row being written (an AFTER trigger would need
 -- a second UPDATE, which re-fires every trigger on the table and, for an authenticated writer,
@@ -474,47 +472,247 @@ create trigger trg_zz_core_v2_org_sync
   before insert or update on public.organizations
   for each row execute function public.core_v2_org_sync();
 
--- One subscription row per plan change, appended, never updated. issue_date is the moment the
--- change was RECORDED here (now()) — the old tables carry no plan-change timestamp, and
--- inventing one would be a plausible-looking date that is not true (R21).
-create or replace function public.core_v2_org_subscription_log()
-returns trigger
+-- Ends a period now: its duration is cut to (now - issue_date). One that started now — within this
+-- same transaction, say a plan set twice in one signup — never ran: it is deleted, since a zero
+-- duration is refused (subscription_duration_positive). A period already over is left as it is.
+create or replace function public.core_v2_end_period(p_id bigint)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $fn$
+begin
+  delete from public.subscription where id = p_id and issue_date >= now();
+  update public.subscription set duration = now() - issue_date
+   where id = p_id and issue_date < now() and issue_date + duration > now();
+end;
+$fn$;
+
+-- CORE-V2-SUBSCRIPTION (03/10/2026): the old tables hold only the CURRENT billing state, so the
+-- mirror turns it into periods (issue_date + duration), one source at a time, each on its own:
+--   * TRIAL — the owner's personal trial (profiles.trial_started_at): from that date, 14 days; cut to
+--     now once trial_used says it is over (a checkout). Kept as history afterwards.
+--   * PROMO — organizations.trial_ends_at in the future (an alpha / beta window): from when it was
+--     recorded here until then; follows the date when it moves, ends when it is cleared.
+--   * PAID — a live organizations.stripe_subscription_id: from when it was recorded here until the
+--     owner's profiles.subscription_end_date (Stripe's current_period_end, written by the webhook at
+--     every renewal), else one month — BILLING_INTERVAL (prices.js), an upper bound of the first
+--     period, not a guess at it. Seats follow in place; a change of plan or of subscription closes the
+--     row and opens a new one; no live subscription ends it now (a cancellation, an unpaid invoice).
+-- The current period is the latest-started one (core_v2_current_subscription), which is the old
+-- app's order: a payment wins over a promo window, which wins over nothing.
+-- A start is when it was RECORDED here (now()) — the old tables keep no such date, and a guessed one
+-- would read like a fact (R21) — except a trial, whose start profiles does keep.
+-- MIRROR-ONLY: the old tables see no invoice, so here a PAID row spans the Stripe subscription for
+-- as long as its plan and id stay, stretched at each renewal. One row per paid invoice
+-- (stripe_invoice_id) starts when the webhook writes this table itself (step D).
+-- PROMO-PLAN: a window's tier is organizations.plan while no Stripe subscription is live — the plan
+-- the old app serves during the window — and follows it (a change closes the row and opens one). While
+-- a payment is live, organizations.plan is the PAID plan, so the window keeps the tier it had; one
+-- opened then (a backfill of an organization that both pays and holds a window) gets STARTER, the
+-- plan the old app serves once that payment stops (the webhook's floor), which the window then
+-- follows like any other change.
+-- TRIAL-DAYS: 14 is ORG_SETTINGS.trialDays (plans.config.js) — the old tables store only the start;
+-- this copy goes when step D writes the trial into subscription itself.
+create or replace function public.core_v2_sync_subscription(p_org uuid)
+returns void
 language plpgsql
 security definer
 set search_path = public
 as $fn$
 declare
+  o jsonb;
+  p jsonb;
+  v_core bigint;
+  v_owner bigint;
   v_type public.subscription_type;
+  v_seats integer;
+  v_sub text;
+  v_cust text;
+  v_trial_start timestamptz;
+  v_promo_end timestamptz;
+  v_paid_end timestamptz;
+  v_row public.subscription;
+begin
+  select to_jsonb(x) into o from public.organizations x where x.id = p_org;
+  if o is null then
+    return;
+  end if;
+  v_core := nullif(o ->> 'core_organization_id', '')::bigint;
+  if v_core is null then
+    return;
+  end if;
+  -- Read through jsonb: the billing columns were added in the dashboard and may differ by environment.
+  select to_jsonb(y) into p from public.profiles y where y.id = nullif(o ->> 'owner_id', '')::uuid;
+  select og.owner_personage_id into v_owner from public.organization og where og.company_id = v_core;
+
+  v_type := public.core_v2_plan_type(o ->> 'plan');
+  v_seats := nullif(o ->> 'seats_paid', '')::integer;
+  if v_seats is not null and v_seats < 1 then
+    v_seats := null;
+  end if;
+  v_sub := nullif(btrim(o ->> 'stripe_subscription_id'), '');
+  if v_sub = 'none' then
+    v_sub := null;
+  end if;
+  v_cust := nullif(btrim(o ->> 'stripe_customer_id'), '');
+
+  -- TRIAL. One per organization here; one per person is step D's rule (personage_id).
+  v_trial_start := nullif(p ->> 'trial_started_at', '')::timestamptz;
+  if v_trial_start is not null then
+    select * into v_row from public.subscription s
+     where s.organization_id = v_core and s.kind = 'TRIAL'
+     order by s.issue_date desc, s.id desc limit 1;
+    if v_row.id is null then
+      insert into public.subscription (organization_id, issue_date, duration, type, kind, personage_id)
+      values (v_core, v_trial_start, interval '14 days', coalesce(v_type, 'STARTER'), 'TRIAL', v_owner)
+      returning * into v_row;
+    end if;
+    -- trial_used before the 14 days are up (a checkout): over now. When it was set is not kept, so
+    -- a backfill cuts it at the time of the run — no later than the truth, never earlier.
+    if coalesce((p ->> 'trial_used')::boolean, false) then
+      perform public.core_v2_end_period(v_row.id);
+    end if;
+  end if;
+
+  -- PROMO.
+  v_promo_end := nullif(o ->> 'trial_ends_at', '')::timestamptz;
+  select * into v_row from public.subscription s
+   where s.organization_id = v_core and s.kind = 'PROMO'
+     and s.issue_date <= now() and now() < s.issue_date + s.duration
+   order by s.issue_date desc, s.id desc limit 1;
+  if v_promo_end > now() then
+    if v_row.id is not null and v_sub is null and v_type is not null and v_row.type <> v_type then
+      -- The plan moved under the window with no payment live: a change of plan closes the period
+      -- and opens one with the new tier, to the same end.
+      perform public.core_v2_end_period(v_row.id);
+      v_row.id := null;
+    end if;
+    if v_row.id is null then
+      if v_sub is null and v_type is null then
+        raise notice 'core_v2: plan % of organization % has no subscription_type; promo window not mirrored', o ->> 'plan', p_org;
+      else
+        insert into public.subscription (organization_id, issue_date, duration, type, kind, seats, personage_id)
+        values (v_core, now(), v_promo_end - now(),
+                case when v_sub is null then v_type else 'STARTER' end, 'PROMO',
+                case when v_sub is null then v_seats end, v_owner);
+      end if;
+    elsif v_row.issue_date + v_row.duration is distinct from v_promo_end then
+      update public.subscription set duration = v_promo_end - issue_date where id = v_row.id;
+    end if;
+  elsif v_row.id is not null then
+    perform public.core_v2_end_period(v_row.id);
+  end if;
+
+  -- PAID. Written last, so that on a tie (a backfill opens a window and a payment in the same
+  -- instant) the payment is the latest row and wins, as in the old app.
+  select * into v_row from public.subscription s
+   where s.organization_id = v_core and s.kind = 'PAID'
+     and s.issue_date <= now() and now() < s.issue_date + s.duration
+   order by s.issue_date desc, s.id desc limit 1;
+  if v_sub is null or v_type is null then
+    if v_sub is not null then
+      raise notice 'core_v2: plan % of organization % has no subscription_type; paid period not mirrored', o ->> 'plan', p_org;
+    end if;
+    if v_row.id is not null then
+      perform public.core_v2_end_period(v_row.id);
+    end if;
+    return;
+  end if;
+  v_paid_end := nullif(p ->> 'subscription_end_date', '')::timestamptz;
+  if v_paid_end <= now() then
+    v_paid_end := null;
+  end if;
+  if v_row.id is not null and v_row.stripe_subscription_id = v_sub and v_row.type = v_type then
+    -- The same paid period: seats and the customer id in place; its end follows a renewal.
+    update public.subscription
+       set seats = v_seats,
+           stripe_customer_id = v_cust,
+           duration = case when v_paid_end > issue_date + duration then v_paid_end - issue_date else duration end
+     where id = v_row.id
+       and (seats is distinct from v_seats or stripe_customer_id is distinct from v_cust
+            or v_paid_end > issue_date + duration);
+    return;
+  end if;
+  if v_row.id is not null then
+    perform public.core_v2_end_period(v_row.id);
+  end if;
+  insert into public.subscription (organization_id, issue_date, duration, type, kind, seats, personage_id,
+                                   stripe_customer_id, stripe_subscription_id)
+  values (v_core, now(), coalesce(v_paid_end - now(), interval '1 month'), v_type, 'PAID', v_seats, v_owner,
+          v_cust, v_sub);
+end;
+$fn$;
+
+create or replace function public.core_v2_org_subscription_sync()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $fn$
 begin
   begin
-    if new.core_organization_id is null then
-      return new;
-    end if;
-    if tg_op = 'UPDATE' and new.plan is not distinct from old.plan then
-      return new;
-    end if;
-    v_type := public.core_v2_subscription_type(new.plan);
-    if v_type is null then
-      raise notice 'core_v2: plan % of organization % has no subscription_type; not logged', new.plan, new.id;
-      return new;
-    end if;
-    insert into public.subscription (organization_id, issue_date, type)
-    values (new.core_organization_id, now(), v_type);
+    perform public.core_v2_sync_subscription(new.id);
   exception when others then
-    raise warning 'core_v2 subscription log failed for %: % (%)', new.id, sqlerrm, sqlstate;
+    raise warning 'core_v2 subscription sync failed for %: % (%)', new.id, sqlerrm, sqlstate;
   end;
   return new;
 end;
 $fn$;
 
 drop trigger if exists trg_core_v2_org_subscription_log on public.organizations;
-create trigger trg_core_v2_org_subscription_log
-  after insert or update of plan on public.organizations
-  for each row execute function public.core_v2_org_subscription_log();
+drop trigger if exists trg_core_v2_org_subscription_sync on public.organizations;
+create trigger trg_core_v2_org_subscription_sync
+  after insert or update of plan, seats_paid, trial_ends_at, stripe_subscription_id, stripe_customer_id, owner_id
+  on public.organizations
+  for each row execute function public.core_v2_org_subscription_sync();
 
--- Deleting an organization deletes its mirror: subscription, the rows mirrored from clients and
+-- The owner's personal trial and Stripe's renewal date live on profiles until step D. The webhook
+-- writes the profile and then the organization, so a renewal is usually seen through the latter; this
+-- trigger covers a profile written alone.
+create or replace function public.core_v2_profile_trial_sync()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $fn$
+declare
+  r record;
+begin
+  begin
+    for r in select o.id from public.organizations o where o.owner_id = new.id loop
+      perform public.core_v2_sync_subscription(r.id);
+    end loop;
+  exception when others then
+    raise warning 'core_v2 trial sync failed for %: % (%)', new.id, sqlerrm, sqlstate;
+  end;
+  return new;
+end;
+$fn$;
+
+-- Only on the columns this environment has (they were added in the dashboard).
+do $$
+declare
+  v_cols text;
+begin
+  select string_agg(column_name, ', ' order by column_name) into v_cols
+    from information_schema.columns
+   where table_schema = 'public' and table_name = 'profiles'
+     and column_name in ('trial_started_at', 'trial_used', 'subscription_end_date');
+  execute 'drop trigger if exists trg_core_v2_profile_trial_sync on public.profiles';
+  if v_cols is not null then
+    execute 'create trigger trg_core_v2_profile_trial_sync
+               after update of ' || v_cols || ' on public.profiles
+               for each row execute function public.core_v2_profile_trial_sync()';
+  end if;
+end $$;
+
+-- Deleting an organization deletes its mirror: the rows mirrored from clients and
 -- client_notes (opening profit, churn, notes — RESTRICT), the contacts' personal data, then the
--- companies of its client groups (prospects included), then its own. issue / profit / churn rows a
+-- companies of its client groups (prospects included), then its own. Its subscription periods are
+-- NOT deleted: they stay as history with organization_id NULL (ON DELETE SET NULL,
+-- CORE-V2-SUBSCRIPTION) — a released own organization must not take its owner's trial with it, and
+-- an alpha code keeps the period it opened (promo_codes.subscription_id). issue / profit / churn rows a
 -- USER wrote are RESTRICT too and
 -- have no old-table source: if any exist the delete fails, is reported as a WARNING, and the
 -- mirror is left for a person to decide about — the old delete is never blocked.
@@ -531,7 +729,6 @@ begin
     return old;
   end if;
   begin
-    delete from public.subscription where organization_id = old.core_organization_id;
     delete from public.profit
      where organization_id = old.core_organization_id and description ->> 'source' = 'clients.arr';
     delete from public.churn
@@ -976,14 +1173,17 @@ create trigger trg_core_v2_note_delete
 -- left as is, /rest/v1/rpc/core_v2_sync_user would let any signed-in user drive the projection
 -- for any user id. Firing a trigger does not need EXECUTE on its function, so revoking is free.
 revoke all on function public.core_v2_role_kind(text)                 from public, anon, authenticated;
-revoke all on function public.core_v2_subscription_type(text)         from public, anon, authenticated;
+revoke all on function public.core_v2_plan_type(text)                from public, anon, authenticated;
+revoke all on function public.core_v2_sync_subscription(uuid)         from public, anon, authenticated;
+revoke all on function public.core_v2_end_period(bigint)              from public, anon, authenticated;
+revoke all on function public.core_v2_org_subscription_sync()         from public, anon, authenticated;
+revoke all on function public.core_v2_profile_trial_sync()            from public, anon, authenticated;
 revoke all on function public.core_v2_end_membership(uuid)            from public, anon, authenticated;
 revoke all on function public.core_v2_sync_user(uuid)                 from public, anon, authenticated;
 revoke all on function public.core_v2_profile_sync()                  from public, anon, authenticated;
 revoke all on function public.core_v2_member_sync()                   from public, anon, authenticated;
 revoke all on function public.core_v2_profile_delete()                from public, anon, authenticated;
 revoke all on function public.core_v2_org_sync()                      from public, anon, authenticated;
-revoke all on function public.core_v2_org_subscription_log()          from public, anon, authenticated;
 revoke all on function public.core_v2_org_delete()                    from public, anon, authenticated;
 revoke all on function public.core_v2_client_sync()                   from public, anon, authenticated;
 revoke all on function public.core_v2_client_delete()                 from public, anon, authenticated;
@@ -1015,9 +1215,14 @@ revoke all on function public.core_v2_note_delete()                   from publi
 --   -- expect core_organization_id NOT NULL; then:
 --   select c.name, c.country_code, c.currency_code from public.company c
 --    where c.id = (select core_organization_id from public.organizations where name = 'core_v2 smoke');
---   -- expect country_code NULL. And one BASIC row:
---   select type from public.subscription
+--   -- expect country_code NULL, and NO subscription row (starter, no Stripe, no promo window, no
+--   -- trial = no access). Then give it a promo window and expect one PROMO / STARTER row ending then:
+--   update public.organizations set trial_ends_at = now() + interval '30 days' where name = 'core_v2 smoke';
+--   select type, kind, issue_date + duration as period_end from public.subscription
 --    where organization_id = (select core_organization_id from public.organizations where name = 'core_v2 smoke');
+--   -- then a Stripe subscription: expect a second row, PAID / STARTER, one month, and
+--   -- core_v2_current_subscription(<core id>) to return it rather than the PROMO one:
+--   update public.organizations set stripe_subscription_id = 'sub_smoke' where name = 'core_v2 smoke';
 --   rollback;
 --
 -- 7.4 — A forged bridge value is discarded (CORE-V2-NO-TRUST). As an org owner:
@@ -1056,7 +1261,8 @@ revoke all on function public.core_v2_note_delete()                   from publi
 --   drop trigger if exists trg_core_v2_profile_delete       on public.profiles;
 --   drop trigger if exists trg_core_v2_member_sync          on public.organization_members;
 --   drop trigger if exists trg_zz_core_v2_org_sync          on public.organizations;
---   drop trigger if exists trg_core_v2_org_subscription_log on public.organizations;
+--   drop trigger if exists trg_core_v2_org_subscription_sync on public.organizations;
+--   drop trigger if exists trg_core_v2_profile_trial_sync on public.profiles;
 --   drop trigger if exists trg_core_v2_org_delete           on public.organizations;
 --   drop trigger if exists trg_core_v2_client_sync          on public.clients;
 --   drop trigger if exists trg_core_v2_client_delete        on public.clients;
@@ -1064,11 +1270,12 @@ revoke all on function public.core_v2_note_delete()                   from publi
 --   drop trigger if exists trg_core_v2_note_delete          on public.client_notes;
 --   drop function if exists public.core_v2_note_sync(), public.core_v2_note_delete();
 --   drop function if exists public.core_v2_profile_sync(), public.core_v2_member_sync(),
---     public.core_v2_profile_delete(), public.core_v2_org_sync(), public.core_v2_org_subscription_log(),
+--     public.core_v2_profile_delete(), public.core_v2_org_sync(), public.core_v2_org_subscription_sync(), public.core_v2_profile_trial_sync(),
+--     public.core_v2_sync_subscription(uuid), public.core_v2_end_period(bigint),
 --     public.core_v2_org_delete(), public.core_v2_client_sync(), public.core_v2_client_delete(),
 --     public.core_v2_sync_contacts(bigint, jsonb),
 --     public.core_v2_pipeline_stage(text),
 --     public.core_v2_sync_user(uuid), public.core_v2_end_membership(uuid),
---     public.core_v2_role_kind(text), public.core_v2_subscription_type(text);
+--     public.core_v2_role_kind(text), public.core_v2_plan_type(text);
 --   -- Optional, once nothing reads them:
 --   alter table public.organizations drop column if exists core_organization_id;
