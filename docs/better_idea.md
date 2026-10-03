@@ -282,7 +282,7 @@ Why this shape:
 - **Trials, promos and Stripe use one table.** `source` says which. `organizations.trial_ends_at`
   and `promo_codes` stop being a parallel entitlement path.
 - **`seats` lives with the period it was paid for**, which is what "seats are billed at
-  invitation, not acceptance" needs in order to be auditable.
+  acceptance" (`SEAT-AT-ACCEPT`, 03/10/2026; at invitation when this was written) needs in order to be auditable.
 - **One arbiter kills the split source.** `organizations.plan` survives only as a
   trigger-maintained cache written by the Stripe webhook, documented as derived;
   `profiles.plan` goes away. Run `scripts/proof-paywall-member.mjs` before and after, and put

@@ -3,11 +3,12 @@
 **Generated** 26 September 2026 from the migrations as they stand in the working tree:
 `supabase/migrations/20260920100000_core_v2_schema.sql`, `…110000_core_v2_sync_triggers.sql`,
 `…120000_core_v2_backfill.sql` and `20260924100000_core_v2_stage1_user_profiles.sql` — stage 1
-(`user_profiles`) and stage 3a (`clients`, `client_notes`) included. **25 tables, 39 foreign keys, 9 enums** —
+(`user_profiles`) and stage 3a (`clients`, `client_notes`) included. **25 tables, 40 foreign keys, 10 enums** —
 plus, in §8, the 29 old tables that stay and where their references land.
 
 > **Not applied to any Supabase project yet.** Tested on a local PostgreSQL 16 with Supabase stand-ins
-> (219 assertions). The old schema is drawn in [DATABASE_DIAGRAM.md](DATABASE_DIAGRAM.md) (7 September 2026);
+> (219 assertions) — **the 3 October 2026 subscription changes were NOT run** (the local test database was lost;
+> run them before applying). The old schema is drawn in [DATABASE_DIAGRAM.md](DATABASE_DIAGRAM.md) (7 September 2026);
 > the decisions behind this one are in [DATABASE.md](DATABASE.md#core_v2--the-new-core-schema-additive).
 > Maintained by hand: update it in the same change as any core_v2 migration — a stale diagram is worse than none.
 
@@ -208,9 +209,17 @@ erDiagram
   }
   subscription {
     bigint id PK
-    bigint organization_id FK "not null; restrict"
-    timestamptz issue_date "not null; when the change was recorded"
-    subscription_type type "not null; lossy: growth and elite both PRO"
+    bigint organization_id FK "set null — a period outlives its organization"
+    timestamptz issue_date "not null; the period's start"
+    interval duration "not null; > 0; covers [issue_date, issue_date + duration) — no end column"
+    subscription_type type "not null; the plan: STARTER · GROWTH · ELITE · ENTERPRISE"
+    subscription_kind kind "not null; TRIAL · PROMO · PAID · CONTRACT"
+    integer seats "NULL = the tier's ceiling; > 0"
+    bigint personage_id FK "set null; who obtained it — one trial per person"
+    text stripe_customer_id
+    text stripe_subscription_id "set iff kind = PAID"
+    text stripe_invoice_id "unique; one PAID row per paid invoice"
+    timestamptz created_at "not null; default now()"
   }
   consent {
     bigint id PK
@@ -230,7 +239,8 @@ erDiagram
   currency ||--o{ profit : "currency_code"
   organization |o--o{ churn : "scope"
   client_group |o--o{ churn : "scope"
-  organization ||--o{ subscription : "plan history"
+  organization |o--o{ subscription : "plan periods"
+  personage |o--o{ subscription : "obtained by"
   organization ||--o{ consent : "given in"
   personage ||--o{ consent : "whose"
 ```
@@ -270,7 +280,7 @@ flowchart LR
   classDef old fill:#A15C0E1F,stroke:#A15C0E,stroke-width:1.5px,stroke-dasharray:6 4;
   classDef v2 fill:#6A3BD214,stroke:#6A3BD2,stroke-width:1px;
   classDef fe fill:#6A3BD22E,stroke:#6A3BD2,stroke-width:2px;
-  O["organizations"]:::old -- "core_v2_org_sync<br/>core_v2_org_subscription_log" --> O2["company · organization<br/>+ one subscription row per plan change"]:::v2
+  O["organizations"]:::old -- "core_v2_org_sync<br/>core_v2_sync_subscription" --> O2["company · organization<br/>+ subscription periods: Stripe,<br/>promo window, owner's trial"]:::v2
   P["profiles<br/>+ organization_members"]:::old -- "core_v2_sync_user" --> P2["personage · member | viewer · manager<br/>organization_worker · member_authority · billing owner"]:::v2
   U["user_profiles<br/>retiring — stage 1"]:::old -- "core_v2_user_profile_mirror" --> U2["organization_worker answers · consent<br/>completed questionnaires only"]:::v2
   C["clients<br/>retiring — stage 3"]:::old -- "core_v2_client_sync" --> C2["company (public_id = clients.id)<br/>client_group: PROSPECT · ACTIVE · CHURNED<br/>contacts · CSM · opening profit row · churn row"]:::v2
@@ -288,7 +298,8 @@ flowchart LR
 | `pipeline_stage` | NEW · CONTACTED · QUALIFIED · WON · LOST |
 | `issue_status` | OPEN · IN_PROGRESS · RESOLVED · CLOSED · NOTE |
 | `issue_kind` | NOTE · CALL · EMAIL · MEETING |
-| `subscription_type` | FREE · BASIC · PRO · ENTERPRISE — tiers still undecided |
+| `subscription_type` | STARTER · GROWTH · ELITE · ENTERPRISE — the product plans, one for one |
+| `subscription_kind` | TRIAL · PROMO · PAID · CONTRACT |
 | `consent_kind` | AI · ANALYTICS |
 | `person_title` | MR · MS · MRS · DR · MX |
 
@@ -306,7 +317,8 @@ Each tag is grep-able in the SQL, next to the code it explains.
 | `CORE-V2-CLIENT-HEALTH` | `health`, `nps`, `churn_risk`, `health_status`, `renewal_date`, `created_at` on `client_group` (kept 24/09/2026). |
 | `CORE-V2-ARR-PROFIT` | ARR = a client group's `profit` rows dated in the last 12 months; MRR = ARR ÷ 12; one opening row from `clients.arr`. |
 | `CORE-V2-CONSENT` | `consent` is append-only; the latest row per person and kind is the current state. |
-| `CORE-V2-PLAN-HOME` | The plan tier is never a column of `organization` or `organization_worker`. |
+| `CORE-V2-SUBSCRIPTION` | One row = one period of one organization: `issue_date` + `duration` (no end column), plan, kind, seats, who obtained it, Stripe ids; one PAID row per paid invoice; current = the latest-started row covering now; a period outlives its organization (03/10/2026). |
+| `CORE-V2-PLAN-HOME` | The plan tier is never a column of `organization` or `organization_worker` — it is `subscription.type`. |
 | `CORE-V2-AUTH-LINK` | `member` / `viewer.auth_user_id` link a login, with no foreign key to `auth.users`, on purpose. |
 | `CORE-V2-AUTHORITY` | The `authority` enum adds `INVITE`, `SEND_EMAIL`, `ASSIGN_CLIENT_GROUP` to the four verbs. |
 | `CORE-V2-COLUMNS` | Columns the source DDL had no home for: `organization_role`, worker role / seniority / `joined_at` / `onboarding_completed`, client_group `industry` / `notes` / `pipeline_stage`, issue `kind` / `content` / `author_name`. |

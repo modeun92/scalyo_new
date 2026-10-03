@@ -59,32 +59,61 @@ Per-entity read/write permissions are declared in the same file
 Note that RLS is the real enforcement layer for data (see [DATABASE.md](DATABASE.md));
 the role map drives the UI and the Pages Functions.
 
-## Seats — the GitHub model
+## Seats — billed at acceptance
 
-A seat is committed **at invitation time**, not at acceptance.
+A seat is **billed when the invitation is accepted**, not when it is sent
+(`SEAT-AT-ACCEPT`, 03/10/2026). Until then it was billed at invitation, and an invitation
+nobody opened was charged for its whole life — after it expired too, because the lazy
+`expired` flip in `invite/accept.js` / `invite/verify.js` never touched Stripe.
 
 ```
-seats_paid = non-viewer members + pending non-viewer invitations
+billed   = non-viewer members                              → Stripe quantity, seats_paid
+reserved = non-viewer members + pending non-viewer invitations → plan ceiling, /api/members `used`
 ```
 
-Viewers never consume a seat. `/api/members` computes `used` server-side, and it is the
-**single source** for the seat counter; the plan ceiling comes from
-`getMaxSeats(plan)`. (Reading `seats_paid` from a *member's* profile used to display
-"5 / 1" on the Manager screen against "5 / 24" on the Team screen.)
+A pending invitation still **reserves** its seat against the plan ceiling, or a full team
+could hand out invitations that then fail at acceptance. Viewers never consume a seat.
+`/api/members` computes `used` (reserved) server-side, and it is the **single source** for
+the seat counter; the plan ceiling comes from `getMaxSeats(plan)`. `used` may exceed `paid`
+while invitations are pending. (Reading `seats_paid` from a *member's* profile used to
+display "5 / 1" on the Manager screen against "5 / 24" on the Team screen.)
 
-### Adding a seat
+### Inviting
 
-`POST /api/invite` → count committed seats → check the ceiling → insert the invitation →
-Stripe quantity +1 with `create_prorations` → on Stripe failure, **roll back the
-invitation**. `email_sent` is returned to the client so the UI never shows a false
-success.
+`POST /api/invite` → count reserved seats → check the ceiling → insert the invitation →
+send the email. No Stripe call, no `seats_paid` write. `email_sent` is returned to the
+client so the UI never shows a false success.
+
+### Adding a seat — acceptance
+
+`POST /api/invite/accept`, for a non-viewer role, before the membership is made:
+check the plan ceiling against the members → Stripe quantity = members + 1 with
+`create_prorations` → `seats_paid` = the same. If Stripe fails, nothing is written, the
+invitation stays pending and the invitee sees `409 billing_failed`. Then
+`switch_to_invited_organization` makes the membership. **Every exit after the charge
+re-syncs from a recount** (Stripe and `seats_paid` = members as they are now): a refused or
+failed switch gives the seat back (a `create_prorations` credit that nets out the charge),
+and a successful one bills any acceptance that overlapped it — two acceptances in the same
+second both read N members and both bill N+1. `setSubscriptionQuantity` skips an
+unchanged quantity, so the re-sync is usually free.
+
+`seats_paid` is written before the insert on purpose: `enforce_org_seat_limit` fires on
+that insert and its body lives only in the dashboard, so it may be reading `seats_paid`.
+**Verify its body in pre-prod.**
 
 ### Removing a seat
 
-`DELETE /api/members/[id]` and `DELETE /api/invitations/[id]` are fail-closed: Stripe is
-called **before** any database write, with `proration_behavior: 'none'` (no credit, the
-new quantity applies at the next renewal). If Stripe fails, nothing is removed — a seat
-must never be free in the database and still billed, or vice versa.
+`DELETE /api/members/[id]` is fail-closed: Stripe is called **before** any database
+write, with `proration_behavior: 'none'` (no credit, the new quantity applies at the next
+renewal), and the new quantity is the remaining non-viewer members — pending invitations
+are not billed, so they are not counted. If Stripe fails, nothing is removed — a seat must
+never be free in the database and still billed, or vice versa.
+
+`DELETE /api/invitations/[id]` touches no billing: the invitation was never billed.
+
+**Before SEAT-AT-ACCEPT** an organization's quantity included its pending invitations. Such
+an over-billed quantity is corrected at the next acceptance (a credit) or removal (no
+credit) — nothing reconciles it in between.
 
 Removing a member is confirmed with the in-product `ConfirmDialog`, never with a native
 `confirm()`.

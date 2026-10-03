@@ -67,24 +67,30 @@ list lengths.
 
 ## Request flow — a paid seat
 
-Inviting a member is modeled on GitHub: the seat is granted *and billed* at invitation
-time, not at acceptance.
+An invitation *reserves* a seat; the seat is *billed* when the invitation is accepted
+(`SEAT-AT-ACCEPT`, 03/10/2026 — it was billed at invitation before).
 
 ```
 POST /api/invite
-  → count committed seats (non-viewer members + pending non-viewer invitations)
+  → count reserved seats (non-viewer members + pending non-viewer invitations)
   → check the plan ceiling
   → INSERT invitations
-  → Stripe: subscription item quantity +1, create_prorations
-      └─ failure ⇒ roll back the invitation (never an unbilled seat)
-  → organizations.seats_paid = committed seats
   → Resend: send the email; `email_sent` is returned so the UI never claims a false success
+
+POST /api/invite/accept   (non-viewer role)
+  → check the plan ceiling against the members
+  → Stripe: subscription item quantity = members + 1, create_prorations
+      └─ failure ⇒ 409 billing_failed, nothing written (never a member on an unbilled seat)
+  → organizations.seats_paid = members + 1
+  → switch_to_invited_organization (one transaction: membership, own org released)
+  → every exit: re-sync Stripe + seats_paid from a recount of the members
+      (gives the seat back when no membership was made; bills an overlapping acceptance)
 ```
 
-Removal is the mirror image and is **fail-closed**: Stripe is called *before* any
-database write, with `proration_behavior: 'none'` (no credit, effect at renewal). If
-Stripe fails, nothing is removed — see `functions/api/members/[id].js` and
-`functions/api/invitations/[id].js`.
+Removal is **fail-closed**: Stripe is called *before* any database write, with
+`proration_behavior: 'none'` (no credit, effect at renewal). If Stripe fails, nothing is
+removed — see `functions/api/members/[id].js`. Revoking an invitation
+(`functions/api/invitations/[id].js`) touches no billing: it was never billed.
 
 ## Request flow — payment
 

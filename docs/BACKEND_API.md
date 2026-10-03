@@ -45,7 +45,6 @@ files, so a fallback also exists inside `ai.js`.
 | `/api/stripe/portal` | POST | Creates a Stripe Billing Portal session |
 | `/api/stripe-webhook` | POST | Verifies the HMAC signature, provisions plan + seats on `profiles` **and** `organizations` |
 | `/api/subscribe` | POST | Subscription entry point |
-| `/api/founding-status` | GET | Remaining "founding" seats (out of 10) |
 
 `_config/prices.js` is the single declaration of prices, in Stripe's smallest unit
 (cents for EUR/USD, whole won for KRW, which is zero-decimal). `PRICE_TO_PLAN` used by
@@ -60,12 +59,12 @@ stays unresolved, so `customer.subscription.updated` can catch up later.
 
 | Route | Method | Notes |
 |---|---|---|
-| `/api/members` | GET | Members + pending invitations. Invitation **tokens are only exposed to owner/admin** — a member must not be able to copy a pending invitation link. |
-| `/api/members/[id]` | DELETE | Remove a member. Stripe **before** any write, fail-closed, `proration_behavior: 'none'`. The removed person then gets an organization of their own back (`ensure_own_organization`, `OWN-ORG`, 27/09/2026). |
-| `/api/invite` | POST | Send an invitation; grants and bills the seat immediately; rolls back on Stripe failure; returns `email_sent`. |
-| `/api/invitations/[id]` | DELETE | Revoke a pending invitation and free the seat, same fail-closed doctrine. |
+| `/api/members` | GET | Members + pending invitations. Invitation **tokens are only exposed to owner/admin** — a member must not be able to copy a pending invitation link. `seats.used` = members + pending (reserved, against the plan ceiling); `seats.paid` = `seats_paid` (billed) — `used` may exceed `paid` while invitations are pending (`SEAT-AT-ACCEPT`). |
+| `/api/members/[id]` | DELETE | Remove a member. Stripe **before** any write, fail-closed, `proration_behavior: 'none'`; the new quantity is the remaining non-viewer members (pending invitations are not billed). The removed person then gets an organization of their own back (`ensure_own_organization`, `OWN-ORG`, 27/09/2026). |
+| `/api/invite` | POST | Send an invitation; **reserves** a seat against the plan ceiling but does not bill it (`SEAT-AT-ACCEPT`, 03/10/2026); returns `email_sent`. |
+| `/api/invitations/[id]` | DELETE | Revoke a pending invitation and free its reservation. No billing: it was never billed. |
 | `/api/invite/verify` | GET | Public: validate an invitation token |
-| `/api/invite/accept` | POST | Hard refusal if the target email is not the logged-in account (D1①) or if the account already belongs to another org (D2①). Idempotent when already a member. Never an implicit overwrite of `profiles.organization_id`. OWN-ORG (27/09/2026): every account has an organization of its own, so the switch is one transaction, `switch_to_invited_organization` — an **empty** own organization is deleted and the account joins; one that holds anything is refused with `409 own_organization_not_empty`. |
+| `/api/invite/accept` | POST | Hard refusal if the target email is not the logged-in account (D1①) or if the account already belongs to another org (D2①). Idempotent when already a member. Never an implicit overwrite of `profiles.organization_id`. OWN-ORG (27/09/2026): every account has an organization of its own, so the switch is one transaction, `switch_to_invited_organization` — an **empty** own organization is deleted and the account joins; one that holds anything is refused with `409 own_organization_not_empty`. **Bills the seat** (`SEAT-AT-ACCEPT`, 03/10/2026), non-viewer roles only: plan ceiling, then Stripe quantity = members + 1 with `create_prorations` *before* the membership — `409 billing_failed` and nothing written if Stripe refuses — then a re-sync from a recount on every exit, which gives the seat back when the switch is refused. |
 | `/api/alpha/verify` | POST | Validate a promo/alpha code before signup through the SQL function `promo_code_lookup` — the same test the signup redemption runs (`promo_code_find`: unused, and `active` while `status` exists — `PROMO-STATUS`, 03/10/2026). The code is then **applied at signup by the database** (`redeem_promo_code`, `PROMO-AT-SIGNUP`); `/api/alpha/activate`, which trusted a `userId` from the body with no authentication, is deleted |
 
 ### Email (Resend)
@@ -156,8 +155,10 @@ Exception messages are never forwarded to the client.
 
 ### `_utils/stripe.js`
 
-Seat quantity synchronization. `create_prorations` when adding (billed immediately),
+Seat quantity synchronization. `create_prorations` when adding at acceptance (prorated),
 `none` when removing (no credit, new quantity applies at the next renewal).
+`setSubscriptionQuantity` skips the update when the quantity is already right — no
+proration line, no `subscription.updated` event.
 
 ### `_config/index.js`
 
@@ -170,5 +171,5 @@ silently fail over to the **production** database (ENV-FALLBACK-PROD).
 
 Cloudflare replaces the body of a Pages Function's 5xx with its own HTML page, so an
 application message never reaches the client. Endpoints therefore return a **typed 409**
-where a 502 would be natural — see the `CF-502-MASQUE` comments in `invite.js`,
-`invitations/[id].js` and `members/[id].js`.
+where a 502 would be natural — see the `CF-502-MASQUE` comments in `invite/accept.js`
+and `members/[id].js`.

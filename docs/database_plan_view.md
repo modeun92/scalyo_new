@@ -140,7 +140,7 @@ database cannot see. Consequences:
 - **No `period_end`** → "is this org entitled right now?" is a computation, not a query, so
   it cannot appear in an RLS policy, a `CHECK`, or the client-limit trigger.
 - **No seats** → `organizations.seats_paid` has no home, and seats are **billed at
-  invitation** under a fail-closed rule.
+  acceptance** (`SEAT-AT-ACCEPT`, 03/10/2026; at invitation when this was written) under a fail-closed rule.
 - **No Stripe identifiers** → the Stripe webhook is the only writer that matters and it has
   nothing to write to.
 - **`Organization.Plans (by id)` with no arbiter** → a list of plans with no defined

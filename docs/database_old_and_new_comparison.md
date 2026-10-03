@@ -121,7 +121,7 @@ raised it against the previous draft; the expansion did not address it.
 | `email_templates`, `sent_emails`, `org_email_config` | Email studio | deleted | Retained; `org_email_config` has **no client access at all** |
 | `ai_conversations`, `ai_messages`, `ai_usage` | AI history & quota | deleted | Retained |
 | `clients.health` / `churn_risk` / `nps` | Health scores | deleted | Retained; `/10` through `lib/health`, three-file parity |
-| `invitations`, `organization_members`, `seats_paid` | Seats & invitations | deleted | Retained; seats are billed **at invitation**, fail-closed |
+| `invitations`, `organization_members`, `seats_paid` | Seats & invitations | deleted | Retained; seats are billed **at acceptance** (`SEAT-AT-ACCEPT`, 03/10/2026 — at invitation when this was written), fail-closed |
 | `activity_log`, `api_keys`, `webhooks`, `promo_codes`, `alpha_feedback`, `org_integrations` | Misc / dormant | deleted | Retained; Integrations is dormant **on purpose** |
 
 That is roughly two-thirds of the product. The omission is a framing problem rather than an

@@ -180,31 +180,40 @@ Three properties fall out of that code:
 3. **Stripe is authoritative when present.** The endpoint returns
    `plan_mismatch: stripe.plan !== orgPlan` rather than silently trusting the local record.
 
-### Seat accounting — billed at invitation, not at acceptance
+### Seat accounting — billed at acceptance, reserved at invitation
 
-`functions/api/invite.js` and `functions/api/members.js` compute the same quantity:
+Decided 03/10/2026 (`SEAT-AT-ACCEPT`): a seat is billed only once the invitation is
+**accepted** — the person has joined. Before, it was billed at invitation, and an
+invitation nobody opened was charged for its whole life, expired ones included.
+
+Two quantities, no longer one:
 
 ```
-seatsCommitted = organization_members.filter(role !== 'viewer').length
-               + invitations.filter(status='pending' && role !== 'viewer').length
+reserved = organization_members.filter(role !== 'viewer').length
+         + invitations.filter(status='pending' && role !== 'viewer').length   → plan ceiling
+billed   = organization_members.filter(role !== 'viewer').length              → Stripe, seats_paid
 ```
 
-`invite.js` then, in order: checks `canAddSeat(plan, seatsCommitted)`, inserts the
-invitation, calls Stripe with `quantity = seatsCommitted + 1` and
-`create_prorations`, and — if Stripe fails — **deletes the invitation it just created**.
-`organizations.seats_paid` is only written after Stripe agrees.
+`invite.js` checks `canAddSeat(plan, reserved)` and inserts the invitation — no Stripe
+call. `invite/accept.js`, before the membership, checks the ceiling against the members,
+calls Stripe with `quantity = billed + 1` and `create_prorations`, and writes
+`organizations.seats_paid` only after Stripe agrees; if Stripe refuses, nothing is written
+and the invitation stays pending. Every exit after the charge re-syncs Stripe and
+`seats_paid` from a recount, which gives the seat back (a prorated credit) when the
+acceptance did not happen.
 
-The inverse operations (`members/[id].js`, `invitations/[id].js`) call Stripe **before**
-any database write, with `proration_behavior: 'none'`.
+`members/[id].js` calls Stripe **before** any database write, with
+`proration_behavior: 'none'`. Revoking an invitation (`invitations/[id].js`) touches no
+billing.
 
-**Derived conclusion:** revenue recognizes on *reserved capacity*, not on usage or on
-activation. Upgrades are charged instantly and prorated; downgrades take effect at
+**Derived conclusion:** revenue recognizes on *activated seats* — people who joined — not on
+reserved capacity and not on usage. Upgrades are charged instantly and prorated; downgrades take effect at
 renewal with no credit. A `viewer` is free by design and is the only role that is.
 
 So:
 
 ```
-MRR = Σ over organizations: price[plan][account_currency] × (non-viewer members + pending non-viewer invitations)
+MRR = Σ over organizations: price[plan][account_currency] × non-viewer members
 ```
 
 ### Subscription lifecycle
@@ -375,9 +384,9 @@ Reading only the executable parts, Scalyo is:
 - a **multi-tenant B2B SaaS**, sold to a company (`organizations`), not to an individual;
 - a **post-sale revenue-retention system** whose root object is a signed account and
   whose every aggregate measures that account's survival;
-- **billed per reserved non-viewer seat, per month**, in one of three currencies attached
-  to the account, through Stripe Payment Links, with capacity charged at invitation and
-  released at renewal;
+- **billed per activated non-viewer seat, per month**, in one of three currencies attached
+  to the account, through Stripe Payment Links, with a seat charged when its invitation is
+  accepted and released at renewal;
 - **gated by a per-plan module list** with a 14-day trial, an org-level promo window, an
   alpha bypass, and a cancellation path that lands on Starter rather than on lockout;
 - **operated by a CS team** of owner / admin / member roles with a free read-only viewer
@@ -390,7 +399,7 @@ The revenue equation the code implements, in full:
 
 ```
 MRR = Σ organizations [ PRICES[account_currency][organizations.plan]
-                        × (non-viewer members + pending non-viewer invitations) ]
+                        × non-viewer members ]          (pending invitations: not billed, SEAT-AT-ACCEPT)
 ```
 
 Everything else in the repository exists to make that sum stop shrinking.

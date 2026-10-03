@@ -43,9 +43,10 @@ is an older, superseded file.
 | `20260920120000_core_v2_backfill` | One-time, idempotent mirror of the rows that already exist (re-uses the triggers) |
 | `20260924100000_core_v2_stage1_user_profiles` | Stage 1 of [retiring the old core tables](#retiring-the-old-core-tables): `organization_worker.onboarding_completed`, the `consent` log, the RPCs the front end now calls instead of `user_profiles`, a transitional `user_profiles` mirror and its backfill. **Apply before the stage-1 front end** |
 | `20260927100000_email_templates_drop_owner_id` | Drops `email_templates.owner_id` — a copy of `created_by` that nothing read (`ET-OWNER`). **Apply after the front end that stops sending it**; check the column's `NOT NULL` first (header) |
-| `20260927110000_promo_codes_issued_contact_subscription` | `promo_codes` gains `issued_at` (date), `contact` (jsonb object), `subscription_id` (→ core_v2 `subscription`, `RESTRICT`); refuses to run while a code's `status` and `activated_at` disagree. **After core_v2 part 1, before the alpha API that reads `activated_at`** |
+| `20260927110000_promo_codes_issued_contact_subscription` | `promo_codes` gains `issued_at` (date), `contact` (jsonb object), `subscription_id` (→ core_v2 `subscription`, `SET NULL`); refuses to run while a code's `status` and `activated_at` disagree. **After core_v2 part 1, before the alpha API that reads `activated_at`** |
 | `20260927120000_promo_codes_drop_status_org_expires` | Drops `promo_codes.status` (used = `activated_at` set, `PROMO-USED`), `organization_id`, `expires_at` (a copy of `trial_ends_at`). **After that API is live** |
 | `20260927130000_own_organization_per_user` | Every account gets an organization of its own (`OWN-ORG`): at signup (trigger on `profiles` insert), for existing org-less accounts (backfill, their org-less rows adopted), and after a removal. Redeems the signup's alpha code in the same transaction (`PROMO-AT-SIGNUP`, replacing `/api/alpha/activate`); `promo_code_find` is the one test of a usable code, shared with `/api/alpha/verify` through `promo_code_lookup`, and honours `status` while it exists (`PROMO-STATUS`, 03/10/2026). Invite acceptance becomes one transaction (`switch_to_invited_organization`): an **empty** own organization is deleted, a non-empty one refuses. **Deploy with the front end** that sends the code at signup, migration first |
+| `20261003100000_promo_subscription_link` | Redefines `redeem_promo_code`: links `promo_codes.subscription_id` to the PROMO period it opened (`PROMO-LINK`) and stops setting `is_founding` (founding programme removed). After 130000, 110000 and the core_v2 files. **Not run locally** |
 | `20260721000000_copils_client_id` (front) | Idempotent guarantee that `copils.client_id` exists |
 | `20260721010000_notify_client_note` (front) | Trigger notifying a client's owner when a colleague adds a note |
 | `20260801120000_planning_recurrence` (front) | `planning_events.recurrence` + `series_id` |
@@ -106,7 +107,7 @@ aggregate is only reachable through the `oxygen_team_aggregate` function.
 | `org_email_config` | Resend key (AES-256-GCM), sender domain and name — **no client access at all** |
 | `org_integrations` | Integration rows; `access_token` / `refresh_token` / `config` are revoked from the client |
 | `alpha_feedback` | In-product feedback widget |
-| `promo_codes` | Alpha / founding codes |
+| `promo_codes` | Alpha codes — their terms (`plan`, `max_seats`, `valid_days`) and, once used, the PROMO subscription period they opened (`subscription_id`) |
 
 ## core_v2 — the new core schema (additive)
 
@@ -128,9 +129,9 @@ below. Decided to be **dropped, never migrated**: `is_founding`, every `user_pro
 except `role` and `seniority`, and the `profiles` plan / trial / Stripe / onboarding / region /
 alpha columns. `health`, `nps`, `churn_risk`, `renewal_date` and `contacts` were decided dropped
 on 20/09 and **kept** on 24/09/2026; `arr` / `mrr` become `profit` rows (ARR = last 12 months).
-**Still to design:** the subscription-information table (seats, plan tiers, `TRIAL` as a type,
-the Stripe ids) and the Oxygen module (which will reference `member`). The plan tier goes in that
-table, **never** in a column of `organization` or `organization_worker` (`CORE-V2-PLAN-HOME`,
+**Still to design:** the Oxygen module (which will reference `member`). Plan tier, seats, trial,
+promo window and Stripe ids are `subscription` periods (`CORE-V2-SUBSCRIPTION`, 03/10/2026) — the
+plan tier **never** in a column of `organization` or `organization_worker` (`CORE-V2-PLAN-HOME`,
 decided 24/09/2026): a second copy drifts, which is what `profiles.plan` vs `organizations.plan` already does.
 
 | New table | Is a projection of | Notes |
@@ -148,7 +149,7 @@ decided 24/09/2026): a second copy drifts, which is what `profiles.plan` vs `org
 | `organization_worker` | `profiles.organization_id` | `ACTIVE` while in the organization, `ENDED` (kept) after removal; one organization per personage. `joined_at` ← `organization_members.joined_at` (`NULL` when unknown, never invented). Also carries `role_id` / `seniority` (above); an `ENDED` row keeps them as history |
 | `member_authority` | the role + `organization_members.can_send_email` | The `authority` enum is the source's four verbs **plus** `INVITE`, `SEND_EMAIL`, `ASSIGN_CLIENT_GROUP` (`CORE-V2-AUTHORITY`). owner + admin → manager (VIEW, CREATE, UPDATE, DELETE, INVITE, ASSIGN_CLIENT_GROUP) · member → VIEW, CREATE, UPDATE · viewer → none. `SEND_EMAIL` mirrors `can_send_email` for any member/manager and is implicit for the billing owner (`api/email.js` sends as the owner's own config). `ASSIGN_CLIENT_GROUP` gates changing a client group's assignee (`member_client_group`); nothing enforces it yet — today any org member can reassign a CSM |
 | `organization.owner_personage_id` | `organizations.owner_id` | The new model has no owner/admin distinction, so the billing owner is recorded here |
-| `subscription` | `organizations.plan` changes | A **history log**, one row per change, lossy tiers (starter → BASIC, growth/elite → PRO, enterprise → ENTERPRISE, none → FREE). `issue_date` is when it was *recorded*. Read by nothing. |
+| `subscription` | `organizations` (Stripe, promo window) + the owner's trial and Stripe's renewal date on `profiles` | **One row = one period of one organization** (`CORE-V2-SUBSCRIPTION`, decided 03/10/2026): `issue_date` (start) + `duration` (length) — it covers `[issue_date, issue_date + duration)`; **no end column**, on purpose (the reason `promo_codes.expires_at` was dropped). `type` STARTER · GROWTH · ELITE · ENTERPRISE (the product plans, one for one), `kind` TRIAL · PROMO · PAID · CONTRACT (TRIAL is a kind, not a tier), `seats` (NULL = the tier's ceiling), `personage_id` (who obtained it — one trial per person), Stripe customer / subscription / invoice ids (`stripe_invoice_id` unique: one PAID row per paid invoice, so a cancellation needs no write). A plan change closes the row (duration cut to now) and opens one; seats change in place. `organization_id` is nullable, `ON DELETE SET NULL`: a period outlives its organization as history (a released own organization keeps its owner's trial on record). Current = the latest-started row covering now (`core_v2_current_subscription`) — a payment wins over a promo window, which is current again when the payment stops; none = no access. Members read their plan through `core_v2_my_subscription()` (no Stripe ids; `trial_used` is the caller's own); the table stays managers-only. **The mirror** (`core_v2_sync_subscription`) turns the old current state into periods: TRIAL from `trial_started_at`, 14 days, cut when `trial_used`; PROMO from when it is recorded to `trial_ends_at`; PAID from when it is recorded to `profiles.subscription_end_date`, else one month (`BILLING_INTERVAL`, an upper bound), stretched at each renewal — the old tables see no invoice (MIRROR-ONLY). **Not run against any Postgres** (the local test database is gone) |
 | `profit` | `clients.arr` (else `mrr × 12`) | **ARR = the client group's profit rows dated in the last 12 months, MRR = ARR / 12** (`CORE-V2-ARR-PROFIT`, decided 24/09/2026). The mirror keeps ONE opening row per client group, marked `description.source = 'clients.arr'`, dated when first recorded, in the organization's currency (EUR when it has none); an arr edit changes its amount, never adds a row. After 12 months without new entries the ARR falls to 0 (accepted 24/09/2026) |
 | `churn` | `clients.churned_at` | ONE row per churned client, marked `source = 'clients.churned_at'`, dated when the churn happened; it follows the date and goes if `churned_at` is cleared, while the old table is the source |
 | `issue` with `status = 'NOTE'` | `client_notes` | **`client_notes` is replaced by `issue`** (`CORE-V2-NOTES`, decided 26/09/2026). A note is an issue whose status is `NOTE`, with three new columns — `kind` (`NOTE` · `CALL` · `EMAIL` · `MEETING`; an unknown value is a `NOTE`, the old column default), `content`, `author_name` (the signature, kept when the author's account goes; `''` becomes `NULL`) — and `start_date` = when it was written. `client_group_id` = the note's client; `organization_id` = the organization that **owns** that client group (not `client_notes.organization_id`, which nothing keeps in step), and it follows the client when it moves; the author is `member_id`, else `viewer_id`, by login. `description = {"source":"client_notes","note_id":…}` links it back, unique. **Read by the organization only** — a restrictive policy hides `NOTE` rows from a viewer attached through `client_group_viewer` (a future client-side login); an AI (MCP) session **may read them** (decided 26/09/2026, `CORE-V2-NOTES-AI`) — a deliberate loosening: `20260914120000` keeps AI sessions out of `client_notes` entirely as sensitive prose — and cannot write them. `trg_notify_client_note` stays on `client_notes` for now |
@@ -253,7 +254,7 @@ drops the table and its sync trigger. Applied migration files are never deleted.
 | 1 | `user_profiles` | `company.currency_code`, `organization_worker` (role, seniority, `onboarding_completed`), `consent` | **Written 24/09/2026, not deployed** — see below |
 | 2 + 4a | `organization_members` + `profiles` (retired together, decided 27/09/2026) | `personage` (name, e-mail, language **and region**), `member` / `manager` / `viewer`, `member_authority`, `organization_worker`; the first-run tour flag on `member` | **Step A written 27/09/2026, not applied** (`20260927130000`, below). Then B reads and C writes move to core_v2, D the billing fields to `subscription`, E the drop |
 | 3 | `clients` + `client_notes` | `company` (identity, `public_id` = the old uuid) + `client_group` (prospects as `status = 'PROSPECT'`), contacts as viewers, ARR as `profit`, churn as `churn`; the notes as `issue` rows (`status = 'NOTE'`) | **3a written 24/09/2026, reworked 26/09/2026, not applied** (schema + mirror + backfill, below). Next: 3b the store and the notes screen read core_v2; 3c writes through RPCs (a note too), a per-client revenue (profit) list replacing the ARR / MRR fields, `trg_notify_client_note` moved to `issue`, and the 7 client references rewritten to `client_group(company_id)` (see below); 3d the drop of both |
-| 4b | `organizations` | `company` / `organization`, `subscription` | The subscription-information table (plan tier — undecided —, seats, `TRIAL`, Stripe ids; never a column of `organization` / `organization_worker`); the kept tables' references (decided 26/09/2026, see below) |
+| 4b | `organizations` | `company` / `organization`, `subscription` (periods, designed 03/10/2026) | The app reading `subscription` (step B); the kept tables' references (decided 26/09/2026, see below) |
 
 **Stage 1 — `user_profiles`** (`20260924100000_core_v2_stage1_user_profiles.sql`)
 
@@ -291,7 +292,7 @@ drops the table and its sync trigger. Applied migration files are never deleted.
   (`language_region_code` carries the region, e.g. `fr-CA`); organization and role → `organization_worker`
   and `member` / `manager` / `viewer`; the **first-run tour** flag (`OnboardingView`, 5 steps, shown once
   per person — not an organization setup) → `member`; `company_name` → the organization's name; plan,
-  trial, Stripe ids and seats → `subscription` (**to design first**: it has no such columns yet);
+  trial, Stripe ids and seats → `subscription` periods (designed 03/10/2026, `CORE-V2-SUBSCRIPTION`);
   `is_alpha_tester` → dropped. `get_my_org_id()` keeps its uuid result and switches its source, so the
   ~17 policies that call it are untouched; the ~30 policy lines and 8 functions that read `profiles`
   directly are rewritten; the 4 foreign keys to `profiles` (`clients.csm_id`, `client_notes.author_id`,
@@ -308,8 +309,10 @@ drops the table and its sync trigger. Applied migration files are never deleted.
   leaves the person's own organization behind.
 - **Next:** B — the auth store, the team store, 15 API routes, the MCP tenant context and two Edge
   Functions read core_v2; C — every write above moves to core_v2 RPCs and the mirror triggers on
-  `profiles` / `organization_members` are dropped; D — the billing fields move to `subscription`, once it
-  is designed; E — foreign keys to `auth.users`, the dashboard objects that still reference `profiles`
+  `profiles` / `organization_members` are dropped; D — the billing fields move to `subscription`
+  (designed 03/10/2026): the webhook writes one PAID row per paid invoice (`invoice.paid`), the signup
+  its TRIAL row (once per person), the redemption its PROMO row, and every plan check reads
+  `core_v2_current_subscription` / `core_v2_my_subscription`; E — foreign keys to `auth.users`, the dashboard objects that still reference `profiles`
   checked in pre-prod (policies, the signup trigger), then the drop.
 
 **Stage 3a — `clients`: schema, mirror, backfill** (in the three core_v2 files, never applied)
@@ -374,13 +377,11 @@ drops the table and its sync trigger. Applied migration files are never deleted.
     — a copy of `organizations.trial_ends_at`.
   - Added by `20260927110000`: `issued_at date` (default today; existing codes take their `created_at`
     date, else `NULL`), `contact jsonb` (who the code was handed to, an object, free form),
-    `subscription_id bigint` → core_v2 `subscription(id)`, `ON DELETE RESTRICT` (my call — a code must not
-    silently lose its terms).
-  - The plan and seats a code grants are to be read **through `subscription_id`** (decided 27/09/2026).
-    Until then `plan` and `max_seats` stay (`PROMO-TERMS`): activation copies them into
-    `organizations.plan` (`NOT NULL`) and `seats_paid`. **Open:** a core_v2 `subscription` row belongs to an
-    organization (`organization_id NOT NULL`), and a code is handed out before its organization exists —
-    so nothing can fill `subscription_id` until the subscription-information design allows it.
+    `subscription_id bigint` → core_v2 `subscription(id)` — `ON DELETE RESTRICT` on 27/09, `SET NULL` since
+    03/10/2026 (a period that never ran is deleted, and the code must stay used).
+  - **Settled 03/10/2026 (`PROMO-LINK`, `20261003100000`):** a code keeps its terms (`plan`, `max_seats`,
+    `valid_days`); `subscription_id` records the PROMO period its redemption opened (`ON DELETE SET NULL`).
+    The founding programme is removed: `is_founding` is no longer set or read, `/api/founding-status` is deleted.
 - **Organization ids** (8 tables), decided per table on 26/09/2026: `chat_channels` / `chat_messages` →
   `company.id`; `invitations` and `client_metrics` → `organization(company_id)` (the organization's key —
   there is no `organization.id`); `email_templates` → `organization(company_id)` too (27/09/2026); `quotes`

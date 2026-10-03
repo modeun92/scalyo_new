@@ -86,8 +86,14 @@ only) / `core_v2_complete_onboarding`, which the front end now calls instead of 
 Apply it **before** that front end ships. **Stage 3a (`clients`) was started before stage 2, on
 request (24/09/2026)** and is schema + mirror + backfill only — the app still reads and writes
 `clients` and `client_notes`; 3b (reads), 3c (writes, the revenue list, the notify trigger moved to `issue`,
-the 7 client references rewritten to `client_group(company_id)`) and 3d (drop of both) are to do. Plan tier, seats, trial and Stripe ids wait for a subscription-information table,
-and the tier is **never** a column of `organization` or `organization_worker` (`CORE-V2-PLAN-HOME`, 24/09/2026).
+the 7 client references rewritten to `client_group(company_id)`) and 3d (drop of both) are to do. **Plan tier, seats, trial,
+promo window and Stripe ids are `subscription` periods** (`CORE-V2-SUBSCRIPTION`, 03/10/2026): one row = one period,
+`issue_date` + `duration` (**no end column**), `type` STARTER/GROWTH/ELITE/ENTERPRISE, `kind` TRIAL/PROMO/PAID/CONTRACT,
+`seats`, `personage_id` (one trial per person), Stripe ids with `stripe_invoice_id` unique (one PAID row per paid invoice);
+current = the latest-started row covering now (`core_v2_current_subscription`; members read `core_v2_my_subscription()`);
+mirrored from the old tables, read by no app code yet (step D), **not run against any Postgres**. An alpha code keeps its terms
+and links the PROMO period it opened (`PROMO-LINK`, `20261003100000`). The tier is **never** a column of `organization` or
+`organization_worker` (`CORE-V2-PLAN-HOME`, 24/09/2026).
 All five old core tables go (confirmed 26/09/2026), and `client_notes` with `clients`. The 29 old tables that stay move their client ids to `client_group(company_id)` (bigint, rows rewritten; a prospect is a client group, so its rows move too — `client_metrics` stays clients-only, which only the application can now enforce) and keep their person ids (login uuids, found through `member` / `viewer.auth_user_id`, FK to `auth.users` — except `email_templates.created_by` → `personage(id)`, 27/09/2026, whose `owner_id` is dropped by `20260927100000` after the front end stops sending it); `promo_codes` loses `status` / `organization_id` / `expires_at` and gains `issued_at` / `contact` / `subscription_id` (27/09/2026, `20260927110000` before the alpha API deploy, `…120000` after; "used" = `activated_at` set); their `organization_id` targets are decided per table — see [docs/DATABASE.md](docs/DATABASE.md#retiring-the-old-core-tables).
 Do not read `core_v2` for plan or seats, nor for client data before stage 3b; when you add a column to `organizations` / `clients` / `profiles` decide whether it belongs in the mirror.
 Details, deviations and limits: [docs/DATABASE.md](docs/DATABASE.md#core_v2--the-new-core-schema-additive).
@@ -220,8 +226,12 @@ broke something visible. Do not relax one without saying so explicitly.
   not hit the paywall. `hasActiveSubscription` is deliberately profile-only.
 - **The Stripe webhook must write both** `profiles` and `organizations`, or a paying
   owner's members stay gated on `starter`.
-- **Seats are billed at invitation, not acceptance.** Removal is fail-closed: Stripe
-  before any database write.
+- **Seats are billed at acceptance, not at invitation** (`SEAT-AT-ACCEPT`, 03/10/2026 —
+  it was the reverse before, and an invitation nobody opened was charged for its whole life,
+  expired ones included). A pending invitation still **reserves** its seat against the plan
+  ceiling, so `/api/members` `used` (members + pending) can exceed `paid` (billed). Acceptance
+  bills Stripe *before* the membership and re-syncs from a recount on every exit; removal is
+  fail-closed, Stripe before any database write; revoking an invitation touches no billing.
 - **Prospects are excluded** from portfolio counters, health aggregates and alerts. Use
   `clientsOnly`. In core_v2 a prospect is a `client_group` too (`status = 'PROSPECT'`), so any
   query over `client_group` must filter `status <> 'PROSPECT'` itself — nothing structural does.
@@ -409,5 +419,5 @@ Tracked, not fixed in this snapshot:
 
 ---
 
-*Last updated: 2026-09-26. If you changed something described above and did not update
+*Last updated: 2026-10-03. If you changed something described above and did not update
 this file, you are not done.*
