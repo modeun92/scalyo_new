@@ -1,5 +1,5 @@
 <template>
-  <div class="chat_panel_chat_panel_wrapper">
+  <div class="chat_panel_chat_panel_wrapper" :class="{ chat_panel_show_messages: showMessagesOnMobile }">
     <CpSidebar
       :show-close="showClose"
       @select="handleSelect"
@@ -15,16 +15,18 @@
       </div>
       <CpMessages
         @rename-channel="handleRenameChannel"
-        @create-task="showCreateTask = true"
+        @create-task="handleCreateTask"
+        @back="showMessagesOnMobile = false"
       />
       <CpInput />
     </div>
     <CpSlideOvers
       :showCreateChannel="showCreateChannel"
       :showCreateTask="showCreateTask"
+      :taskSource="taskSource"
       :renamingChannel="renamingChannel"
       @close-create-channel="showCreateChannel = false"
-      @close-create-task="showCreateTask = false"
+      @close-create-task="closeCreateTask"
       @close-rename="renamingChannel = null"
     />
   </div>
@@ -46,14 +48,33 @@ const { t } = useI18n()
 const store = useChatStore()
 const showCreateChannel = ref(false)
 const showCreateTask = ref(false)
+// CHAT-TASK: the message the task is created from (pre-fills the slide-over).
+const taskSource = ref(null)
 const renamingChannel = ref(null)
+// CHAT-MOBILE (03/10/2026): at 768px and below the panel is full screen, but the 220px channel
+// list stayed beside the messages and left them ~150px - one Korean word per line. A phone now
+// shows the list OR the messages: picking a channel or a person opens the messages, ← in their
+// header comes back. Only the CSS reads this flag, so wider screens are untouched.
+const showMessagesOnMobile = ref(false)
+
+function handleCreateTask(msg) {
+  taskSource.value = msg || null
+  showCreateTask.value = true
+}
+
+function closeCreateTask() {
+  showCreateTask.value = false
+  taskSource.value = null
+}
 
 function handleSelect(id) {
   store.setActive(id)
+  showMessagesOnMobile.value = true
 }
 
 function handleOpenDm(userId) {
   store.openDm(userId)
+  showMessagesOnMobile.value = true
 }
 
 function handleRenameChannel(ch) {
@@ -105,5 +126,12 @@ onUnmounted(() => {
   color: var(--red);
   font-size: 12px;
   padding: 2px;
+}
+/* CHAT-MOBILE: list OR messages. .chat_panel_sidebar is CpSidebar's root, which also carries
+   this component's scope attribute, so these rules outrank its own width: 220px. */
+@media (max-width: 768px) {
+  .chat_panel_chat_panel_wrapper:not(.chat_panel_show_messages) .chat_panel_sidebar { width: 100%; }
+  .chat_panel_chat_panel_wrapper:not(.chat_panel_show_messages) .chat_panel_main { display: none; }
+  .chat_panel_chat_panel_wrapper.chat_panel_show_messages .chat_panel_sidebar { display: none; }
 }
 </style>

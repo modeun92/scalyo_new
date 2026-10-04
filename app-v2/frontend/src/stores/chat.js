@@ -448,15 +448,20 @@ function destroy() {
 }
 
 // ─── Send with validation ─────────────────────────────────────────────────
+// CHAT-SEND-RESULT (03/10/2026): returns { success } / { error }. It returned nothing, and the
+// composer emptied itself after EVERY call - a failed insert, a message over 5000 characters, or
+// a second Enter inside the 1 s cooldown all wiped what the user had typed. The composer now
+// clears only on { success }.
 async function sendMessage(channelId, content, author, authorId, attachments = []) {
   const trimmed = (content || '').trim()
-  if (!trimmed) return
+  // CHAT-SHARE: a shared client or task is a message on its own - text is optional then.
+  if (!trimmed && !attachments.length) return { error: 'empty' }
   if (trimmed.length > MAX_MESSAGE_LENGTH) {
     lastError.value = 'msg_too_long'
-    return
+    return { error: 'msg_too_long' }
   }
   const now = Date.now()
-  if (now - lastSendTime < SEND_COOLDOWN_MS) return
+  if (now - lastSendTime < SEND_COOLDOWN_MS) return { error: 'cooldown' }
   lastSendTime = now
   sending.value = true
   let tempId = null // declared out here so the catch below can revert the echo too
@@ -490,55 +495,101 @@ async function sendMessage(channelId, content, author, authorId, attachments = [
       reply_to: replyingTo.value || null,
       organization_id: auth.profile?.organization_id ?? null
     }).select().single(), { label: 'chat.sendMessage' })
-    if (error) {
+    if (error || !data) {
       messages.value[channelId] = messages.value[channelId].filter(m => m.id !== tempId)
-      console.error('sendMessage — insert failed:', error.message)
+      console.error('sendMessage — insert failed:', error?.message || 'no row returned')
       lastError.value = 'send_failed'
-      return
+      return { error: error?.message || 'no_row' }
     }
     replyingTo.value = null
     // silent: my own message must not increment my own badge.
-    if (data) ingest([data], { silent: true })
-    else messages.value[channelId] = messages.value[channelId].filter(m => m.id !== tempId)
+    ingest([data], { silent: true })
+    return { success: true }
   } catch (e) {
     if (tempId && messages.value[channelId]) {
       messages.value[channelId] = messages.value[channelId].filter(m => m.id !== tempId)
     }
     console.error('sendMessage — unexpected failure:', e.message || e)
     lastError.value = 'send_failed'
+    return { error: e.message || 'send_failed' }
   } finally {
     sending.value = false
   }
 }
 
+// CHAT-EDIT (03/10/2026): the ✏️ button used to set editingMessage and NOTHING read it — no
+// composer, no call to editMessage, so editing a message did nothing at all. The composer
+// (CpInput) is now the edit surface: startEdit() hands it the message, it saves through
+// editMessage() and cancelEdit() hands the user's draft back.
+function startEdit(channelId, msgId) {
+  const msg = (messages.value[channelId] || []).find(m => m.id === msgId)
+  const meId = useAuthStore().user?.id
+  // chat_messages_update is user_id = auth.uid(): someone else's message can never be edited.
+  if (!msg || msg.pending || !meId || msg.authorId !== meId) return
+  replyingTo.value = null
+  editingMessage.value = { id: msg.id, channelId, content: msg.content }
+}
+
+function cancelEdit() {
+  editingMessage.value = null
+}
+
+// CHAT-EDIT: the UPDATE is .select()-ed. chat_messages_update is USING (user_id = auth.uid()),
+// and an UPDATE matching zero rows answers 204 with error = null — the false success that hid
+// the reaction bug (CHAT-REACT). No row back = not edited, said so, and the composer keeps the
+// text. On success the confirmed row goes through ingest(), so the edit shows even when the
+// realtime UPDATE never arrives.
 async function editMessage(channelId, msgId, newContent) {
   const trimmed = (newContent || '').trim()
-  if (!trimmed || trimmed.length > MAX_MESSAGE_LENGTH) return
+  if (!trimmed) return { error: 'empty' }
+  if (trimmed.length > MAX_MESSAGE_LENGTH) {
+    lastError.value = 'msg_too_long'
+    return { error: 'msg_too_long' }
+  }
   try {
-    const { error } = await withWrite(() => supabase.from('chat_messages')
+    const { data, error } = await withWrite(() => supabase.from('chat_messages')
       .update({ content: trimmed, edited_at: new Date().toISOString() })
-      .eq('id', msgId), { label: 'chat.editMessage' })
-    if (error) {
-      console.error('editMessage — update failed:', error.message)
+      .eq('id', msgId).select().maybeSingle(), { label: 'chat.editMessage' })
+    if (error || !data) {
+      console.error('editMessage — update failed:', error?.message || 'no row updated')
       lastError.value = 'edit_failed'
+      return { error: error?.message || 'no_row' }
     }
+    ingest([data], { silent: true })
     editingMessage.value = null
+    return { success: true }
   } catch (e) {
     console.error('editMessage — unexpected failure:', e.message || e)
     lastError.value = 'edit_failed'
+    return { error: e.message || 'edit_failed' }
   }
 }
 
+// CHAT-DELETE (03/10/2026): same zero-row trap as the edit, and the message was only taken off
+// the screen by the realtime DELETE — with the socket silently dead (CHAT-LIVE) a deleted
+// message stayed on screen until the next reload. Confirmed by the returned id, then removed
+// locally. The caller asks for confirmation first (CpMessages, ConfirmDialog).
 async function deleteMessage(channelId, msgId) {
   try {
-    const { error } = await withWrite(() => supabase.from('chat_messages').delete().eq('id', msgId), { label: 'chat.deleteMessage' })
-    if (error) {
-      console.error('deleteMessage — delete failed:', error.message)
+    const { data, error } = await withWrite(
+      () => supabase.from('chat_messages').delete().eq('id', msgId).select('id'),
+      { label: 'chat.deleteMessage' }
+    )
+    if (error || !data || data.length === 0) {
+      console.error('deleteMessage — delete failed:', error?.message || 'no row deleted')
       lastError.value = 'delete_failed'
+      return { error: error?.message || 'no_row' }
     }
+    if (messages.value[channelId]) {
+      messages.value[channelId] = messages.value[channelId].filter(m => m.id !== msgId)
+    }
+    if (editingMessage.value?.id === msgId) editingMessage.value = null
+    if (replyingTo.value === msgId) replyingTo.value = null
+    return { success: true }
   } catch (e) {
     console.error('deleteMessage — unexpected failure:', e.message || e)
     lastError.value = 'delete_failed'
+    return { error: e.message || 'delete_failed' }
   }
 }
 
@@ -601,6 +652,9 @@ function setReplyTo(channelId, msgId) {
 }
 
 async function setActive(id) {
+  // CHAT-EDIT: an edit belongs to its channel — carried over, "Save" would rewrite a message
+  // the user can no longer see.
+  if (editingMessage.value && editingMessage.value.channelId !== id) editingMessage.value = null
   activeChannel.value = id
   unreadCounts.value[id] = 0
   if (!messages.value[id]) {
@@ -775,7 +829,7 @@ return {
   activeMessages, pinnedMessages, editingMessage, replyingTo,
   channelsLoading, messagesLoading, sending, lastError, lastRealtimeError, connected,
   surfaceVisible, memberNames, authorLabel, loadMemberNames, setSurfaceVisible,
-  init, sendMessage, editMessage, deleteMessage, pinMessage,
+  init, sendMessage, startEdit, cancelEdit, editMessage, deleteMessage, pinMessage,
   addReaction, setReplyTo, setActive, loadOlderMessages,
   dmChannels, dmMembersMap, dmPartnerId, dmChannelFor, openDm, channelLabel,
   createChannel, updateChannel, deleteChannel, clearError, deleteUserChatData, destroy

@@ -5,6 +5,9 @@
     </div>
 
     <div v-if="activeChannel" class="chat_panel_messages_header">
+      <!-- CHAT-MOBILE (03/10/2026): on a phone the panel shows the channel list OR the
+           messages (ChatPanel); this is the way back to the list. Hidden above 768px. -->
+      <button class="chat_panel_button_ghost chat_panel_back_mobile" :title="t('back')" @click="$emit('back')">←</button>
       <div class="chat_panel_messages_header_left">
         <span class="chat_panel_messages_header_name">{{ activeChannel.type === 'dm' ? store.channelLabel(activeChannel) : '# ' + activeChannel.name }}</span>
         <span v-if="activeChannel.description" class="chat_panel_messages_header_description">{{ activeChannel.description }}</span>
@@ -46,7 +49,8 @@
             'chat_panel_message_own': msg.authorId === currentUserId,
             'chat_panel_message_pinned': msg.pinned,
             'chat_panel_message_pending': msg.pending,
-            'chat_panel_message_open': openToolbarId === msg.id
+            'chat_panel_message_open': openToolbarId === msg.id,
+            'chat_panel_message_editing': store.editingMessage?.id === msg.id
           }"
           @click.stop="toggleToolbar(msg)"
         >
@@ -63,7 +67,19 @@
             <div v-if="msg.replyTo" class="chat_panel_message_reply_indicator">
               ↩ {{ replyPreview(msg.replyTo) }}
             </div>
-            <div class="chat_panel_message_content" v-html="sanitizeHtml(msg.content)"></div>
+            <div v-if="msg.content" class="chat_panel_message_content" v-html="formatChatText(msg.content)"></div>
+            <!-- CHAT-SHARE (03/10/2026): a shared client or task is a reference, not text. The
+                 name shown is the live one when the record still exists (a rename follows), the
+                 name at share time otherwise. A client opens its record, a task the Kanban. -->
+            <div v-if="sharedRefs(msg).length" class="chat_panel_message_shares">
+              <button
+                v-for="s in sharedRefs(msg)"
+                :key="s.type + s.id"
+                class="chat_panel_message_share"
+                :class="{ missing: s.missing }"
+                @click.stop="openShare(s)"
+              >{{ SHARE_ICONS[s.type] }} {{ s.name }}</button>
+            </div>
             <div v-if="msg.reactions && msg.reactions.length" class="chat_panel_message_reactions">
               <span
                 v-for="(r, ri) in msg.reactions"
@@ -83,8 +99,12 @@
             >{{ e }}</button>
             <button class="chat_panel_button_ghost" :title="t('chat_reply')" @click.stop="reply(msg)">↩</button>
             <button class="chat_panel_button_ghost" :title="t('chat_pinned')" @click.stop="pin(msg)">📌</button>
-            <button v-if="msg.authorId === currentUserId" class="chat_panel_button_ghost" @click.stop="startEdit(msg)">✏️</button>
-            <button v-if="msg.authorId === currentUserId" class="chat_panel_button_ghost" @click.stop="remove(msg)">🗑️</button>
+            <!-- CHAT-TASK (03/10/2026): the only way into the "create a task" slide-over.
+                 ChatPanel had the slide-over and listened for create-task, but nothing ever
+                 emitted it - the feature existed in the code and nowhere on screen. -->
+            <button class="chat_panel_button_ghost" :title="t('chat_create_task')" @click.stop="createTask(msg)">⚡</button>
+            <button v-if="msg.authorId === currentUserId" class="chat_panel_button_ghost" :title="t('edit')" @click.stop="startEdit(msg)">✏️</button>
+            <button v-if="msg.authorId === currentUserId" class="chat_panel_button_ghost" :title="t('delete')" @click.stop="remove(msg)">🗑️</button>
           </div>
         </div>
       </template>
@@ -96,6 +116,20 @@
         <strong>{{ store.authorLabel(pm) }}</strong>: {{ pm.content.slice(0, 80) }}
       </div>
     </div>
+
+    <!-- CHAT-DELETE (03/10/2026): 🗑️ deleted on the spot, for everyone, with no way back - one
+         stray tap on a phone (CHAT-TOUCH puts the bar right under the thumb) was enough.
+         NOT teleported: the floating panel is z-index 999, a body-level dialog (z-index 60)
+         would open behind it. -->
+    <ConfirmDialog
+      v-if="pendingDelete"
+      :title="t('chat_delete_confirm_title')"
+      :body="t('chat_delete_confirm_body')"
+      :cta="t('cf_delete')"
+      :busy="deleting"
+      @confirm="confirmDelete"
+      @cancel="pendingDelete = null"
+    />
   </div>
 </template>
 
@@ -104,13 +138,25 @@ import { ref, computed, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useChatStore } from '@/stores/chat'
 import { useAuthStore } from '@/stores/auth'
-import { sanitizeHtml } from '@/utils/sanitize'
+import { useRouter } from 'vue-router'
+import { useClientStore } from '@/stores/clients'
+import { useTaskStore } from '@/stores/tasks'
+import { useClientModalStore } from '@/stores/clientModal'
+import { useQuoteStore } from '@/stores/quotes'
+import { SHARE_ICONS } from './chatShares'
+import { formatChatText } from '@/utils/sanitize'
+import ConfirmDialog from '@/components/ConfirmDialog.vue'
 
-defineEmits(['rename-channel', 'create-task'])
+const emit = defineEmits(['rename-channel', 'create-task', 'back'])
 
 const { t, locale } = useI18n()
 const store = useChatStore()
 const authStore = useAuthStore()
+const router = useRouter()
+const clientsStore = useClientStore()
+const tasksStore = useTaskStore()
+const clientModal = useClientModalStore()
+const quotesStore = useQuoteStore()
 
 const messagesRef = ref(null)
 const showSearch = ref(false)
@@ -119,6 +165,9 @@ const searchQuery = ref('')
 // CHAT-TOUCH: id of the message whose action bar is open, or null. One at a time.
 const openToolbarId = ref(null)
 const quickReactions = ['👍', '❤️', '🎉', '✅']
+// CHAT-DELETE: the message awaiting confirmation, and the write in flight.
+const pendingDelete = ref(null)
+const deleting = ref(false)
 
 const currentUserId = computed(() => authStore.user?.id)
 const isViewer = computed(() => authStore.profile?.org_role === 'viewer')
@@ -207,12 +256,53 @@ function pin(msg) {
 }
 
 function remove(msg) {
-  store.deleteMessage(store.activeChannel, msg.id)
+  pendingDelete.value = msg
   closeToolbar()
 }
 
+// D-14: the dialog closes on the store's answer, not before. A failure also closes it - the
+// message stays on screen and the panel's error banner (chat_err_delete_failed) says why.
+async function confirmDelete() {
+  const msg = pendingDelete.value
+  if (!msg || deleting.value) return
+  deleting.value = true
+  try {
+    await store.deleteMessage(msg.channelId || store.activeChannel, msg.id)
+  } finally {
+    deleting.value = false
+    pendingDelete.value = null
+  }
+}
+
 function startEdit(msg) {
-  store.editingMessage = { id: msg.id, content: msg.content }
+  store.startEdit(store.activeChannel, msg.id)
+  closeToolbar()
+}
+
+// CHAT-SHARE: only the reference types the composer writes; anything else is ignored. A quote
+// the Quotes screen has not loaded yet is not "missing" - it is shown with its shared name.
+function sharedRefs(msg) {
+  return (msg.attachments || [])
+    .filter(a => a && a.id && SHARE_ICONS[a.type])
+    .map(a => {
+      let live = null
+      if (a.type === 'client') live = (clientsStore.clients || []).find(c => c.id === a.id)
+      else if (a.type === 'task') live = (tasksStore.tasks || []).find(tk => tk.id === a.id)
+      else live = (quotesStore.quotes || []).find(q => q.id === a.id)
+      const liveName = a.type === 'client' ? live?.name : live?.title
+      const known = a.type !== 'quote' || (quotesStore.quotes || []).length > 0
+      return { type: a.type, id: a.id, name: liveName || a.name || '—', missing: known && !live }
+    })
+}
+
+function openShare(share) {
+  if (share.type === 'client') clientModal.open(share.id)
+  else if (share.type === 'task') router.push({ name: 'tasks-kanban' })
+  else router.push({ name: 'quotes' })
+}
+
+function createTask(msg) {
+  emit('create-task', msg)
   closeToolbar()
 }
 
@@ -222,7 +312,7 @@ function scrollToBottom() {
 
 watch(() => store.activeMessages.length, () => { nextTick(() => scrollToBottom()) })
 // Switching channel must not leave an orphan action bar attached to a gone message.
-watch(() => store.activeChannel, () => { closeToolbar() })
+watch(() => store.activeChannel, () => { closeToolbar(); pendingDelete.value = null })
 </script>
 
 <style scoped>
@@ -266,6 +356,19 @@ watch(() => store.activeChannel, () => { closeToolbar() })
 .chat_panel_message_open .chat_panel_message_toolbar { display: flex; }
 /* An in-flight message is visibly not confirmed yet (D-14: no premature checkmark). */
 .chat_panel_message_pending { opacity: 0.55; }
+/* CHAT-EDIT: the message the composer is rewriting. */
+.chat_panel_message_editing { box-shadow: inset 0 0 0 1px var(--purple); }
+.chat_panel_message_content :deep(code) { font-size: 12px; padding: 0 4px; border-radius: 4px; background: var(--bg-hover); }
+.chat_panel_message_content :deep(a) { color: var(--purple-dark); text-decoration: underline; }
+.chat_panel_message_shares { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.chat_panel_message_share { font-size: 12px; padding: 3px 10px; border-radius: 12px; border: 1px solid var(--purple-border); background: var(--bg-white); color: var(--purple-dark); cursor: pointer; }
+.chat_panel_message_share:hover { background: var(--purple-bg); }
+.chat_panel_message_share.missing { color: var(--text-muted); border-color: var(--border); text-decoration: line-through; }
+.chat_panel_back_mobile { display: none; font-size: 16px; margin-right: 6px; }
+@media (max-width: 768px) {
+  .chat_panel_back_mobile { display: inline-flex; }
+  .chat_panel_messages_header_left { flex: 1; min-width: 0; }
+}
 .chat_panel_button_ghost { background: none; border: none; cursor: pointer; font-size: 12px; padding: 2px 4px; border-radius: 4px; opacity: 0.7; }
 .chat_panel_button_ghost:hover { opacity: 1; background: var(--bg-hover); }
 .chat_panel_pinned_panel { border-top: 1px solid var(--border); padding: 8px 16px; max-height: 140px; overflow-y: auto; background: rgba(245,158,11,0.04); }
