@@ -287,7 +287,7 @@ as $fn$
     join public.company c on c.id = w.organization_id
     left join public.organization_role r on r.id = w.role_id
    where w.personage_id = public.core_v2_personage_id()
-     and w.job_status = 'ACTIVE';
+     and w.job_status <> 'ENDED';   -- JOB-STATUS-READ (04/10/2026): INACTIVE / ON_LEAVE read too
 $fn$;
 
 -- CORE-V2-CURRENCY-ORG: a manager of the caller's organization only (decided 24/09/2026) — the

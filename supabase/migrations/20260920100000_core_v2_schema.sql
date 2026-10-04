@@ -519,6 +519,12 @@ alter table public.client_group add column if not exists health_status text;
 alter table public.client_group add column if not exists renewal_date date;
 alter table public.client_group add column if not exists created_at timestamptz;
 
+-- CORE-V2-TOUR (decided 27/09/2026, written 04/10/2026): the first-run tour (OnboardingView, five
+-- steps, once per person) — profiles.onboarding_completed until profiles goes. On member, as decided:
+-- a viewer is never shown the tour. A member turned viewer loses the row, so the flag with it; turned
+-- back, they see the tour again — accepted, it is a tour.
+alter table public.member add column if not exists tour_completed boolean not null default false;
+
 -- CORE-V2-SUBSCRIPTION (03/10/2026, decided): a row is one period — issue_date is its start (the
 -- source model's Plan.paidAt) and DURATION its length: it covers [issue_date, issue_date + duration).
 -- There is no end column, on purpose (the reason promo_codes.expires_at was dropped, 27/09/2026): a
@@ -673,8 +679,15 @@ on conflict (code) do nothing;
 
 -- Codes are the app's locale keys (profiles.locale = 'fr' | 'en' | 'ko'), so a profile's locale
 -- is a valid foreign key as it stands.
+-- CORE-V2-REGION (04/10/2026): plus the regional variants the interface offers — '<language>-<country>',
+-- the key of a pack in src/i18n/regional.js (REGION_OPTIONS), where the base country of a language is
+-- the bare language (fr = fr-FR, en = en-US, ko = ko-KR: BASE_REGION). profiles.region is the country
+-- half and goes into personage.language_region_code with the language, so the region has a home
+-- when profiles is dropped. A hand-kept copy of REGION_OPTIONS: add a region in both.
 insert into public.language_region (code, name) values
-  ('fr', 'French'), ('en', 'English'), ('ko', 'Korean')
+  ('fr', 'French'), ('en', 'English'), ('ko', 'Korean'),
+  ('fr-BE', 'French (Belgium)'), ('fr-CH', 'French (Switzerland)'), ('fr-CA', 'French (Canada)'),
+  ('en-GB', 'English (United Kingdom)'), ('en-CA', 'English (Canada)')
 on conflict (code) do nothing;
 
 -- ============================================================
@@ -703,8 +716,11 @@ as $fn$
    limit 1;
 $fn$;
 
--- Organizations the caller currently works in. ENDED / INACTIVE / ON_LEAVE grant nothing:
--- a removed teammate keeps their (ENDED) worker row as history and must not keep read access.
+-- Organizations the caller works in, for READING. ENDED grants nothing: a removed teammate keeps
+-- their worker row as history and must not keep read access.
+-- JOB-STATUS-READ (04/10/2026, decided): INACTIVE and ON_LEAVE still READ — the app shows them the
+-- product read-only (greyed, inputs disabled) rather than an empty screen. Every WRITE asks for an
+-- ACTIVE worker on its own (core_v2_has_authority, core_v2_is_manager), so this widens reading only.
 create or replace function public.core_v2_my_org_ids()
 returns setof bigint
 language sql
@@ -715,7 +731,7 @@ as $fn$
   select w.organization_id
     from public.organization_worker w
    where w.personage_id = public.core_v2_personage_id()
-     and w.job_status = 'ACTIVE';
+     and w.job_status <> 'ENDED';
 $fn$;
 
 -- Client groups the caller can see: every group of their organizations, plus the groups a viewer

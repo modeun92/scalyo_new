@@ -175,9 +175,13 @@ declare
   v_can_email boolean;
   v_is_owner boolean;
   v_joined timestamptz;
+  v_pj jsonb;
+  v_region text;
+  v_tour boolean;
 begin
-  select p.first_name, p.last_name, p.locale, p.organization_id, p.org_role
-    into v_first, v_last, v_locale, v_org, v_profile_role
+  -- region / onboarding_completed are read through jsonb: dashboard columns, absent in some environments.
+  select p.first_name, p.last_name, p.locale, p.organization_id, p.org_role, to_jsonb(p)
+    into v_first, v_last, v_locale, v_org, v_profile_role, v_pj
     from public.profiles p
    where p.id = p_user;
   if not found then
@@ -209,10 +213,20 @@ begin
   select u.email into v_email from auth.users u where u.id = p_user;
 
   -- 'fr-FR' -> 'fr'. A locale outside language_region becomes NULL, never a guess.
+  -- CORE-V2-REGION (04/10/2026): with profiles.region (the country half the interface reads in) the
+  -- code is '<language>-<COUNTRY>' when language_region knows it — 'fr' + 'CA' -> 'fr-CA'; the base
+  -- country, or a country the language has no variant for, stays the bare language. Dropping the
+  -- region here would have lost a Québec account's wording the day profiles goes.
   v_lang := lower(split_part(coalesce(v_locale, ''), '-', 1));
   if not exists (select 1 from public.language_region lr where lr.code = v_lang) then
     v_lang := null;
   end if;
+  v_region := upper(btrim(coalesce(nullif(v_pj ->> 'region', ''), nullif(split_part(coalesce(v_locale, ''), '-', 2), ''))));
+  if v_lang is not null and v_region <> ''
+     and exists (select 1 from public.language_region lr where lr.code = v_lang || '-' || v_region) then
+    v_lang := v_lang || '-' || v_region;
+  end if;
+  v_tour := coalesce((v_pj ->> 'onboarding_completed')::boolean, false);
 
   select x.personage_id into v_pid
     from (
@@ -247,9 +261,10 @@ begin
     on conflict (personage_id) do update set auth_user_id = excluded.auth_user_id;
   else
     delete from public.viewer where personage_id = v_pid;
-    insert into public.member (personage_id, auth_user_id)
-    values (v_pid, p_user)
-    on conflict (personage_id) do update set auth_user_id = excluded.auth_user_id;
+    insert into public.member (personage_id, auth_user_id, tour_completed)
+    values (v_pid, p_user, v_tour)
+    on conflict (personage_id) do update set auth_user_id = excluded.auth_user_id,
+                                             tour_completed = excluded.tour_completed;
 
     if v_kind = 'manager' then
       insert into public.manager (personage_id) values (v_pid) on conflict do nothing;
@@ -338,11 +353,26 @@ begin
 end;
 $fn$;
 
-drop trigger if exists trg_core_v2_profile_sync on public.profiles;
-create trigger trg_core_v2_profile_sync
-  after insert or update of first_name, last_name, locale, organization_id, org_role
-  on public.profiles
-  for each row execute function public.core_v2_profile_sync();
+-- region and onboarding_completed join the list where this environment has them (CORE-V2-REGION,
+-- CORE-V2-TOUR): dashboard columns, absent from some environments.
+do $$
+declare
+  v_cols text := 'first_name, last_name, locale, organization_id, org_role';
+  v_opt text;
+begin
+  select string_agg(column_name, ', ' order by column_name) into v_opt
+    from information_schema.columns
+   where table_schema = 'public' and table_name = 'profiles'
+     and column_name in ('region', 'onboarding_completed');
+  if v_opt is not null then
+    v_cols := v_cols || ', ' || v_opt;
+  end if;
+  execute 'drop trigger if exists trg_core_v2_profile_sync on public.profiles';
+  execute 'create trigger trg_core_v2_profile_sync
+             after insert or update of ' || v_cols || '
+             on public.profiles
+             for each row execute function public.core_v2_profile_sync()';
+end $$;
 
 -- organization_members -> core_v2. The seat table: a role written here (invite/accept.js,
 -- ensure_own_organization) is re-read by core_v2_sync_user next to the profile's organization.
