@@ -100,9 +100,20 @@ serve(async (req) => {
   }
 
   // GET /me
+  // CORE-V2-ME (04/10/2026): the person and the plan from core_v2 — profiles is being retired
+  // (stage 2). The plan is the ORGANIZATION's current period (none: null), the same answer the app and
+  // the Pages Functions give; read from profiles.plan it was the personal one, which a paying
+  // organization's members did not have. Same response shape as before.
   if (path === '/me' && req.method === 'GET') {
-    const { data, error } = await supabase.from('profiles').select('id, first_name, last_name, plan, locale').eq('id', userId).single()
-    return respond(error ? { error: error.message } : { data }, error ? 400 : 200, corsHeaders)
+    const { data: membership, error: mErr } = await supabase.rpc('core_v2_membership', { p_user: userId })
+    if (mErr) return respond({ error: mErr.message }, 400, corsHeaders)
+    if (!membership) return respond({ error: 'No organization' }, 404, corsHeaders)
+    const { data: person, error: pErr } = await supabase.from('personage')
+      .select('first_name, last_name').eq('id', membership.personage_id).single()
+    if (pErr) return respond({ error: pErr.message }, 400, corsHeaders)
+    const { data: period } = await supabase.rpc('core_v2_current_subscription', { p_org: membership.core_organization_id })
+    const plan = period?.id && period?.type ? String(period.type).toLowerCase() : null
+    return respond({ data: { id: userId, first_name: person.first_name, last_name: person.last_name, plan, locale: membership.locale } }, 200, corsHeaders)
   }
 
   return respond({ error: 'Route not found', available: ['GET /clients', 'POST /clients', 'PUT /clients/:id', 'DELETE /clients/:id', 'GET /team', 'POST /team', 'GET /tasks', 'POST /tasks', 'GET /me'] }, 404, corsHeaders)

@@ -7,24 +7,7 @@ import { checkRateLimit } from './_services/rate-limit.service.js'
 import { checkQuota, logUsage } from './_services/quota.service.js'
 import { callAI } from './_services/ai.service.js'
 import { getModule } from './_modules/index.js'
-
-async function getUserPlan(env, userId, userJwt) {
-  const config = getConfig(env)
-  try {
-    const url = config.supabaseUrl + '/rest/v1/profiles?id=eq.' + userId + '&select=plan'
-    const res = await fetch(url, {
-      headers: {
-        'apikey': config.supabaseAnonKey,
-        'Authorization': 'Bearer ' + userJwt,
-      },
-    })
-    if (!res.ok) return 'starter'
-    const rows = await res.json()
-    return rows[0]?.plan || 'starter'
-  } catch {
-    return 'starter'
-  }
-}
+import { getCurrentPlan } from './_utils/supabase.js'
 
 export async function onRequestPost(context) {
   const { request, env } = context
@@ -50,9 +33,9 @@ export async function onRequestPost(context) {
     const validation = validateAiRequest(body)
     if (!validation.valid) return jsonError(validation.reason, 400, lang)
 
-    // 5. Plan + module access check
-    const planId = await getUserPlan(env, auth.userId, token)
-    if (!isModuleAllowed(planId, body.module)) {
+    // 5. Plan + module access check — the ORGANIZATION's current period (CORE-V2-ME); none = no access
+    const planId = await getCurrentPlan(env, token)
+    if (!planId || !isModuleAllowed(planId, body.module)) {
       return jsonError('module_not_allowed', 403, lang)
     }
 

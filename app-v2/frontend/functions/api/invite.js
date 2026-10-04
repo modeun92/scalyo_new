@@ -3,9 +3,9 @@
 // but is not billed — the seat is billed when the invitation is accepted (invite/accept.js).
 // Billed here, an invitation nobody opened was charged for its whole life, and after it expired
 // too: the lazy `expired` flip in accept.js / verify.js never touched Stripe.
-import { jsonResponse, errorResponse } from './_utils/response.js'
-import { createSupabaseClient, getAuthUser, getUserMembership } from './_utils/supabase.js'
-import { canPerform, canAddSeat, canAddViewer, getAvailableRolesForInvite, ORG_SETTINGS } from './_config/plans.config.js'
+import { jsonResponse, errorResponse, errorCode } from './_utils/response.js'
+import { createSupabaseClient, getAuthUser, getUserMembership, isReadOnlyMembership } from './_utils/supabase.js'
+import { canPerform, canAddSeat, canAddViewer, getMaxSeats, getAvailableRolesForInvite, ORG_SETTINGS } from './_config/plans.config.js'
 import { t } from './_i18n/translate.js'
 
 // HTML-escaping of the values interpolated into the email body
@@ -22,6 +22,7 @@ export async function onRequestPost(context) {
     const db = createSupabaseClient(env)
     const membership = await getUserMembership(db, user.id)
     if (!membership) return errorResponse(403, 'No organization')
+    if (isReadOnlyMembership(membership)) return errorCode(403, 'read_only')
     if (!canPerform(membership.role, 'canInvite')) return errorResponse(403, 'Permission denied')
 
     const body = await request.json()
@@ -37,14 +38,23 @@ export async function onRequestPost(context) {
 
     // Reserved seats = non-viewer members + pending non-viewer invitations. Pending ones count
     // here, or a full team could hand out invitations that then fail at acceptance.
-    const existing = await db.select('organization_members', 'organization_id=eq.' + org.id)
+    // SEAT-CEILING (03/10/2026): only an invitation that can still be accepted reserves a seat. An
+    // expired one keeps status 'pending' until somebody opens it (the flip is lazy, in accept.js /
+    // verify.js), and counting it locked a team out for good: a starter with its owner and two
+    // forgotten invitations was full at 3 / 3 with one person in it. members.js counts `used` the same way.
+    // JOB-STATUS (03/10/2026): an INACTIVE or ENDED worker holds no seat. The count is core_v2's
+    // (core_v2_seats_taken: members + live pending invitations), the one members.js shows and the
+    // database guard keeps (STAGE2-WRITES, 04/10/2026).
     const pending = await db.select('invitations', 'organization_id=eq.' + org.id + '&status=eq.pending')
-    const seatsReserved = existing.filter(m => m.role !== 'viewer').length
-      + pending.filter(i => i.role !== 'viewer').length
+    const seatsReserved = Number(await db.rpc('core_v2_seats_taken', { p_org: membership.core_organization_id }))
 
-    // Seat quota (plan ceiling) for the roles that consume a seat
+    // Seat quota (plan ceiling: starter 3, growth 7, elite 24) for the roles that consume a seat.
+    // A typed code the Team screen translates — the English sentence used to reach the screen as is.
+    // The acceptance checks again (invite/accept.js), and so does the database (trg_seat_ceiling).
     if (role !== 'viewer') {
-      if (!canAddSeat(org.plan, seatsReserved)) return errorResponse(403, 'Seat limit reached')
+      if (!canAddSeat(org.plan, seatsReserved)) {
+        return errorCode(403, 'seat_limit_reached', { seats_used: seatsReserved, seats_cap: getMaxSeats(org.plan) })
+      }
     } else if (!canAddViewer(org.plan)) {
       return errorResponse(403, 'Viewers not available on this plan')
     }
@@ -73,12 +83,8 @@ export async function onRequestPost(context) {
       try {
         // URL derived from the request origin: env-aware (pre-prod → preprod.scalyo.app)
         const joinUrl = new URL(request.url).origin + '/join?token=' + invitation.token
-        // D4-1: email language = the inviter's locale (profiles.locale), fallback 'fr'.
-        let mailLang = 'fr'
-        try {
-          const inviterProfile = await db.selectOne('profiles', 'id=eq.' + user.id)
-          if (inviterProfile && ['fr', 'en', 'ko'].includes(inviterProfile.locale)) mailLang = inviterProfile.locale
-        } catch (_) { /* repli 'fr' */ }
+        // D4-1: email language = the inviter's language (core_v2 personage, CORE-V2-ME), fallback 'fr'.
+        const mailLang = ['fr', 'en', 'ko'].includes(membership.locale) ? membership.locale : 'fr'
         const mailResp = await fetch('https://api.resend.com/emails', {
           method: 'POST',
           headers: {

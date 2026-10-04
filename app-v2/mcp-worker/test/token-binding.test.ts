@@ -225,74 +225,43 @@ const USER = {
   binding: { bound: true, reasons: [], claimedAudience: [], aiAgentClaim: false },
 }
 
-/** Stub that answers per table, so a test can describe an inconsistent database. */
-function stubDb(tables: Record<string, unknown[]>): UserSupabaseClient {
+/** Stub whose core_v2_me answer the test chooses; every table read is empty. */
+function stubDb(me: unknown): UserSupabaseClient {
   return {
-    select: (async (table: string, _options: SelectOptions) => tables[table] || []) as UserSupabaseClient['select'],
+    select: (async (_table: string, _options: SelectOptions) => []) as UserSupabaseClient['select'],
+    rpc: (async (fn: string) => {
+      if (fn !== 'core_v2_me') throw new Error('unexpected rpc ' + fn)
+      return me
+    }) as UserSupabaseClient['rpc'],
   }
 }
 
-describe('deterministic organization context (MCP-ORG-DETERMINISTIC)', () => {
-  it('takes the organization from profiles, not from whichever membership row came back first', async () => {
-    const db = stubDb({
-      profiles: [{ organization_id: 'org-canonical', org_role: 'owner' }],
-      organization_members: [
-        { organization_id: 'org-other', role: 'member' },
-        { organization_id: 'org-canonical', role: 'admin' },
-      ],
-    })
+describe('organization context from core_v2 (CORE-V2-ME, MCP-ORG-DETERMINISTIC)', () => {
+  it('takes the organization and the role from core_v2_me', async () => {
+    const db = stubDb({ organization: { id: 'org-a', core_id: 1 }, role: 'admin', job_status: 'ACTIVE' })
     const context = await resolveUserContext(config(), db, USER, 'r1')
 
-    expect(context.organizationId).toBe('org-canonical')
-    // The role comes from the membership row for THAT organization, not the first row.
+    expect(context.organizationId).toBe('org-a')
     expect(context.role).toBe('admin')
-    expect(context.organizationSource).toBe('profile')
+    expect(context.organizationSource).toBe('core_v2')
   })
 
-  it('refuses when profiles and organization_members disagree', async () => {
-    const db = stubDb({
-      profiles: [{ organization_id: 'org-a', org_role: 'owner' }],
-      organization_members: [{ organization_id: 'org-b', role: 'member' }],
-    })
-    await expect(resolveUserContext(config(), db, USER, 'r1')).rejects.toThrow(ScalyoMcpError)
-  })
-
-  it('accepts the legacy owner with no membership row, using the profile role', async () => {
-    const db = stubDb({ profiles: [{ organization_id: 'org-a', org_role: 'owner' }], organization_members: [] })
-    const context = await resolveUserContext(config(), db, USER, 'r1')
-
-    expect(context.organizationId).toBe('org-a')
-    expect(context.role).toBe('owner')
-  })
-
-  it('uses a sole membership when the profile carries no organization', async () => {
-    const db = stubDb({ profiles: [{ organization_id: null, org_role: null }], organization_members: [{ organization_id: 'org-a', role: 'member' }] })
-    const context = await resolveUserContext(config(), db, USER, 'r1')
-
-    expect(context.organizationId).toBe('org-a')
-    expect(context.organizationSource).toBe('sole_membership')
-  })
-
-  it('refuses to guess between several memberships when the profile carries none', async () => {
-    const db = stubDb({
-      profiles: [{ organization_id: null, org_role: null }],
-      organization_members: [{ organization_id: 'org-a', role: 'member' }, { organization_id: 'org-b', role: 'member' }],
-    })
-    await expect(resolveUserContext(config(), db, USER, 'r1')).rejects.toThrow(ScalyoMcpError)
-  })
-
-  it('gives no organization at all when there is nothing to derive one from', async () => {
-    const context = await resolveUserContext(config(), stubDb({}), USER, 'r1')
-    expect(context.organizationId).toBeNull()
-    expect(context.role).toBeNull()
-    expect(context.organizationSource).toBeNull()
+  it('gives no organization when core_v2_me has none (left the organization, or never in one)', async () => {
+    for (const me of [null, { organization: null, role: null }]) {
+      const context = await resolveUserContext(config(), stubDb(me), USER, 'r1')
+      expect(context.organizationId).toBeNull()
+      expect(context.role).toBeNull()
+      expect(context.organizationSource).toBeNull()
+    }
   })
 
   it('treats an unrecognised role string as no role, never as a permissive default', async () => {
-    const db = stubDb({
-      profiles: [{ organization_id: 'org-a', org_role: 'superadmin' }],
-      organization_members: [{ organization_id: 'org-a', role: 'superadmin' }],
-    })
+    const db = stubDb({ organization: { id: 'org-a' }, role: 'superadmin' })
+    expect((await resolveUserContext(config(), db, USER, 'r1')).role).toBeNull()
+  })
+
+  it('never reads a role without an organization', async () => {
+    const db = stubDb({ organization: null, role: 'owner' })
     expect((await resolveUserContext(config(), db, USER, 'r1')).role).toBeNull()
   })
 })

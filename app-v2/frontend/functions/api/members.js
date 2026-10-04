@@ -15,14 +15,20 @@ export async function onRequestGet(context) {
 
     const orgId = membership.organization_id
     const org = await db.selectOne('organizations', 'id=eq.' + orgId)
-    const members = await db.select('organization_members', 'organization_id=eq.' + orgId)
+    // STAGE2-WRITES (04/10/2026): the team comes from core_v2 (core_v2_team, 20261004120000). `id` is
+    // the person's login id — the key DELETE /api/members/:id takes — no longer an organization_members
+    // row id, which goes with that table. ENDED workers are not listed; `job_status` is.
+    const members = await db.rpc('core_v2_team', { p_org: orgId })
     const invitations = await db.select('invitations', 'organization_id=eq.' + orgId + '&status=eq.pending&order=created_at.desc')
 
     // Seats taken against the plan ceiling = members + pending invitations (non-viewer): an
     // invitation reserves its seat when sent. It is BILLED only once accepted (SEAT-AT-ACCEPT,
     // 03/10/2026), so `used` may exceed `paid` while invitations are pending.
-    const seatsUsed = members.filter(m => m.role !== 'viewer').length
-      + invitations.filter(i => i.role !== 'viewer').length
+    // SEAT-CEILING (03/10/2026): an expired invitation (still 'pending' until opened) reserves
+    // nothing. JOB-STATUS: an INACTIVE worker holds no seat. One count for all three readers —
+    // core_v2_seats_taken (20261003120000), the one invite.js checks — or the badge would read full
+    // while inviting works.
+    const seatsUsed = await db.rpc('core_v2_seats_taken', { p_org: membership.core_organization_id })
 
     // P4: invitation tokens are only exposed to the roles allowed to invite (owner/admin) —
     // a member must not be able to copy a pending invitation link (seat hijacking).
@@ -32,7 +38,7 @@ export async function onRequestGet(context) {
 
     return jsonResponse({
       organization: { id: org.id, name: org.name, plan: org.plan, seats_paid: org.seats_paid },
-      members,
+      members: Array.isArray(members) ? members : [],
       invitations: safeInvitations,
       seats: { used: seatsUsed, paid: org.seats_paid }
     })

@@ -3,7 +3,7 @@
 // acceptance), so revoking one touches neither Stripe nor seats_paid — it only gives the
 // reservation back to the plan ceiling, which /api/invite and /api/members recount live.
 import { jsonResponse, errorResponse } from '../_utils/response.js'
-import { createSupabaseClient, getAuthUser, getUserMembership } from '../_utils/supabase.js'
+import { createSupabaseClient, getAuthUser, getUserMembership, isReadOnlyMembership } from '../_utils/supabase.js'
 import { canPerform } from '../_config/plans.config.js'
 
 export async function onRequestDelete(context) {
@@ -17,6 +17,8 @@ export async function onRequestDelete(context) {
     const db = createSupabaseClient(env)
     const membership = await getUserMembership(db, user.id)
     if (!membership) return errorResponse(403, 'No organization')
+    // JOB-STATUS-READ (04/10/2026): a read-only account revokes nothing.
+    if (isReadOnlyMembership(membership)) return errorResponse(403, 'read_only')
     if (!canPerform(membership.role, 'canRevoke')) return errorResponse(403, 'Permission denied')
 
     // Invitation of the same org only (otherwise 404, no existence leak)

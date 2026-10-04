@@ -37,6 +37,17 @@ export async function onRequestGet(context) {
     data: {}
   }
 
+  // CORE-V2-ME (04/10/2026): the person's core_v2 data (name, e-mail, language, organization, role,
+  // status) — read with THEIR token, so it is exactly what they can see of themselves.
+  try {
+    const meRes = await fetch(supabaseUrl + '/rest/v1/rpc/core_v2_me', {
+      method: 'POST',
+      headers: { 'apikey': serviceKey, 'Authorization': authHeader, 'Content-Type': 'application/json' },
+      body: '{}',
+    })
+    exportData.data.core_v2_me = meRes.ok ? await meRes.json() : null
+  } catch { exportData.data.core_v2_me = null }
+
   for (const table of tables) {
     try {
       const idCol = table === 'profiles' ? 'id' : 'user_id'

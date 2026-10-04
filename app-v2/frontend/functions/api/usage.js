@@ -2,6 +2,7 @@ import { getConfig } from './_config/index.js'
 import { getPlan } from './_config/plans.js'
 import { extractLang, extractAuth, verifyJwt } from './_services/auth.service.js'
 import { jsonOk, jsonError } from './_utils/response.js'
+import { getCurrentPlan } from './_utils/supabase.js'
 
 export async function onRequestGet(context) {
   const config = getConfig(context.env)
@@ -10,12 +11,9 @@ export async function onRequestGet(context) {
   const jwt = await verifyJwt(token, config)
   if (!jwt.valid) return jsonError('unauthorized', 401, lang)
 
-  const profileResp = await fetch(
-    config.supabaseUrl + '/rest/v1/profiles?id=eq.' + jwt.userId + '&select=plan',
-    { headers: { 'apikey': config.supabaseAnonKey, 'Authorization': 'Bearer ' + token } }
-  )
-  const profiles = await profileResp.json()
-  const planId = profiles[0]?.plan || 'starter'
+  // CORE-V2-ME: the organization's current period. With none the screen is the paywall anyway; the
+  // quotas shown are starter's, the most restrictive.
+  const planId = (await getCurrentPlan(context.env, token)) || 'starter'
   const planConfig = getPlan(planId)
 
   const today = new Date().toISOString().split('T')[0]

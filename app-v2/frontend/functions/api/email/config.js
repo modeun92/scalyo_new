@@ -6,7 +6,7 @@
 
 import { extractLang, extractAuth, verifyJwt } from '../_services/auth.service.js'
 import { getConfig } from '../_config/index.js'
-import { createSupabaseClient } from '../_utils/supabase.js'
+import { createSupabaseClient, getUserMembership } from '../_utils/supabase.js'
 import { encryptToken } from '../_config/crypto.js'
 import { jsonOk, jsonError } from '../_utils/response.js'
 
@@ -14,11 +14,11 @@ const KEY_FORMAT = /^re_[A-Za-z0-9_-]{10,}$/
 
 // D2 (approved contract): a member of an organization does not configure the key —
 // only the org owner (or a user without an org, for themselves) can.
+// CORE-V2-ME (04/10/2026): the owner is the organization's billing owner, read from core_v2.
 async function assertCanManage(db, userId) {
-  const profile = await db.selectOne('profiles', 'id=eq.' + userId + '&select=organization_id')
-  if (!profile?.organization_id) return true // solo: manages their own config
-  const org = await db.selectOne('organizations', 'id=eq.' + profile.organization_id + '&select=owner_id')
-  return org?.owner_id === userId
+  const membership = await getUserMembership(db, userId)
+  if (!membership) return true // solo: manages their own config
+  return membership.role === 'owner'
 }
 
 async function authAndDb(context, lang) {

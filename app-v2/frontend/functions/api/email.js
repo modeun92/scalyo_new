@@ -5,7 +5,7 @@
 import { getConfig } from './_config/index.js'
 import { isModuleAllowed } from './_config/plans.js'
 import { extractLang, extractAuth, verifyJwt } from './_services/auth.service.js'
-import { createSupabaseClient } from './_utils/supabase.js'
+import { createSupabaseClient, getUserMembership, getCurrentPlan, isReadOnlyMembership } from './_utils/supabase.js'
 import { decryptToken } from './_config/crypto.js'
 import { jsonOk, jsonError } from './_utils/response.js'
 
@@ -18,46 +18,30 @@ export async function onRequestPost(context) {
     const jwt = await verifyJwt(token, config)
     if (!jwt.valid) return jsonError('unauthorized', 401, lang)
 
-    // Check plan
-    const profileResp = await fetch(
-      config.supabaseUrl + '/rest/v1/profiles?id=eq.' + jwt.userId + '&select=plan',
-      {
-        headers: {
-          'apikey': config.supabaseAnonKey,
-          'Authorization': 'Bearer ' + token
-        }
-      }
-    )
-    const profiles = await profileResp.json()
-    const planId = profiles[0]?.plan || 'starter'
-
-    if (!isModuleAllowed(planId, 'email')) {
+    // Check plan — the ORGANIZATION's current period (CORE-V2-ME), not profiles.plan
+    const planId = await getCurrentPlan(context.env, token)
+    if (!planId || !isModuleAllowed(planId, 'email')) {
       return jsonError('module_not_allowed', 403, lang)
     }
 
+    // JOB-STATUS-READ: sending speaks for the organization — not from a read-only account.
+    const db = createSupabaseClient(context.env)
+    const membership = await getUserMembership(db, jwt.userId)
+    if (isReadOnlyMembership(membership)) return jsonError('read_only_write_blocked', 403, lang)
+
     // CR-8 (C-04/C-05): read of the org config on the SERVER side (service_role).
     // Direct owner, otherwise an org member with can_send_email=true → the owner's config.
-    const db = createSupabaseClient(context.env)
     let configRow = await db.selectOne(
       'org_email_config',
       'owner_id=eq.' + jwt.userId + '&select=resend_api_key,sender_domain,sender_name'
     )
-    if (!configRow) {
-      const callerProfile = await db.selectOne('profiles', 'id=eq.' + jwt.userId + '&select=organization_id')
-      if (callerProfile?.organization_id) {
-        const member = await db.selectOne(
-          'organization_members',
-          'organization_id=eq.' + callerProfile.organization_id + '&user_id=eq.' + jwt.userId + '&select=can_send_email'
+    if (!configRow && membership?.can_send_email) {
+      const org = await db.selectOne('organizations', 'id=eq.' + membership.organization_id + '&select=owner_id')
+      if (org?.owner_id) {
+        configRow = await db.selectOne(
+          'org_email_config',
+          'owner_id=eq.' + org.owner_id + '&select=resend_api_key,sender_domain,sender_name'
         )
-        if (member?.can_send_email) {
-          const org = await db.selectOne('organizations', 'id=eq.' + callerProfile.organization_id + '&select=owner_id')
-          if (org?.owner_id) {
-            configRow = await db.selectOne(
-              'org_email_config',
-              'owner_id=eq.' + org.owner_id + '&select=resend_api_key,sender_domain,sender_name'
-            )
-          }
-        }
       }
     }
     if (!configRow) {

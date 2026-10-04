@@ -43,7 +43,7 @@ const CONTEXT: ScalyoUserContext = {
   organizationId: 'org-a',
   role: 'member',
   oauthClientId: null,
-  organizationSource: 'profile',
+  organizationSource: 'core_v2',
   requestId: 'req-1',
 }
 
@@ -59,7 +59,7 @@ function registeredToolNames(): Set<string> {
     return undefined as never
   }) as never)
 
-  const deps: ToolDeps = { context: CONTEXT, db: { select: async () => [] }, env: ENV, environment: 'test' }
+  const deps: ToolDeps = { context: CONTEXT, db: { select: async () => [], rpc: async () => null as never }, env: ENV, environment: 'test' }
   registerScalyoTools(server, deps)
   spy.mockRestore()
   return names

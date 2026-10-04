@@ -58,7 +58,41 @@ export async function getAuthUser(request, env) {
   return r.json()
 }
 
-// Get user's org membership
+// CORE-V2-ME (04/10/2026): the caller's organization and role come from core_v2
+// (core_v2_membership, 20261004100000) — organization_members and profiles are on their way out
+// (stage 2). The fields the routes read keep their meaning: organization_id is the OLD organization
+// uuid the kept tables still hold, role is owner / admin / member / viewer. Added: job_status,
+// can_send_email, locale, core_organization_id. NULL = in no organization (or gone: ENDED).
 export async function getUserMembership(db, userId) {
-  return db.selectOne('organization_members', 'user_id=eq.' + userId)
+  const m = await db.rpc('core_v2_membership', { p_user: userId })
+  return m && m.organization_id ? m : null
+}
+
+// JOB-STATUS-READ (04/10/2026): an INACTIVE / ON_LEAVE worker reads but changes nothing. A route that
+// writes asks this first. The screen already greys itself and refuses the write in the browser
+// (lib/supabase); this is what holds when the screen is bypassed and the API is called directly.
+export function isReadOnlyMembership(m) {
+  return !!m && m.job_status !== 'ACTIVE'
+}
+
+// CORE-V2-ME: the plan, for the caller's own token — the tier of the organization's current
+// subscription period (core_v2_my_subscription), or NULL when there is none: no access. A failed read
+// answers 'starter', the most restrictive plan, as the profiles.plan read it replaces did. ai.js,
+// email.js and usage.js read profiles.plan — the personal plan, while the screen and the client-limit
+// trigger read the organization's: a member of a paying organization was entitled on screen and
+// 403'd by the API (the split source in CLAUDE.md, Traps). They now read the organization's period.
+export async function getCurrentPlan(env, userJwt) {
+  try {
+    const r = await fetch(env.SUPABASE_URL + '/rest/v1/rpc/core_v2_my_subscription', {
+      method: 'POST',
+      headers: { 'apikey': env.SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + userJwt, 'Content-Type': 'application/json' },
+      body: '{}',
+    })
+    if (!r.ok) return 'starter'
+    const j = await r.json()
+    const type = j && j.subscription && j.subscription.type
+    return type ? String(type).toLowerCase() : null
+  } catch (_) {
+    return 'starter'
+  }
 }

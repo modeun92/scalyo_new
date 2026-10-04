@@ -60,8 +60,15 @@ export function renderFilterValue(filter: Filter): string {
   return filter.op + '.' + quoteValue(String(filter.value))
 }
 
+// MCP-RPC-ALLOWLIST (04/10/2026): the RPCs the MCP surface may call — READ-ONLY functions only,
+// named here. core_v2_me answers who the caller is (CORE-V2-ME). Anything else is refused before a
+// request leaves the Worker: a tool that could name an RPC could name a write.
+const ALLOWED_RPCS: ReadonlySet<string> = new Set(['core_v2_me'])
+
 export interface UserSupabaseClient {
   select<T = Record<string, unknown>>(table: string, options: SelectOptions): Promise<T[]>
+  /** A read-only RPC from ALLOWED_RPCS, under the user's own token, with no arguments. */
+  rpc<T = unknown>(fn: string): Promise<T>
 }
 
 export function buildSelectParams(options: SelectOptions): URLSearchParams {
@@ -133,6 +140,38 @@ export function createUserScopedSupabaseClient(config: ScalyoMcpConfig, userAcce
       const rows = await response.json()
       if (!Array.isArray(rows)) throw new ScalyoMcpError('UPSTREAM_UNAVAILABLE', table + ' did not return an array')
       return rows as T[]
+    },
+
+    async rpc<T = unknown>(fn: string): Promise<T> {
+      if (!ALLOWED_RPCS.has(fn)) throw new ScalyoMcpError('INTERNAL_ERROR', 'rpc not allowed: ' + fn)
+
+      let response: Response
+      try {
+        response = await fetch(config.supabaseUrl + '/rest/v1/rpc/' + fn, {
+          method: 'POST',
+          headers: {
+            apikey: config.supabaseAnonKey,
+            Authorization: 'Bearer ' + userAccessToken,
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+          },
+          body: '{}',
+        })
+      } catch (cause) {
+        // R21: an unreachable database is an error, never an empty answer.
+        throw new ScalyoMcpError('UPSTREAM_UNAVAILABLE', 'fetch failed for rpc ' + fn + ': ' + String(cause))
+      }
+
+      if (response.status === 401 || response.status === 403) {
+        throw new ScalyoMcpError('UNAUTHENTICATED', 'rpc ' + fn + ' returned ' + response.status)
+      }
+      if (!response.ok) {
+        throw new ScalyoMcpError(
+          'UPSTREAM_UNAVAILABLE',
+          'rpc ' + fn + ' returned ' + response.status + ': ' + (await response.text()).slice(0, 500)
+        )
+      }
+      return (await response.json()) as T
     },
   }
 }

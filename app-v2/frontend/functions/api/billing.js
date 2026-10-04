@@ -93,20 +93,22 @@ export async function onRequestGet(context) {
     const db = createSupabaseClient(env)
     const membership = await getUserMembership(db, user.id)
 
-    // Account without an org (legacy): their own subscription, they are the holder.
-    let role = 'owner'
-    let account = null
-    if (membership) {
-      role = membership.role
-      account = await db.selectOne('organizations', 'id=eq.' + membership.organization_id)
-    } else {
-      account = await db.selectOne('profiles', 'id=eq.' + user.id)
-    }
+    // OWN-ORG (27/09/2026): every account has an organization — the profiles fallback for an org-less
+    // account is gone with profiles (stage 2).
+    if (!membership) return errorResponse(404, 'No billing account')
+    const role = membership.role
+    const account = await db.selectOne('organizations', 'id=eq.' + membership.organization_id)
     if (!account) return errorResponse(404, 'No billing account')
 
+    // CORE-V2-ME (04/10/2026): the plan and the Stripe subscription are the organization's CURRENT
+    // PERIOD (core_v2), the same answer the screen gets from core_v2_me. No period: no plan to price.
+    let period = null
+    try { period = await db.rpc('core_v2_current_subscription', { p_org: membership.core_organization_id }) } catch (_) { period = null }
+    if (!period || !period.id) period = null
+    const orgPlan = period?.type ? String(period.type).toLowerCase() : null
+    const stripeSubscriptionId = period?.kind === 'PAID' ? period.stripe_subscription_id : null
     const canViewAmounts = canPerform(role, 'canViewBilling')
-    const orgPlan = account.plan || 'starter'
-    const seats = account.seats_paid ?? 1
+    const seats = period?.kind === 'PAID' && period.seats != null ? period.seats : (account.seats_paid ?? 1)
     const base = {
       role,
       can_view_amounts: canViewAmounts,
@@ -114,14 +116,14 @@ export async function onRequestGet(context) {
       plan: orgPlan,
       seats,
       interval: BILLING_INTERVAL,
-      has_subscription: !!account.stripe_subscription_id,
+      has_subscription: !!stripeSubscriptionId,
     }
     // D1: member / viewer — plan and seats, never an amount.
     if (!canViewAmounts) return jsonResponse({ ...base, source: 'none' })
 
     let stripe = null
-    if (account.stripe_subscription_id && env.STRIPE_SECRET_KEY) {
-      stripe = await readStripeSubscription(env.STRIPE_SECRET_KEY, account.stripe_subscription_id)
+    if (stripeSubscriptionId && env.STRIPE_SECRET_KEY) {
+      stripe = await readStripeSubscription(env.STRIPE_SECRET_KEY, stripeSubscriptionId)
     }
     if (stripe) {
       const grid = pricesFor(stripe.currency)

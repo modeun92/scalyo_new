@@ -36,6 +36,18 @@ export async function onRequestGet(context) {
   const userId = jwt.userId
   const exportData = { exported_at: new Date().toISOString(), user_id: userId }
 
+  // CORE-V2-ME (04/10/2026): the person's data now lives in core_v2 too — name, e-mail, language,
+  // organization, role, status (core_v2_me, read with their own token). Left out, the export would
+  // silently miss what replaces profiles.
+  try {
+    const meResp = await fetch(config.supabaseUrl + '/rest/v1/rpc/core_v2_me', {
+      method: 'POST',
+      headers: { 'apikey': config.supabaseAnonKey, 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+      body: '{}',
+    })
+    exportData.core_v2_me = meResp.ok ? await meResp.json() : null
+  } catch (_) { exportData.core_v2_me = null }
+
   // Fetch data from each table (RLS applies via user token)
   for (const table of TABLES_TO_EXPORT) {
     const col = table === 'profiles' ? 'id' : 'user_id'

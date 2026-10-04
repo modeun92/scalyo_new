@@ -6,21 +6,24 @@
 // Errors typed by machine code: the front end translates (FR/EN/KO). The exception
 // message no longer reaches the client.
 import { jsonResponse, errorCode } from '../_utils/response.js'
-import { createSupabaseClient, getAuthUser } from '../_utils/supabase.js'
+import { createSupabaseClient, getAuthUser, getUserMembership } from '../_utils/supabase.js'
 import { setSubscriptionQuantity } from '../_utils/stripe.js'
 import { canAddSeat } from '../_config/plans.config.js'
 
 const normalizeEmail = (v) => String(v || '').trim().toLowerCase()
 
-const countSeats = (members) => members.filter(m => m.role !== 'viewer').length
+// STAGE2-WRITES (04/10/2026): both counts come from core_v2 (20261004120000). They differ on purpose:
+// the plan ceiling counts the seats HELD (an INACTIVE worker holds none — JOB-STATUS), the invoice the
+// members who have not left (an INACTIVE one is still billed, an open decision).
+const billableSeats = async (db, orgId) => Number(await db.rpc('core_v2_billable_seats', { p_org: orgId }))
+const heldSeats = async (db, orgId) => Number(await db.rpc('core_v2_seats_held', { p_org: orgId }))
 
 // SEAT-AT-ACCEPT: sets the billed seats to the members as they are NOW, recounted rather than
 // incremented or restored — two acceptances in the same second both read N members and both
 // bill N+1, and only a recount after the inserts bills N+2. create_prorations both ways: a seat
 // given back because the acceptance did not happen nets out the charge just made for it.
 async function syncSeats(db, env, org) {
-  const members = await db.select('organization_members', 'organization_id=eq.' + org.id)
-  const qty = Math.max(1, countSeats(members))
+  const qty = Math.max(1, await billableSeats(db, org.id))
   if (org.stripe_subscription_id) {
     const billed = await setSubscriptionQuantity(env.STRIPE_SECRET_KEY, org.stripe_subscription_id, qty, 'create_prorations')
     if (!billed.ok) {
@@ -72,11 +75,9 @@ export async function onRequestPost(context) {
     }
 
     // 4. Case 5 — already a member of THIS organization: idempotent 200.
-    //    No destructive write, no uq_org_member violation.
-    const existingHere = await db.selectOne(
-      'organization_members',
-      'organization_id=eq.' + invitation.organization_id + '&user_id=eq.' + user.id
-    )
+    //    No destructive write, no uq_org_member violation. Membership read from core_v2.
+    const current = await getUserMembership(db, user.id)
+    const existingHere = current && current.organization_id === invitation.organization_id ? current : null
     if (existingHere) {
       await db.update('invitations', 'id=eq.' + invitation.id, { status: 'accepted' })
       return jsonResponse({
@@ -91,13 +92,15 @@ export async function onRequestPost(context) {
     //    Stripe before the membership — never a member on an unbilled seat. seats_paid follows
     //    before the insert too: enforce_org_seat_limit fires on that insert and its body lives
     //    only in the dashboard, so it may be reading seats_paid. The plan ceiling is checked
-    //    first, so a full team is refused without a charge to give back.
+    //    first, so a full team is refused without a charge to give back. SEAT-CEILING (03/10/2026):
+    //    this count and the insert are two round trips apart, so two acceptances in the same second
+    //    both pass it; trg_seat_ceiling (20261003110000) checks again inside the insert, with the
+    //    organization row locked, and the loser gets 409 seat_limit_reached below.
     if ((invitation.role || 'member') !== 'viewer') {
       const org = await db.selectOne('organizations', 'id=eq.' + invitation.organization_id)
       if (!org) return errorCode(404, 'invitation_not_valid')
-      const members = await db.select('organization_members', 'organization_id=eq.' + org.id)
-      const seats = countSeats(members)
-      if (!canAddSeat(org.plan, seats)) return errorCode(409, 'seat_limit_reached')
+      if (!canAddSeat(org.plan, await heldSeats(db, org.id))) return errorCode(409, 'seat_limit_reached')
+      const seats = await billableSeats(db, org.id)
       if (org.stripe_subscription_id) {
         const billed = await setSubscriptionQuantity(env.STRIPE_SECRET_KEY, org.stripe_subscription_id, seats + 1, 'create_prorations')
         // CF-502-MASQUE: typed as 409, never a 5xx whose body Cloudflare would replace.
