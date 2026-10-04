@@ -162,7 +162,9 @@ router.beforeEach(async (to) => {
   }
   // Paywall check is handled below via needsPayment (covers trial + stripe)
 
-  if (to.meta.requiresAuth && to.name !== 'onboarding' && authStore.profile && !authStore.onboardingCompleted) {
+  // JOB-STATUS-READ (04/10/2026): never the tour for a read-only account — finishing it is a write it
+  // cannot make, so it would loop there for good.
+  if (to.meta.requiresAuth && to.name !== 'onboarding' && authStore.profile && !authStore.onboardingCompleted && !authStore.readOnly) {
     return { name: 'onboarding' }
   }
   // G9-3 (inverse guard): onboarding already completed → dashboard, never a re-onboarding

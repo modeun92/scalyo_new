@@ -39,6 +39,10 @@ export async function withWrite(factory, { label = '' } = {}) {
     try { supabase.auth.getSession().catch(() => {}) } catch (_) { /* noop */ }
     showToast(i18n.global.t('write_frozen_reload'), 'error', 0) // persistent
     console.error('[withWrite] FROZEN (G9-13):', label || '(unlabeled write)')
+  } else if (res && res.error && res.error.code === 'read_only') {
+    // JOB-STATUS-READ (04/10/2026): refused before leaving the browser (lib/supabase) — say why,
+    // not "the write failed", which would send them to retry.
+    showToast(i18n.global.t('read_only_write_blocked'), 'error', 6000)
   } else if (res && res.error) {
     showToast(i18n.global.t('write_failed'), 'error', 6000)
     console.error('[withWrite] error:', label, res.error.message || res.error)

@@ -7,7 +7,7 @@
     <div v-if="app.sidebarMobileOpen" class="sidebar_overlay" @click="app.closeMobileSidebar()" />
 
     <!-- SIDEBAR -->
-    <aside class="sidebar" :class="{ open: app.sidebarMobileOpen }">
+    <aside class="sidebar" :class="{ open: app.sidebarMobileOpen }" data-ro-exempt>
       <div class="sidebar_logo">
         <ScalyoLogo :size="app.sidebarCollapsed ? 28 : 32" />
         <span v-if="!app.sidebarCollapsed" class="logo_text">Scalyo</span>
@@ -52,7 +52,7 @@
     <!-- MAIN -->
     <div class="main_wrapper">
       <!-- TOPBAR -->
-      <header class="topbar">
+      <header class="topbar" data-ro-exempt>
         <button class="topbar_burger hide_desktop" @click="app.toggleMobileSidebar()">
           <span /><span /><span />
         </button>
@@ -132,8 +132,8 @@
       </main>
     </div>
 
-    <!-- ONBOARDING -->
-    <OnboardingWizard />
+    <!-- ONBOARDING — not for a read-only account: it could never be submitted. -->
+    <OnboardingWizard v-if="!auth.readOnly" />
 
     <!-- FB-02: client record as a modal pop-up, opened from anywhere -->
     <ClientModal />
@@ -148,11 +148,23 @@
         <ChatPanel @close="app.toggleChat()" />
       </div>
     </transition>
+
+    <!-- JOB-STATUS-READ: said once per session, then the product stays greyed. Title and body in
+         <div>, not h4/p (CSS-DARK-IMPORTANT). -->
+    <div v-if="readOnlyNoticeOpen" class="read_only_overlay" data-ro-exempt @click.self="closeReadOnlyNotice">
+      <div class="read_only_card" role="dialog" aria-modal="true" :aria-label="t('read_only_notice_title')">
+        <div class="read_only_title">{{ t('read_only_notice_title') }}</div>
+        <div class="read_only_body">{{ t(auth.me?.job_status === 'ON_LEAVE' ? 'read_only_notice_body_on_leave' : 'read_only_notice_body_inactive') }}</div>
+        <div class="read_only_actions">
+          <button type="button" class="button_confirm" @click="closeReadOnlyNotice">{{ t('read_only_notice_ok') }}</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch, nextTick, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { onClickOutside } from '@vueuse/core'
@@ -197,6 +209,60 @@ const teamStore = useTeamStore()
 const notifOpen = ref(false)
 const notifRef = ref(null)
 onClickOutside(notifRef, () => { notifOpen.value = false })
+
+// ── JOB-STATUS-READ (04/10/2026, decided): the read-only account ────────────────
+// An INACTIVE or ON_LEAVE worker is told once, in a popup, then sees every tab and panel greyed with
+// its inputs disabled; the navigation (sidebar, top bar) stays live so they can still look around.
+// Inputs are disabled for real (the `disabled` property, so the keyboard cannot reach them either), by
+// an observer, because screens keep rendering new ones; one a component re-enables through its own
+// :disabled binding is caught by the same observer. It watches <body>, not the layout: the edit panels
+// (SlideOver) and the client record (ClientModal) are teleported there. Buttons stay clickable — a tab
+// is a button — and a write they would start is refused by lib/supabase (setReadOnlyWrites), with a
+// toast that says why.
+const readOnlyNoticeOpen = ref(false)
+let readOnlyObserver = null
+const roNoticeKey = () => 'scalyo_read_only_notice_' + (auth.user?.id || '')
+function lockInputs(root) {
+  root.querySelectorAll('input, textarea, select, [contenteditable="true"]').forEach((el) => {
+    if (el.closest('[data-ro-exempt], .gtoast_container')) return
+    if (el.isContentEditable) { el.setAttribute('contenteditable', 'false'); el.dataset.ro = 'ce'; return }
+    if (!el.disabled) { el.disabled = true; el.dataset.ro = '1' }
+  })
+}
+function unlockInputs(root) {
+  root.querySelectorAll('[data-ro]').forEach((el) => {
+    if (el.dataset.ro === 'ce') el.setAttribute('contenteditable', 'true')
+    else el.disabled = false
+    delete el.dataset.ro
+  })
+}
+function applyReadOnly(on) {
+  const root = document.body
+  document.body.classList.toggle('app_read_only', !!on)
+  if (on) {
+    lockInputs(root)
+    if (!readOnlyObserver) {
+      readOnlyObserver = new MutationObserver(() => lockInputs(root))
+      readOnlyObserver.observe(root, { childList: true, subtree: true, attributes: true, attributeFilter: ['disabled', 'contenteditable'] })
+    }
+  } else {
+    if (readOnlyObserver) { readOnlyObserver.disconnect(); readOnlyObserver = null }
+    unlockInputs(root)
+  }
+}
+watch(() => auth.readOnly, async (on) => {
+  await nextTick()
+  applyReadOnly(on)
+  if (!on) { readOnlyNoticeOpen.value = false; return }
+  let seen = false
+  try { seen = sessionStorage.getItem(roNoticeKey()) === '1' } catch (_) {}
+  if (!seen) readOnlyNoticeOpen.value = true
+}, { immediate: true })
+function closeReadOnlyNotice() {
+  readOnlyNoticeOpen.value = false
+  try { sessionStorage.setItem(roNoticeKey(), '1') } catch (_) {}
+}
+onBeforeUnmount(() => { if (readOnlyObserver) readOnlyObserver.disconnect(); document.body.classList.remove('app_read_only') })
 
 
 const NOTIF_GROUP_KEYS = { nps_drop: 'notification_group_nps_drop', churn_risk: 'notification_group_churn_risk', renewal: 'notification_group_renewal', task_overdue: 'notification_group_task_overdue' }
@@ -485,4 +551,25 @@ async function handleLogout() {
 }
 .trial_cta:hover { background: rgba(255,255,255,0.4); }
 
+/* JOB-STATUS-READ — the popup */
+.read_only_overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.45); display: flex; align-items: center; justify-content: center; z-index: 3000; padding: 16px; }
+.read_only_card { background: var(--bg-card, #fff); border-radius: 14px; padding: 24px; max-width: 420px; width: 100%; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25); }
+.read_only_title { font-size: 1.05rem; font-weight: 700; color: var(--text-primary); margin-bottom: 10px; }
+.read_only_body { font-size: 0.9rem; line-height: 1.55; color: var(--text-secondary); }
+.read_only_actions { display: flex; justify-content: flex-end; margin-top: 20px; }
+.read_only_actions .button_confirm { background: #7c3aed; color: #fff; border: none; padding: 9px 18px; border-radius: 8px; font-weight: 600; cursor: pointer; }
+</style>
+
+<style>
+/* JOB-STATUS-READ (04/10/2026): everything but the navigation, the popup and the toasts reads grey —
+   the screens, and the panels teleported to <body> (SlideOver, ClientModal). Unscoped on purpose. */
+body.app_read_only .main_content,
+body.app_read_only > :not(#app):not(.gtoast_container) {
+  filter: grayscale(1);
+}
+body.app_read_only .main_content *,
+body.app_read_only > :not(#app):not(.gtoast_container) * {
+  color: var(--text-muted, #9a94b0) !important;
+}
+body.app_read_only [data-ro] { cursor: not-allowed; }
 </style>

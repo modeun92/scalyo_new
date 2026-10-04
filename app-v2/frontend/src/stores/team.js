@@ -109,33 +109,24 @@ export const useTeamStore = defineStore('team', () => {
     lastError.value = null
     try {
       const authStore = useAuthStore()
-      const orgId = authStore.profile?.organization_id
-      if (!orgId) { members.value = []; return }
-      const { data: omData, error } = await supabase
-        .from('organization_members')
-        .select('user_id, role, joined_at, can_send_email')
-        .eq('organization_id', orgId)
-        .neq('user_id', authStore.user?.id)
-        .order('joined_at', { ascending: true })
+      if (!authStore.profile?.organization_id) { members.value = []; return }
+      // CORE-V2-ME (04/10/2026): the colleagues come from core_v2 (core_v2_my_team, 20261004100000),
+      // names included. Read from organization_members + profiles, every name came back EMPTY:
+      // profiles RLS is self-only, so the second query only ever returned the caller's own row.
+      // The caller is left out by the RPC (self stays apart, G9-10); ENDED workers are not listed.
+      const { data, error } = await supabase.rpc('core_v2_my_team')
       if (error) throw error
-      if (!omData?.length) { members.value = []; return }
-      const userIds = omData.map(m => m.user_id)
-      const { data: profs } = await supabase.from('profiles').select('id, first_name, last_name').in('id', userIds)
-      const pMap = {}
-      profs?.forEach(p => { pMap[p.id] = p })
-      members.value = omData.map(m => {
-        const p = pMap[m.user_id] || {}
-        return {
-          id: m.user_id,
-          name: [p.first_name, p.last_name].filter(Boolean).join(' ') || '',
-          email: '', role: m.role || 'member',
-          // B-09: null = no real data (never an invented 75/60/0)
-          wellbeingScore: null, workload: null,
-          clientCount: null, arrManaged: null,
-          // CR-8 (C-05): real value read from the database — the owner toggle reflects reality
-          moodHistory: [], canSendEmail: m.can_send_email ?? false,
-        }
-      })
+      members.value = (Array.isArray(data) ? data : []).filter(m => m.user_id).map(m => ({
+        id: m.user_id,
+        name: [m.first_name, m.last_name].filter(Boolean).join(' ') || '',
+        email: '', role: m.role || 'member',
+        jobStatus: m.job_status || null,
+        // B-09: null = no real data (never an invented 75/60/0)
+        wellbeingScore: null, workload: null,
+        clientCount: null, arrManaged: null,
+        // CR-8 (C-05): real value read from the database — the owner toggle reflects reality
+        moodHistory: [], canSendEmail: m.can_send_email ?? false,
+      }))
     } catch (err) {
       lastError.value = err.message || 'Failed to load team members'
       if (window.Sentry) window.Sentry.captureException(err)
@@ -144,83 +135,10 @@ export const useTeamStore = defineStore('team', () => {
     }
   }
 
-  // ─── Add ──────────────────────────────────────────────────────
-  async function addMember(member) {
-    lastError.value = null
-    try {
-      const authStore = useAuthStore()
-      const orgId = authStore.profile?.organization_id
-      if (!orgId) throw new Error('No organization')
-      const { data, error } = await supabase.from('organization_members').insert([{
-        organization_id: orgId,
-        user_id: member.userId,
-        role: member.role || 'member',
-        can_send_email: member.canSendEmail ?? false,
-      }]).select().single()
-      if (error) {
-        if (error.message?.includes('SEAT_LIMIT_REACHED')) {
-          const err = new Error('SEAT_LIMIT_REACHED')
-          err.code = 'SEAT_LIMIT_REACHED'
-          throw err
-        }
-        throw error
-      }
-      if (data) await loadMembers()
-      return data
-    } catch (err) {
-      lastError.value = err.message || 'Failed to add member'
-      if (err.code !== 'SEAT_LIMIT_REACHED' && window.Sentry) {
-        window.Sentry.captureException(err)
-      }
-      throw err
-    }
-  }
-
-  // ─── Update ───────────────────────────────────────────────────
-  async function updateMember(member) {
-    lastError.value = null
-    try {
-      const { error } = await supabase.from('organization_members').update({ role: member.role || 'member', can_send_email: member.canSendEmail ?? false }).eq('user_id', member.id)
-      if (error) throw error
-      const idx = members.value.findIndex(m => m.id === member.id)
-      if (idx > -1) members.value[idx] = { ...members.value[idx], ...member }
-    } catch (err) {
-      lastError.value = err.message || 'Failed to update member'
-      if (window.Sentry) window.Sentry.captureException(err)
-    }
-  }
-
-  // ─── Delete ───────────────────────────────────────────────────
-  async function deleteMember(id) {
-    lastError.value = null
-    try {
-      const { error } = await supabase.from('organization_members').delete().eq('user_id', id)
-      if (error) throw error
-      members.value = members.value.filter(m => m.id !== id)
-    } catch (err) {
-      lastError.value = err.message || 'Failed to delete member'
-      if (window.Sentry) window.Sentry.captureException(err)
-    }
-  }
-
-  // ─── Reset ────────────────────────────────────────────────────
-  async function resetAll() {
-    lastError.value = null
-    try {
-      const { error } = await supabase.from('organization_members').delete().eq('organization_id', useAuthStore().profile?.organization_id).neq('user_id', useAuthStore().user?.id)
-      if (error) throw error
-      members.value = []
-    } catch (err) {
-      lastError.value = err.message || 'Failed to reset team'
-      if (window.Sentry) window.Sentry.captureException(err)
-    }
-  }
-
   return {
     members, loading, lastError, teamHealthScore, healthyMembers, overloadedMembers,
     hasWellbeingData, hasWorkloadData,
     totalArrManaged, enrichedMembers, statsMembers, assignableMembers, memberName,
     seats, seatsCap, loadSeats, calcBurnoutRisk, loadMembers,
-    addMember, updateMember, deleteMember, resetAll,
   }
 })

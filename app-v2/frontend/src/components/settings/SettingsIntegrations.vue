@@ -210,11 +210,17 @@ async function testConnection() {
 }
 
 // ─── Toggle team permission ───────────────────────────────────
+// STAGE2-WRITES (04/10/2026): through core_v2 (core_v2_set_member_can_send_email — the owner decides).
+// D-14: the toggle changes on screen only once the write is confirmed. It used to update
+// organization_members without reading the answer, so a refused write still showed as switched.
 async function togglePermission(member) {
   const newVal = !member.canSendEmail
-  await supabase.from('organization_members')
-    .update({ can_send_email: newVal })
-    .eq('user_id', member.id)
+  const { data, error: err } = await supabase.rpc('core_v2_set_member_can_send_email', { p_user: member.id, p_on: newVal })
+  if (err || data?.ok !== true) {
+    error.value = t('integration_permission_failed')
+    setTimeout(() => { error.value = '' }, 4000)
+    return
+  }
   const idx = team.members.findIndex(m => m.id === member.id)
   if (idx > -1) team.members[idx].canSendEmail = newVal
 }

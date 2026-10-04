@@ -30,7 +30,10 @@
       <div class="settings_view_form">
         <div class="field_group">
           <label>{{ t('setting_company_name') }}</label>
-          <input v-model="localProfile.company" class="field_input" />
+          <!-- CORE-V2-ME (04/10/2026): the company name is the organization's name — only its owner
+               renames it (auth.saveProfile ignores it for anyone else), so the field says so. -->
+          <input v-model="localProfile.company" class="field_input" :disabled="!auth.isOrgOwner" />
+          <p v-if="!auth.isOrgOwner" class="field_input_hint">{{ t('setting_company_name_owner_only') }}</p>
         </div>
         <button class="button_primary" :disabled="profileSaving" @click="$emit('save')">
           {{ t('save') }}
@@ -73,8 +76,10 @@
 
 <script setup>
 import { useI18n } from 'vue-i18n'
+import { useAuthStore } from '@/stores/auth'
 
 const { t } = useI18n({ useScope: 'global' })
+const auth = useAuthStore()
 
 const props = defineProps({
   localProfile: { type: Object, required: true },

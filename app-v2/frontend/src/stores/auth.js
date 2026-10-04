@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { supabase, hasStoredSession } from '@/lib/supabase'
+import { supabase, hasStoredSession, setReadOnlyWrites } from '@/lib/supabase'
 import { isIdleExpired, touchActivity, clearActivity } from '@/lib/sessionIdle'
 import { baseLanguage, isSupportedRegion, resolveLocale, BASE_REGION } from '@/i18n/regional'
 async function loadAllStores() {
@@ -33,10 +33,17 @@ async function resetGoTrueClient() {
 try { await Promise.race([supabase.auth.signOut({ scope: 'local' }), new Promise(r => setTimeout(r, 2000))]) } catch (_) {}
 }
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
-const TRIAL_DAYS = 14
+const DAY_MS = 86400000
+// CORE-V2-ME (04/10/2026): the signed-in person is read from core_v2 in ONE call, core_v2_me()
+// (20261004100000) — profiles and organizations are on their way out (stage 2 of retiring the old core
+// tables). `profile` and `org` keep the shape the screens already read (profile.first_name,
+// profile.organization_id = the OLD organization uuid the kept tables still hold, …), built from it in
+// fetchProfile, so no screen had to change. Access is the ORGANIZATION's current subscription period
+// (decided 04/10/2026): a person's own trial no longer opens an organization that has no period.
 export const useAuthStore = defineStore('auth', () => {
 const user = ref(null)
 const session = ref(null)
+const me = ref(null)
 const profile = ref(null)
 const org = ref(null)
 const orgRole = ref(null)
@@ -45,28 +52,32 @@ const error = ref(null)
 const isAuthenticated = computed(() => !!user.value)
 const fullName = computed(() => { if (!profile.value) return ''; return (profile.value.first_name + ' ' + profile.value.last_name).trim() })
 const greeting = computed(() => { const h = new Date().getHours(); if (h < 12) return 'morning'; if (h < 18) return 'afternoon'; return 'evening' })
-const hasActiveSubscription = computed(() => { const sub = profile.value?.stripe_subscription_id; return !!sub && sub !== '' && sub !== 'none' })
-const trialStartedAt = computed(() => { const d = profile.value?.trial_started_at; return d ? new Date(d) : null })
-const trialUsed = computed(() => !!profile.value?.trial_used)
-const trialDaysLeft = computed(() => { if (!trialStartedAt.value) return 0; const elapsed = (Date.now() - trialStartedAt.value.getTime()) / (1000 * 60 * 60 * 24); return Math.max(0, TRIAL_DAYS - Math.floor(elapsed)) })
-// D1 (gating contract 8/07): beta access = state of the ORG (promo), not of the profile
-const orgTrialDaysLeft = computed(() => { const e = org.value?.trial_ends_at; if (!e) return 0; return Math.max(0, Math.ceil((new Date(e).getTime() - Date.now()) / 86400000)) })
-const isOnBetaAccess = computed(() => { if (!org.value) return false; if (org.value.stripe_subscription_id) return false; return !!org.value.trial_ends_at && orgTrialDaysLeft.value > 0 })
-// PAYWALL-MEMBER (04/08/2026): the access right is a property of the ORGANIZATION
-// (per-seat billing), not of the profile. An org that pays OR has beta access
-// covers ALL its members, including those whose personal trial is used up.
-const orgGrantsAccess = computed(() => { const s = org.value?.stripe_subscription_id; return (!!s && s !== '' && s !== 'none') || isOnBetaAccess.value })
-const isOnTrial = computed(() => { if (hasActiveSubscription.value) return false; if (isOnBetaAccess.value) return false; if (org.value?.stripe_subscription_id) return false; if (!trialStartedAt.value) return false; if (trialUsed.value) return false; return trialDaysLeft.value > 0 })
-// PAYWALL-MEMBER: the ORG guard was missing here — isOnTrial (line above) already had it,
-// trialExpired did not, hence a member of a subscribed org being sent back to the paywall.
-// hasActiveSubscription is deliberately NOT touched: SettingsBilling/PaymentSuccessView
-// use it to display the PERSONAL subscription status (a member does not manage their
-// org's subscription) — widening it would surface a misleading management block.
-const trialExpired = computed(() => { if (hasActiveSubscription.value) return false; if (orgGrantsAccess.value) return false; if (isOnTrial.value) return false; if (!trialStartedAt.value && !trialUsed.value) return false; if (trialStartedAt.value && trialDaysLeft.value === 0) return true; if (trialUsed.value) return true; return false })
-const isAlphaTester = computed(() => !!profile.value?.is_alpha_tester)
-const needsPayment = computed(() => trialExpired.value && !hasActiveSubscription.value && !isAlphaTester.value)
-// D1: single source = organizations.plan when the org exists; profile string = fallback for account without an org
-const currentPlan = computed(() => { if (org.value?.plan) return org.value.plan; const sub = profile.value?.stripe_subscription_id; if (!sub || sub === '' || sub === 'none') { if ((isOnTrial.value || isAlphaTester.value) && profile.value?.plan) return profile.value.plan; return null }; if (sub.startsWith('stripe_') || sub.startsWith('plan_')) return sub.split('_').pop(); return profile.value?.plan || 'active' })
+// The organization's current period (TRIAL / PROMO / PAID / CONTRACT), or null: no access.
+const period = computed(() => me.value?.subscription || null)
+// PAYWALL-MEMBER: the PERSONAL subscription status (SettingsBilling, PaymentSuccessView) — the billing
+// owner of a paid period. A member does not manage the organization's subscription; widening this
+// would show them a management block that is not theirs.
+const hasActiveSubscription = computed(() => period.value?.kind === 'PAID' && me.value?.role === 'owner')
+const trialStartedAt = computed(() => { const d = me.value?.trial?.started_at; return d ? new Date(d) : null })
+// The person's own trial is over (14 days elapsed, or cut by a checkout): one trial per person.
+const trialUsed = computed(() => { const e = me.value?.trial?.ends_at; return !!e && new Date(e).getTime() <= Date.now() })
+const trialDaysLeft = computed(() => { if (period.value?.kind !== 'TRIAL' || !period.value.period_end) return 0; return Math.max(0, Math.ceil((new Date(period.value.period_end).getTime() - Date.now()) / DAY_MS)) })
+// D1: promo / beta access = a PROMO period of the ORGANIZATION that has an end. An alpha tester's has
+// none (ALPHA-FOREVER): no countdown banner for it.
+const orgTrialDaysLeft = computed(() => { if (period.value?.kind !== 'PROMO' || !period.value.period_end) return 0; return Math.max(0, Math.ceil((new Date(period.value.period_end).getTime() - Date.now()) / DAY_MS)) })
+const isOnBetaAccess = computed(() => period.value?.kind === 'PROMO' && !!period.value.period_end && orgTrialDaysLeft.value > 0)
+// PAYWALL-MEMBER (04/08/2026): access is the ORGANIZATION's — any current period covers every member.
+const orgGrantsAccess = computed(() => !!period.value)
+const isOnTrial = computed(() => period.value?.kind === 'TRIAL')
+const trialExpired = computed(() => !!me.value && !orgGrantsAccess.value && trialUsed.value)
+const isAlphaTester = computed(() => period.value?.kind === 'PROMO' && period.value.period_end == null)
+// No current period = the paywall. Not before core_v2_me has answered (a null `me` is "still loading",
+// and sending everyone to the paywall on the first render would be a false verdict), nor for an
+// account in no organization at all.
+const needsPayment = computed(() => !!me.value?.organization && !orgGrantsAccess.value)
+// JOB-STATUS-READ (04/10/2026): an INACTIVE or ON_LEAVE worker sees the product read-only.
+const readOnly = computed(() => me.value?.read_only === true)
+const currentPlan = computed(() => period.value?.type ? String(period.value.type).toLowerCase() : null)
 // D6 (A-02/E-03): plan label for the UI — never empty
 const currentPlanLabel = computed(() => { const p = currentPlan.value; if (!p) return 'Starter'; return p.charAt(0).toUpperCase() + p.slice(1) })
 // V1 gating: effective plan is never null → starter (the most restrictive). Avoids getMaxClients(null)=0, which would block any creation.
@@ -86,17 +97,20 @@ const userRegion = computed(() => {
 // The locale id the interface actually runs in: language + country resolved once (App.vue applies
 // it, formatters.localeTag() formats with it).
 const userAppLocale = computed(() => resolveLocale(userLocale.value, userRegion.value))
-// SEATS-MISMATCH (25/08): paid seats = organizations.seats_paid (Stripe quantity); the profile
-// is only a fallback for accounts without an org — read from a Member's profile it returned 1.
-const seatsPaid = computed(() => org.value?.seats_paid ?? profile.value?.seats_paid ?? 1)
+// SEATS-MISMATCH (25/08): paid seats = the current period's (the Stripe quantity on a PAID one).
+// NULL when the period carries none — the tier's ceiling applies (R21: no invented 1).
+const seatsPaid = computed(() => period.value?.seats ?? null)
 const onboardingCompleted = computed(() => profile.value?.onboarding_completed === true)
 const isOrgOwner = computed(() => orgRole.value === 'owner')
+// The company is the organization (profiles.company_name -> the organization's name, decided 27/09/2026);
+// its legal country is company.country_code, NULL until someone sets it — 'FR' is the quote module's
+// default, as it was for profiles.country.
 const company = computed(() => {
   if (!profile.value) return null
   return {
-    name: profile.value.company_name || '',
+    name: org.value?.name || '',
     planLabel: currentPlan.value ? currentPlan.value.charAt(0).toUpperCase() + currentPlan.value.slice(1) : 'Starter',
-    country: profile.value.country || 'FR',
+    country: org.value?.country_code || 'FR',
     }
 })
 const displayName = computed(() => fullName.value)
@@ -108,13 +122,18 @@ function clearAllStores() {
 const keys = ['scalyo_clients','scalyo_tasks','scalyo_team','scalyo_projects','scalyo_kpis','scalyo_playbooks','scalyo_snapshots','scalyo_okrs','scalyo_roadmap','scalyo_quotes','scalyo_dashboard_kpis']
 keys.forEach(k => localStorage.removeItem(k))
 }
-async function startTrial(userId) {
+// STAGE2-WRITES (04/10/2026): the trial is the organization's TRIAL period, opened by core_v2_start_trial
+// (20261004120000) — by its OWNER, once per person, and only when the organization has no period: an
+// alpha tester (PROMO) and a member of a paying organization need none (D3), a second trial is never
+// given, and a member's own trial no longer opens somebody else's company (decided 04/10/2026).
+async function ensureTrial(userId) {
+if (!me.value?.organization || period.value || me.value?.trial || readOnly.value || me.value?.role !== 'owner') return
 try {
-const now = new Date().toISOString()
-const { error: err } = await supabase.from('profiles').update({ trial_started_at: now, trial_used: false }).eq('id', userId)
-if (err) { console.error('startTrial failed:', err.message); return }
-profile.value = { ...profile.value, trial_started_at: now, trial_used: false }
-} catch (e) { console.error('startTrial error:', e.message || e) }
+const { data, error: err } = await supabase.rpc('core_v2_start_trial')
+if (err) { console.error('ensureTrial failed:', err.message); return }
+if (data?.ok !== true) { console.warn('ensureTrial refused:', data?.code); return }
+await fetchProfile(userId)
+} catch (e) { console.error('ensureTrial error:', e.message || e) }
 }
 async function init() {
 loading.value = true
@@ -130,7 +149,7 @@ console.info('[idle] session expired (>5h without interaction) — signing out')
 clearActivity()
 clearSupabaseStorage()
 await resetGoTrueClient()
-user.value = null; profile.value = null; org.value = null; session.value = null
+user.value = null; me.value = null; profile.value = null; org.value = null; session.value = null; setReadOnlyWrites(false)
 } else {
 const sessionResult = await Promise.race([
 supabase.auth.getSession(),
@@ -143,6 +162,8 @@ if (sess && sess.user) {
 user.value = sess.user
 session.value = sess
 await fetchProfile(sess.user.id)
+// A session opened by the e-mail confirmation link never goes through login(): its trial starts here.
+await ensureTrial(sess.user.id)
 // Lot 6 / INV-CONFIRM-TOKEN: a session can open WITHOUT going through login() —
 // that is the case for Supabase's "Confirm email address" link, which logs the user
 // in directly. acceptPendingInvite was only wired to login() L230: an
@@ -175,41 +196,36 @@ user.value = sess.user
 session.value = sess
 setTimeout(() => { fetchProfile(sess.user.id).catch((e) => console.error('Auth state change error:', e?.message || e)) }, 0)
 }
-else { user.value = null; profile.value = null; org.value = null; session.value = null }
+else { user.value = null; me.value = null; profile.value = null; org.value = null; session.value = null; setReadOnlyWrites(false) }
 })
 }
-async function fetchOrgRole() {
-    try {
-      orgRole.value = profile.value?.org_role || 'member'
-    } catch (e) { console.error('fetchOrgRole:', e) }
-  }
-// D1: read the org through the org_view policy (member SELECT, verified in SQL 8/07) — failure = profile fallback, zero crash (contract §5)
-async function fetchOrg() {
-const orgId = profile.value?.organization_id
-if (!orgId) { org.value = null; return }
-try {
-// FOUNDING-REMOVED (03/10/2026): is_founding is no longer read — the founding programme is gone.
-const { data, error: err } = await supabase.from('organizations').select('id, name, plan, seats_paid, trial_ends_at, max_clients, stripe_subscription_id').eq('id', orgId).single()
-if (err) { console.error('fetchOrg failed:', err.message); return }
-if (data) org.value = data
-} catch (e) { console.error('fetchOrg error:', e.message || e) }
-}
+// CORE-V2-ME: one read. `profile` / `org` are the shapes the screens read; `me` is the source.
 async function fetchProfile(userId) {
 try {
-const { data, error: err } = await supabase.from('profiles').select('*').eq('id', userId).single()
-if (err) { console.error('fetchProfile failed:', err.message); return }
-if (data) {
-profile.value = data
-      orgRole.value = data?.org_role || 'member'
-await fetchOrg()
-if (data.trial_started_at && !data.trial_used) {
-const elapsed = (Date.now() - new Date(data.trial_started_at).getTime()) / (1000 * 60 * 60 * 24)
-if (elapsed >= TRIAL_DAYS) {
-await supabase.from('profiles').update({ trial_used: true }).eq('id', userId)
-profile.value = { ...profile.value, trial_used: true }
+const { data, error: err } = await supabase.rpc('core_v2_me')
+if (err) { console.error('fetchProfile (core_v2_me) failed:', err.message); return }
+if (!data) return
+me.value = data
+const o = data.organization || null
+const paid = data.subscription?.kind === 'PAID'
+org.value = o ? { id: o.id, core_id: o.core_id, name: o.name || '', country_code: o.country_code || null, currency_code: o.currency_code || null } : null
+profile.value = {
+  id: data.user_id || userId,
+  first_name: data.first_name || '',
+  last_name: data.last_name || '',
+  email: data.email || null,
+  locale: data.locale || null,
+  region: data.region || null,
+  organization_id: o?.id || null,
+  org_role: data.role || null,
+  job_status: data.job_status || null,
+  onboarding_completed: data.tour_completed === true,
+  company_name: o?.name || '',
+  country: o?.country_code || null,
+  subscription_end_date: paid ? data.subscription.period_end : null,
 }
-}
-}
+orgRole.value = data.role || 'member'
+setReadOnlyWrites(data.read_only === true)
 } catch (e) { console.error('fetchProfile error:', e.message || e) }
 }
 const PENDING_INVITE_KEY = 'scalyo_pending_invite'
@@ -272,7 +288,7 @@ user.value = data.user
 session.value = data.session || null
 await fetchProfile(data.user.id)
 await acceptPendingInvite(data.session?.access_token)
-if (profile.value && !profile.value.trial_started_at && !profile.value.trial_used && !profile.value.is_alpha_tester) { await startTrial(data.user.id) } // D3: never a profile trial for an alpha (the org carries the promo access)
+await ensureTrial(data.user.id)
 await loadAllStores()
 return { success: true }
 } catch (e) {
@@ -299,12 +315,24 @@ return { success: true, needsConfirmation: !data.session, user: data.user }
 } catch (e) { error.value = typeof e === 'object' && e.message ? e.message : String(e); return { success: false, error: error.value } }
 finally { loading.value = false }
 }
+// STAGE2-WRITES (04/10/2026): language and region are ONE core_v2 value ('fr-CA'), written together by
+// core_v2_set_my_language. A region the new language has no variant for is dropped, not kept to be
+// ignored at every read.
+async function saveLanguage(locale, region) {
+const { data, error: err } = await supabase.rpc('core_v2_set_my_language', { p_locale: locale, p_region: region || null })
+if (err) return { error: err.message }
+if (data?.ok !== true) return { error: data?.code || 'save_failed' }
+const next = { locale: data.locale, region: data.region || null }
+if (profile.value) profile.value = { ...profile.value, ...next }
+if (me.value) me.value = { ...me.value, ...next }
+return { success: true }
+}
 async function saveLocale(locale) {
 if (!user.value) return { error: 'no_user' }
 try {
-const { error: err } = await supabase.from('profiles').update({ locale }).eq('id', user.value.id)
-if (err) { console.error('saveLocale — update failed:', err.message); return { error: err.message } }
-if (profile.value) profile.value = { ...profile.value, locale }
+const keep = isSupportedRegion(locale, userRegion.value) ? userRegion.value : null
+const res = await saveLanguage(locale, keep)
+if (res.error) { console.error('saveLocale — update failed:', res.error); return res }
 // Public-page consistency (landing/login): same language as the app
 try { localStorage.setItem('scalyo_locale', locale) } catch (_) {}
 return { success: true }
@@ -320,9 +348,8 @@ if (!user.value) return { error: 'no_user' }
 const next = String(region || '').trim().toUpperCase()
 if (!isSupportedRegion(userLocale.value, next)) return { error: 'unsupported_region' }
 try {
-const { error: err } = await supabase.from('profiles').update({ region: next }).eq('id', user.value.id)
-if (err) { console.error('saveRegion — update failed:', err.message); return { error: err.message } }
-if (profile.value) profile.value = { ...profile.value, region: next }
+const res = await saveLanguage(userLocale.value, next)
+if (res.error) { console.error('saveRegion — update failed:', res.error); return res }
 // Read back before the profile loads (i18n/index.js boot) — same role as scalyo_locale, and a
 // SEPARATE key on purpose: scalyo_locale must keep holding the bare language for the public
 // pages that index a { fr, en, ko } table with it.
@@ -332,17 +359,28 @@ return { success: true }
 }
 
 // E-04: real profile save — same return contract as saveLocale ({success}/{error})
+// CORE-V2-ME: the company name is the ORGANIZATION's name (decided 27/09/2026), so only its owner
+// renames it — the same rule as OnboardingView (G9-5); for anyone else the field is read-only and a value
+// passed here is ignored. STAGE2-WRITES (04/10/2026): both go through core_v2 (core_v2_set_my_name,
+// core_v2_rename_organization), never straight to profiles / organizations.
 async function saveProfile(fields) {
 if (!user.value) return { error: 'no_user' }
 const payload = {
 first_name: (fields.first_name || '').trim(),
 last_name: (fields.last_name || '').trim(),
-company_name: (fields.company_name || '').trim()
 }
+const companyName = (fields.company_name || '').trim()
+const renameOrg = isOrgOwner.value && !!org.value?.id && companyName !== (org.value?.name || '')
 try {
-const { error: err } = await supabase.from('profiles').update(payload).eq('id', user.value.id)
-if (err) { console.error('saveProfile — update failed:', err.message); return { error: err.message } }
-if (profile.value) profile.value = { ...profile.value, ...payload }
+const { data, error: err } = await supabase.rpc('core_v2_set_my_name', { p_first: payload.first_name, p_last: payload.last_name })
+if (err || data?.ok !== true) { const e = err?.message || data?.code || 'save_failed'; console.error('saveProfile — update failed:', e); return { error: e } }
+if (renameOrg) {
+const { data: od, error: orgErr } = await supabase.rpc('core_v2_rename_organization', { p_name: companyName })
+if (orgErr || od?.ok !== true) { const e = orgErr?.message || od?.code || 'save_failed'; console.error('saveProfile — organization rename failed:', e); return { error: e } }
+org.value = { ...org.value, name: companyName }
+}
+if (profile.value) profile.value = { ...profile.value, ...payload, company_name: org.value?.name || '' }
+if (me.value) me.value = { ...me.value, ...payload }
 return { success: true }
 } catch (e) { console.error('saveProfile — unexpected failure:', e.message || e); return { error: e.message || String(e) } }
 }
@@ -372,19 +410,19 @@ async function logout() {
 // IDLE-5H: the stamp goes with the session. Left behind, the next account to log in on
 // this browser starts its 5 h already partly spent.
 try { clearActivity(); clearAllStores(); await clearAllStoreData(); await supabase.auth.signOut() } catch (e) {}
-finally { user.value = null; profile.value = null; org.value = null; session.value = null; loading.value = false; error.value = null }
+finally { user.value = null; me.value = null; profile.value = null; org.value = null; session.value = null; setReadOnlyWrites(false); loading.value = false; error.value = null }
 }
 async function resetPassword(email) {
 try { const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}/reset-password-confirm` }); if (error) return { error }; return { success: true } } catch (error) { return { error } }
 }
 return {
-user, profile, org, loading, error,
+user, me, profile, org, loading, error,
 isAuthenticated, fullName, greeting,
-hasActiveSubscription, isOnTrial, trialExpired, trialDaysLeft, trialUsed, needsPayment, isAlphaTester,
+hasActiveSubscription, isOnTrial, trialExpired, trialDaysLeft, trialUsed, needsPayment, isAlphaTester, readOnly, period,
 isOnBetaAccess, orgTrialDaysLeft,
 userLocale, userRegion, userAppLocale, currentPlan, currentPlanLabel, effectivePlan, seatsPaid, onboardingCompleted, orgRole, isOrgOwner,
 session, company, displayName, roleLabel,
-init, login, register, logout, clearAllStores, saveLocale, saveRegion, saveProfile, changePassword, fetchProfile, fetchOrg, resetPassword,
+init, login, register, logout, clearAllStores, saveLocale, saveRegion, saveProfile, changePassword, fetchProfile, resetPassword,
 pendingInviteResult, clearPendingInviteResult, acceptPendingInvite
 }
 })

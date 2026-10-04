@@ -37,6 +37,46 @@ supabase.auth.onAuthStateChange((event, session) => {
   console.info('[auth]', new Date().toISOString(), event, 'token_exp=' + exp)
 })
 
+// ── JOB-STATUS-READ (04/10/2026): the read-only account ────────────────────
+// An INACTIVE or ON_LEAVE worker sees the product but changes nothing (decided 04/10/2026). Every
+// write leaves the browser through this client, so it is refused HERE, once, rather than in each of
+// the ~25 stores that write: an insert / update / upsert / delete, or an RPC that is not on the
+// read list below, answers { data: null, error: { code: 'read_only' } } without a request — and the
+// callers already treat an error as a failure (D-14), so nothing shows a false success. The screen
+// greys itself and disables its inputs (AppLayout); this is what holds when a button is still
+// clickable. The database refuses on its own too: no core_v2 write accepts anything but ACTIVE.
+// auth.fetchProfile sets the flag from core_v2_me().read_only.
+let readOnlyWrites = false
+export function setReadOnlyWrites(on) { readOnlyWrites = !!on }
+export function isReadOnlyWrites() { return readOnlyWrites }
+// RPCs that only read: everything else is a write for this purpose.
+const READ_RPCS = new Set([
+  'core_v2_me', 'core_v2_my_team', 'core_v2_my_profile', 'core_v2_my_subscription',
+  'get_org_member_names', 'get_org_email_status', 'oxygen_team_aggregate',
+])
+const READ_ONLY_ERROR = { message: 'READ_ONLY', code: 'read_only' }
+// A refused write must still accept the rest of its chain (.eq().select().single()) and be awaited.
+function refusedWrite() {
+  const result = { data: null, error: READ_ONLY_ERROR, count: null, status: 403, statusText: 'read_only' }
+  const chain = new Proxy(function () {}, {
+    get(_, prop) {
+      if (prop === 'then') return (resolve) => resolve(result)
+      return () => chain
+    },
+    apply() { return chain },
+  })
+  return chain
+}
+const rawFrom = supabase.from.bind(supabase)
+supabase.from = (table) => {
+  const builder = rawFrom(table)
+  if (!readOnlyWrites) return builder
+  for (const m of ['insert', 'update', 'upsert', 'delete']) builder[m] = () => refusedWrite()
+  return builder
+}
+const rawRpc = supabase.rpc.bind(supabase)
+supabase.rpc = (fn, ...rest) => (readOnlyWrites && !READ_RPCS.has(fn)) ? refusedWrite() : rawRpc(fn, ...rest)
+
 // IDLE-5H (07/09/2026): "is there a persisted session at all?", asked without touching
 // GoTrue. getSession() would answer it too, but it also REFRESHES the token as a side
 // effect — useless before we have decided whether to keep the session, and the reason the

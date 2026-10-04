@@ -13,9 +13,9 @@ const SRC = new URL('../src/stores/auth.js', import.meta.url)
 const src = readFileSync(SRC, 'utf8')
 
 const NAMES = [
-  'hasActiveSubscription', 'trialStartedAt', 'trialUsed', 'trialDaysLeft',
+  'period', 'hasActiveSubscription', 'trialStartedAt', 'trialUsed', 'trialDaysLeft',
   'orgTrialDaysLeft', 'isOnBetaAccess', 'orgGrantsAccess', 'isOnTrial',
-  'trialExpired', 'isAlphaTester', 'needsPayment',
+  'trialExpired', 'isAlphaTester', 'needsPayment', 'readOnly',
 ]
 
 // Extraction: one declaration per line in this file (the store's style).
@@ -27,63 +27,73 @@ for (const name of NAMES) {
   extracted.push(l)
 }
 
-const TRIAL_DAYS = 14
-const DAY = 86400000
+const DAY_MS = 86400000
 
-function build(profileVal, orgVal) {
-  const profile = ref(profileVal)
-  const org = ref(orgVal)
-  const ctx = { ref, computed, profile, org, TRIAL_DAYS }
+// CORE-V2-ME (04/10/2026): the store reads core_v2_me(); a case is the `me` it would receive —
+// the organization's current period (subscription), the person's own trial, their role and status.
+function build(meVal) {
+  const me = ref(meVal)
+  const ctx = { ref, computed, me, DAY_MS }
   const body = extracted.join('\n') + '\nreturn { ' + NAMES.join(', ') + ' }'
   const f = new Function(...Object.keys(ctx), body)
   return f(...Object.values(ctx))
 }
 
-const longAgo = new Date(Date.now() - 30 * DAY).toISOString()
-const recent = new Date(Date.now() - 2 * DAY).toISOString()
-const inOneMonth = new Date(Date.now() + 30 * DAY).toISOString()
+const iso = (days) => new Date(Date.now() + days * DAY_MS).toISOString()
+const ORG = { id: 'org-uuid', core_id: 1, name: 'Acme' }
+const trialOver = { started_at: iso(-30), ends_at: iso(-16) }
+const trialRunning = { started_at: iso(-2), ends_at: iso(12) }
+const period = (kind, type, endInDays) => ({ kind, type, seats: null, issue_date: iso(-1), period_end: endInDays == null ? null : iso(endInDays) })
 
 const CASES = [
-  { name: '1. Account WITHOUT an org, trial running',
-    profile: { trial_started_at: recent, trial_used: false }, org: null,
-    expected: { needsPayment: false, isOnTrial: true } },
+  { name: '1. Owner, the organization on its trial',
+    me: { organization: ORG, role: 'owner', job_status: 'ACTIVE', trial: trialRunning, subscription: period('TRIAL', 'STARTER', 12) },
+    expected: { needsPayment: false, isOnTrial: true, trialDaysLeft: 12 } },
 
-  { name: '2. Account WITHOUT an org, trial over, no subscription',
-    profile: { trial_started_at: longAgo, trial_used: true }, org: null,
+  { name: '2. Owner, trial over, no period',
+    me: { organization: ORG, role: 'owner', job_status: 'ACTIVE', trial: trialOver, subscription: null },
     expected: { needsPayment: true, trialExpired: true } },
 
-  { name: '3. Owner of a subscribed org (subscription on the profile too)',
-    profile: { trial_started_at: longAgo, trial_used: true, stripe_subscription_id: 'sub_owner' },
-    org: { stripe_subscription_id: 'sub_org', plan: 'elite' },
+  { name: '3. Owner of a paying organization',
+    me: { organization: ORG, role: 'owner', job_status: 'ACTIVE', trial: trialOver, subscription: period('PAID', 'ELITE', 20) },
     expected: { needsPayment: false, hasActiveSubscription: true } },
 
-  { name: '4. MEMBER of a subscribed org, personal trial used up  <-- THE BUG',
-    profile: { trial_started_at: longAgo, trial_used: true }, // no subscription on the profile
-    org: { stripe_subscription_id: 'sub_org', plan: 'elite' },
+  { name: '4. MEMBER of a paying organization, own trial used up  <-- THE BUG',
+    me: { organization: ORG, role: 'member', job_status: 'ACTIVE', trial: trialOver, subscription: period('PAID', 'ELITE', 20) },
     expected: { needsPayment: false, trialExpired: false, hasActiveSubscription: false } },
 
-  { name: '5. Member of a NON-paying org, trial over',
-    profile: { trial_started_at: longAgo, trial_used: true }, org: { plan: 'starter' },
+  { name: '5. Member of a NON-paying organization, trial over',
+    me: { organization: ORG, role: 'member', job_status: 'ACTIVE', trial: trialOver, subscription: null },
     expected: { needsPayment: true, trialExpired: true } },
 
-  { name: '6. Member of an org on BETA ACCESS, personal trial used up',
-    profile: { trial_started_at: longAgo, trial_used: true },
-    org: { trial_ends_at: inOneMonth, plan: 'growth' },
+  { name: '6. Member of an organization on BETA ACCESS (a promo window), own trial used up',
+    me: { organization: ORG, role: 'member', job_status: 'ACTIVE', trial: trialOver, subscription: period('PROMO', 'GROWTH', 30) },
     expected: { needsPayment: false, isOnBetaAccess: true } },
 
-  { name: '7. Member of an org whose beta access has EXPIRED',
-    profile: { trial_started_at: longAgo, trial_used: true },
-    org: { trial_ends_at: longAgo, plan: 'growth' },
+  { name: '7. Member of an organization whose beta access has EXPIRED (no period left)',
+    me: { organization: ORG, role: 'member', job_status: 'ACTIVE', trial: trialOver, subscription: null },
     expected: { needsPayment: true, isOnBetaAccess: false } },
 
-  { name: '8. Alpha tester, trial over, no org',
-    profile: { trial_started_at: longAgo, trial_used: true, is_alpha_tester: true }, org: null,
-    expected: { needsPayment: false } },
+  { name: '8. Alpha tester: a promo period with no end',
+    me: { organization: ORG, role: 'owner', job_status: 'ACTIVE', trial: null, subscription: period('PROMO', 'ELITE', null) },
+    expected: { needsPayment: false, isAlphaTester: true, isOnBetaAccess: false } },
+
+  { name: '9. Own trial running, but the organization has no period (decided 04/10/2026: the org grants access)',
+    me: { organization: ORG, role: 'member', job_status: 'ACTIVE', trial: trialRunning, subscription: null },
+    expected: { needsPayment: true, orgGrantsAccess: false } },
+
+  { name: '10. core_v2_me not answered yet: no verdict',
+    me: null,
+    expected: { needsPayment: false, trialExpired: false } },
+
+  { name: '11. INACTIVE worker of a paying organization: read-only, not the paywall',
+    me: { organization: ORG, role: 'member', job_status: 'INACTIVE', read_only: true, trial: null, subscription: period('PAID', 'ELITE', 20) },
+    expected: { needsPayment: false, readOnly: true } },
 ]
 
 let failed = 0
 for (const c of CASES) {
-  const s = build(c.profile, c.org)
+  const s = build(c.me)
   const actual = {}
   for (const k of Object.keys(c.expected)) actual[k] = s[k].value
   const ok = Object.keys(c.expected).every(k => actual[k] === c.expected[k])

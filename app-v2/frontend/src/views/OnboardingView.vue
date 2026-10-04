@@ -94,13 +94,12 @@ async function nextStep() {
   saving.value = true
   try {
     if (step.value === 1 && companyName.value.trim()) {
-      const { error: companyErr } = await supabase.from('profiles').update({ company_name: companyName.value.trim() }).eq('id', authStore.user.id)
-        if (companyErr) throw companyErr
-      // G9-5: the entered name is also the organization's name (visible on /join, Team, invoices)
-      const orgId = authStore.profile?.organization_id
-      if (orgId && isOwner) {
-        const { error: orgErr } = await supabase.from('organizations').update({ name: companyName.value.trim() }).eq('id', orgId)
-        if (orgErr) console.error('Onboarding org name error:', orgErr)
+      // G9-5: the entered name is the organization's name (visible on /join, Team, invoices).
+      // STAGE2-WRITES (04/10/2026): renamed through core_v2 by its owner; the company name is no longer a
+      // separate profile field (profiles.company_name, which nothing reads any more).
+      if (authStore.profile?.organization_id && isOwner) {
+        const { data, error: orgErr } = await supabase.rpc('core_v2_rename_organization', { p_name: companyName.value.trim() })
+        if (orgErr || data?.ok !== true) throw orgErr || new Error(data?.code || 'rename_failed')
       }
     } else if (step.value === 2 && clientName.value.trim()) {
       const result = await clientStore.addClient({ name: clientName.value.trim(), health: clientHealth.value })
@@ -139,8 +138,9 @@ async function finishOnboarding() {
   saving.value = true
   errorMsg.value = ''
   try {
-    const { error: onbErr } = await supabase.from('profiles').update({ onboarding_completed: true }).eq('id', authStore.user.id)
-      if (onbErr) throw onbErr
+    // STAGE2-WRITES (04/10/2026): the tour flag lives on core_v2 member (CORE-V2-TOUR).
+    const { data: tour, error: onbErr } = await supabase.rpc('core_v2_complete_tour')
+    if (onbErr || tour?.ok !== true) throw onbErr || new Error(tour?.code || 'tour_failed')
     // G9-3: fetchProfile requires the uid (the only caller that did not pass it → stale profile → onboarding loop)
     await authStore.fetchProfile(authStore.user.id)
     router.push({ name: 'dashboard' })
