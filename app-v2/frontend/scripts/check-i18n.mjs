@@ -28,4 +28,9 @@ if (extraKO.length) { console.warn(`⚠️ Extra in KO (${extraKO.length}):`, ex
 
 if (!missingEN.length && !missingKO.length && !extraEN.length && !extraKO.length) {
   console.log('✅ 100% i18n parity — all keys match across FR/EN/KO')
+} else {
+  // I18N-GATE (03/10/2026): a gap now fails the run. The script used to exit 0 while printing
+  // ❌, so a CI step built on it could never go red - and wellbeing_fri, the one "expected" gap
+  // that made a strict exit impossible, is gone (I18N-WEEKDAY, PlanningView).
+  process.exitCode = 1
 }

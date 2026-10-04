@@ -159,7 +159,10 @@
     <SlideOver :open="settingsOpen" :title="t('planning_settings')" @close="settingsOpen = false">
       <div class="slideover_form">
         <div class="field_group"><label>{{ t('planning_settings_first_day') }}</label>
-          <select v-model="planningSettings.firstDay" class="field_input"><option :value="1">{{ t('wellbeing_mon') }}</option><option :value="0">{{ t('wellbeing_fri') === 'Ven' ? 'Dimanche' : 'Sunday' }}</option></select>
+          <!-- I18N-WEEKDAY (03/10/2026): "Monday" borrowed wellbeing_mon, whose Korean value was 모니터링
+               ("monitoring"), and "Sunday" was hard-coded - 'Dimanche' if wellbeing_fri read 'Ven',
+               'Sunday' otherwise, so a Korean user read English. Two keys of its own now. -->
+          <select v-model="planningSettings.firstDay" class="field_input"><option :value="1">{{ t('planning_first_day_monday') }}</option><option :value="0">{{ t('planning_first_day_sunday') }}</option></select>
         </div>
         <div class="field_row">
           <div class="field_group"><label>{{ t('planning_settings_work_hours') }} ({{ t('planning_event_start') }})</label><input v-model="planningSettings.workStart" type="time" class="field_input" /></div>
