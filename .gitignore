@@ -11,6 +11,8 @@
 *.key
 *.p12
 .sentryclirc
+report/
+scalyo_screens/
 
 # ── Dependencies ──────────────────────────────────────────────────────
 node_modules/
