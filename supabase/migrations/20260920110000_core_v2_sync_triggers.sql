@@ -293,10 +293,15 @@ begin
   -- (and, while the old front end is live, mirrored from user_profiles) — 20260924100000. The
   -- 20/09 draft re-read them from user_profiles on every profile or membership write, which would
   -- overwrite an answer given through the new RPC with the stale copy in the old table.
+  -- JOB-STATUS (03/10/2026): only an ENDED row (a removal, then a re-join) comes back ACTIVE.
+  -- INACTIVE and ON_LEAVE are a manager's decision (core_v2_set_job_status, 20261003120000) that the
+  -- old tables do not hold: re-activating on every profile write would have undone it the next time
+  -- the person changed their name — and handed back a seat the ceiling never checked.
   insert into public.organization_worker (organization_id, personage_id, job_status, joined_at)
   values (v_core_org, v_pid, 'ACTIVE', v_joined)
   on conflict (organization_id, personage_id) do update
-    set job_status = 'ACTIVE',
+    set job_status = case when public.organization_worker.job_status = 'ENDED' then 'ACTIVE'::public.job_status
+                          else public.organization_worker.job_status end,
         joined_at = coalesce(excluded.joined_at, public.organization_worker.joined_at);
 
   -- Billing owner: organizations.owner_id wins; a role of 'owner' fills the gap only when no

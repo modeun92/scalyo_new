@@ -16,10 +16,11 @@
           <select v-model="inviteRole" class="field_input field_input_select">
             <option v-for="r in availableRoles" :key="r" :value="r">{{ t('role_' + r) }}</option>
           </select>
-          <button class="button_primary" :disabled="sending || !inviteEmail.trim()" @click="sendInvite">
+          <button class="button_primary" :disabled="sending || !inviteEmail.trim() || inviteBlocked" @click="sendInvite">
             <span v-if="sending" class="spinner_small" /><span v-else>{{ t('team_invite_send') }}</span>
           </button>
         </div>
+        <div v-if="inviteBlocked" class="invite_message warn">{{ t('team_invite_full', { used: seats.used, cap: inviteCap }) }}</div>
         <div v-if="inviteMsg" class="invite_message" :class="inviteMsgType">{{ inviteMsg }}</div>
       </div>
 
@@ -75,7 +76,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useTeamStore } from '@/stores/team'
 import { supabase } from '@/lib/supabase'
 import { fmtDate } from '@/lib/formatters'
-import { getAvailableRolesForInvite, canPerform } from '@/config/plans.config.js' // isRoleAbove: dead import removed
+import { getAvailableRolesForInvite, canPerform, getMaxSeats } from '@/config/plans.config.js' // isRoleAbove: dead import removed
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 
 const { t } = useI18n({ useScope: 'global' })
@@ -104,6 +105,14 @@ const memberNames = ref({})
 const canInvite = computed(() => canPerform(myRole.value, 'canInvite'))
 const canRevokeInvitations = computed(() => canPerform(myRole.value, 'canRevoke'))
 const availableRoles = computed(() => org.value ? getAvailableRolesForInvite(org.value.plan) : ['member'])
+// SEAT-CEILING (03/10/2026): at the plan's ceiling (starter 3, growth 7, elite 24) the form says so
+// and does not send — a viewer takes no seat, so only the seat-taking roles are held. The server
+// refuses anyway (403 seat_limit_reached); this only spares the round trip and says why up front.
+// The ceiling comes from the plan /api/members just returned — the plan the server checks — so the
+// form is never held by an auth store that has not loaded its organization yet.
+const inviteCap = computed(() => org.value ? getMaxSeats(org.value.plan) : null)
+const inviteBlocked = computed(() => inviteCap.value !== null && inviteRole.value !== 'viewer'
+  && seats.value.used >= inviteCap.value)
 
 onMounted(() => { loadTeam(); loadMemberNames() })
 
@@ -163,7 +172,13 @@ async function sendInvite() {
       inviteMsg.value = data.email_sent ? t('team_invite_sent_email') : t('team_invite_no_email')
       inviteMsgType.value = data.email_sent ? 'success' : 'warn'
       inviteEmail.value = ''; await loadTeam()
-    } else { inviteMsg.value = data.error || t('team_invite_error'); inviteMsgType.value = 'error' }
+    } else {
+      // A typed code is translated here (rule 4); the other refusals still carry a sentence.
+      inviteMsg.value = data.code === 'seat_limit_reached'
+        ? t('team_err_seat_limit_reached', { cap: data.seats_cap ?? inviteCap.value })
+        : (data.error || t('team_invite_error'))
+      inviteMsgType.value = 'error'
+    }
   } catch { inviteMsg.value = t('team_invite_error'); inviteMsgType.value = 'error' }
   finally { sending.value = false }
 }
