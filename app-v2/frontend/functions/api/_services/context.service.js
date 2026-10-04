@@ -22,7 +22,6 @@ const MAX_CITED = 3
 
 // GDPR minimization (D3): explicit columns — NO select=*.
 const CLIENT_COLUMNS = 'id,name,arr,mrr,health,status,churn_risk,renewal_date,lifecycle,csm,csm_id'
-const TASK_COLUMNS = 'id,title,due_date,status'
 
 export function getUserIdFromJwt(token) {
   try {
@@ -90,7 +89,10 @@ export async function buildRichContext(env, userId, userJwt, message = '') {
 
   const [clients, tasks, profile] = await Promise.all([
     restGet(env, 'clients?select=' + CLIENT_COLUMNS, userJwt),
-    restGet(env, 'tasks?select=' + TASK_COLUMNS + '&user_id=eq.' + userId, userJwt),
+    // CORE-V2-TASK (04/10/2026): the caller's tasks (created by or assigned to them) from core_v2 —
+    // core_v2_my_tasks, the definition the MCP tool reads too; a STABLE RPC, so PostgREST serves it on GET.
+    // Its due date is the day at noon UTC (TASK-DATE-NOON): the first 10 characters are that day.
+    restGet(env, 'rpc/core_v2_my_tasks', userJwt),
     // CURRENCY-ORG (24/09/2026): the organization's currency, through the caller's own core_v2
     // profile (a STABLE RPC, so PostgREST serves it on GET) — no longer user_profiles.currency.
     restGet(env, 'rpc/core_v2_my_profile', userJwt),
@@ -128,7 +130,7 @@ export async function buildRichContext(env, userId, userJwt, message = '') {
     })
     .sort((a, b) => new Date(a.renewal_date) - new Date(b.renewal_date))
 
-  const overdue = (tasks || []).filter(t => t.due_date && new Date(t.due_date) < now && t.status !== 'done')
+  const overdue = (tasks || []).filter(t => t.due_at && new Date(t.due_at) < now && t.status !== 'done')
 
   // CITED ACCOUNT: if a portfolio name (≥ 3 characters) appears in the
   // question, its real data is injected — it is authoritative against the
@@ -175,7 +177,7 @@ export async function buildRichContext(env, userId, userJwt, message = '') {
   }
   if (overdue.length) {
     summary += '\nTACHES EN RETARD (' + overdue.length + '):'
-    overdue.slice(0, MAX_OVERDUE).forEach(t => { summary += '\n- ' + t.title + ' (due: ' + t.due_date + ')' })
+    overdue.slice(0, MAX_OVERDUE).forEach(t => { summary += '\n- ' + t.title + ' (due: ' + String(t.due_at).slice(0, 10) + ')' })
   }
   return { summary }
 }

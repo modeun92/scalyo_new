@@ -78,8 +78,8 @@ describe('output minimization is enforced at the client layer', () => {
 
   it('keeps Oxygen workload and free-form task columns out of MCP', () => {
     // Oxygen data is legally self-only; these columns feed it.
-    expect(EXCLUDED_TASK_COLUMNS).toContain('expected_hours')
-    expect(EXCLUDED_TASK_COLUMNS).toContain('difficulty')
+    expect(EXCLUDED_TASK_COLUMNS).toContain('expected_duration')
+    expect(EXCLUDED_TASK_COLUMNS).toContain('difficulty_id')
     expect(EXCLUDED_TASK_COLUMNS).toContain('description')
   })
 })

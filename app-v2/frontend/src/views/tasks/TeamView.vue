@@ -20,7 +20,7 @@
           <div v-for="task in memberTasks(m.id).filter(t => t.status !== 'done').slice(0, 5)" :key="task.id" class="team_table_row">
             <span class="team_table_dot" :class="task.status" />
             <span class="team_table_title">{{ task.title }}</span>
-            <span class="team_table_badge" :class="task.status">{{ t('status_' + task.status) }}</span>
+            <span class="team_table_badge" :class="task.status">{{ statusLabel(i18n, task.status) }}</span>
           </div>
         </div>
       </div>
@@ -32,11 +32,15 @@
 import { useI18n } from 'vue-i18n'
 import { useTeamStore } from '@/stores/team'
 import { useTaskStore } from '@/stores/tasks'
-const { t } = useI18n({ useScope: 'global' })
+import { localDateKey } from '@/lib/formatters'
+import { statusLabel } from '@/lib/taskLabels'
+const i18n = useI18n({ useScope: 'global' })
+const { t } = i18n
 const team = useTeamStore()
 const tasks = useTaskStore()
-function memberTasks(id) { return tasks.tasks.filter(t => t.assignee === id) }
-function isOverdue(task) { return task.status !== 'done' && task.dueDate < new Date().toISOString().slice(0, 10) }
+// CORE-V2-TASK: a task may have several assignees (task_assignee)
+function memberTasks(id) { return tasks.tasks.filter(x => x.assignees.includes(id)) }
+function isOverdue(task) { return task.status !== 'done' && !!task.dueDate && task.dueDate < localDateKey() }
 </script>
 
 <style scoped>

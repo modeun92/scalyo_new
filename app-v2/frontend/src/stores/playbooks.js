@@ -6,8 +6,8 @@ import { useTaskStore } from '@/stores/tasks'
 
 // Rework 21/07 (feedback from Lidia: "actions must produce real results"):
 // 1) Each step = a concrete action + timing embedded in the label + an exit criterion.
-//    `day` = due date in days after activation; u/i = urgency/importance (Smart Matrix)
-//    of the generated task.
+//    `day` = due date in days after activation; u = urgency level (1..5) of the generated task
+//    (importance is not in the task model since 04/10/2026, CORE-V2-TASK).
 // 2) On activation, each step becomes a REAL dated task linked to the client — visible
 //    in Kanban / Planning / Priorities, where the work actually happens. Checking a step
 //    syncs the linked task (playbook → task direction only, deliberate for v1).
@@ -23,74 +23,74 @@ const TEMPLATES = [
     id: 'tpl_onboard', key: 'onboarding', icon: '\u{1F680}', color: '#3b82f6',
     minPlan: 'growth', auto: false, avgDays: 90,
     steps: [
-      { key: 'playbook_step_onboarding_1', day: 0, u: 5, i: 5 },
-      { key: 'playbook_step_onboarding_2', day: 2, u: 4, i: 5 },
-      { key: 'playbook_step_onboarding_3', day: 7, u: 4, i: 5 },
-      { key: 'playbook_step_onboarding_4', day: 15, u: 3, i: 4 },
-      { key: 'playbook_step_onboarding_5', day: 30, u: 3, i: 5 },
-      { key: 'playbook_step_onboarding_6', day: 60, u: 2, i: 4 },
-      { key: 'playbook_step_onboarding_7', day: 90, u: 3, i: 5 },
+      { key: 'playbook_step_onboarding_1', day: 0, u: 5 },
+      { key: 'playbook_step_onboarding_2', day: 2, u: 4 },
+      { key: 'playbook_step_onboarding_3', day: 7, u: 4 },
+      { key: 'playbook_step_onboarding_4', day: 15, u: 3 },
+      { key: 'playbook_step_onboarding_5', day: 30, u: 3 },
+      { key: 'playbook_step_onboarding_6', day: 60, u: 2 },
+      { key: 'playbook_step_onboarding_7', day: 90, u: 3 },
     ],
   },
   {
     id: 'tpl_retention', key: 'retention', icon: '\u{1F6E1}️', color: '#ef4444',
     minPlan: 'growth', auto: false, avgDays: 21,
     steps: [
-      { key: 'playbook_step_retention_1', day: 0, u: 5, i: 5 },
-      { key: 'playbook_step_retention_2', day: 0, u: 5, i: 5 },
-      { key: 'playbook_step_retention_3', day: 2, u: 4, i: 5 },
-      { key: 'playbook_step_retention_4', day: 7, u: 4, i: 5 },
-      { key: 'playbook_step_retention_5', day: 14, u: 4, i: 5 },
-      { key: 'playbook_step_retention_6', day: 21, u: 3, i: 4 },
+      { key: 'playbook_step_retention_1', day: 0, u: 5 },
+      { key: 'playbook_step_retention_2', day: 0, u: 5 },
+      { key: 'playbook_step_retention_3', day: 2, u: 4 },
+      { key: 'playbook_step_retention_4', day: 7, u: 4 },
+      { key: 'playbook_step_retention_5', day: 14, u: 4 },
+      { key: 'playbook_step_retention_6', day: 21, u: 3 },
     ],
   },
   {
     id: 'tpl_expansion', key: 'expansion', icon: '\u{1F4C8}', color: '#10b981',
     minPlan: 'growth', auto: false, avgDays: 30,
     steps: [
-      { key: 'playbook_step_expansion_1', day: 0, u: 3, i: 4 },
-      { key: 'playbook_step_expansion_2', day: 3, u: 3, i: 4 },
-      { key: 'playbook_step_expansion_3', day: 7, u: 3, i: 5 },
-      { key: 'playbook_step_expansion_4', day: 14, u: 4, i: 5 },
-      { key: 'playbook_step_expansion_5', day: 21, u: 4, i: 4 },
-      { key: 'playbook_step_expansion_6', day: 30, u: 4, i: 5 },
+      { key: 'playbook_step_expansion_1', day: 0, u: 3 },
+      { key: 'playbook_step_expansion_2', day: 3, u: 3 },
+      { key: 'playbook_step_expansion_3', day: 7, u: 3 },
+      { key: 'playbook_step_expansion_4', day: 14, u: 4 },
+      { key: 'playbook_step_expansion_5', day: 21, u: 4 },
+      { key: 'playbook_step_expansion_6', day: 30, u: 4 },
     ],
   },
   {
     id: 'tpl_qbr', key: 'qbr', icon: '\u{1F4CA}', color: '#7c3aed',
     minPlan: 'growth', auto: false, avgDays: 14,
     steps: [
-      { key: 'playbook_step_qbr_1', day: 0, u: 3, i: 4 },
-      { key: 'playbook_step_qbr_2', day: 3, u: 3, i: 4 },
-      { key: 'playbook_step_qbr_3', day: 5, u: 3, i: 4 },
-      { key: 'playbook_step_qbr_4', day: 10, u: 4, i: 5 },
-      { key: 'playbook_step_qbr_5', day: 12, u: 4, i: 4 },
-      { key: 'playbook_step_qbr_6', day: 14, u: 3, i: 4 },
+      { key: 'playbook_step_qbr_1', day: 0, u: 3 },
+      { key: 'playbook_step_qbr_2', day: 3, u: 3 },
+      { key: 'playbook_step_qbr_3', day: 5, u: 3 },
+      { key: 'playbook_step_qbr_4', day: 10, u: 4 },
+      { key: 'playbook_step_qbr_5', day: 12, u: 4 },
+      { key: 'playbook_step_qbr_6', day: 14, u: 3 },
     ],
   },
   {
     id: 'tpl_renewal', key: 'renewal', icon: '\u{1F504}', color: '#f59e0b',
     minPlan: 'growth', auto: false, avgDays: 90,
     steps: [
-      { key: 'playbook_step_renewal_1', day: 0, u: 4, i: 5 },
-      { key: 'playbook_step_renewal_2', day: 15, u: 5, i: 5 },
-      { key: 'playbook_step_renewal_3', day: 30, u: 3, i: 5 },
-      { key: 'playbook_step_renewal_4', day: 45, u: 4, i: 5 },
-      { key: 'playbook_step_renewal_5', day: 60, u: 4, i: 5 },
-      { key: 'playbook_step_renewal_6', day: 75, u: 5, i: 5 },
-      { key: 'playbook_step_renewal_7', day: 83, u: 5, i: 5 },
+      { key: 'playbook_step_renewal_1', day: 0, u: 4 },
+      { key: 'playbook_step_renewal_2', day: 15, u: 5 },
+      { key: 'playbook_step_renewal_3', day: 30, u: 3 },
+      { key: 'playbook_step_renewal_4', day: 45, u: 4 },
+      { key: 'playbook_step_renewal_5', day: 60, u: 4 },
+      { key: 'playbook_step_renewal_6', day: 75, u: 5 },
+      { key: 'playbook_step_renewal_7', day: 83, u: 5 },
     ],
   },
   {
     id: 'tpl_nps', key: 'nps', icon: '⭐', color: '#ec4899',
     minPlan: 'growth', auto: false, avgDays: 14,
     steps: [
-      { key: 'playbook_step_nps_1', day: 0, u: 3, i: 4 },
-      { key: 'playbook_step_nps_2', day: 3, u: 2, i: 3 },
-      { key: 'playbook_step_nps_3', day: 5, u: 5, i: 5 },
-      { key: 'playbook_step_nps_4', day: 7, u: 3, i: 4 },
-      { key: 'playbook_step_nps_5', day: 10, u: 3, i: 4 },
-      { key: 'playbook_step_nps_6', day: 14, u: 3, i: 4 },
+      { key: 'playbook_step_nps_1', day: 0, u: 3 },
+      { key: 'playbook_step_nps_2', day: 3, u: 2 },
+      { key: 'playbook_step_nps_3', day: 5, u: 5 },
+      { key: 'playbook_step_nps_4', day: 7, u: 3 },
+      { key: 'playbook_step_nps_5', day: 10, u: 3 },
+      { key: 'playbook_step_nps_6', day: 14, u: 3 },
     ],
   },
 ]
@@ -173,10 +173,13 @@ export const usePlaybookStore = defineStore('playbooks', () => {
   // Each step generates a real dated task (due = activation + day), linked to the client;
   // the step's GUIDE (Goal/Method/Pitfall/Exit) goes into the task's description —
   // the CSM has the instructions right where they work.
-  async function activateTemplate(templateId, clientId, csmId, currentPlan, stepTitles, stepGuides) {
+  // CORE-V2-TASK (decided 04/10/2026): a task always belongs to a project, so the activation names the
+  // project the steps' tasks go into (projectId, picked in the activation slide-over).
+  async function activateTemplate(templateId, clientId, csmId, projectId, currentPlan, stepTitles, stepGuides) {
     try {
       const tpl = templates.find(t => t.id === templateId)
       if (!tpl) return { error: 'template_not_found' }
+      if (!projectId) return { error: 'task_project_required' }
 
       if (!canActivate(currentPlan, templateId)) {
         return { error: 'plan_insufficient' }
@@ -200,15 +203,14 @@ export const usePlaybookStore = defineStore('playbooks', () => {
           const created = await tasksStore.addTask({
             title,
             description: (stepGuides && stepGuides[s.key]) || '',
-            clientId: clientId || '',
+            clientId: clientId || null,
+            projectId,
             status: 'todo',
             dueDate: due,
-            endDate: due,
-            urgency: s.u ?? 3,
-            importance: s.i ?? 4,
+            urgency: s.u ?? null,
             tags: ['playbook'],
           })
-          if (created) { taskId = created.id; createdTaskIds.push(created.id) }
+          if (created?.success) { taskId = created.data.id; createdTaskIds.push(created.data.id) }
         }
         steps.push({ id: i, title: s.key, done: false, due, task_id: taskId })
       }
@@ -253,7 +255,7 @@ export const usePlaybookStore = defineStore('playbooks', () => {
     // Sync playbook → linked task (failure is non-blocking: the tasks store's withWrite already toasts)
     if (step.task_id) {
       const tasksStore = useTaskStore()
-      await tasksStore.updateTask(step.task_id, { status: step.done ? 'done' : 'todo', finished: step.done })
+      await tasksStore.updateTask(step.task_id, { status: step.done ? 'done' : 'todo' })
     }
     return { success: true }
   }
@@ -275,7 +277,7 @@ export const usePlaybookStore = defineStore('playbooks', () => {
     // Linked tasks follow (completed along with the playbook)
     const tasksStore = useTaskStore()
     for (const s of pb.steps) {
-      if (s.task_id) await tasksStore.updateTask(s.task_id, { status: 'done', finished: true })
+      if (s.task_id) await tasksStore.updateTask(s.task_id, { status: 'done' })
     }
     return { success: true }
   }

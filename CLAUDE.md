@@ -64,7 +64,15 @@ questionnaire, the currency picker, `api/billing.js`, the AI context) and, since
 `core_v2_me()`) and `stores/team.js` (`core_v2_my_team()`), and since step C (04/10/2026,
 `STAGE2-WRITES`) every write about a person or a membership — the auth store, the onboarding, the
 e-mail permission toggle and the team routes call core_v2 RPCs (`20261004120000`), which also write the
-old row as a shadow until step E (`STAGE2-SHADOW`). **The old core tables are to be
+old row as a shadow until step E (`STAGE2-SHADOW`). **Projects and tasks move to core_v2 too**
+(decided 04/10/2026, `20261004130000`; T1 the database and T2 the app both written 04/10/2026 — every
+screen, store, export, the AI context, the MCP tools and the Edge Functions read and write core_v2;
+`lib/taskLabels` names the lookups; the old tables' drop is a later migration): `project`,
+organization-level `milestone`, `task` (a task always has a project — every creation path asks for one; the
+client link and the tags are kept, `importance` / `actual_hours` / `priority` are not — the priority matrix
+moves onto urgency; an old task with no project lands in an imported-tasks project), `task_assignee`,
+and per-organization lookups `task_status` / `task_difficulty` / `task_urgency` whose `text` is a
+persisted key. **The old core tables are to be
 deleted** (decided 20/09/2026), in stages — reads, then writes, then repointing the ~30 tables that
 reference the old uuids, then a drop migration — so a column the product still needs must get a
 home in `core_v2`. `health`, `nps`, `churn_risk`, `renewal_date` live on `client_group` and contacts
@@ -197,7 +205,10 @@ broke something visible. Do not relax one without saying so explicitly.
    Never an unbounded `.in('id', [...])` on writes — use a server-side filter.
 7. **Local calendar day, UTC instant.** `localDateKey()` for calendar dates; never
    `toISOString().slice(0,10)`. `datetime-local` strings are local time and are converted
-   on write; an invalid string writes nothing.
+   on write; an invalid string writes nothing. A task's start / due **day** lives in a
+   `timestamptz` column (core_v2 `task`): it is stored as **noon UTC** of that day and read
+   back with `localDateKey()` (`TASK-DATE-NOON`) — midnight UTC showed the day before west of
+   Greenwich.
 8. **Health scores are /10 through `lib/health`.** No local threshold, no ×10, never a raw
    `client.status` for a colour. The thresholds are mirrored in **two** other files —
    `_services/context.service.js` and `app-v2/mcp-worker/src/domain/health.ts` — and parity
@@ -305,8 +316,8 @@ broke something visible. Do not relax one without saying so explicitly.
   different company between two calls a second apart, with nothing on screen to say which
   (`MCP-ORG-DETERMINISTIC`). Since 04/10/2026 `mcp-worker/src/auth/user-context.ts` reads
   `core_v2_me()` — the same function `stores/auth.js` reads — and core_v2 allows one organization
-  per person, so the ambiguity cannot exist. `core_v2_me` is the only RPC the Worker may call
-  (`MCP-RPC-ALLOWLIST`).
+  per person, so the ambiguity cannot exist. The Worker may call two RPCs, both read-only:
+  `core_v2_me` and `core_v2_my_tasks` (SECURITY INVOKER, 04/10/2026) — `MCP-RPC-ALLOWLIST`.
 - **A valid Scalyo session token is not the same thing as a token issued for MCP.**
   `/auth/v1/user` proves the first, never the second. `mcp-worker/src/auth/verify-token.ts`
   `checkTokenBinding()` proves the second — and the resource string it validates against is

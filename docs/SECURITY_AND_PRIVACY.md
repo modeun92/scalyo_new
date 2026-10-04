@@ -143,6 +143,11 @@ There is no ranking, nothing individual, and no time-spent metric.
 | Portability (Art. 20) | `GET /api/export`, `GET /api/account/export` — full JSON export |
 | Erasure (Art. 17) | `DELETE /api/users/me`, `POST /api/account/delete` |
 
+Projects and tasks (core_v2, `CORE-V2-TASK`, 04/10/2026) are organization records: erasing a person
+sets `created_by` to NULL on what they created and removes their `task_assignee` rows — the work
+stays with the organization. Both exports include the core_v2 projects and tasks the person
+created and the tasks they are assigned to.
+
 The chat store also implements an Art. 17 path for a user's messages. The DPA is served
 publicly at `/dpa` (`src/i18n/dpa.js`).
 

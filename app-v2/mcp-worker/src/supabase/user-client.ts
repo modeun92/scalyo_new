@@ -61,9 +61,10 @@ export function renderFilterValue(filter: Filter): string {
 }
 
 // MCP-RPC-ALLOWLIST (04/10/2026): the RPCs the MCP surface may call — READ-ONLY functions only,
-// named here. core_v2_me answers who the caller is (CORE-V2-ME). Anything else is refused before a
-// request leaves the Worker: a tool that could name an RPC could name a write.
-const ALLOWED_RPCS: ReadonlySet<string> = new Set(['core_v2_me'])
+// named here. core_v2_me answers who the caller is (CORE-V2-ME); core_v2_my_tasks lists the caller's
+// own tasks (CORE-V2-TASK, SECURITY INVOKER: it reads under their RLS). Anything else is refused before
+// a request leaves the Worker: a tool that could name an RPC could name a write.
+const ALLOWED_RPCS: ReadonlySet<string> = new Set(['core_v2_me', 'core_v2_my_tasks'])
 
 export interface UserSupabaseClient {
   select<T = Record<string, unknown>>(table: string, options: SelectOptions): Promise<T[]>

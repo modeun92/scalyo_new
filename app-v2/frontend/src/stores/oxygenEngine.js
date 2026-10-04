@@ -120,8 +120,10 @@ export const useOxygenEngineStore = defineStore('oxygenEngine', () => {
     const auth = useAuthStore()
     const today = dstr(new Date())
     const uid = auth.user?.id
+    // CORE-V2-TASK: 'done' is the status (the finished flag is gone); updatedAt is an instant, read on
+    // the same UTC-day convention as `today` (dstr)
     const tasksDone = tasks.tasks.filter(t =>
-      (t.finished || t.status === 'done') && (t.updatedAt || '').slice(0, 10) === today
+      t.status === 'done' && !!t.updatedAt && dstr(new Date(t.updatedAt)) === today
     ).length
     const quotesCreated = quotes.quotes.filter(q => (q.createdAt || '') === today).length
     const clientsAdded = uid ? clients.clients.filter(c =>
@@ -165,7 +167,7 @@ export const useOxygenEngineStore = defineStore('oxygenEngine', () => {
     }
     const tomorrow = dstr(new Date(Date.now() + DAY))
     const dues = tasks.tasks
-      .filter(t => t.status !== 'done' && !t.finished && t.endDate && t.endDate <= tomorrow)
+      .filter(t => t.status !== 'done' && t.endDate && t.endDate <= tomorrow)
       .sort((a, b) => (a.endDate < b.endDate ? -1 : a.endDate > b.endDate ? 1 : (b.urgency ?? 3) - (a.urgency ?? 3)))
     for (const t of dues) out.push({ key: 'oxygen_tm_task', params: { title: t.title } })
     const criticals = load.assignedClients.filter(c => clients.getEffectiveStatus(c) === 'critical')

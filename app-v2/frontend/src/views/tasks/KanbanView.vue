@@ -32,7 +32,7 @@
             v-for="task in colTasks(col.key)"
             :key="task.id"
             class="kpis_builder_card"
-            :class="'priority_' + priorityLevel(task.priority)"
+            :class="'priority_' + urgencyTone(task.urgency)"
             draggable="true"
             @dragstart="onDragStart($event, task)"
             @dragend="dragOverCol = null"
@@ -40,11 +40,11 @@
           >
             <div class="kanban_card_top">
               <strong>{{ task.title }}</strong>
-              <span class="priority_badge" :class="'playbook_' + priorityLevel(task.priority)">{{ priorityLabel(task.priority) }}</span>
+              <span v-if="task.urgency != null" class="priority_badge" :class="'playbook_' + urgencyTone(task.urgency)">{{ urgencyName(task.urgency) }}</span>
             </div>
             <div class="kanban_card_meta">
               <span v-if="task.clientId" class="kanban_card_client">{{ clientName(task.clientId) }}</span>
-              <span v-if="task.projectId" class="kanban_card_project" :style="{ borderColor: projectColor(task.projectId) }">{{ projectName(task.projectId) }}</span>
+              <span v-if="task.projectId" class="kanban_card_project">{{ projectName(task.projectId) }}</span>
             </div>
             <div class="kanban_card_footer">
               <div class="kanban_card_assignee_wrapper">
@@ -76,8 +76,8 @@
         <div class="field_group"><label>{{ t('smart_matrix_task_title') }} *</label><input v-model="form.title" required class="field_input" /></div>
         <div class="field_group"><label>{{ t('smart_matrix_task_desc') }}</label><textarea v-model="form.description" class="field_input textarea" rows="2" /></div>
         <div class="field_row">
-          <div class="field_group"><label>{{ t('smart_matrix_task_project') }}</label>
-            <select v-model="form.projectId" class="field_input"><option :value="null">—</option><option v-for="p in tasks.projects" :key="p.id" :value="p.id">{{ p.name }}</option></select>
+          <div class="field_group"><label>{{ t('smart_matrix_task_project') }} *</label>
+            <select v-model="form.projectId" required class="field_input"><option :value="null" disabled>—</option><option v-for="p in tasks.projects" :key="p.id" :value="p.id">{{ projectLabel({ t }, p) }}</option></select>
           </div>
           <div class="field_group"><label>{{ t('smart_matrix_task_client') }}</label>
             <select v-model="form.clientId" class="field_input"><option :value="null">—</option><option v-for="c in clients.clients" :key="c.id" :value="c.id">{{ c.name }}</option></select>
@@ -89,19 +89,18 @@
           </div>
           <div class="field_group"><label>{{ t('smart_matrix_task_due') }}</label><input v-model="form.dueDate" type="date" class="field_input" /></div>
         </div>
-        <div class="field_group"><label>{{ t('smart_matrix_task_priority') }}</label>
-          <select v-model="form.priority" class="field_input">
-            <option value="urgent_important">{{ t('smart_matrix_priority_urgent_important') }}</option>
-            <option value="important">{{ t('smart_matrix_priority_important') }}</option>
-            <option value="urgent">{{ t('smart_matrix_priority_urgent') }}</option>
-            <option value="not_urgent">{{ t('smart_matrix_priority_not_urgent') }}</option>
+        <div class="field_group"><label>{{ t('smart_matrix_col_urgency') }}</label>
+          <select v-model="form.urgency" class="field_input">
+            <option :value="null">—</option>
+            <option v-for="u in tasks.urgencies" :key="u.id" :value="u.level">{{ urgencyLabel(i18n, u.key) }}</option>
           </select>
         </div>
+        <p v-if="formError" class="form_error">{{ t(formError) }}</p>
         <div class="form_actions">
           <button v-if="editId" type="button" class="button_danger" @click="deleteTask">{{ t('delete') }}</button>
           <div style="flex:1" />
           <button type="button" class="button_outline" @click="slideOpen = false">{{ t('cancel') }}</button>
-          <button type="submit" class="button_primary">{{ editId ? t('save') : t('create') }}</button>
+          <button type="submit" class="button_primary" :disabled="saving">{{ editId ? t('save') : t('create') }}</button>
         </div>
       </form>
     </SlideOver>
@@ -115,21 +114,25 @@ import { useTaskStore } from '@/stores/tasks'
 import { useClientStore } from '@/stores/clients'
 import { useTeamStore } from '@/stores/team'
 import SlideOver from '@/components/SlideOver.vue'
-import { fmtDate } from '@/lib/formatters' // DATE-RAW: no more raw "2026-09-15" on the cards
+import { fmtDate, localDateKey } from '@/lib/formatters' // DATE-RAW: no more raw "2026-09-15" on the cards
+import { urgencyLabel, urgencyTone, projectLabel } from '@/lib/taskLabels'
 
-const { t } = useI18n({ useScope: 'global' })
+const i18n = useI18n({ useScope: 'global' })
+const { t } = i18n
 const tasks = useTaskStore()
 const clients = useClientStore()
 const team = useTeamStore()
 
 const slideOpen = ref(false)
 const editId = ref(null)
+const saving = ref(false)
+const formError = ref('')
 const resetStep = ref(0)
 let draggedTask = null
 const dragOverCol = ref(null)
 
-function doResetAll() {
-  tasks.resetAll()
+async function doResetAll() {
+  await tasks.resetAll()
   resetStep.value = 0
 }
 
@@ -140,52 +143,53 @@ const columns = [
   { key: 'done', label: 'smart_matrix_col_done' },
 ]
 
-// MIN-i18n: default assignee '' (unassigned) — 'tm1' was a phantom member from the mock era
-const initForm = () => ({ title: '', description: '', projectId: null, clientId: null, assignee: '', dueDate: '', priority: 'important' })
+// MIN-i18n: default assignee '' (unassigned) — 'tm1' was a phantom member from the mock era.
+// CORE-V2-TASK (04/10/2026): the priority quadrant is gone from the model; the card's colour and badge
+// are the task's urgency, and a task needs a project (task_project_required).
+const initForm = () => ({ title: '', description: '', projectId: null, clientId: null, assignee: '', dueDate: '', urgency: null })
 const form = reactive(initForm())
 
-function colTasks(status) { return tasks.tasks.filter(t => t.status === status) }
+// A task with no status (an old value the move could not match) is shown in the first column rather
+// than nowhere; nothing is written for it.
+function colTasks(status) { return tasks.tasks.filter(t => t.status === status || (!t.status && status === columns[0].key)) }
 function clientName(id) { return clients.clients.find(c => c.id === id)?.name || '' }
-function projectName(id) { return tasks.projects.find(p => p.id === id)?.name || '' }
-function projectColor(id) { return tasks.projects.find(p => p.id === id)?.color || '#7c3aed' }
+function projectName(id) { return projectLabel({ t }, tasks.projects.find(p => p.id === id)) }
 function assigneeName(id) { return team.memberName(id) }
-function isOverdue(task) { return task.status !== 'done' && task.dueDate < new Date().toISOString().slice(0, 10) }
-
-function priorityLevel(p) {
-  const map = { urgent_important: 'critical', important: 'high', urgent: 'medium', not_urgent: 'low' }
-  return map[p] || 'low'
-}
-function priorityLabel(p) {
-  // PRIORITY-LABEL (29/08): the card displays the SAME labels as the form
-  // (smart_matrix_priority_*, keys × 3 languages) — the generic smart_matrix_badge_* scale made the card
-  // say "High" while the select said "Important". Value outside the scale
-  // (e.g. 'medium', separate PRIO-MEDIUM finding): fallback unchanged.
-  const map = { urgent_important: t('smart_matrix_priority_urgent_important'), important: t('smart_matrix_priority_important'), urgent: t('smart_matrix_priority_urgent'), not_urgent: t('smart_matrix_priority_not_urgent') }
-  return map[p] || t('smart_matrix_badge_1')
-}
+function isOverdue(task) { return task.status !== 'done' && !!task.dueDate && task.dueDate < localDateKey() }
+// PRIORITY-LABEL (29/08), carried over: the card's badge says what the form's select says — the
+// urgency's own label, from the same lookup.
+function urgencyName(level) { return urgencyLabel(i18n, tasks.urgencies.find(u => u.level === level)?.key) }
 
 function onDragStart(e, task) { draggedTask = task; e.dataTransfer.effectAllowed = 'move' }
 function onDragOver(e) { e.preventDefault(); const col = e.currentTarget.closest('.kb-col'); if (col) dragOverCol.value = col.classList[1] }
 function onDrop(e, newStatus) { if (draggedTask) { tasks.moveTask(draggedTask.id, newStatus); draggedTask = null; dragOverCol.value = null } }
 
-function openCreate() { editId.value = null; Object.assign(form, initForm()); slideOpen.value = true }
+function openCreate() { editId.value = null; formError.value = ''; Object.assign(form, initForm()); slideOpen.value = true }
 function openEdit(task) {
   editId.value = task.id
-  Object.assign(form, { title: task.title, description: task.description || '', projectId: task.projectId, clientId: task.clientId, assignee: task.assignee, dueDate: task.dueDate, priority: task.priority })
+  formError.value = ''
+  Object.assign(form, { title: task.title, description: task.description || '', projectId: task.projectId, clientId: task.clientId, assignee: task.assignee, dueDate: task.dueDate, urgency: task.urgency })
   slideOpen.value = true
 }
 
-function saveTask() {
-  if (editId.value) {
-    tasks.updateTask(editId.value, { ...form })
-  } else {
-    tasks.addTask({ ...form })
+// D-14: the panel closes on a confirmed write only; on a failure it stays open with the user's input.
+async function saveTask() {
+  if (saving.value) return
+  saving.value = true
+  formError.value = ''
+  try {
+    const res = editId.value ? await tasks.updateTask(editId.value, { ...form }) : await tasks.addTask({ ...form })
+    if (res?.success) slideOpen.value = false
+    else if (res?.error === 'task_project_required') formError.value = 'task_project_required'
+  } finally {
+    saving.value = false
   }
-  slideOpen.value = false
 }
 
-function deleteTask() {
-  if (editId.value) { tasks.deleteTask(editId.value); slideOpen.value = false }
+async function deleteTask() {
+  if (!editId.value) return
+  const res = await tasks.deleteTask(editId.value)
+  if (res?.success) slideOpen.value = false
 }
 </script>
 
@@ -235,7 +239,8 @@ function deleteTask() {
 
 .kanban_card_meta { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 6px; }
 .kanban_card_client { font-size: 0.68rem; color: var(--purple); background: var(--purple-bg); padding: 1px 6px; border-radius: 4px; }
-.kanban_card_project { font-size: 0.68rem; padding: 1px 6px; border-radius: 4px; border: 1px solid; }
+.kanban_card_project { font-size: 0.68rem; padding: 1px 6px; border-radius: 4px; border: 1px solid var(--border); }
+.form_error { color: var(--red); font-size: 0.8rem; margin: 0; }
 .kanban_card_footer { display: flex; justify-content: space-between; align-items: center; }
 .kanban_card_assignee_wrapper { display: flex; align-items: center; gap: 5px; }
 .kanban_card_avatar { width: 18px; height: 18px; border-radius: 50%; background: var(--purple); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 0.55rem; font-weight: 700; flex-shrink: 0; }

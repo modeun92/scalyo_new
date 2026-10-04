@@ -42,7 +42,7 @@
           <select v-model="ganttColorBy" class="gantt_zoom_select">
             <option value="project">{{ t('planning_color_project') }}</option>
             <option value="status">{{ t('planning_color_status') }}</option>
-            <option value="priority">{{ t('planning_color_priority') }}</option>
+            <option value="urgency">{{ t('planning_color_urgency') }}</option>
           </select>
         </div>
         <!-- GANTT-READ: unplaceable tasks counted honestly, never silently hidden -->
@@ -64,7 +64,7 @@
         <!-- Projects & tasks -->
         <div v-for="proj in tasks.projects" :key="proj.id" class="gantt_project">
           <div class="gantt_row gantt_project_row">
-            <div class="gantt_label"><span class="gp_dot" :style="{ background: proj.color }" /><strong>{{ proj.name }}</strong></div>
+            <div class="gantt_label"><span class="gp_dot" :style="{ background: projectColor(proj) }" /><strong>{{ projectLabel({ t }, proj) }}</strong></div>
             <div class="gantt_cells"><div v-for="d in ganttDates" :key="d.key" class="gantt_cell" :class="{ today: d.isToday, weekend: d.isWeekend }" /></div>
           </div>
           <div v-for="task in projectTasks(proj.id)" :key="task.id" class="gantt_row gantt_task_row">
@@ -74,24 +74,6 @@
               <!-- GANTT-READ: real start→end bar positioned on the row (the old
                    FIXED-width bar was placed on the dueDate cell only) -->
               <div v-if="ganttBarStyle(task, proj)" class="gantt_bar" :style="ganttBarStyle(task, proj)" :title="task.title">
-                <span class="gb_text">{{ task.title }}</span>
-                <div class="gb_prog" :style="{ width: taskProg(task) + '%' }" />
-              </div>
-            </div>
-          </div>
-        </div>
-        <!-- GANTT-READ: tasks without a project — previously invisible (the loop only walked
-             tasks.projects); "unclassified" group, existing i18n key reused -->
-        <div v-if="unassignedTasks.length" class="gantt_project">
-          <div class="gantt_row gantt_project_row">
-            <div class="gantt_label"><span class="gp_dot" style="background: #9ca3af" /><strong>{{ t('smart_matrix_not_classified') }}</strong></div>
-            <div class="gantt_cells"><div v-for="d in ganttDates" :key="d.key" class="gantt_cell" :class="{ today: d.isToday, weekend: d.isWeekend }" /></div>
-          </div>
-          <div v-for="task in unassignedTasks" :key="task.id" class="gantt_row gantt_task_row">
-            <div class="gantt_label gantt_task_label"><span class="gt_dot" :class="task.status" />{{ task.title }}</div>
-            <div class="gantt_cells">
-              <div v-for="d in ganttDates" :key="d.key" class="gantt_cell" :class="{ today: d.isToday, weekend: d.isWeekend }" />
-              <div v-if="ganttBarStyle(task, null)" class="gantt_bar" :style="ganttBarStyle(task, null)" :title="task.title">
                 <span class="gb_text">{{ task.title }}</span>
                 <div class="gb_prog" :style="{ width: taskProg(task) + '%' }" />
               </div>
@@ -121,7 +103,7 @@
             <select v-model="eventForm.clientId" class="field_input"><option value="">—</option><option v-for="c in clients.clients" :key="c.id" :value="c.id">{{ c.name }}</option></select>
           </div>
           <div class="field_group"><label>{{ t('planning_event_project') }}</label>
-            <select v-model="eventForm.projectId" class="field_input"><option value="">—</option><option v-for="p in tasks.projects" :key="p.id" :value="p.id">{{ p.name }}</option></select>
+            <select v-model="eventForm.projectId" class="field_input"><option value="">—</option><option v-for="p in tasks.projects" :key="p.id" :value="p.id">{{ projectLabel({ t }, p) }}</option></select>
           </div>
         </div>
         <!-- PLAN-RECUR: "Reminder" REMOVED (phantom field — never persisted, no planning
@@ -198,6 +180,7 @@ import listPlugin from '@fullcalendar/list'
 import multiMonthPlugin from '@fullcalendar/multimonth'
 import SlideOver from '@/components/SlideOver.vue'
 import { useTaskStore } from '@/stores/tasks'
+import { projectLabel, urgencyTone } from '@/lib/taskLabels'
 import { useClientStore } from '@/stores/clients'
 import { useCreatePrefillStore } from '@/stores/createPrefill'
 import { useAuthStore } from '@/stores/auth'
@@ -525,15 +508,22 @@ const todayLineX = computed(() => {
   return idx >= 0 ? 180 + idx * 36 + 18 : 0
 })
 
+// CORE-V2-TASK (04/10/2026): every task has a project now (task.project_id NOT NULL), so the
+// "unclassified" group of GANTT-READ has nothing left to show and is gone.
 function projectTasks(pid) { return tasks.tasks.filter(t => t.projectId === pid) }
-// GANTT-READ: tasks without a project — rendered in the "unclassified" group (before: invisible)
-const unassignedTasks = computed(() => tasks.tasks.filter(t => !t.projectId))
+// A project has no colour in the model: the Gantt gives each one a colour of its own by position, a
+// way to tell the bars apart, not a value anyone chose.
+const PROJECT_PALETTE = ['#7c3aed', '#3b82f6', '#10b981', '#ef4444', '#f59e0b', '#ec4899', '#8b5cf6', '#06b6d4']
+function projectColor(proj) {
+  const i = tasks.projects.findIndex(p => p.id === proj?.id)
+  return i < 0 ? '#9ca3af' : PROJECT_PALETTE[i % PROJECT_PALETTE.length]
+}
 // GANTT-READ: tasks with no date at all — unplaceable, counted honestly in the banner
 const noDateCount = computed(() => tasks.tasks.filter(t => !t.startDate && !t.dueDate && !t.endDate).length)
 function ganttBarColor(task, proj) {
   if (ganttColorBy.value === 'status') return { todo: '#9ca3af', in_progress: '#3b82f6', blocked: '#ef4444', done: '#10b981' }[task.status] || '#7c3aed'
-  if (ganttColorBy.value === 'priority') return { urgent_important: '#ef4444', important: '#3b82f6', urgent: '#f59e0b', not_urgent: '#9ca3af' }[task.priority] || '#7c3aed'
-  return proj?.color || '#9ca3af'
+  if (ganttColorBy.value === 'urgency') return { critical: '#ef4444', high: '#f59e0b', medium: '#3b82f6', low: '#9ca3af' }[urgencyTone(task.urgency)] || '#7c3aed'
+  return projectColor(proj)
 }
 // GANTT-READ: bar style = intersection [start,end] × visible window, clipped at the edges
 // (square corners on the truncated side). null = outside the window or dateless → no bar.

@@ -50,7 +50,6 @@
     <!-- KPI cards -->
     <div class="status_kpis">
       <div class="stk"><span class="stats_kpi_icon">🎯</span><span class="stats_kpi_value">{{ pred.velocityPerWeek ?? '—' }}</span><span class="stats_kpi_label">{{ t('smart_matrix_velocity') }}</span><span class="stats_kpi_sub">{{ t('smart_matrix_velocity_unit') }}</span></div>
-      <div class="stk"><span class="stats_kpi_icon">⏱</span><span class="stats_kpi_value">{{ pred.hoursAccuracy || 0 }}%</span><span class="stats_kpi_label">{{ t('smart_matrix_estimation_acc') }}</span></div>
       <div class="stk warn"><span class="stats_kpi_icon">🔴</span><span class="stats_kpi_value red">{{ pred.overdueCount }}</span><span class="stats_kpi_label">{{ t('smart_matrix_overdue') }}</span></div>
       <div class="stk"><span class="stats_kpi_icon">✅</span><span class="stats_kpi_value green">{{ pred.completionPercent }}%</span><span class="stats_kpi_label">{{ t('smart_matrix_delivery_rate') }}</span></div>
     </div>
@@ -79,7 +78,7 @@
           <div v-for="task in store.overdueTasks.slice(0, 5)" :key="task.id" class="stats_table_row">
             <span class="stats_table_title">{{ task.title }}</span>
             <span class="stats_table_delay red">+{{ daysLate(task) }}j</span>
-            <span class="stats_table_assignee">{{ task.assignee || '—' }}</span>
+            <span class="stats_table_assignee">{{ team.memberName(task.assignee) || '—' }}</span>
           </div>
         </div>
         <div v-else class="stats_table_empty">{{ t('smart_matrix_no_late') }} 🎉</div>
@@ -89,8 +88,8 @@
         <div v-if="tasksWithHours.length" class="status_table">
           <div v-for="task in tasksWithHours" :key="task.id" class="stats_table_row">
             <span class="stats_table_title">{{ task.title }}</span>
-            <span class="stats_table_hours">{{ task.actualHours || 0 }}h / {{ task.expectedHours || 0 }}h</span>
-            <span class="stats_table_delta" :class="hoursDelta(task) > 0 ? 'red' : 'green'">{{ hoursDelta(task) > 0 ? '+' : '' }}{{ hoursDelta(task) }}%</span>
+            <span class="stats_table_hours">{{ task.minHours ?? '—' }}–{{ task.maxHours ?? '—' }}h</span>
+            <span class="stats_table_delta">{{ task.expectedHours }}h</span>
           </div>
         </div>
         <div v-else class="stats_table_empty">{{ t('smart_matrix_no_hours') }}</div>
@@ -104,11 +103,17 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useTaskStore } from '@/stores/tasks'
+import { useTeamStore } from '@/stores/team'
 import EmptyState from '@/components/EmptyState.vue'
+import { projectLabel } from '@/lib/taskLabels'
 import { fmtDate } from '@/lib/formatters' // DATE-RAW
 
 const { t } = useI18n({ useScope: 'global' })
 const store = useTaskStore()
+const team = useTeamStore()
+// CORE-V2-TASK (04/10/2026): actual hours are not in the task model (decided), so the estimation
+// accuracy KPI, the actual-hours series and the actual-vs-expected delta are gone; what is left is
+// what a task still records — its expected duration and its min / max range.
 
 // Use store predictions
 const pred = computed(() => store.predictions)
@@ -135,7 +140,7 @@ const barSeries = computed(() => [{
   name: t('smart_matrix_series_completion'),
   data: store.projects.map(p => {
     const pTasks = store.tasks.filter(t => t.projectId === p.id)
-    const done = pTasks.filter(t => t.finished || t.status === 'done').length
+    const done = pTasks.filter(t => t.status === 'done').length
     return pTasks.length ? Math.round((done / pTasks.length) * 100) : 0
   }),
 }])
@@ -143,7 +148,7 @@ const barSeries = computed(() => [{
 const barOpts = computed(() => ({
   chart: { type: 'bar', fontFamily: 'Inter, sans-serif', toolbar: { show: false } },
   plotOptions: { bar: { horizontal: true, borderRadius: 6, barHeight: '50%' } },
-  xaxis: { categories: store.projects.map(p => p.name || p.title), max: 100 },
+  xaxis: { categories: store.projects.map(p => projectLabel({ t }, p)), max: 100 },
   colors: ['#7c3aed'],
   dataLabels: { enabled: true, formatter: (v) => v + '%', style: { fontSize: '11px' } },
   grid: { borderColor: '#f3f4f6' },
@@ -156,17 +161,14 @@ const hoursSeries = computed(() => {
     { name: t('smart_matrix_series_expected'), data: projs.map(p => {
       return store.tasks.filter(t => t.projectId === p.id).reduce((s, t) => s + (t.expectedHours || 0), 0)
     })},
-    { name: t('smart_matrix_series_actual'), data: projs.map(p => {
-      return store.tasks.filter(t => t.projectId === p.id).reduce((s, t) => s + (t.actualHours || 0), 0)
-    })},
   ]
 })
 
 const hoursOpts = computed(() => ({
   chart: { type: 'bar', fontFamily: 'Inter, sans-serif', toolbar: { show: false } },
   plotOptions: { bar: { borderRadius: 4, columnWidth: '60%' } },
-  xaxis: { categories: store.projects.slice(0, 6).map(p => p.name || p.title) },
-  colors: ['#d1d5db', '#7c3aed'],
+  xaxis: { categories: store.projects.slice(0, 6).map(p => projectLabel({ t }, p)) },
+  colors: ['#7c3aed'],
   dataLabels: { enabled: false },
   grid: { borderColor: '#f3f4f6' },
   legend: { position: 'top', fontSize: '11px' },
@@ -181,10 +183,6 @@ function daysLate(task) {
   return Math.max(0, Math.round((now - due) / 86400000))
 }
 
-function hoursDelta(task) {
-  if (!task.expectedHours) return 0
-  return Math.round(((task.actualHours || 0) - task.expectedHours) / task.expectedHours * 100)
-}
 </script>
 
 <style scoped>

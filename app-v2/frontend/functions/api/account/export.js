@@ -24,7 +24,7 @@ export async function onRequestGet(context) {
   }
 
   const tables = [
-    'profiles', 'clients', 'tasks', 'notifications',
+    'profiles', 'clients', 'notifications',
     'playbooks', 'kpi_reports', 'roadmap_items', 'snapshots',
     'org_integrations', 'user_wellbeing', 'ai_usage'
   ]
@@ -47,6 +47,19 @@ export async function onRequestGet(context) {
     })
     exportData.data.core_v2_me = meRes.ok ? await meRes.json() : null
   } catch { exportData.data.core_v2_me = null }
+
+  // CORE-V2-TASK (04/10/2026): projects and tasks live in core_v2 — what the person created, and the
+  // tasks they are assigned to, read with THEIR token by their core_v2 personage.
+  const pid = exportData.data.core_v2_me && exportData.data.core_v2_me.personage_id
+  for (const [key, path] of [['project', 'project?created_by=eq.'], ['task', 'task?created_by=eq.'], ['task_assignee', 'task_assignee?member_id=eq.']]) {
+    if (pid == null) { exportData.data[key] = []; continue }
+    try {
+      const r = await fetch(supabaseUrl + '/rest/v1/' + path + encodeURIComponent(pid) + '&select=*', {
+        headers: { 'apikey': serviceKey, 'Authorization': authHeader },
+      })
+      exportData.data[key] = r.ok ? await r.json() : []
+    } catch { exportData.data[key] = [] }
+  }
 
   for (const table of tables) {
     try {

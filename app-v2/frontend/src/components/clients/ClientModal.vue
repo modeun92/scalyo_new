@@ -160,7 +160,12 @@
               <div v-if="showTaskInput" class="client_modal_task_add">
                 <input v-model="taskDraft" class="client_modal_i" :placeholder="t('client_detail_task_placeholder')"
                   @keydown.enter="addQuickTask" />
-                <button class="button_primary client_modal_note_button" :disabled="!taskDraft.trim() || savingTask" @click="addQuickTask">
+                <!-- CORE-V2-TASK (decided 04/10/2026): a task always belongs to a project -->
+                <select v-model="taskProjectId" class="client_modal_i" :aria-label="t('smart_matrix_task_project')">
+                  <option :value="null" disabled>{{ t('smart_matrix_task_project') }}</option>
+                  <option v-for="p in tasksStore.projects" :key="p.id" :value="p.id">{{ projectLabel({ t }, p) }}</option>
+                </select>
+                <button class="button_primary client_modal_note_button" :disabled="!taskDraft.trim() || !taskProjectId || savingTask" @click="addQuickTask">
                   {{ savingTask ? '…' : t('client_detail_note_add') }}
                 </button>
               </div>
@@ -204,6 +209,7 @@ import { useClientNotesStore } from '@/stores/clientNotes'
 import { useClientStore } from '@/stores/clients'
 import { useTeamStore } from '@/stores/team'
 import { useTaskStore } from '@/stores/tasks'
+import { projectLabel } from '@/lib/taskLabels'
 import { useKpiStore } from '@/stores/kpis'
 import { usePlaybookStore } from '@/stores/playbooks'
 import { useNotificationStore } from '@/stores/notifications'
@@ -361,13 +367,14 @@ async function addCopil() {
 
 const showTaskInput = ref(false)
 const taskDraft = ref('')
+const taskProjectId = ref(null)
 const savingTask = ref(false)
 async function addQuickTask() {
-  if (!taskDraft.value.trim() || savingTask.value || !client.value) return
+  if (!taskDraft.value.trim() || !taskProjectId.value || savingTask.value || !client.value) return
   savingTask.value = true
-  const res = await tasksStore.addTask({ title: taskDraft.value.trim(), clientId: client.value.id, status: 'todo' })
+  const res = await tasksStore.addTask({ title: taskDraft.value.trim(), clientId: client.value.id, projectId: taskProjectId.value, status: 'todo' })
   savingTask.value = false
-  if (res) { taskDraft.value = ''; showTaskInput.value = false }
+  if (res?.success) { taskDraft.value = ''; showTaskInput.value = false }
 }
 
 // Quote / Event / Playbook: rich forms that live in their own module.
@@ -400,7 +407,7 @@ const timeline = computed(() => {
   const out = []
   for (const tk of tasksStore.tasks.filter(x => x.clientId === id)) {
     out.push({ date: tk.createdAt?.slice(0, 10) || tk.startDate || '', icon: '📝', to: '/app/tasks', label: t('client_detail_tl_task_created', { title: tk.title }) })
-    if (tk.finished || tk.status === 'done') out.push({ date: tk.endDate || tk.dueDate || '', icon: '✅', to: '/app/tasks', label: t('client_detail_tl_task_done', { title: tk.title }) })
+    if (tk.status === 'done') out.push({ date: tk.endDate || tk.dueDate || '', icon: '✅', to: '/app/tasks', label: t('client_detail_tl_task_done', { title: tk.title }) })
   }
   for (const ev of planningEvents.value) out.push({ date: (ev.start_at || '').slice(0, 10), icon: '📅', to: '/app/tasks/planning', label: t('client_detail_tl_event', { title: ev.title }) })
   for (const pb of playbooks.playbooks.filter(x => (x.clientId ?? x.client_id) === id)) {
@@ -420,7 +427,7 @@ const timeline = computed(() => {
   }
   for (const [pid, d] of Object.entries(projByClient)) {
     const proj = tasksStore.projects.find(p => p.id === pid)
-    if (proj) out.push({ date: d, icon: '📁', to: '/app/tasks', label: t('client_detail_tl_project', { name: proj.name || proj.title }) })
+    if (proj) out.push({ date: d, icon: '📁', to: '/app/tasks', label: t('client_detail_tl_project', { name: projectLabel({ t }, proj) }) })
   }
   // Situations / tickets = alerts raised on this client (churn, renewal, errors…)
   for (const n of notifStore.notifications.filter(x => x.target_id === id)) out.push({ date: (n.created_at || '').slice(0, 10), icon: '🔔', to: '/app/dashboard', label: t('client_detail_tl_alert', { title: notifTitle(n, t) }) })
@@ -518,7 +525,7 @@ watch(() => [modal.isOpen, modal.clientId], ([open]) => {
 .client_modal_add_button:hover:not(:disabled) { background: var(--bg-hover); border-color: var(--primary); }
 .client_modal_add_button.active { border-color: var(--primary); background: var(--bg-hover); }
 .client_modal_add_button:disabled { opacity: .6; cursor: default; }
-.client_modal_task_add { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-top: 10px; }
+.client_modal_task_add { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; margin-top: 10px; }
 /* ── Monthly metrics (client_metrics batch 22/07) ── */
 .client_modal_metric_form { display: grid; grid-template-columns: 1fr auto 110px auto; gap: 6px; margin-bottom: 10px; }
 .client_modal_kpi_combo { position: relative; }

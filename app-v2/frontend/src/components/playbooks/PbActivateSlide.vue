@@ -37,6 +37,15 @@
         </select>
       </div>
 
+      <!-- CORE-V2-TASK (decided 04/10/2026): the steps become tasks, and a task belongs to a project -->
+      <div class="field_group">
+        <label>{{ t('smart_matrix_task_project') }} *</label>
+        <select v-model="form.projectId" required class="field_input">
+          <option value="" disabled>—</option>
+          <option v-for="p in taskStore.projects" :key="p.id" :value="p.id">{{ projectLabel({ t }, p) }}</option>
+        </select>
+      </div>
+
       <div class="field_group">
         <label>{{ t('playbook_select_csm') }}</label>
         <select v-model="form.csmId" class="field_input">
@@ -64,6 +73,8 @@
 import { reactive, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SlideOver from '@/components/SlideOver.vue'
+import { useTaskStore } from '@/stores/tasks'
+import { projectLabel } from '@/lib/taskLabels'
 
 const { t } = useI18n({ useScope: 'global' })
 
@@ -77,7 +88,8 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'activate'])
 
-const form = reactive({ clientId: '', csmId: '' })
+const taskStore = useTaskStore()
+const form = reactive({ clientId: '', csmId: '', projectId: '' })
 
 watch(() => props.template, (tpl) => {
   if (tpl) {
@@ -85,15 +97,17 @@ watch(() => props.template, (tpl) => {
     // otherwise empty as before.
     form.clientId = props.initialClientId || ''
     form.csmId = props.teamMembers[0]?.id || ''
+    form.projectId = ''
   }
 })
 
 function onSubmit() {
-  if (!form.clientId) return
+  if (!form.clientId || !form.projectId) return
   emit('activate', {
     templateId: props.template.id,
     clientId: form.clientId,
-    csmId: form.csmId
+    csmId: form.csmId,
+    projectId: form.projectId
   })
 }
 </script>

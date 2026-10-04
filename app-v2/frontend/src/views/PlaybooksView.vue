@@ -150,7 +150,7 @@ function selectTemplate(tpl) {
 // (failure → withWrite toast, panel left open to retry)
 // Rework 21/07: the view supplies the localized step labels (stepTitles) —
 // the store generates a dated task per step WITHOUT ever calling t() (rule C2/C6).
-async function doActivate({ templateId, clientId, csmId }) {
+async function doActivate({ templateId, clientId, csmId, projectId }) {
   const tpl = store.templates.find(x => x.id === templateId)
   const stepTitles = {}
   const stepGuides = {}
@@ -159,7 +159,7 @@ async function doActivate({ templateId, clientId, csmId }) {
     // Step guide (key `<step>_g`) → description of the generated task
     stepGuides[s.key] = te(s.key + '_g') ? t(s.key + '_g') : ''
   })
-  const res = await store.activateTemplate(templateId, clientId, csmId, auth.currentPlan, stepTitles, stepGuides)
+  const res = await store.activateTemplate(templateId, clientId, csmId, projectId, auth.currentPlan, stepTitles, stepGuides)
   if (res && res.success) {
     slideActivate.value = false
     activatingTpl.value = null

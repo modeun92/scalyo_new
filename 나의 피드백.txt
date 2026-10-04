@@ -1,0 +1,228 @@
+확인해야 할 것들
+1. 채팅기능
+	문제점을 알아서 파악한 후 현재 고치고 있음
+	모바일에서 보기 힘듦 (레이아웃) = 고칠 예정	
+2. 다크모드/라이트모드
+	가끔 보기 힘든 것들이 있는데 이경우, 발견하여 고쳐야함
+3. 알림의 링크
+	클릭해서 다음 페이지로 넘어가는 기능이 전혀 없음
+	특히 번아웃의 경우, 경고가 있지만 그 경고에 대한 내용을 볼 수 있는 곳이 없음
+4. 메일의 디자인 고려
+	각 회사마다 고유의 서식을 가져올 수 있도록
+5. 내부 직원에 대한 내용이 부실
+create table project (
+    id uuid primary key default gen_random_uuid(),
+
+    organization_id bigint not null,
+    created_by bigint not null,
+
+    title text not null,
+    description jsonb not null default '{}'::jsonb,
+
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now(),
+
+    constraint fk_project_organization
+        foreign key (organization_id)
+        references organization(id)
+        on delete cascade,
+
+    constraint fk_project_created_by
+        foreign key (created_by)
+        references member(id),
+
+    constraint uq_project_organization_id
+        unique (organization_id, id)
+);
+create table task (
+    id uuid primary key default gen_random_uuid(),
+
+    organization_id bigint not null,
+
+    project_id uuid not null,
+    milestone_id uuid,
+    parent_task_id uuid,
+
+    status_id uuid,
+    difficulty_id uuid,
+    urgency_id uuid,
+
+    created_by bigint not null,
+
+    title text not null,
+    description jsonb not null default '{}'::jsonb,
+
+    expected_duration interval,
+    min_duration interval,
+    max_duration interval,
+
+    start_at timestamptz,
+    due_at timestamptz,
+
+    sort_order integer not null default 0,
+
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now(),
+
+    constraint fk_task_organization
+        foreign key (organization_id)
+        references organization(id),
+
+    constraint fk_task_project
+        foreign key (organization_id, project_id)
+        references project(organization_id, id),
+
+    constraint fk_task_milestone
+        foreign key (organization_id, milestone_id)
+        references milestone(organization_id, id),
+
+    constraint fk_job_status
+        foreign key (organization_id, status_id)
+        references job_status(organization_id, id),
+
+    constraint fk_task_difficulty
+        foreign key (organization_id, difficulty_id)
+        references task_difficulty(organization_id, id),
+
+    constraint fk_task_urgency
+        foreign key (organization_id, urgency_id)
+        references task_urgency(organization_id, id),
+
+    constraint fk_task_parent
+        foreign key (parent_task_id)
+        references task(id)
+        on delete cascade,
+
+    constraint fk_task_created_by
+        foreign key (created_by)
+        references member(id),
+
+    constraint chk_task_not_self_parent
+        check (id <> parent_task_id),
+
+    constraint chk_task_duration_range
+        check (
+            min_duration is null
+            or max_duration is null
+            or min_duration <= max_duration
+        )
+);
+
+create table task_assignee (
+    task_id uuid not null,
+    member_id bigint not null,
+
+    assigned_by bigint,
+    assigned_at timestamptz not null default now(),
+
+    primary key (task_id, member_id),
+
+    foreign key (task_id)
+        references task(id)
+        on delete cascade,
+
+    foreign key (member_id)
+        references member(id),
+
+    foreign key (assigned_by)
+        references member(id)
+);
+create table milestone (
+    id uuid primary key default gen_random_uuid(),
+
+    organization_id bigint not null,
+    created_by bigint not null,
+
+    status_id uuid,
+
+    title text not null,
+    description jsonb not null default '{}'::jsonb,
+
+    start_at timestamptz,
+    target_at timestamptz,
+    completed_at timestamptz,
+
+    sort_order integer not null default 0,
+
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now(),
+
+    constraint fk_milestone_organization
+        foreign key (organization_id)
+        references organization(id)
+        on delete cascade,
+
+    constraint fk_milestone_created_by
+        foreign key (created_by)
+        references member(id),
+
+    constraint fk_job_status
+        foreign key (organization_id, status_id)
+        references job_status(organization_id, id),
+
+    constraint uq_milestone_organization_id
+        unique (organization_id, id)
+);
+create table task_status (
+    id uuid primary key default gen_random_uuid(),
+
+    organization_id bigint not null,
+    text text not null,
+
+    created_at timestamptz not null default now(),
+
+    constraint fk_task_status_organization
+        foreign key (organization_id)
+        references organization(id)
+        on delete cascade,
+
+    constraint uq_task_status_organization_text
+        unique (organization_id, text),
+
+    constraint uq_task_status_organization_id
+        unique (organization_id, id)
+);
+create table task_difficulty (
+    id uuid primary key default gen_random_uuid(),
+
+    organization_id bigint not null,
+    text text not null,
+
+    sort_order integer not null default 0,
+
+    created_at timestamptz not null default now(),
+
+    constraint fk_task_difficulty_organization
+        foreign key (organization_id)
+        references organization(id)
+        on delete cascade,
+
+    constraint uq_task_difficulty_organization_text
+        unique (organization_id, text),
+
+    constraint uq_task_difficulty_organization_id
+        unique (organization_id, id)
+);
+create table task_urgency (
+    id uuid primary key default gen_random_uuid(),
+
+    organization_id bigint not null,
+    text text not null,
+
+    sort_order integer not null default 0,
+
+    created_at timestamptz not null default now(),
+
+    constraint fk_task_urgency_organization
+        foreign key (organization_id)
+        references organization(id)
+        on delete cascade,
+
+    constraint uq_task_urgency_organization_text
+        unique (organization_id, text),
+
+    constraint uq_task_urgency_organization_id
+        unique (organization_id, id)
+);
+status는 별도의 테이블에서 organization의 id와 text를 컬럼으로 한 테이블을 참조하는 방식으로
+description은 json으로

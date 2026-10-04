@@ -11,12 +11,11 @@
 import type { UserSupabaseClient } from '../supabase/user-client'
 import { clientArr, daysUntil, healthStatus, isCustomer, toHealthNumber, HEALTH_MAX, HEALTH_THRESHOLDS } from '../domain/health'
 import type { ClientRow } from './clients.service'
+import { readMyTasks } from './tasks.service'
 
 const PORTFOLIO_COLUMNS = 'id,name,health,status,arr,mrr,renewal_date,lifecycle,churn_risk'
 const PORTFOLIO_FILTERABLE = ['id', 'name', 'health', 'status', 'arr', 'mrr', 'renewal_date', 'lifecycle', 'churn_risk'] as const
 
-const TASK_COLUMNS = 'id,title,due_date,status'
-const TASK_FILTERABLE = ['id', 'user_id', 'due_date', 'status', 'client_id', 'created_at'] as const
 
 /**
  * Scan ceiling for the portfolio aggregate. A portfolio larger than this produces a
@@ -33,13 +32,8 @@ export async function getPortfolioSummary(db: UserSupabaseClient, userId: string
       limit: PORTFOLIO_SCAN_LIMIT,
       allowedColumns: PORTFOLIO_FILTERABLE,
     }),
-    db.select<{ id: string; title: string | null; due_date: string | null; status: string | null }>('tasks', {
-      columns: TASK_COLUMNS,
-      filters: [{ column: 'user_id', op: 'eq', value: userId }],
-      order: { column: 'due_date', ascending: true },
-      limit: 200,
-      allowedColumns: TASK_FILTERABLE,
-    }),
+    // CORE-V2-TASK (04/10/2026): the caller's own tasks, core_v2_my_tasks (see tasks.service.ts)
+    readMyTasks(db),
   ])
 
   const reference = new Date()
@@ -77,7 +71,7 @@ export async function getPortfolioSummary(db: UserSupabaseClient, userId: string
   }).length
 
   const overdueTasks = tasks.filter((t) => {
-    const d = daysUntil(t.due_date, reference)
+    const d = daysUntil(t.due_at ? String(t.due_at).slice(0, 10) : null, reference)
     return d !== null && d < 0 && t.status !== 'done'
   }).length
 

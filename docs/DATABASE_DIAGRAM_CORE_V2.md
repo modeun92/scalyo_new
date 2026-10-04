@@ -3,7 +3,8 @@
 **Generated** 26 September 2026 from the migrations as they stand in the working tree:
 `supabase/migrations/20260920100000_core_v2_schema.sql`, `…110000_core_v2_sync_triggers.sql`,
 `…120000_core_v2_backfill.sql` and `20260924100000_core_v2_stage1_user_profiles.sql` — stage 1
-(`user_profiles`) and stage 3a (`clients`, `client_notes`) included. **25 tables, 40 foreign keys, 10 enums** —
+(`user_profiles`) and stage 3a (`clients`, `client_notes`) included; §3b adds the projects and tasks of
+`20261004130000` (04/10/2026). **32 tables, 60 foreign keys, 10 enums** —
 plus, in §8, the 29 old tables that stay and where their references land.
 
 > **Not applied to any Supabase project yet.** Tested on a local PostgreSQL 16 with Supabase stand-ins
@@ -244,6 +245,102 @@ erDiagram
   personage |o--o{ subscription : "obtained by"
   organization ||--o{ consent : "given in"
   personage ||--o{ consent : "whose"
+```
+
+## 3b. Projects and tasks
+
+`20261004130000` (04/10/2026) replaces the old `projects` and `tasks`. A task always belongs to a project
+(decided); a milestone belongs to the organization, not to a project (decided). Status, difficulty and
+urgency are per-organization lookups, seeded for every organization (`todo` / `in_progress` / `blocked` /
+`done`; difficulty and urgency 1..5 as `sort_order`); their `text` is a persisted key the app translates.
+Every reference inside the group carries `organization_id`, so nothing points across companies.
+
+```mermaid
+erDiagram
+  project {
+    uuid id PK
+    bigint organization_id FK "not null; cascade"
+    bigint created_by FK "member; set null"
+    text title "not null"
+    jsonb description "not null; default {}"
+    timestamptz created_at "not null"
+    timestamptz updated_at "not null; trigger"
+  }
+  milestone {
+    uuid id PK
+    bigint organization_id FK "not null; cascade"
+    bigint created_by FK "member; set null"
+    uuid status_id FK "(org, status) -> task_status"
+    text title "not null"
+    jsonb description "not null"
+    timestamptz start_at
+    timestamptz target_at
+    timestamptz completed_at
+    int sort_order "not null"
+  }
+  task {
+    uuid id PK
+    bigint organization_id FK "not null; cascade; UK with id"
+    uuid project_id FK "NOT NULL; (org, project)"
+    uuid milestone_id FK "(org, milestone); set null"
+    uuid parent_task_id FK "(org, task); cascade"
+    uuid status_id FK "(org, status)"
+    uuid difficulty_id FK "(org, difficulty)"
+    uuid urgency_id FK "(org, urgency)"
+    bigint client_group_id FK "set null; decided 04/10"
+    bigint created_by FK "member; set null"
+    text title "not null"
+    jsonb description "not null"
+    text_array tags "not null; decided 04/10"
+    interval expected_duration
+    interval min_duration "<= max_duration"
+    interval max_duration
+    timestamptz start_at
+    timestamptz due_at
+    int sort_order "not null"
+  }
+  task_assignee {
+    uuid task_id PK, FK "cascade"
+    bigint member_id PK, FK "cascade; same organization (RLS)"
+    bigint assigned_by FK "member; set null"
+    timestamptz assigned_at "not null"
+  }
+  task_status {
+    uuid id PK
+    bigint organization_id FK "cascade; UK (org, text)"
+    text text "todo · in_progress · blocked · done"
+    int sort_order "added: Kanban order"
+  }
+  task_difficulty {
+    uuid id PK
+    bigint organization_id FK "cascade; UK (org, text)"
+    text text "very_easy .. very_hard"
+    int sort_order "1..5"
+  }
+  task_urgency {
+    uuid id PK
+    bigint organization_id FK "cascade; UK (org, text)"
+    text text "very_low .. critical"
+    int sort_order "1..5"
+  }
+  organization ||--o{ project : "owns"
+  organization ||--o{ milestone : "owns"
+  organization ||--o{ task : "owns"
+  organization ||--o{ task_status : "seeded"
+  organization ||--o{ task_difficulty : "seeded"
+  organization ||--o{ task_urgency : "seeded"
+  project ||--o{ task : "holds"
+  milestone |o--o{ task : "marks"
+  task |o--o{ task : "sub-task of"
+  task_status |o--o{ task : "status"
+  task_status |o--o{ milestone : "status"
+  task_difficulty |o--o{ task : "difficulty"
+  task_urgency |o--o{ task : "urgency"
+  client_group |o--o{ task : "for client"
+  task ||--o{ task_assignee : "assigned"
+  member ||--o{ task_assignee : "assignee"
+  member |o--o{ project : "created"
+  member |o--o{ task : "created"
 ```
 
 ## 4. Reference data
@@ -579,10 +676,10 @@ are in [SCHEMA_FROM_CODE.sql](SCHEMA_FROM_CODE.sql).
 | `client_metrics` | Client work | `client_id` (FK → clients, cascade)<br>**→ `client_group.company_id`**<br>*clients only — an application rule* | `organization_id` (inferred)<br>**→ `organization.company_id`** | `user_id` (FK → profiles, set null) | — |
 | `copils` | Client work | `client_id` (FK → clients, set null)<br>**→ `client_group.company_id`**<br>*prospects move too* | — | `user_id` (inferred) | — |
 | `quotes` | Client work | `client_id` (FK → clients, set null)<br>**→ `client_group.company_id`**<br>*prospects move too* | `organization_id` (inferred)<br>*on hold* | `user_id` (FK → profiles, set null) | — |
-| `tasks` | Client work | `client_id` (inferred)<br>**→ `client_group.company_id`**<br>*prospects move too* | — | `user_id` (inferred) | `project_id` (inferred — projects) |
+| `tasks` | Client work | **replaced by core_v2 `task`** (04/10/2026, §3b): `client_id` → `task.client_group_id` | — | `user_id` → `task.created_by` | `project_id` → `task.project_id` |
 | `playbooks` | Client work | `client_id` (inferred)<br>**→ `client_group.company_id`**<br>*prospects move too* | — | `user_id` (inferred)<br>`csm_id` (inferred) | — |
 | `planning_events` | Client work | `client_id` (inferred)<br>**→ `client_group.company_id`**<br>*prospects move too* | — | `user_id` (in code — NOT NULL, RLS auth.uid()) | — |
-| `projects` | Client work | — | — | `user_id` (inferred) | — |
+| `projects` | Client work | — **replaced by core_v2 `project`** (04/10/2026, §3b; it moves to the creator's organization) | — | `user_id` → `project.created_by` | — |
 | `roadmaps` | Client work | — | — | `user_id` (inferred) | — |
 | `snapshots` | Client work | — | — | `user_id` (inferred) | — |
 | `chat_channels` | Team chat | — | `organization_id` (inferred)<br>**→ `company.id`** | `created_by` (FK → auth.users, set null) | — |

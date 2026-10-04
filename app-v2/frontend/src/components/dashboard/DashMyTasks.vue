@@ -35,7 +35,8 @@
             </span>
           </div>
         </div>
-        <span v-if="task.priority === 'urgent'" class="dash_my_tasks_priority_badge urgent">🔴</span>
+        <!-- CORE-V2-TASK: urgency (high or critical), the priority quadrant being gone from the model -->
+        <span v-if="(task.urgency ?? 0) >= 4" class="dash_my_tasks_priority_badge urgent">🔴</span>
       </div>
       <div v-if="!filteredTasks.length" class="empty_state">{{ t('no_data') }}</div>
     </div>

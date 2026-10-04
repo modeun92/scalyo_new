@@ -1,32 +1,39 @@
 // Task reads for MCP.
 //
-// MCP-TASKS-SELF (14/09/2026): filtered to user_id = the authenticated user, matching
-// what context.service.js does for the AI context. `tasks` is a 30-column table whose RLS
-// is not org-wide the way `clients` is; an unfiltered read here would be a behaviour
-// change disguised as a feature. get_my_tasks means MY tasks.
+// MCP-TASKS-SELF (14/09/2026): MY tasks only. Since 04/10/2026 (CORE-V2-TASK) tasks live in core_v2
+// and "mine" has one definition, the read-only RPC core_v2_my_tasks() (20261004130000): the tasks the
+// caller created or is assigned to, read under their own token and RLS (SECURITY INVOKER), the same
+// function the AI context reads. An organization-wide read here would be a behaviour change disguised
+// as a feature.
 
 import type { UserSupabaseClient } from '../supabase/user-client'
 import { daysUntil } from '../domain/health'
+import { ScalyoMcpError } from '../errors'
 
-const TASK_COLUMNS = 'id,title,due_date,status,priority,client_id,created_at'
-const TASK_FILTERABLE = ['id', 'user_id', 'due_date', 'status', 'priority', 'client_id', 'created_at'] as const
-
-// Excluded on purpose: description and subtasks are free-form CSM prose, same privacy
-// class as client notes; the estimation columns (min/max/expected/actual_hours,
-// difficulty, importance) feed Oxygen workload, which is legally self-only data and has
-// no business reaching an external AI client.
+// Never returned, and core_v2_my_tasks does not select them: description is free-form CSM prose, same
+// privacy class as client notes; the estimation (expected / min / max duration, difficulty) feeds
+// Oxygen workload, which is legally self-only data and has no business reaching an external AI client.
 export const EXCLUDED_TASK_COLUMNS = [
-  'description', 'subtasks', 'min_hours', 'max_hours', 'expected_hours', 'actual_hours', 'difficulty', 'importance', 'level',
+  'description', 'expected_duration', 'min_duration', 'max_duration', 'difficulty_id',
 ] as const
 
-export interface TaskRow {
+export interface MyTaskRow {
   id: string
   title: string | null
-  due_date: string | null
   status: string | null
-  priority?: string | null
-  client_id?: string | null
-  created_at?: string | null
+  urgency: number | null
+  due_at: string | null
+  project_id: string | null
+  client_id: string | null
+  assigned_to_me: boolean
+  created_at: string | null
+}
+
+export async function readMyTasks(db: UserSupabaseClient): Promise<MyTaskRow[]> {
+  const rows = await db.rpc<MyTaskRow[] | null>('core_v2_my_tasks')
+  // R21: an answer that is not a list is an upstream fault, never "no tasks".
+  if (!Array.isArray(rows)) throw new ScalyoMcpError('UPSTREAM_UNAVAILABLE', 'core_v2_my_tasks did not return an array')
+  return rows
 }
 
 export interface GetMyTasksInput {
@@ -35,27 +42,23 @@ export interface GetMyTasksInput {
   limit: number
 }
 
-export async function getMyTasks(db: UserSupabaseClient, userId: string, input: GetMyTasksInput) {
-  const rows = await db.select<TaskRow>('tasks', {
-    columns: TASK_COLUMNS,
-    filters: [{ column: 'user_id', op: 'eq', value: userId }],
-    order: { column: 'due_date', ascending: true },
-    limit: Math.min(input.limit * 3, 200),
-    allowedColumns: TASK_FILTERABLE,
-  })
+export async function getMyTasks(db: UserSupabaseClient, input: GetMyTasksInput) {
+  const rows = await readMyTasks(db)
 
   const reference = new Date()
   const mapped = rows
     .filter((t) => (input.includeDone ? true : t.status !== 'done'))
     .map((t) => {
-      const days = daysUntil(t.due_date, reference)
+      // the due date is a calendar day stored at noon UTC (TASK-DATE-NOON): its first 10 characters
+      const dueDate = t.due_at ? String(t.due_at).slice(0, 10) : null
+      const days = daysUntil(dueDate, reference)
       return {
         id: t.id,
         title: t.title,
         status: t.status,
-        priority: t.priority ?? null,
+        urgency: t.urgency ?? null,
         clientId: t.client_id ?? null,
-        dueDate: t.due_date,
+        dueDate,
         daysUntilDue: days,
         overdue: days !== null && days < 0 && t.status !== 'done',
       }

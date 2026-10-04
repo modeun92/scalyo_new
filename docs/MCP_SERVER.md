@@ -70,7 +70,7 @@ ChatGPT where to find the authorization server, and it is the step that makes Sc
 | `get_client_overview` | One account in detail, by id. |
 | `get_at_risk_clients` | Accounts needing attention, ranked, each with machine-readable `riskReasons`. |
 | `get_upcoming_renewals` | Renewals within N days, strictly future-dated. |
-| `get_my_tasks` | The signed-in user's own tasks, each flagged overdue or not. |
+| `get_my_tasks` | The signed-in user's own tasks — created by or assigned to them, through the read-only `core_v2_my_tasks()` (SECURITY INVOKER, the second RPC of `MCP-RPC-ALLOWLIST`, 04/10/2026) — each flagged overdue or not, with its urgency level (the priority quadrant is gone from the model). |
 | `search` / `fetch` | Thin adapters over `search_clients` / `get_client_overview`, needed **only** for ChatGPT Company Knowledge. They add **no** new data access. Ordinary MCP use, Claude included, does not need them — delete them if Company Knowledge is dropped ([MCP_OPEN_QUESTIONS.md](MCP_OPEN_QUESTIONS.md) Q3). |
 
 Tools express **goals, not tables**. `get_at_risk_clients` exists instead of a generic

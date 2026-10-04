@@ -11,6 +11,7 @@
 *.key
 *.p12
 .sentryclirc
+*.pdf
 report/
 scalyo_screens/
 

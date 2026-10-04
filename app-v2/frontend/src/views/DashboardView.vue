@@ -155,7 +155,9 @@ const watchAccounts = computed(() =>
 
 const myTasks = computed(() => {
   const u = auth.user; if (!u) return []
-  return tasks.tasks.filter(task => { const a = String(task.assignee).toLowerCase(); return a === u.id || a === u.firstName?.toLowerCase() || a === u.displayName?.toLowerCase() || a === u.email?.toLowerCase() })
+  // CORE-V2-TASK (04/10/2026): assignees are task_assignee rows, read back as login ids — the old
+  // match on a typed first name / e-mail had nothing left to match.
+  return tasks.tasks.filter(task => task.assignees.includes(u.id))
 })
 const activeTaskTab = ref('all')
 const taskTabs = computed(() => [

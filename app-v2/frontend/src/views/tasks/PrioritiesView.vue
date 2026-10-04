@@ -7,10 +7,10 @@
       :title="t('ai_matrix_title')"
       :button-label="t('ai_matrix_btn')"
       :message="t('ai_matrix_prompt')"
-      :context="{ tasks: tasks.tasks?.map(t => ({ title: t.title, priority: t.priority, status: t.status, dueDate: t.dueDate })) || [] }"
+      :context="{ tasks: tasks.tasks?.map(x => ({ title: x.title, urgency: x.urgency, status: x.status, dueDate: x.dueDate })) || [] }"
     />
 
-    <!-- Unclassified -->
+    <!-- Unclassified: no urgency yet -->
     <div class="priority_unclassified">
       <h3>{{ t('smart_matrix_not_classified') }} <span class="priority_count">{{ unclassified.length }}</span></h3>
       <div class="priority_cards_row" @dragover.prevent @drop="onDrop($event, null)">
@@ -21,15 +21,15 @@
       </div>
     </div>
 
-    <!-- Eisenhower Matrix -->
+    <!-- One column per urgency level of the organization, most urgent first -->
     <div class="matrix">
-      <div v-for="q in quadrants" :key="q.key" class="matrix_quad" :class="q.key" @dragover.prevent @drop="onDrop($event, q.key)">
+      <div v-for="u in levels" :key="u.id" class="matrix_quad" :class="'tone_' + urgencyTone(u.level)" @dragover.prevent @drop="onDrop($event, u.level)">
         <div class="matrix_quadrant_header">
-          <strong>{{ t(q.labelKey) }}</strong>
-          <span class="matrix_quadrant_description">{{ t(q.descKey) }}</span>
+          <strong>{{ urgencyLabel(i18n, u.key) }}</strong>
+          <span class="matrix_quadrant_description">{{ levelTasks(u.level).length }}</span>
         </div>
         <div class="matrix_quadrant_tasks">
-          <div v-for="task in quadrantTasks(q.key)" :key="task.id" class="matrix_quadrant_card" draggable="true" @dragstart="onDragStart($event, task)">
+          <div v-for="task in levelTasks(u.level)" :key="task.id" class="matrix_quadrant_card" draggable="true" @dragstart="onDragStart($event, task)">
             <span class="matrix_quadrant_status" :class="task.status" />
             <div class="matrix_quadrant_info">
               <strong>{{ task.title }}</strong>
@@ -37,7 +37,7 @@
             </div>
             <span class="matrix_quadrant_due" :class="{ late: isOverdue(task) }">{{ task.dueDate ? fmtDate(task.dueDate) : '' }}</span>
           </div>
-          <div v-if="!quadrantTasks(q.key).length" class="matrix_quadrant_empty">{{ t('smart_matrix_no_tasks') }}</div>
+          <div v-if="!levelTasks(u.level).length" class="matrix_quadrant_empty">{{ t('smart_matrix_no_tasks') }}</div>
         </div>
       </div>
     </div>
@@ -50,30 +50,29 @@ import { useI18n } from 'vue-i18n'
 import { useTaskStore } from '@/stores/tasks'
 import { useClientStore } from '@/stores/clients'
 import AiInsightPanel from '@/components/ai/AiInsightPanel.vue'
-import { fmtDate } from '@/lib/formatters' // DATE-RAW
+import { fmtDate, localDateKey } from '@/lib/formatters' // DATE-RAW
+import { urgencyLabel, urgencyTone } from '@/lib/taskLabels'
 
-const { t } = useI18n({ useScope: 'global' })
+const i18n = useI18n({ useScope: 'global' })
+const { t } = i18n
 const tasks = useTaskStore()
 const clients = useClientStore()
 
 let draggedTask = null
 
-const quadrants = [
-  { key: 'urgent_important', labelKey: 'smart_matrix_do_now', descKey: 'smart_matrix_do_now_desc' },
-  { key: 'important', labelKey: 'smart_matrix_schedule', descKey: 'smart_matrix_schedule_desc' },
-  { key: 'urgent', labelKey: 'smart_matrix_delegate', descKey: 'smart_matrix_delegate_desc' },
-  { key: 'not_urgent', labelKey: 'smart_matrix_eliminate', descKey: 'smart_matrix_eliminate_desc' },
-]
-
-const unclassified = computed(() => tasks.tasks.filter(t => !t.priority || !quadrants.some(q => q.key === t.priority)))
-function quadrantTasks(key) { return tasks.tasks.filter(t => t.priority === key && t.status !== 'done') }
+// CORE-V2-TASK (decided 04/10/2026): the priority quadrants (urgent_important / important / urgent /
+// not_urgent) are not in the task model any more; the matrix sorts by the organization's urgency levels
+// (task_urgency), and dropping a task on a column sets its urgency.
+const levels = computed(() => [...tasks.urgencies].sort((a, b) => b.level - a.level))
+const unclassified = computed(() => tasks.tasks.filter(x => x.urgency == null && x.status !== 'done' && !x.parentId))
+function levelTasks(level) { return tasks.tasks.filter(x => x.urgency === level && x.status !== 'done' && !x.parentId) }
 function clientName(id) { return clients.clients.find(c => c.id === id)?.name || '' }
-function isOverdue(task) { return task.status !== 'done' && task.dueDate < new Date().toISOString().slice(0, 10) }
+function isOverdue(task) { return task.status !== 'done' && !!task.dueDate && task.dueDate < localDateKey() }
 
 function onDragStart(e, task) { draggedTask = task; e.dataTransfer.effectAllowed = 'move' }
-function onDrop(e, priority) {
+function onDrop(e, level) {
   if (draggedTask) {
-    tasks.updateTask(draggedTask.id, { priority })
+    tasks.updateTask(draggedTask.id, { urgency: level })
     draggedTask = null
   }
 }
@@ -93,13 +92,13 @@ function onDrop(e, priority) {
 .priority_chip:active { cursor: grabbing; }
 .priority_empty_hint { font-size: 0.78rem; color: var(--text-muted); padding: 8px; }
 
-.matrix { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.matrix { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; }
 .matrix_quad { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 16px; min-height: 200px; transition: all 0.2s; }
 .matrix_quad:hover { border-color: var(--border); }
-.matrix_quad.urgent_important { border-top: 3px solid var(--red); }
-.matrix_quad.important { border-top: 3px solid var(--blue); }
-.matrix_quad.urgent { border-top: 3px solid var(--amber); }
-.matrix_quad.not_urgent { border-top: 3px solid var(--text-muted); }
+.matrix_quad.tone_critical { border-top: 3px solid var(--red); }
+.matrix_quad.tone_high { border-top: 3px solid var(--amber); }
+.matrix_quad.tone_medium { border-top: 3px solid var(--blue); }
+.matrix_quad.tone_low { border-top: 3px solid var(--text-muted); }
 
 .matrix_quadrant_header { margin-bottom: 12px; }
 .matrix_quadrant_header strong { font-size: 0.9rem; display: block; }

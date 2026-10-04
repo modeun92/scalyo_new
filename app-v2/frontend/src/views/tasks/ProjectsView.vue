@@ -5,7 +5,7 @@
       <div class="import_project_select">
         <label>{{ t('smart_import_select_project') }}</label>
         <select v-model="importProjectId" class="mapping_select">
-          <option v-for="p in taskStore.projects" :key="p.id" :value="p.id">{{ p.name }}</option>
+          <option v-for="p in taskStore.projects" :key="p.id" :value="p.id">{{ projectLabel({ t }, p) }}</option>
         </select>
         <p class="import_hint">{{ t('smart_import_select_project_hint') }}</p>
       </div>
@@ -50,12 +50,8 @@
               <th class="column_scroll column_date">{{ t('smart_matrix_col_start') }}</th>
               <th class="column_scroll column_date">{{ t('smart_matrix_col_end') }}</th>
               <th class="column_scroll column_badge">{{ t('smart_matrix_col_urgency') }}</th>
-              <th class="column_scroll column_badge">{{ t('smart_matrix_col_importance') }}</th>
               <th class="column_scroll column_badge">{{ t('smart_matrix_col_difficulty') }}</th>
               <th class="column_scroll column_status">{{ t('status_todo').split(' ')[0] }}</th>
-              <th class="column_scroll column_check">{{ t('smart_matrix_col_finished') }}</th>
-              <th class="column_scroll column_check">{{ t('smart_matrix_col_pended') }}</th>
-              <th class="column_scroll column_number_input">{{ t('smart_matrix_col_actual') }}</th>
               <th class="column_scroll column_number_input">{{ t('smart_matrix_col_expected') }}</th>
               <th class="column_scroll column_number_input">{{ t('smart_matrix_col_min') }}</th>
               <th class="column_scroll column_number_input">{{ t('smart_matrix_col_max') }}</th>
@@ -66,7 +62,7 @@
           </thead>
           <tbody>
             <template v-for="(row, ri) in visibleRows" :key="row.id">
-              <tr :class="['row_level' + (row.level || 0), { 'row_project': row.type === 'project', 'row_done': row.finished, 'row_drag_over': dragOverRowId === row.id }]"
+              <tr :class="['row_level' + (row.level || 0), { 'row_project': row.type === 'project', 'row_done': row.status === 'done', 'row_drag_over': dragOverRowId === row.id }]"
                 @dragover.prevent="onRowDragOver($event, row)"
                 @drop="onRowDrop($event, row)">
                 <td class="column_fix column_expand">
@@ -77,13 +73,12 @@
                 </td>
                 <td class="column_fix column_number">{{ ri + 1 }}</td>
                 <td class="column_fix column_title" :style="{ paddingLeft: (12 + (row.level || 0) * 24) + 'px' }">
-                  <span v-if="row.type === 'project'" class="proj_dot" :style="{ background: row.color || '#7c3aed' }" />
                   <span v-if="editCell === row.id + '_title'" class="edit_wrapper">
                     <input v-model="row.title" class="cell_input title_input" @keydown.enter="saveCell(row)" @keydown.tab.prevent="saveCell(row)" @keydown.escape="editCell = null" />
                   </span>
-                  <span v-else class="cell_text title_text" :class="{ bold: row.type === 'project' }" @click="editCell = row.id + '_title'">{{ row.title || '—' }}</span>
+                  <span v-else class="cell_text title_text" :class="{ bold: row.type === 'project' }" @click="editCell = row.id + '_title'">{{ (row.type === 'project' ? projectLabel({ t }, row) : row.title) || '—' }}</span>
                   <button v-if="row.type === 'project'" class="add_task_button" @click.stop="addTaskToProject(row.id)">+ {{ t('smart_matrix_new_task') }}</button>
-                  <button v-else class="add_sub_button" @click.stop="addSubtaskToRow(row)">+</button>
+                  <button v-else-if="row.type === 'task'" class="add_sub_button" @click.stop="addSubtaskToRow(row)">+</button>
                 </td>
                 <td class="column_scroll column_date" @click="editCell = row.id + '_startDate'">
                   <input v-if="editCell === row.id + '_startDate'" v-model="row.startDate" type="date" class="cell_input" @keydown.enter="saveCell(row)" @blur="saveCell(row)" />
@@ -93,28 +88,17 @@
                   <input v-if="editCell === row.id + '_endDate'" v-model="row.endDate" type="date" class="cell_input" @keydown.enter="saveCell(row)" @blur="saveCell(row)" />
                   <span v-else class="cell_text">{{ row.endDate ? fmtDate(row.endDate) : '—' }}</span>
                 </td>
-                <td class="column_scroll column_badge" @click="cycleBadge(row, 'urgency')">
-                  <span class="badge_number" :class="'bar_' + (row.urgency || 3)">{{ row.urgency || 3 }}</span>
+                <td class="column_scroll column_badge" @click="row.type !== 'project' && cycleBadge(row, 'urgency')">
+                  <span v-if="row.type !== 'project'" class="badge_number" :class="'bar_' + (row.urgency ?? 0)" :title="levelTitle('urgency', row.urgency)">{{ row.urgency ?? '—' }}</span>
                 </td>
-                <td class="column_scroll column_badge" @click="cycleBadge(row, 'importance')">
-                  <span class="badge_number" :class="'bar_' + (row.importance || 3)">{{ row.importance || 3 }}</span>
-                </td>
-                <td class="column_scroll column_badge" @click="cycleBadge(row, 'difficulty')">
-                  <span class="badge_number" :class="'bar_' + (row.difficulty || 3)">{{ row.difficulty || 3 }}</span>
+                <td class="column_scroll column_badge" @click="row.type !== 'project' && cycleBadge(row, 'difficulty')">
+                  <span v-if="row.type !== 'project'" class="badge_number" :class="'bar_' + (row.difficulty ?? 0)" :title="levelTitle('difficulty', row.difficulty)">{{ row.difficulty ?? '—' }}</span>
                 </td>
                 <td class="column_scroll column_status">
-                  <select v-model="row.status" class="cell_select" :class="'status_' + row.status" @change="saveCell(row)">
-                    <option value="todo">{{ t('status_todo') }}</option>
-                    <option value="in_progress">{{ t('status_in_progress') }}</option>
-                    <option value="blocked">{{ t('status_blocked') }}</option>
-                    <option value="done">{{ t('status_done') }}</option>
+                  <select v-if="row.type !== 'project'" v-model="row.status" class="cell_select" :class="'status_' + row.status" @change="saveCell(row)">
+                    <option v-if="!row.status" :value="null">—</option>
+                    <option v-for="s in taskStore.statuses" :key="s.id" :value="s.key">{{ statusLabel(i18n, s.key) }}</option>
                   </select>
-                </td>
-                <td class="column_scroll column_check"><input type="checkbox" v-model="row.finished" @change="saveCell(row)" /></td>
-                <td class="column_scroll column_check"><input type="checkbox" v-model="row.pended" @change="saveCell(row)" /></td>
-                <td class="column_scroll column_number_input" @click="editCell = row.id + '_actualHours'">
-                  <input v-if="editCell === row.id + '_actualHours'" v-model.number="row.actualHours" type="number" min="0" step="0.5" class="cell_input num" @keydown.enter="saveCell(row)" @blur="saveCell(row)" />
-                  <span v-else class="cell_text num">{{ row.actualHours || '—' }}</span>
                 </td>
                 <td class="column_scroll column_number_input" @click="editCell = row.id + '_expectedHours'">
                   <input v-if="editCell === row.id + '_expectedHours'" v-model.number="row.expectedHours" type="number" min="0" step="0.5" class="cell_input num" @keydown.enter="saveCell(row)" @blur="saveCell(row)" />
@@ -166,11 +150,7 @@
               <td class="column_scroll column_date"></td>
               <td class="column_scroll column_badge"></td>
               <td class="column_scroll column_badge"></td>
-              <td class="column_scroll column_badge"></td>
-              <td class="column_scroll column_status"></td>
-              <td class="column_scroll column_check">{{ totals.finished }}/{{ totals.total }}</td>
-              <td class="column_scroll column_check"></td>
-              <td class="column_scroll column_number_input"><strong>{{ totals.actual }}</strong></td>
+              <td class="column_scroll column_status">{{ totals.finished }}/{{ totals.total }}</td>
               <td class="column_scroll column_number_input"><strong>{{ totals.expected }}</strong></td>
               <td class="column_scroll column_number_input"><strong>{{ totals.min }}</strong></td>
               <td class="column_scroll column_number_input"><strong>{{ totals.max }}</strong></td>
@@ -194,12 +174,9 @@
     <SlideOver :open="slideOpen" :title="t('smart_matrix_new_project')" @close="slideOpen = false">
       <form @submit.prevent="createProject" class="slideover_form">
         <div class="field_group"><label>{{ t('smart_matrix_project_name') }} *</label><input v-model="newName" required class="field_input" /></div>
-        <div class="field_group"><label>{{ t('smart_matrix_project_color') }}</label>
-          <div class="color_picks"><button v-for="c in colors" :key="c" type="button" class="cpick" :class="{ active: newColor === c }" :style="{ background: c }" @click="newColor = c" /></div>
-        </div>
         <div class="form_actions">
           <button type="button" class="button_outline" @click="slideOpen = false">{{ t('cancel') }}</button>
-          <button type="submit" class="button_primary">{{ t('create') }}</button>
+          <button type="submit" class="button_primary" :disabled="creating">{{ t('create') }}</button>
         </div>
       </form>
     </SlideOver>
@@ -214,13 +191,15 @@ import SlideOver from '@/components/SlideOver.vue'
 import StandardImport from '@/components/import/StandardImport.vue'
 import { taskFields } from '@/config/importFields.js'
 import { fmtDate } from '@/lib/formatters' // DATE-RAW: read-mode cells are formatted, the date input stays ISO
+import { statusLabel, urgencyLabel, difficultyLabel, projectLabel } from '@/lib/taskLabels'
 
-const { t } = useI18n({ useScope: 'global' })
+const i18n = useI18n({ useScope: 'global' })
+const { t } = i18n
 const taskStore = useTaskStore()
 
 const slideOpen = ref(false)
 const newName = ref('')
-const newColor = ref('#7c3aed')
+const creating = ref(false)
 const editCell = ref(null)
 const expanded = reactive({})
 const resetStep = ref(0)
@@ -228,21 +207,18 @@ const deleteConfirmId = ref(null)
 const deleteConfirm2Id = ref(null)
 const showImport = ref(false)
 const importProjectId = ref('')
-const colors = ['#7c3aed', '#3b82f6', '#10b981', '#ef4444', '#f59e0b', '#ec4899', '#8b5cf6', '#06b6d4']
 
+// CORE-V2-TASK: every imported task goes into a project (a task always has one); with no project
+// to put them in, nothing is imported.
 var handleBulkImport = async function (rows) {
   var pid = importProjectId.value || (taskStore.projects[0]?.id || '')
+  if (!pid) return 0
   var count = 0
-  var errors = 0
   for (var i = 0; i < rows.length; i++) {
     try {
-      rows[i].projectId = pid
-      var result = await taskStore.addTask(rows[i])
-      if (result) count++
-      else errors++
-    } catch (e) {
-      errors++
-    }
+      var result = await taskStore.addTask({ ...rows[i], projectId: pid })
+      if (result?.success) count++
+    } catch (e) { /* counted as not imported */ }
   }
   if (count > 0) showImport.value = false
   return count
@@ -253,18 +229,19 @@ const rows = computed(() => {
   const result = []
   for (const project of taskStore.projects) {
     const p = { ...project, type: 'project', level: 0 }
-    const projectTasks = taskStore.tasks.filter(t => t.projectId === project.id)
+    // top-level tasks here; their sub-tasks under them (a sub-task carries the project too)
+    const projectTasks = taskStore.tasks.filter(t => t.projectId === project.id && !t.parentId)
     p.hasChildren = projectTasks.length > 0
     result.push(p)
     if (expanded[project.id] !== false) {
       for (const task of projectTasks) {
-        const taskRow = { ...task, type: task.type || 'task', level: task.level || 1 }
+        const taskRow = { ...task, type: 'task', level: 1 }
         const subs = taskStore.tasks.filter(t => t.parentId === task.id)
         taskRow.hasChildren = subs.length > 0
         result.push(taskRow)
         if (expanded[task.id]) {
           for (const sub of subs) {
-            result.push({ ...sub, type: 'subtask', level: sub.level || 2, hasChildren: false })
+            result.push({ ...sub, type: 'subtask', level: 2, hasChildren: false })
           }
         }
       }
@@ -282,7 +259,7 @@ function toggleExpand(id) {
 function saveCell(row) {
   editCell.value = null
   if (row.type === 'project') {
-    taskStore.updateProject ? taskStore.updateProject(row.id, row) : null
+    taskStore.updateProject(row.id, { title: row.title })
   } else {
     taskStore.updateTask(row.id, {
       title: row.title,
@@ -290,11 +267,7 @@ function saveCell(row) {
       startDate: row.startDate,
       endDate: row.endDate,
       urgency: row.urgency,
-      importance: row.importance,
       difficulty: row.difficulty,
-      finished: row.finished,
-      pended: row.pended,
-      actualHours: row.actualHours,
       expectedHours: row.expectedHours,
       minHours: row.minHours,
       maxHours: row.maxHours,
@@ -303,9 +276,15 @@ function saveCell(row) {
   }
 }
 
+// 1..5 then back to 1; a task with none starts at 1 (the old code started from an invented 3).
 function cycleBadge(row, field) {
-  row[field] = ((row[field] || 3) % 5) + 1
+  row[field] = ((row[field] || 0) % 5) + 1
   saveCell(row)
+}
+function levelTitle(field, level) {
+  const list = field === 'urgency' ? taskStore.urgencies : taskStore.difficulties
+  const key = list.find(x => x.level === level)?.key
+  return key ? (field === 'urgency' ? urgencyLabel(i18n, key) : difficultyLabel(i18n, key)) : ''
 }
 
 function avgHours(row) {
@@ -317,8 +296,7 @@ const totals = computed(() => {
   const allTasks = rows.value.filter(r => r.type !== 'project')
   return {
     total: allTasks.length,
-    finished: allTasks.filter(r => r.finished).length,
-    actual: allTasks.reduce((s, r) => s + (r.actualHours || 0), 0),
+    finished: allTasks.filter(r => r.status === 'done').length,
     expected: allTasks.reduce((s, r) => s + (r.expectedHours || 0), 0),
     min: allTasks.reduce((s, r) => s + (r.minHours || 0), 0),
     max: allTasks.reduce((s, r) => s + (r.maxHours || 0), 0),
@@ -330,33 +308,20 @@ const totals = computed(() => {
   }
 })
 
-function addTaskToProject(projectId) {
-  const newId = 't_' + Date.now()
-  taskStore.addTask({
-    id: newId,
-    title: '',
-    projectId,
-    parentId: null,
-    level: 1,
-    type: 'task',
-  })
+// The new row's title cell opens for typing — on the id the database gave it (the old code opened a
+// made-up 't_<time>' id no row ever had, so nothing opened).
+async function addTaskToProject(projectId) {
+  const res = await taskStore.addTask({ title: '', projectId })
+  if (!res?.success) return
   expanded[projectId] = true
-  editCell.value = newId + '_title'
+  editCell.value = res.data.id + '_title'
 }
 
-function addSubtaskToRow(parentRow) {
-  const newId = 'st_' + Date.now()
-  taskStore.addTask({
-    id: newId,
-    title: '',
-    projectId: parentRow.projectId || null,
-    parentId: parentRow.id,
-    level: (parentRow.level || 1) + 1,
-    type: 'subtask',
-  })
-  taskStore.updateTask(parentRow.id, { hasChildren: true })
+async function addSubtaskToRow(parentRow) {
+  const res = await taskStore.addTask({ title: '', projectId: parentRow.projectId, parentId: parentRow.id })
+  if (!res?.success) return
   expanded[parentRow.id] = true
-  editCell.value = newId + '_title'
+  editCell.value = res.data.id + '_title'
 }
 
 function confirmDelete(row) {
@@ -364,17 +329,14 @@ function confirmDelete(row) {
   deleteConfirm2Id.value = row.id
 }
 
-function finalDelete(row) {
+async function finalDelete(row) {
   deleteConfirm2Id.value = null
-  if (row.type === 'project') {
-    taskStore.deleteProject(row.id)
-  } else {
-    taskStore.deleteTask(row.id)
-  }
+  if (row.type === 'project') await taskStore.deleteProject(row.id)
+  else await taskStore.deleteTask(row.id)
 }
 
-function doResetAll() {
-  taskStore.resetAll()
+async function doResetAll() {
+  await taskStore.resetAll()
   resetStep.value = 0
 }
 
@@ -426,14 +388,18 @@ function onRowDrop(e, targetRow) {
   draggedRow.value = null
 }
 
-function createProject() {
-  taskStore.addProject({
-    name: newName.value,
-    color: newColor.value,
-    title: newName.value,
-  })
-  newName.value = ''
-  slideOpen.value = false
+// D-14: the panel closes on a created project only. A project has no colour any more (not in the model).
+async function createProject() {
+  if (creating.value) return
+  creating.value = true
+  try {
+    const res = await taskStore.addProject({ name: newName.value })
+    if (!res?.success) return
+    newName.value = ''
+    slideOpen.value = false
+  } finally {
+    creating.value = false
+  }
 }
 </script>
 
@@ -468,7 +434,6 @@ function createProject() {
 .column_date { width: 110px; min-width: 110px; }
 .column_badge { width: 70px; min-width: 70px; text-align: center; }
 .column_status { width: 100px; min-width: 100px; }
-.column_check { width: 60px; min-width: 60px; text-align: center; }
 .column_number_input { width: 80px; min-width: 80px; text-align: right; }
 .column_average { background: rgba(124,58,237,0.03); }
 .column_description { width: 200px; min-width: 200px; }
@@ -488,7 +453,6 @@ tr:hover .column_fix { background: var(--bg-hover); }
 .row_totals td { padding: 10px 8px; font-size: 0.78rem; }
 .exp_button { background: none; border: none; cursor: pointer; font-size: 0.75rem; color: var(--text-muted); padding: 2px 4px; border-radius: 4px; width: 100%; }
 .exp_button:hover { background: var(--bg-hover); color: var(--text); }
-.proj_dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; vertical-align: middle; }
 .cell_text { cursor: pointer; display: block; padding: 4px 4px; border-radius: 4px; min-height: 24px; transition: background 0.1s; }
 .cell_text:hover { background: var(--bg-hover); }
 .cell_text.num { text-align: right; font-variant-numeric: tabular-nums; }
@@ -523,16 +487,12 @@ tr:hover .button_delete { opacity: 0.4; }
 .status_in_progress { color: #2563eb; background: #eff6ff; }
 .status_blocked { color: #dc2626; background: #fef2f2; }
 .status_done { color: #059669; background: #f0fdf4; }
-.column_check input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--purple); cursor: pointer; }
 .slideover_form { display: flex; flex-direction: column; gap: 16px; }
 .field_group { display: flex; flex-direction: column; gap: 4px; }
 .field_group label { font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); }
 .field_input { padding: 9px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 0.85rem; outline: none; background: var(--bg-card); width: 100%; }
 .field_input:focus { border-color: var(--purple); }
 .form_actions { display: flex; gap: 10px; justify-content: flex-end; padding-top: 8px; border-top: 1px solid var(--border-light); }
-.color_picks { display: flex; gap: 8px; }
-.cpick { width: 28px; height: 28px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; transition: all 0.15s; }
-.cpick.active { border-color: var(--text); transform: scale(1.15); }
 .profile_view_empty { text-align: center; padding: 60px 20px; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); }
 .empty_icon { font-size: 3rem; margin-bottom: 16px; }
 .profile_view_empty h3 { font-size: 1.2rem; font-weight: 700; margin-bottom: 16px; }

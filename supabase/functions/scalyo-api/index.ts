@@ -87,15 +87,38 @@ serve(async (req) => {
     return respond(error ? { error: error.message } : { data }, error ? 400 : 201, corsHeaders)
   }
 
-  // GET /tasks
-  if (path === '/tasks' && req.method === 'GET') {
-    const { data, error } = await supabase.from('tasks').select('*').eq('user_id', userId).order('created_at', { ascending: false })
-    return respond(error ? { error: error.message } : { data, count: data?.length }, error ? 400 : 200, corsHeaders)
-  }
-
-  // POST /tasks
-  if (path === '/tasks' && req.method === 'POST') {
-    const { data, error } = await supabase.from('tasks').insert([{ ...body, user_id: userId }]).select().single()
+  // GET /tasks · POST /tasks
+  // CORE-V2-TASK (04/10/2026): tasks live in core_v2 (20261004130000). This client holds the service
+  // role, so the organization is filtered here, by hand: the key owner's tasks, in their organization.
+  // A new task needs a project of that organization (decided: a task always has one), and only the
+  // listed fields are taken — the old `{ ...body }` let a caller write any column, user_id included.
+  if (path === '/tasks' && (req.method === 'GET' || req.method === 'POST')) {
+    const { data: membership } = await supabase.rpc('core_v2_membership', { p_user: userId })
+    if (!membership) return respond({ error: 'No organization' }, 404, corsHeaders)
+    const org = membership.core_organization_id
+    if (req.method === 'GET') {
+      const { data, error } = await supabase.from('task')
+        .select('id, project_id, parent_task_id, title, status:task_status(text), due_at, created_at, updated_at')
+        .eq('organization_id', org).eq('created_by', membership.personage_id)
+        .order('created_at', { ascending: false })
+      return respond(error ? { error: error.message } : { data, count: data?.length }, error ? 400 : 200, corsHeaders)
+    }
+    const b = body as Record<string, unknown>
+    const projectId = String(b.project_id || '')
+    if (!projectId) return respond({ error: 'project_id required' }, 400, corsHeaders)
+    const { data: project } = await supabase.from('project').select('id').eq('id', projectId).eq('organization_id', org).maybeSingle()
+    if (!project) return respond({ error: 'Unknown project' }, 400, corsHeaders)
+    if (!b.title) return respond({ error: 'title required' }, 400, corsHeaders)
+    const due = String(b.due_date || '')
+    const { data, error } = await supabase.from('task').insert([{
+      organization_id: org,
+      project_id: projectId,
+      created_by: membership.personage_id,
+      title: String(b.title),
+      description: b.description ? { text: String(b.description) } : {},
+      // TASK-DATE-NOON: a calendar day is stored at noon UTC
+      due_at: /^\d{4}-\d{2}-\d{2}/.test(due) ? due.slice(0, 10) + 'T12:00:00Z' : null,
+    }]).select('id, project_id, title, due_at, created_at').single()
     return respond(error ? { error: error.message } : { data }, error ? 400 : 201, corsHeaders)
   }
 

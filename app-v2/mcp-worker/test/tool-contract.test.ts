@@ -33,7 +33,7 @@ const ENV = {
 } as unknown as Env
 
 function deps(select: UserSupabaseClient['select']): ToolDeps {
-  return { context: CONTEXT, db: { select, rpc: async () => null as never }, env: ENV, environment: 'test' }
+  return { context: CONTEXT, db: { select, rpc: async (fn: string) => (fn === 'core_v2_my_tasks' ? [] : null) as never }, env: ENV, environment: 'test' }
 }
 
 /** Captures what registerTool was called with, without a transport. */
@@ -287,7 +287,7 @@ describe('tool behaviour', () => {
     }) as never)
     registerScalyoTools(server, {
       context: { ...CONTEXT, organizationId: null, role: null },
-      db: { select: EMPTY, rpc: async () => null as never },
+      db: { select: EMPTY, rpc: async (fn: string) => (fn === 'core_v2_my_tasks' ? [] : null) as never },
       env: ENV,
       environment: 'test',
     })
@@ -307,7 +307,7 @@ describe('tool behaviour', () => {
     }) as never)
     registerScalyoTools(server, {
       context: CONTEXT,
-      db: { select: EMPTY, rpc: async () => null as never },
+      db: { select: EMPTY, rpc: async (fn: string) => (fn === 'core_v2_my_tasks' ? [] : null) as never },
       env: { ...ENV, MCP_RATE_LIMIT_HEAVY: { limit: async () => ({ success: false }) } } as unknown as Env,
       environment: 'test',
     })

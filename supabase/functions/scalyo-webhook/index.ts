@@ -72,19 +72,35 @@ serve(async (req) => {
     }
   }
 
+  // CORE-V2-TASK (04/10/2026): tasks live in core_v2 (20261004130000) and always belong to a project
+  // (decided): the payload must name one of the user's organization (project_id), or nothing is made.
+  // Only these fields are taken; priority and a free-text assignee have no home in the model.
   if (eventType.startsWith('task')) {
-    const task = {
-      user_id: userId,
+    const json = (body: unknown, status: number) => new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    const projectId = String((data as any).project_id || (data as any).projectId || '')
+    if (!projectId) return json({ error: 'project_id required' }, 400)
+    const { data: membership } = await supabase.rpc('core_v2_membership', { p_user: userId })
+    if (!membership) return json({ error: 'No organization' }, 404)
+    const org = membership.core_organization_id
+    const { data: project } = await supabase.from('project').select('id').eq('id', projectId).eq('organization_id', org).maybeSingle()
+    if (!project) return json({ error: 'Unknown project' }, 400)
+    const wanted = String((data as any).status || 'todo')
+    const { data: statuses } = await supabase.from('task_status').select('id, text').eq('organization_id', org)
+    const status = (statuses || []).find((s: any) => s.text === wanted) || (statuses || []).find((s: any) => s.text === 'todo')
+    const due = String((data as any).due_date || (data as any).deadline || '')
+    const description = (data as any).description || (data as any).notes || ''
+    const { data: created, error } = await supabase.from('task').insert([{
+      organization_id: org,
+      project_id: projectId,
+      created_by: membership.personage_id,
       title: (data as any).title || (data as any).name || 'Tâche webhook',
-      description: (data as any).description || (data as any).notes || '',
-      status: (data as any).status || 'todo',
-      priority: (data as any).priority || 'important',
-      assignee: (data as any).assignee || (data as any).owner || '',
-      due_date: (data as any).due_date || (data as any).deadline || null,
-      updated_at: new Date().toISOString(),
-    }
-    const { data: created } = await supabase.from('tasks').insert([task]).select().single()
-    return new Response(JSON.stringify({ success: true, action: 'task_created', id: created?.id }), { status: 201, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      description: description ? { text: String(description) } : {},
+      status_id: status ? status.id : null,
+      // TASK-DATE-NOON: a calendar day is stored at noon UTC
+      due_at: /^\d{4}-\d{2}-\d{2}/.test(due) ? due.slice(0, 10) + 'T12:00:00Z' : null,
+    }]).select('id').single()
+    if (error) return json({ error: error.message }, 400)
+    return json({ success: true, action: 'task_created', id: created?.id }, 201)
   }
 
   // Generic — store as note

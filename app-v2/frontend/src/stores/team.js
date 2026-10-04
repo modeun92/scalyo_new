@@ -118,6 +118,8 @@ export const useTeamStore = defineStore('team', () => {
       if (error) throw error
       members.value = (Array.isArray(data) ? data : []).filter(m => m.user_id).map(m => ({
         id: m.user_id,
+        // CORE-V2-TASK: task_assignee holds the core_v2 personage id; the task store maps it to this id
+        personageId: m.personage_id ?? null,
         name: [m.first_name, m.last_name].filter(Boolean).join(' ') || '',
         email: '', role: m.role || 'member',
         jobStatus: m.job_status || null,

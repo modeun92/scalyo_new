@@ -34,6 +34,10 @@ export async function onRequestPost(context) {
   }
 
   // Delete from all user-scoped tables (order matters for FK constraints)
+  // CORE-V2-TASK (04/10/2026): 'tasks' / 'projects' here are the OLD tables, kept until their drop
+  // migration. The core_v2 task / project rows a person created are organization records: deleting the
+  // person's core_v2 personage (through the profile mirror) sets their created_by to NULL and removes
+  // their task_assignee rows (20261004130000), the work stays with the organization.
   const tables = [
     'ai_messages', 'ai_usage', 'chat_messages',
     'client_contacts', 'client_notes', 'client_tasks',

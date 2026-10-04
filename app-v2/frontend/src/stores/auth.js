@@ -23,7 +23,7 @@ const { useTeamStore } = await import('@/stores/team')
 const { useTaskStore } = await import('@/stores/tasks')
 useClientStore().clients.length = 0
 useTeamStore().members.length = 0
-const ts = useTaskStore(); ts.tasks.length = 0; ts.projects.length = 0
+const ts = useTaskStore(); ts.clear()
 } catch(e) {}
 }
 function clearSupabaseStorage() {

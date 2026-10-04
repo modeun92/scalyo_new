@@ -9,7 +9,6 @@ import { jsonError } from './_utils/response.js'
 const TABLES_TO_EXPORT = [
   'profiles',
   'clients',
-  'tasks',
   'organization_members',
   'notifications',
   'playbooks',
@@ -22,7 +21,6 @@ const TABLES_TO_EXPORT = [
   'chat_messages',
   'ai_messages',
   'planning_events',
-  'projects',
 ]
 
 export async function onRequestGet(context) {
@@ -47,6 +45,17 @@ export async function onRequestGet(context) {
     })
     exportData.core_v2_me = meResp.ok ? await meResp.json() : null
   } catch (_) { exportData.core_v2_me = null }
+
+  // CORE-V2-TASK (04/10/2026): projects and tasks live in core_v2 — what the person created, and the
+  // tasks they are assigned to (by their core_v2 personage, under their own token and RLS).
+  const pid = exportData.core_v2_me && exportData.core_v2_me.personage_id
+  for (const [key, path] of [['project', 'project?created_by=eq.'], ['task', 'task?created_by=eq.'], ['task_assignee', 'task_assignee?member_id=eq.']]) {
+    if (pid == null) { exportData[key] = []; continue }
+    const resp = await fetch(config.supabaseUrl + '/rest/v1/' + path + encodeURIComponent(pid) + '&select=*', {
+      headers: { 'apikey': config.supabaseAnonKey, 'Authorization': 'Bearer ' + token },
+    })
+    exportData[key] = resp.ok ? await resp.json() : []
+  }
 
   // Fetch data from each table (RLS applies via user token)
   for (const table of TABLES_TO_EXPORT) {

@@ -21,21 +21,20 @@ export var clientFields = [
   { key: 'notes', label: 'smart_import_field_notes', type: 'string', aliases: ['commentaire', 'comment', 'remarque', 'note'] },
 ]
 
+// CORE-V2-TASK (04/10/2026): priority, importance and task type are not in the task model any more
+// (decided), so they are not offered as import columns.
 export var taskFields = [
   { key: 'title', label: 'smart_import_field_title', type: 'string', required: true, aliases: ['titre', 'nom', 'tache', 'task', 'sujet', 'subject'] },
   { key: 'description', label: 'smart_import_field_description', type: 'string', aliases: ['desc', 'detail', 'details'] },
   { key: 'status', label: 'smart_import_field_status', type: 'status', aliases: ['statut', 'etat', 'state'] },
-  { key: 'priority', label: 'smart_import_field_priority', type: 'priority', aliases: ['priorite', 'prio', 'quadrant', 'eisenhower', 'matrice'] },
   { key: 'assignee', label: 'smart_import_field_assignee', type: 'string', aliases: ['assigne', 'responsable', 'owner', 'proprietaire'] },
   { key: 'dueDate', label: 'smart_import_field_due_date', type: 'date', aliases: ['echeance', 'deadline', 'date limite', 'due date'] },
   { key: 'startDate', label: 'smart_import_field_start_date', type: 'date', aliases: ['date debut', 'start date', 'debut'] },
   { key: 'endDate', label: 'smart_import_field_end_date', type: 'date', aliases: ['date fin', 'end date', 'fin'] },
   { key: 'urgency', label: 'smart_import_field_urgency', type: 'integer', aliases: ['urgence'] },
-  { key: 'importance', label: 'smart_import_field_importance', type: 'integer', aliases: [] },
   { key: 'difficulty', label: 'smart_import_field_difficulty', type: 'integer', aliases: ['difficulte', 'complexite', 'complexity'] },
   { key: 'expectedHours', label: 'smart_import_field_expected_hours', type: 'number', aliases: ['heures estimees', 'estimated hours', 'estimation'] },
   { key: 'tags', label: 'smart_import_field_tags', type: 'tags', aliases: ['etiquettes', 'labels', 'categories'] },
-  { key: 'taskType', label: 'smart_import_field_task_type', type: 'string', aliases: ['type tache', 'type', 'categorie'] },
 ]
 
 export var teamFields = [

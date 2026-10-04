@@ -231,7 +231,7 @@ const myTasksOutput = z.object({
       id: z.string(),
       title: z.string().nullable(),
       status: z.string().nullable(),
-      priority: z.string().nullable(),
+      urgency: z.number().nullable(),
       clientId: z.string().nullable(),
       dueDate: z.string().nullable(),
       daysUntilDue: z.number().nullable(),
@@ -419,7 +419,7 @@ export function registerScalyoTools(server: McpServer, deps: ToolDeps): void {
     {
       title: 'My Scalyo tasks',
       description:
-        'Returns the Customer Success tasks assigned to the authenticated Scalyo user, earliest due date first, ' +
+        'Returns the Customer Success tasks the authenticated Scalyo user created or is assigned to, earliest due date first, ' +
         'each flagged as overdue or not. Only the signed-in user\'s own tasks are returned, never a teammate\'s. Read-only.',
       inputSchema: {
         overdueOnly: z.boolean().default(false),
@@ -431,7 +431,7 @@ export function registerScalyoTools(server: McpServer, deps: ToolDeps): void {
     },
     async ({ overdueOnly, includeDone, limit }) =>
       runTool(deps, 'get_my_tasks', {}, async () => {
-        const result = await getMyTasks(deps.db, deps.context.userId, { overdueOnly, includeDone, limit })
+        const result = await getMyTasks(deps.db, { overdueOnly, includeDone, limit })
         return { payload: result, resultCount: result.count }
       })
   )

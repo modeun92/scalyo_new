@@ -26,23 +26,26 @@
     <div v-if="showCreateTask" class="chat_panel_overlay" @click.self="$emit('close-create-task')">
       <div class="chat_panel_slide">
         <h3>{{ t('chat_create_task') }}</h3>
-        <!-- CHAT-TASK (03/10/2026): the task form's own labels and priority scale (the KanbanView
-             form), not a chat copy of them - see createTask() below. -->
+        <!-- CHAT-TASK (03/10/2026): the task form's own labels and scale (the KanbanView form), not a
+             chat copy of them - see createTask() below. -->
         <label class="chat_panel_label">{{ t('smart_matrix_task_title') }}</label>
         <input v-model="taskTitle" class="chat_panel_field" />
         <label class="chat_panel_label">{{ t('smart_matrix_task_desc') }}</label>
         <textarea v-model="taskDescription" rows="4" class="chat_panel_field chat_panel_field_textarea"></textarea>
-        <label class="chat_panel_label">{{ t('smart_matrix_task_priority') }}</label>
-        <select v-model="taskPriority" class="chat_panel_field">
-          <option value="urgent_important">{{ t('smart_matrix_priority_urgent_important') }}</option>
-          <option value="important">{{ t('smart_matrix_priority_important') }}</option>
-          <option value="urgent">{{ t('smart_matrix_priority_urgent') }}</option>
-          <option value="not_urgent">{{ t('smart_matrix_priority_not_urgent') }}</option>
+        <label class="chat_panel_label">{{ t('smart_matrix_task_project') }} *</label>
+        <select v-model="taskProjectId" class="chat_panel_field">
+          <option :value="null" disabled>—</option>
+          <option v-for="p in tasksStore.projects" :key="p.id" :value="p.id">{{ projectLabel({ t }, p) }}</option>
+        </select>
+        <label class="chat_panel_label">{{ t('smart_matrix_col_urgency') }}</label>
+        <select v-model="taskUrgency" class="chat_panel_field">
+          <option :value="null">—</option>
+          <option v-for="u in tasksStore.urgencies" :key="u.id" :value="u.level">{{ urgencyLabel(i18n, u.key) }}</option>
         </select>
         <label class="chat_panel_label">{{ t('smart_matrix_task_due') }}</label>
         <input v-model="taskDue" type="date" class="chat_panel_field" />
         <div v-if="taskError" class="chat_panel_slide_error">{{ t('chat_err_create_task_failed') }}</div>
-        <button class="chat_panel_button_primary" :disabled="!taskTitle.trim() || taskSaving" @click="createTask">{{ t('create') }}</button>
+        <button class="chat_panel_button_primary" :disabled="!taskTitle.trim() || !taskProjectId || taskSaving" @click="createTask">{{ t('create') }}</button>
       </div>
     </div>
   </teleport>
@@ -53,6 +56,7 @@ import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useChatStore } from '@/stores/chat'
 import { useTaskStore } from '@/stores/tasks'
+import { projectLabel, urgencyLabel } from '@/lib/taskLabels'
 
 const props = defineProps({
   showCreateChannel: Boolean,
@@ -64,7 +68,8 @@ const props = defineProps({
 
 const emit = defineEmits(['close-create-channel', 'close-create-task', 'close-rename'])
 
-const { t } = useI18n()
+const i18n = useI18n()
+const { t } = i18n
 const chatStore = useChatStore()
 const tasksStore = useTaskStore()
 
@@ -73,7 +78,10 @@ const channelDesc = ref('')
 const renameName = ref('')
 const taskTitle = ref('')
 const taskDescription = ref('')
-const taskPriority = ref('important')
+// CORE-V2-TASK (04/10/2026): the priority quadrant is gone from the task model — urgency instead —
+// and a task always belongs to a project.
+const taskProjectId = ref(null)
+const taskUrgency = ref(null)
 const taskDue = ref('')
 const taskSaving = ref(false)
 const taskError = ref(false)
@@ -81,14 +89,14 @@ const taskError = ref(false)
 watch(() => props.renamingChannel, (ch) => { renameName.value = ch?.name || '' })
 
 // CHAT-TASK: opened from a message, the form starts from that message - its first line as
-// the title, the whole text as the description - and from the task model's default priority.
+// the title, the whole text as the description - and no urgency until one is chosen.
 watch(() => props.showCreateTask, (open) => {
   if (!open) return
   // A task shows plain text: the chat's ** and ` marks (CHAT-MARKDOWN) would land in it raw.
   const content = (props.taskSource?.content || '').replace(/\*\*|`/g, '').trim()
   taskTitle.value = content.split('\n')[0].slice(0, 120)
   taskDescription.value = content
-  taskPriority.value = 'important'
+  taskUrgency.value = null
   taskDue.value = ''
   taskError.value = false
 })
@@ -109,27 +117,27 @@ async function renameChannel() {
   } catch (e) { console.error('Rename channel failed:', e.message || e) }
 }
 
-// CHAT-TASK (03/10/2026): the priorities used to be low / medium / high / critical - values the
-// task model does not know (it stores urgent_important / important / urgent / not_urgent). A
-// task made here reached the Kanban with the fallback badge and sat in "not classified" on the
-// priority matrix. The slide-over also never closed and ignored addTask()'s answer: it now
-// closes on a created task only (D-14), and on a failure keeps the user's input (D-15).
+// CHAT-TASK (03/10/2026): the scale offered here is the task model's own - low / medium / high /
+// critical was a scale the model did not know, so a task made here reached the Kanban with the
+// fallback badge. The slide-over also never closed and ignored addTask()'s answer: it now closes on a
+// created task only (D-14), and on a failure keeps the user's input (D-15).
 async function createTask() {
   const title = taskTitle.value.trim()
-  if (!title || taskSaving.value) return
+  if (!title || !taskProjectId.value || taskSaving.value) return
   taskSaving.value = true
   taskError.value = false
   try {
     const created = await tasksStore.addTask({
       title,
       description: taskDescription.value.trim(),
-      priority: taskPriority.value,
+      projectId: taskProjectId.value,
+      urgency: taskUrgency.value,
       dueDate: taskDue.value || null,
     })
-    if (!created) { taskError.value = true; return }
+    if (!created?.success) { taskError.value = true; return }
     taskTitle.value = ''
     taskDescription.value = ''
-    taskPriority.value = 'important'
+    taskUrgency.value = null
     taskDue.value = ''
     emit('close-create-task')
   } catch (e) {

@@ -57,8 +57,21 @@ The portfolio is the centre of the product: accounts with ARR, health score, lif
 **Views** `views/tasks/{Stats,Planning,Projects,Kanban,Priorities,Team,Settings}View.vue`
 · **Store** `tasks` · **AI module** `matrix`
 
-An Eisenhower-style task system: statistics, a calendar and Gantt planning view,
-projects, a Kanban, a priority matrix, a team view and settings.
+A task system: statistics, a calendar and Gantt planning view, projects, a Kanban, a
+priority matrix, a team view and settings.
+
+- **Data model (`CORE-V2-TASK`, decided 04/10/2026, `20261004130000`)**: core_v2 `project`,
+  organization-level `milestone`, `task`, `task_assignee`, and per-organization lookups
+  `task_status` / `task_urgency` / `task_difficulty` (seeded; their text is a persisted key the
+  views translate through `lib/taskLabels`). **A task always belongs to a project**: every
+  creation path asks for one — the Kanban form, the client record's quick task, the chat's "make a
+  task", the onboarding's step 3 (an existing project or a new one named there), the playbook
+  activation (the project its steps' tasks go into), the import, the API and the webhook
+  (`project_id` required). Kept from the old `tasks`: the client link and the tags; gone: the
+  priority quadrant, importance, actual hours, finished / pended, the project colour. The priority
+  matrix is one column per urgency level; the cards, the Gantt and the dashboard colour by urgency.
+  Old tasks with no project were moved into one untitled imported-tasks project per organization
+  (`TASK-IMPORTED`), named on screen by `project_imported_title`.
 
 - **Statistics are honest**: below 3 completed tasks there is no basis for prediction, so
   velocity, remaining weeks and the end date return `null` and the view shows a "not
@@ -67,12 +80,16 @@ projects, a Kanban, a priority matrix, a team view and settings.
   [FRONTEND.md](FRONTEND.md)); a recurring event materializes its occurrences (daily 60 d,
   weekly 26 wk, monthly 12 mo) linked by a `series_id`, and deleting offers "this
   occurrence" or "the whole series".
-- **Gantt** draws real `start → end` bars clipped to the visible window, renders tasks
-  without a project in an "unclassified" group, and counts unplaceable tasks in a banner
-  rather than hiding them.
+- **Gantt** draws real `start → end` bars clipped to the visible window and counts
+  unplaceable tasks in a banner rather than hiding them. (Its "unclassified" group for tasks
+  without a project is gone: there are none since `CORE-V2-TASK`.) A project has no colour in the
+  model, so colouring by project gives each one a palette colour by position.
 - Partial task updates are **partial-safe**: a field absent from the input is not sent.
   The old code sent empty defaults for title/description/status/priority/assignee/tags/
   subtasks on every write, which corrupted rows on every Kanban drag.
+- Every store write answers `{ success }` / `{ error }` and an update or delete that RLS
+  silently matched to no row is an error (D-14): the Kanban and project panels close on a
+  confirmed write only.
 
 ## COPIL / KPIs — steering-committee decks
 

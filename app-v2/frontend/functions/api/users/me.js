@@ -6,6 +6,10 @@ import { getConfig } from '../_config/index.js'
 import { extractLang, extractAuth, verifyJwt } from '../_services/auth.service.js'
 import { jsonOk, jsonError } from '../_utils/response.js'
 
+// CORE-V2-TASK (04/10/2026): 'tasks' / 'projects' here are the OLD tables, kept until their drop
+// migration. The core_v2 task / project rows a person created are organization records: deleting the
+// person's core_v2 personage (through the profile mirror) sets their created_by to NULL and removes
+// their task_assignee rows (20261004130000), the work stays with the organization.
 const TABLES_TO_DELETE = [
   'ai_messages',
   'notifications',

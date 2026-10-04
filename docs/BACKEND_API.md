@@ -121,6 +121,9 @@ Builds the portfolio context injected into all AI modules.
 
 - **Scope = the real RLS of `clients`** (org-wide `SELECT`). There is no `user_id` filter
   in this service; RLS decides, so the context is exactly what the Portfolio screen shows.
+- **The caller's tasks** come from `core_v2_my_tasks()` (`CORE-V2-TASK`, 04/10/2026): the tasks
+  they created or are assigned to, under their own token — the same definition the MCP
+  `get_my_tasks` tool reads.
 - **GDPR minimization**: an explicit column list (never `select=*`), never notes, never
   emails or phone numbers, and capped list lengths so the prompt stays readable on a
   portfolio of 350+ accounts.

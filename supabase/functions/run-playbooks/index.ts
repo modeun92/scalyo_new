@@ -87,20 +87,35 @@ serve(async (req) => {
 
         const actions = []
 
-        // Create task if configured
+        // Create task if configured.
+        // CORE-V2-TASK (04/10/2026): tasks live in core_v2 and always belong to a project (decided), so a
+        // rule must name its target project (rule.task_project_id, of the user's organization); without
+        // one no task is made and the execution says so. The client is linked by its client group.
         if (rule.action_create_task) {
           const dueDate = new Date()
           dueDate.setDate(dueDate.getDate() + (rule.task_due_days || 3))
-
-          const { error: taskErr } = await supabase.from("tasks").insert({
-            user_id: user.id,
-            title: rule.task_title || `[Playbook] ${rule.name} - ${client.name}`,
-            status: "todo",
-            priority: rule.task_priority || "high",
-            due_date: dueDate.toISOString().split("T")[0],
-            client_id: client.id,
-          })
-          if (!taskErr) actions.push({ type: "task_created", title: rule.task_title })
+          const { data: membership } = await supabase.rpc("core_v2_membership", { p_user: user.id })
+          const org = membership?.core_organization_id
+          const { data: project } = rule.task_project_id && org
+            ? await supabase.from("project").select("id").eq("id", rule.task_project_id).eq("organization_id", org).maybeSingle()
+            : { data: null }
+          if (!project) {
+            actions.push({ type: "task_skipped", reason: "no_project" })
+          } else {
+            const { data: company } = await supabase.from("company").select("id").eq("public_id", client.id).maybeSingle()
+            const { data: todo } = await supabase.from("task_status").select("id").eq("organization_id", org).eq("text", "todo").maybeSingle()
+            const { error: taskErr } = await supabase.from("task").insert({
+              organization_id: org,
+              project_id: project.id,
+              created_by: membership.personage_id,
+              title: rule.task_title || `[Playbook] ${rule.name} - ${client.name}`,
+              status_id: todo?.id ?? null,
+              // TASK-DATE-NOON: a calendar day is stored at noon UTC
+              due_at: dueDate.toISOString().split("T")[0] + "T12:00:00Z",
+              client_group_id: company?.id ?? null,
+            })
+            if (!taskErr) actions.push({ type: "task_created", title: rule.task_title })
+          }
         }
 
         // Log execution

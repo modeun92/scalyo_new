@@ -27,6 +27,13 @@
       <h1>{{ t('onboarding_s3_title') }}</h1>
       <p class="step_description">{{ t('onboarding_s3_desc') }}</p>
       <input v-model="taskTitle" :placeholder="t('onboarding_s3_task_placeholder')" class="onb_input" @keyup.enter="nextStep" />
+      <!-- CORE-V2-TASK (decided 04/10/2026): a task always belongs to a project — one of the
+           organization's, or a new one named here (a first-time owner has none yet) -->
+      <select v-if="taskStore.projects.length" v-model="taskProjectId" class="onb_input" :aria-label="t('smart_matrix_task_project')">
+        <option :value="NEW_PROJECT">{{ t('onboarding_s3_new_project') }}</option>
+        <option v-for="p in taskStore.projects" :key="p.id" :value="p.id">{{ projectLabel({ t }, p) }}</option>
+      </select>
+      <input v-if="taskProjectId === NEW_PROJECT" v-model="projectName" :placeholder="t('onboarding_s3_project_placeholder')" class="onb_input" @keyup.enter="nextStep" />
       <p class="skip_hint">{{ t('onboarding_s3_skip_hint') }}</p>
     </div>
     <div v-if="step === 4" class="onboarding_view_onboarding_step">
@@ -64,6 +71,7 @@ import { useTaskStore } from '@/stores/tasks'
 import { askScalyoAI } from '@/utils/askScalyoAI'
 import { formatAiText } from '@/utils/sanitize'
 import { supabase } from '@/lib/supabase'
+import { projectLabel } from '@/lib/taskLabels'
 
 const { t } = useI18n({ useScope: 'global' })
 const router = useRouter()
@@ -83,6 +91,9 @@ const clientName = ref('')
 const clientHealth = ref(7)
 const createdClientId = ref(null)
 const taskTitle = ref('')
+const NEW_PROJECT = '__new'
+const taskProjectId = ref(NEW_PROJECT)
+const projectName = ref('')
 const coachMessage = ref('')
 const coachResponse = ref('')
 const coachLoading = ref(false)
@@ -105,7 +116,18 @@ async function nextStep() {
       const result = await clientStore.addClient({ name: clientName.value.trim(), health: clientHealth.value })
       if (result && result.id) createdClientId.value = result.id
     } else if (step.value === 3 && taskTitle.value.trim()) {
-      await taskStore.addTask({ title: taskTitle.value.trim(), client_id: createdClientId.value || null, status: 'todo', priority: 'medium' })
+      // The client made at step 2 is linked by clientId (the old call sent client_id, which the store
+      // never mapped: the task was never linked to it).
+      let projectId = taskProjectId.value !== NEW_PROJECT ? taskProjectId.value : null
+      if (!projectId) {
+        if (!projectName.value.trim()) { errorMsg.value = t('task_project_required'); return }
+        const made = await taskStore.addProject({ name: projectName.value.trim() })
+        if (!made?.success) throw new Error(made?.error || 'project_failed')
+        projectId = made.data.id
+        taskProjectId.value = projectId
+      }
+      const res = await taskStore.addTask({ title: taskTitle.value.trim(), clientId: createdClientId.value || null, projectId, status: 'todo' })
+      if (!res?.success) throw new Error(res?.error || 'task_failed')
     }
     step.value++
   } catch (err) {

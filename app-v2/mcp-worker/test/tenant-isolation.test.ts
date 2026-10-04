@@ -105,8 +105,8 @@ describe.skipIf(!configured)('cross-tenant isolation (live pre-production)', () 
 
   it('get_my_tasks returns only the caller\'s own tasks', async () => {
     const [tasksA, tasksB] = await Promise.all([
-      getMyTasks(dbA(), (await verifyAccessToken(config, ENV.tokenA!)).userId, { overdueOnly: false, includeDone: true, limit: 50 }),
-      getMyTasks(dbB(), (await verifyAccessToken(config, ENV.tokenB!)).userId, { overdueOnly: false, includeDone: true, limit: 50 }),
+      getMyTasks(dbA(), { overdueOnly: false, includeDone: true, limit: 50 }),
+      getMyTasks(dbB(), { overdueOnly: false, includeDone: true, limit: 50 }),
     ])
 
     const idsA = new Set(tasksA.tasks.map((t) => t.id))

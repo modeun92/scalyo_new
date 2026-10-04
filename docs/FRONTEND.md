@@ -71,7 +71,7 @@ discovered phantom URLs. Serving a real 404 would mean rewriting production rout
 | `clientNotes` | Free-form timestamped notes on a client (org-wide) |
 | `clientModal` | Which client record pop-up is open |
 | `createPrefill` | One-shot "create X for this client" intent relay between modules |
-| `tasks` | Tasks, projects, completion/velocity statistics |
+| `tasks` | Tasks, projects, completion/velocity statistics — core_v2 `project` / `task` / `task_assignee` and the organization's status, urgency and difficulty lookups since 04/10/2026 (`CORE-V2-TASK`); the views read the same shapes as before (status key, urgency and difficulty as levels 1..5, calendar-day dates — a day is stored at noon UTC, `TASK-DATE-NOON`) |
 | `playbooks` | Retention playbooks; activation materializes real dated tasks |
 | `kpis` | COPIL decks: blocks, sequenced write queue, image upload |
 | `snapshots` | Daily KPI snapshots used for variation badges |
