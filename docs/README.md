@@ -28,6 +28,7 @@ view to the narrowest.
 
 Repository scope and known hygiene items: [`../REVIEW_NOTES.md`](REVIEW_NOTES.md).
 Operational environment table: `../app-v2/frontend/functions/api/_config/SECURITY.md`.
+What changed from 03/09 to 03/10/2026, in Korean: [`Scalyo_change_history_2026-10-03.pdf`](Scalyo_change_history_2026-10-03.pdf) — a dated snapshot of the git history, not kept up to date.
 
 ## The four rules that explain most of the code
 
