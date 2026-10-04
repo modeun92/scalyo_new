@@ -531,7 +531,13 @@ alter table public.client_group add column if not exists created_at timestamptz;
 -- none means no access. personage_id is who obtained the period — the trial's starter, the payer, the
 -- code's user — and makes "one trial per person" answerable once the trial moves here (step D).
 -- seats NULL = the tier's ceiling (plans.config.js getMaxSeats), never a guessed number (R21).
-alter table public.subscription add column if not exists duration interval not null;
+-- ALPHA-FOREVER (03/10/2026, decided): an alpha tester keeps using the product — duration NULL is a
+-- period with NO END, allowed only for a PROMO (an alpha tester's code) or a CONTRACT. "Until
+-- revoked" is not a date, so it is no stored end either; revoking it cuts its duration to now.
+-- RENEWAL-FAILED (03/10/2026, decided): a renewal that is not paid gives no grace — no PAID row
+-- covers the new period, so the organization has no access — and nothing is deleted: every row the
+-- organization owns stays as it was, readable again the moment a payment lands.
+alter table public.subscription add column if not exists duration interval;
 alter table public.subscription add column if not exists kind public.subscription_kind not null;
 alter table public.subscription add column if not exists seats integer;
 alter table public.subscription add column if not exists personage_id bigint
@@ -546,6 +552,11 @@ begin
                     and conrelid = 'public.subscription'::regclass) then
     alter table public.subscription add constraint subscription_duration_positive
       check (duration > interval '0');
+  end if;
+  if not exists (select 1 from pg_constraint where conname = 'subscription_open_ended_kinds'
+                    and conrelid = 'public.subscription'::regclass) then
+    alter table public.subscription add constraint subscription_open_ended_kinds
+      check (duration is not null or kind in ('PROMO', 'CONTRACT'));
   end if;
   if not exists (select 1 from pg_constraint where conname = 'subscription_seats_positive'
                     and conrelid = 'public.subscription'::regclass) then
@@ -861,7 +872,7 @@ as $fn$
     from public.subscription s
    where s.organization_id = p_org
      and s.issue_date <= now()
-     and now() < s.issue_date + s.duration
+     and (s.duration is null or now() < s.issue_date + s.duration)
    order by s.issue_date desc, s.id desc
    limit 1;
 $fn$;
@@ -869,7 +880,8 @@ $fn$;
 -- What any worker of the organization may know about its plan — members included, since the module
 -- gating needs it, while the subscription table itself stays managers-only (billing). No Stripe ids.
 -- NULL when the caller works nowhere; 'subscription' is NULL when there is no current period.
--- period_end is computed (issue_date + duration) for the screen's "N days left", never stored.
+-- period_end is computed (issue_date + duration) for the screen's "N days left", never stored;
+-- NULL for a period with no end (ALPHA-FOREVER).
 -- trial_used is the CALLER's own: a trial is once per person, whichever organization it ran in.
 create or replace function public.core_v2_my_subscription()
 returns jsonb

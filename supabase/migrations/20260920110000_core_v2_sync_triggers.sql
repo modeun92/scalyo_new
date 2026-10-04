@@ -484,7 +484,7 @@ as $fn$
 begin
   delete from public.subscription where id = p_id and issue_date >= now();
   update public.subscription set duration = now() - issue_date
-   where id = p_id and issue_date < now() and issue_date + duration > now();
+   where id = p_id and issue_date < now() and (duration is null or issue_date + duration > now());
 end;
 $fn$;
 
@@ -493,7 +493,9 @@ $fn$;
 --   * TRIAL — the owner's personal trial (profiles.trial_started_at): from that date, 14 days; cut to
 --     now once trial_used says it is over (a checkout). Kept as history afterwards.
 --   * PROMO — organizations.trial_ends_at in the future (an alpha / beta window): from when it was
---     recorded here until then; follows the date when it moves, ends when it is cleared.
+--     recorded here until then; follows the date when it moves, ends when it is cleared. When the
+--     owner is an alpha tester (profiles.is_alpha_tester, set by redeem_promo_code) it has NO END
+--     (duration NULL, ALPHA-FOREVER) — the old app lets an alpha tester through for good, window or not.
 --   * PAID — a live organizations.stripe_subscription_id: from when it was recorded here until the
 --     owner's profiles.subscription_end_date (Stripe's current_period_end, written by the webhook at
 --     every renewal), else one month — BILLING_INTERVAL (prices.js), an upper bound of the first
@@ -514,6 +516,10 @@ $fn$;
 -- follows like any other change.
 -- TRIAL-DAYS: 14 is ORG_SETTINGS.trialDays (plans.config.js) — the old tables store only the start;
 -- this copy goes when step D writes the trial into subscription itself.
+-- RENEWAL-FAILED is invisible here: the old tables keep no Stripe status, and the old app keeps
+-- serving a subscription Stripe is still retrying (past_due) — its period end moves on, so the PAID
+-- row stretches with it. The rule (no access, nothing deleted) holds once the webhook writes this
+-- table itself (step D), or once the live webhook stops serving past_due.
 create or replace function public.core_v2_sync_subscription(p_org uuid)
 returns void
 language plpgsql
@@ -531,6 +537,7 @@ declare
   v_cust text;
   v_trial_start timestamptz;
   v_promo_end timestamptz;
+  v_alpha boolean;
   v_paid_end timestamptz;
   v_row public.subscription;
 begin
@@ -557,7 +564,9 @@ begin
   end if;
   v_cust := nullif(btrim(o ->> 'stripe_customer_id'), '');
 
-  -- TRIAL. One per organization here; one per person is step D's rule (personage_id).
+  -- TRIAL. One per organization here; one per person is step D's rule (personage_id). Its tier is
+  -- STARTER, the plan an organization is on while its owner trials (ensure_own_organization) — not
+  -- organizations.plan today, which for a trial long over is whatever was bought since.
   v_trial_start := nullif(p ->> 'trial_started_at', '')::timestamptz;
   if v_trial_start is not null then
     select * into v_row from public.subscription s
@@ -565,7 +574,7 @@ begin
      order by s.issue_date desc, s.id desc limit 1;
     if v_row.id is null then
       insert into public.subscription (organization_id, issue_date, duration, type, kind, personage_id)
-      values (v_core, v_trial_start, interval '14 days', coalesce(v_type, 'STARTER'), 'TRIAL', v_owner)
+      values (v_core, v_trial_start, interval '14 days', 'STARTER', 'TRIAL', v_owner)
       returning * into v_row;
     end if;
     -- trial_used before the 14 days are up (a checkout): over now. When it was set is not kept, so
@@ -575,13 +584,14 @@ begin
     end if;
   end if;
 
-  -- PROMO.
-  v_promo_end := nullif(o ->> 'trial_ends_at', '')::timestamptz;
+  -- PROMO. An alpha tester's has no end (ALPHA-FOREVER): v_promo_end is then NULL on purpose.
+  v_alpha := coalesce((p ->> 'is_alpha_tester')::boolean, false);
+  v_promo_end := case when v_alpha then null else nullif(o ->> 'trial_ends_at', '')::timestamptz end;
   select * into v_row from public.subscription s
    where s.organization_id = v_core and s.kind = 'PROMO'
-     and s.issue_date <= now() and now() < s.issue_date + s.duration
+     and s.issue_date <= now() and (s.duration is null or now() < s.issue_date + s.duration)
    order by s.issue_date desc, s.id desc limit 1;
-  if v_promo_end > now() then
+  if v_alpha or v_promo_end > now() then
     if v_row.id is not null and v_sub is null and v_type is not null and v_row.type <> v_type then
       -- The plan moved under the window with no payment live: a change of plan closes the period
       -- and opens one with the new tier, to the same end.
@@ -593,11 +603,12 @@ begin
         raise notice 'core_v2: plan % of organization % has no subscription_type; promo window not mirrored', o ->> 'plan', p_org;
       else
         insert into public.subscription (organization_id, issue_date, duration, type, kind, seats, personage_id)
-        values (v_core, now(), v_promo_end - now(),
+        values (v_core, now(), v_promo_end - now(),   -- NULL for an alpha tester: no end
                 case when v_sub is null then v_type else 'STARTER' end, 'PROMO',
                 case when v_sub is null then v_seats end, v_owner);
       end if;
     elsif v_row.issue_date + v_row.duration is distinct from v_promo_end then
+      -- The window moved, or the owner became (or stopped being) an alpha tester.
       update public.subscription set duration = v_promo_end - issue_date where id = v_row.id;
     end if;
   elsif v_row.id is not null then
@@ -667,7 +678,7 @@ create trigger trg_core_v2_org_subscription_sync
   on public.organizations
   for each row execute function public.core_v2_org_subscription_sync();
 
--- The owner's personal trial and Stripe's renewal date live on profiles until step D. The webhook
+-- The owner's personal trial, Stripe's renewal date and the alpha flag live on profiles until step D. The webhook
 -- writes the profile and then the organization, so a renewal is usually seen through the latter; this
 -- trigger covers a profile written alone.
 create or replace function public.core_v2_profile_trial_sync()
@@ -698,7 +709,7 @@ begin
   select string_agg(column_name, ', ' order by column_name) into v_cols
     from information_schema.columns
    where table_schema = 'public' and table_name = 'profiles'
-     and column_name in ('trial_started_at', 'trial_used', 'subscription_end_date');
+     and column_name in ('trial_started_at', 'trial_used', 'subscription_end_date', 'is_alpha_tester');
   execute 'drop trigger if exists trg_core_v2_profile_trial_sync on public.profiles';
   if v_cols is not null then
     execute 'create trigger trg_core_v2_profile_trial_sync
