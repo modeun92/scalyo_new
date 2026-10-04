@@ -239,6 +239,34 @@ Org channels and 1-to-1 DMs, over Supabase Realtime.
   (`CHAT-REACT`). A direct `UPDATE` on someone else's message matched zero rows under
   `chat_messages_update` and returned success — you could only react to your own messages,
   silently.
+- **Editing** happens in the composer (`CHAT-EDIT`, 03/10/2026): ✏️ (own messages only) loads
+  the message into the input under an "editing" banner, Enter saves, Esc or ✕ cancels, and the
+  draft typed before ✏️ comes back afterwards. It used to set `editingMessage` and nothing read
+  it — the button did nothing. The UPDATE is `.select()`-ed: no row back is a failure, never a
+  silent success, and the confirmed row goes through `ingest()`.
+- **Deleting** asks first through the shared `ConfirmDialog` (`CHAT-DELETE`) — it used to delete
+  for everyone on one tap. The DELETE is confirmed by the returned id and the message is removed
+  locally, instead of waiting for a realtime event that a dead socket never delivers.
+- **⚡ Create a task** from any message (`CHAT-TASK`): the slide-over existed but nothing opened
+  it. It is pre-filled from the message (first line → title, full text → description) and uses
+  the task model's priority scale (`urgent_important` / `important` / `urgent` /
+  `not_urgent`) — its old `low`/`medium`/`high`/`critical` values landed on the Kanban with the
+  fallback badge and in "not classified" on the priority matrix. It closes only on a created task.
+- **📤 Share** attaches a real reference — a client, a task or a quote — to the message
+  (`chat_messages.attachments`, `{ type, id, name }`, types listed once in
+  `components/chat/chatShares.js`), shown as a chip that opens the client record, the Kanban
+  or the Quotes screen; the name is the live one, the shared one if the record is gone
+  (`CHAT-SHARE`, 03/10/2026). It used to paste " [name] " into the text, from the first five
+  items only. The 📎 button is **removed**: it never uploaded anything, it typed the file name.
+  Real attachments need a storage bucket with org-scoped and MCP policies first.
+- **Formatting** — `utils/sanitize.formatChatText()`: the text is escaped (typed HTML shows as
+  text), then `**bold**`, `_italic_`, `` `code` ``, links and line breaks (`CHAT-MARKDOWN`).
+  The B / I / </> buttons used to leave their raw marks on screen.
+- **The composer clears only on a confirmed send** (`CHAT-SEND-RESULT`): `sendMessage` returns
+  `{ success }` / `{ error }`; a failed insert, a message over 5000 characters or the 1 s
+  cooldown no longer wipes what was typed.
+- **Phone (≤768px)**: list **or** messages (`CHAT-MOBILE`) — the 220px channel list used to stay
+  beside the messages and leave them ~150px. Picking a channel opens it, ← comes back.
 - The action bar is opened by a **tap** on the message as well as by hover (`CHAT-TOUCH`);
   on a coarse pointer it drops below the bubble with 32 px targets. It was `:hover`-only,
   which made every message action unreachable on a phone.

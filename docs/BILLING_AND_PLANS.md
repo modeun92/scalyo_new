@@ -23,24 +23,35 @@ something more permissive.
 
 ## The effective plan
 
-`organizations.plan` is the single source of truth. `profiles.plan` is only a fallback
-for accounts that have no organization.
+**The front end** (`stores/auth.js`, since stage 2 step B — `CORE-V2-ME`, 04/10/2026) reads the
+organization's **current subscription period** from `core_v2_me()`: TRIAL, PROMO, PAID or CONTRACT,
+or none. **The server** (`/api/ai`, `/api/email`, `/api/usage`, `/api/billing`, `check_client_limit`)
+still reads `organizations.plan` until step 3; the core_v2 mirror builds the periods from that same
+column, so the two agree. `profiles.plan` is no longer read by the front end.
 
 This matters because billing is **per seat at the organization level**: an org that pays,
 or that has beta access, covers *all* its members — including those whose personal trial
-is used up. `auth.js` exposes:
+is used up. **And only the organization grants access** (decided 04/10/2026): a person's own trial
+no longer opens an organization that has no current period. `auth.js` exposes:
 
-- `isOnTrial` / `trialExpired` — both take the organization into account.
-- `orgGrantsAccess` — the org pays or is in beta.
-- `hasActiveSubscription` — deliberately **profile-only**: Settings and the payment
-  success screen use it to show the *personal* subscription status. Widening it would
-  surface a misleading subscription-management block to a member who does not manage
-  their org's subscription.
-- `needsPayment` — the value the router guard uses.
+- `period` — the current period, or `null`.
+- `isOnTrial` (a TRIAL period), `isOnBetaAccess` (a PROMO period with an end), `isAlphaTester` (a
+  PROMO period with no end, `ALPHA-FOREVER`), `trialExpired` (no period and the person's own trial
+  over).
+- `orgGrantsAccess` — there is a current period.
+- `hasActiveSubscription` — deliberately **personal**: a PAID period *and* the caller is its billing
+  owner. Settings and the payment success screen use it to show the *personal* subscription status.
+  Widening it would surface a misleading subscription-management block to a member who does not
+  manage their org's subscription.
+- `needsPayment` — no current period (and not before `core_v2_me` has answered); the router guard
+  uses it.
+- `readOnly` — an `INACTIVE` / `ON_LEAVE` worker (`JOB-STATUS-READ`): told once in a popup, then the
+  product greyed with its inputs disabled, and every write refused in `lib/supabase` before it leaves
+  the browser.
 
 `scripts/proof-paywall-member.mjs` is a regression proof for exactly this: it extracts the
 `computed` declarations *literally* from `src/stores/auth.js` and evaluates them with
-Vue's real reactivity across eight scenarios. If the store changes, the proof changes with
+Vue's real reactivity across eleven scenarios. If the store changes, the proof changes with
 it. Run it before committing anything that touches those computeds.
 
 ## Roles
@@ -69,7 +80,30 @@ nobody opened was charged for its whole life — after it expired too, because t
 ```
 billed   = non-viewer members                              → Stripe quantity, seats_paid
 reserved = non-viewer members + pending non-viewer invitations → plan ceiling, /api/members `used`
+           that have not expired
 ```
+
+**The ceiling** (`SEAT-CEILING`, decided 03/10/2026) is the plan's: **starter 3 seats, growth 7,
+elite 24, enterprise no limit** — `maxSeats` in both `plans.config.js` copies, and a third copy in
+SQL, `plan_seat_ceiling()` (`20261003110000`): change all three together. An alpha code's
+`max_seats` caps nothing; the plan does. At the ceiling no invitation can be sent and none can be
+accepted. It is checked three times: by `invite.js` (reserved seats), by `invite/accept.js` before
+billing (members), and by the database — `trg_seat_ceiling` on `organization_members` locks the
+organization row and counts again inside the insert, which is what holds when two acceptances race
+(both counted N in `accept.js`). A team above its ceiling after a downgrade keeps everyone; it just
+cannot grow. An **expired** invitation reserves nothing: its status stays `pending` until somebody
+opens it, and counting it left a team "full" of dead invitations.
+
+In core_v2 (`JOB-STATUS`, decided 03/10/2026) a seat is held by a member whose `job_status` is
+`ACTIVE` or `ON_LEAVE` — an `INACTIVE` worker or one who left (`ENDED`) holds none. A manager changes
+`job_status` only through `core_v2_set_job_status`: never their own or the billing owner's, never to
+or from `ENDED` (leaving is the removal, which takes the Stripe seat back), and a reactivation
+(`INACTIVE` → `ACTIVE` / `ON_LEAVE`) only within the ceiling. Since stage 2 step C (04/10/2026) the
+three checks count this way: `invite.js` and `/api/members` read `core_v2_seats_taken`, `accept.js`
+`core_v2_seats_held`, and `trg_seat_ceiling` skips a member whose worker is `INACTIVE` / `ENDED`.
+**Open:** whether an `INACTIVE` worker stops being billed — today the invoice counts every member who
+has not left (`core_v2_billable_seats`), so an `INACTIVE` one holds no seat against the ceiling but is
+still paid for.
 
 A pending invitation still **reserves** its seat against the plan ceiling, or a full team
 could hand out invitations that then fail at acceptance. Viewers never consume a seat.
@@ -80,9 +114,11 @@ display "5 / 1" on the Manager screen against "5 / 24" on the Team screen.)
 
 ### Inviting
 
-`POST /api/invite` → count reserved seats → check the ceiling → insert the invitation →
-send the email. No Stripe call, no `seats_paid` write. `email_sent` is returned to the
-client so the UI never shows a false success.
+`POST /api/invite` → count reserved seats → check the ceiling (`403 seat_limit_reached` with
+`seats_used` / `seats_cap`, translated by the Team screen) → insert the invitation → send the
+email. No Stripe call, no `seats_paid` write. `email_sent` is returned to the client so the UI
+never shows a false success. At the ceiling the Team screen's invite form says so and does not
+send (`team_invite_full`).
 
 ### Adding a seat — acceptance
 
@@ -105,9 +141,11 @@ that insert and its body lives only in the dashboard, so it may be reading `seat
 
 `DELETE /api/members/[id]` is fail-closed: Stripe is called **before** any database
 write, with `proration_behavior: 'none'` (no credit, the new quantity applies at the next
-renewal), and the new quantity is the remaining non-viewer members — pending invitations
+renewal), and the new quantity is the remaining billable members — pending invitations
 are not billed, so they are not counted. If Stripe fails, nothing is removed — a seat must
-never be free in the database and still billed, or vice versa.
+never be free in the database and still billed, or vice versa. The database side is one
+transaction (`core_v2_remove_member`, 04/10/2026); if it refuses after Stripe agreed, the
+route sets Stripe back to the count that is really there.
 
 `DELETE /api/invitations/[id]` touches no billing: the invitation was never billed.
 

@@ -204,9 +204,9 @@ Notes that are not boilerplate:
 - **`npm ci`, not `npm install`.** `package.json` pins `xlsx` to a CDN tarball
   (`https://cdn.sheetjs.com/...`) rather than the npm registry; the lockfile is what makes
   that resolution reproducible.
-- **The i18n gates belong in CI, not in a reviewer's memory.** `check-i18n.mjs` reports one
-  expected pre-existing gap (`wellbeing_fri`); either allow-list it in the workflow or fix
-  it, but do not make the step non-blocking — that is how the check dies.
+- **The i18n gates belong in CI, not in a reviewer's memory.** `check-i18n.mjs` is at 100%
+  parity and exits 1 on any gap (03/10/2026 — the old `wellbeing_fri` gap is fixed); do not
+  make the step non-blocking — that is how the check dies.
   `check-i18n-quality.mjs` is the one that catches a key existing in three files while
   saying three different things.
 - Add `node scripts/proof-paywall-member.mjs` to the workflow if you want the paywall
@@ -301,7 +301,7 @@ two independent release trains. Version those contracts additively.
 **Before the deploy**
 
 1. `npm ci` in `app-v2/frontend`.
-2. `node scripts/check-i18n.mjs` — one expected gap (`wellbeing_fri`).
+2. `node scripts/check-i18n.mjs` — must print 100% parity (it exits 1 otherwise).
 3. `node scripts/check-i18n-quality.mjs`.
 4. `node scripts/proof-paywall-member.mjs` if `src/stores/auth.js` computeds changed.
 5. If the change touches `functions/api/_config/plans.config.js`, **diff it against

@@ -148,7 +148,7 @@ so `personage` (contact names, emails, phones) is readable the same way.
 | RLS is the tenant boundary | `src/supabase/user-client.ts` — anon key + the user's token, never the service role |
 | The service-role key is **not bound to this Worker** | `wrangler.jsonc` / `src/env.ts` |
 | Tenant context is derived server-side | `src/auth/user-context.ts` — no tool accepts `user_id`, `organization_id` or `role` |
-| Tenant context is **deterministic** | `src/auth/user-context.ts` — `profiles.organization_id` is canonical, cross-checked against `organization_members` |
+| Tenant context is **deterministic** | `src/auth/user-context.ts` — `core_v2_me()` (`CORE-V2-ME`, 04/10/2026): one organization per person by construction |
 | Tokens are checked against **this** resource | `src/auth/verify-token.ts` — issuer, expiry, audience/resource, OAuth-client allowlist |
 | An AI token is read-only **in the database too** | `supabase/migrations/20260914120000_mcp_ai_session_restrictions.sql` — RESTRICTIVE policies keyed on `is_mcp_session()` |
 | …including Storage and SECURITY DEFINER RPCs | `supabase/migrations/20260914130000_mcp_rpc_and_storage_restrictions.sql` |
@@ -238,21 +238,20 @@ still open — see [MCP_OPEN_QUESTIONS.md](MCP_OPEN_QUESTIONS.md) Q1.
 
 ## Which organization a request reads (`MCP-ORG-DETERMINISTIC`)
 
-The organization comes from **`profiles.organization_id`** — the same canonical source
-`stores/auth.js` uses — and is then cross-checked against `organization_members`:
+Since 04/10/2026 (`CORE-V2-ME`, stage 2 of retiring `profiles` / `organization_members`) the
+organization and the role come from **`core_v2_me()`**, read with the user's own token — the same
+function `stores/auth.js` reads, so MCP and the screen cannot answer differently. `organizationId` is
+the OLD organization uuid, the one `clients` / `tasks` and their RLS still hold.
 
-| Profile org | Membership rows | Result |
-|---|---|---|
-| set | a row for that org | that org; role from the membership row |
-| set | rows, none for that org | **FORBIDDEN** — the two sources disagree and guessing would invent a tenant |
-| set | none at all | that org; role from `profiles.org_role` (the legacy owner shape) |
-| absent | exactly one | that org, source `sole_membership` |
-| absent | more than one | **FORBIDDEN** — ambiguous |
-| absent | none | no organization; org-scoped tools refuse |
+In core_v2 a person works in **one** organization (`uq_organization_worker_person`), so there is
+nothing to choose between: no organization (never in one, or left — `ENDED`) means org-scoped tools
+refuse; an unknown role string means no role. `core_v2_me` is the only RPC the Worker may call
+(`MCP-RPC-ALLOWLIST` in `src/supabase/user-client.ts`).
 
-It used to be `organization_members limit 1`, which is whichever row Postgres felt like
-returning. With two memberships the answer to "my portfolio" could differ between two calls
-a second apart, and the user had no way to tell which company they had just been shown.
+Before: `organization_members limit 1`, whichever row Postgres felt like returning — with two
+memberships "my portfolio" could differ between two calls a second apart; then `profiles.organization_id`
+cross-checked against the memberships, every disagreement refused. The schema now rules the ambiguity
+out instead of the code refusing it.
 
 ---
 

@@ -89,7 +89,8 @@ POST /api/invite/accept   (non-viewer role)
 
 Removal is **fail-closed**: Stripe is called *before* any database write, with
 `proration_behavior: 'none'` (no credit, effect at renewal). If Stripe fails, nothing is
-removed — see `functions/api/members/[id].js`. Revoking an invitation
+removed — see `functions/api/members/[id].js`; the database side is one transaction
+(`core_v2_remove_member`), and a refusal there puts Stripe back. Revoking an invitation
 (`functions/api/invitations/[id].js`) touches no billing: it was never billed.
 
 ## Request flow — payment

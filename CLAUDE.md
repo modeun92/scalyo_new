@@ -58,8 +58,13 @@ Three migrations also live under `app-v2/frontend/supabase/migrations/`.
 fail-open `SECURITY DEFINER` triggers mirror them into `core_v2` (one bridge column,
 `organizations.core_organization_id`; a client's mirror is found by `company.public_id =
 clients.id`, which also maps each old client uuid to its new id — `CORE-V2-PUBLIC-ID`).
-The only app code that reads or writes `core_v2` is stage 1 below (the profile store, the
-questionnaire, the currency picker, `api/billing.js`, the AI context). **The old core tables are to be
+The app code that reads or writes `core_v2`: stage 1 below (the profile store, the
+questionnaire, the currency picker, `api/billing.js`, the AI context) and, since stage 2 step B
+(04/10/2026, `CORE-V2-ME`), `stores/auth.js` (everything about the signed-in person, from
+`core_v2_me()`) and `stores/team.js` (`core_v2_my_team()`), and since step C (04/10/2026,
+`STAGE2-WRITES`) every write about a person or a membership — the auth store, the onboarding, the
+e-mail permission toggle and the team routes call core_v2 RPCs (`20261004120000`), which also write the
+old row as a shadow until step E (`STAGE2-SHADOW`). **The old core tables are to be
 deleted** (decided 20/09/2026), in stages — reads, then writes, then repointing the ~30 tables that
 reference the old uuids, then a drop migration — so a column the product still needs must get a
 home in `core_v2`. `health`, `nps`, `churn_risk`, `renewal_date` live on `client_group` and contacts
@@ -76,7 +81,7 @@ not on `member`. **Every account has an organization of its own** (`OWN-ORG`, 27
 `20260927130000`): created at signup, the alpha code redeemed in the same transaction
 (`PROMO-AT-SIGNUP` — `/api/alpha/activate` is gone), deleted when empty on accepting an invitation, given
 back after a removal. **`profiles` goes together with `organization_members`** (decided 27/09/2026):
-step A written, then reads, writes, the billing fields to `subscription` (to design), the drop. **The old tables are being retired one at a time** — `user_profiles` →
+step A written; step B's database half written 04/10/2026 (`20261004100000`: `core_v2_me()` for the auth store, `core_v2_membership(uuid)` for the server, the region and the first-run tour flag mirrored into `personage` / `member`); the app's reads (step B) and writes (step C, `20261004120000`) written 04/10/2026; then billing on `subscription` (D), the drop (E). **The old tables are being retired one at a time** — `user_profiles` →
 `organization_members` + `profiles` (together since 27/09/2026) → `clients` → `organizations` — each by
 reads, then writes, then a new drop migration ([docs/DATABASE.md](docs/DATABASE.md#retiring-the-old-core-tables)).
 **Stage 1 (`user_profiles`) is written, not deployed**: `20260924100000_core_v2_stage1_user_profiles.sql`
@@ -91,11 +96,13 @@ promo window and Stripe ids are `subscription` periods** (`CORE-V2-SUBSCRIPTION`
 `issue_date` + `duration` (**no end column**), `type` STARTER/GROWTH/ELITE/ENTERPRISE, `kind` TRIAL/PROMO/PAID/CONTRACT,
 `seats`, `personage_id` (one trial per person), Stripe ids with `stripe_invoice_id` unique (one PAID row per paid invoice);
 current = the latest-started row covering now (`core_v2_current_subscription`; members read `core_v2_my_subscription()`);
-mirrored from the old tables, read by no app code yet (step D), **not run against any Postgres**. An alpha code keeps its terms
+mirrored from the old tables, read by no app code yet (step D), tested 03/10/2026 on PostgreSQL 18.3 in PGlite 0.5.8 with the Supabase stand-ins (the core_v2 suite, 330 checks, and the own-organization + promo suite, 40 checks, all pass) — not on Supabase's own Postgres version. An alpha tester's PROMO period has **no end** (`duration` NULL, `ALPHA-FOREVER`); an unpaid renewal means no access and deletes nothing (`RENEWAL-FAILED`, from step D — the live app still serves `past_due`). An alpha code keeps its terms
 and links the PROMO period it opened (`PROMO-LINK`, `20261003100000`). The tier is **never** a column of `organization` or
 `organization_worker` (`CORE-V2-PLAN-HOME`, 24/09/2026).
 All five old core tables go (confirmed 26/09/2026), and `client_notes` with `clients`. The 29 old tables that stay move their client ids to `client_group(company_id)` (bigint, rows rewritten; a prospect is a client group, so its rows move too — `client_metrics` stays clients-only, which only the application can now enforce) and keep their person ids (login uuids, found through `member` / `viewer.auth_user_id`, FK to `auth.users` — except `email_templates.created_by` → `personage(id)`, 27/09/2026, whose `owner_id` is dropped by `20260927100000` after the front end stops sending it); `promo_codes` loses `status` / `organization_id` / `expires_at` and gains `issued_at` / `contact` / `subscription_id` (27/09/2026, `20260927110000` before the alpha API deploy, `…120000` after; "used" = `activated_at` set); their `organization_id` targets are decided per table — see [docs/DATABASE.md](docs/DATABASE.md#retiring-the-old-core-tables).
-Do not read `core_v2` for plan or seats, nor for client data before stage 3b; when you add a column to `organizations` / `clients` / `profiles` decide whether it belongs in the mirror.
+The front end reads plan and access from the current subscription period (`stores/auth.js`); the
+server still reads `organizations.plan` until stage 2 step 3 — the mirror keeps them equal. Do not
+read `core_v2` for client data before stage 3b; when you add a column to `organizations` / `clients` / `profiles` decide whether it belongs in the mirror.
 Details, deviations and limits: [docs/DATABASE.md](docs/DATABASE.md#core_v2--the-new-core-schema-additive).
 **Tested on a local Postgres 16 with Supabase stand-ins (219 assertions pass, stages 1 and 3a included, last run 26/09/2026); NOT applied to any Supabase project — pre-prod first.**
 
@@ -223,7 +230,18 @@ broke something visible. Do not relax one without saying so explicitly.
 - **Cloudflare eats 5xx bodies** from Pages Functions and replaces them with its own HTML.
   Endpoints return a typed **409** where a 502 would be natural (`CF-502-MASQUE`).
 - **The organization, not the profile, owns paid access.** A member of a paying org must
-  not hit the paywall. `hasActiveSubscription` is deliberately profile-only.
+  not hit the paywall, and (04/10/2026) a person's own trial does not open an organization with no
+  current period. `hasActiveSubscription` is deliberately personal (the billing owner of a PAID period).
+- **A read-only account (`JOB-STATUS-READ`)** — an `INACTIVE` / `ON_LEAVE` worker — sees the product
+  greyed with inputs disabled (`AppLayout`), and `lib/supabase` refuses its writes before they leave
+  the browser (`setReadOnlyWrites`; a new **read** RPC must be added to `READ_RPCS` or it is refused for
+  them). The API refuses them too (`isReadOnlyMembership`), and the database (`20261004110000`):
+  RESTRICTIVE `read_only_no_*` policies on the kept tables, keyed on `core_v2_can_write()`.
+- **`get_my_org_id()` reads core_v2 since `20261004110000`** (same uuid result; the old one read
+  `profiles`). A new policy asks it or `core_v2_my_role()` — never `profiles` /
+  `organization_members`, which since stage 2 step C only the core_v2 RPCs write, as a shadow
+  (`STAGE2-SHADOW`). A new write about a person or a membership is a core_v2 RPC, never a direct
+  `update` of either table.
 - **The Stripe webhook must write both** `profiles` and `organizations`, or a paying
   owner's members stay gated on `starter`.
 - **Seats are billed at acceptance, not at invitation** (`SEAT-AT-ACCEPT`, 03/10/2026 —
@@ -232,6 +250,19 @@ broke something visible. Do not relax one without saying so explicitly.
   ceiling, so `/api/members` `used` (members + pending) can exceed `paid` (billed). Acceptance
   bills Stripe *before* the membership and re-syncs from a recount on every exit; removal is
   fail-closed, Stripe before any database write; revoking an invitation touches no billing.
+  **The ceiling is the plan's — starter 3, growth 7, elite 24, enterprise none** (`SEAT-CEILING`,
+  03/10/2026): checked by `invite.js`, again by `accept.js`, and by the database
+  (`trg_seat_ceiling`, `20261003110000`), which locks the organization row — the two API counts
+  are a round trip away from the insert, so two acceptances in one second both passed them. An
+  expired invitation reserves nothing. In core_v2 a seat is a member whose `job_status` is
+  `ACTIVE` or `ON_LEAVE` — not `INACTIVE`, not `ENDED` (`JOB-STATUS`, `20261003120000`); a manager
+  changes it only through `core_v2_set_job_status` (not their own, not the owner's, never to or from
+  `ENDED`, a reactivation within the ceiling). No screen calls it yet. Since 04/10/2026 the three
+  checks agree with it — `invite.js` / `/api/members` count `core_v2_seats_taken`, `accept.js`
+  `core_v2_seats_held`, `trg_seat_ceiling` skips an `INACTIVE` worker — while the **invoice** counts
+  every member who has not left (`core_v2_billable_seats`; whether an `INACTIVE` one should be billed
+  is open). `DELETE /api/members/:id` takes the member's **login id** (no longer an
+  `organization_members` row id) and removes in one transaction (`core_v2_remove_member`).
 - **Prospects are excluded** from portfolio counters, health aggregates and alerts. Use
   `clientsOnly`. In core_v2 a prospect is a `client_group` too (`status = 'PROSPECT'`), so any
   query over `client_group` must filter `status <> 'PROSPECT'` itself — nothing structural does.
@@ -242,15 +273,19 @@ broke something visible. Do not relax one without saying so explicitly.
   duplicate `fr` keys (last-one-wins, so editing the wrong copy did nothing). The
   duplicates are gone as of 07/09/2026 and every i18n file is now sorted A→Z, which makes
   a duplicate adjacent and obvious — but nothing *enforces* either property yet.
-- **`/api/ai`, `/api/email` and `/api/usage` read `profiles.plan`**, while the front end
-  and the SQL client-limit trigger read `organizations.plan`. A member of a paying org
-  can be entitled in the UI and 403'd by the API. Use the org plan when you touch these.
+- **`/api/ai`, `/api/email` and `/api/usage` used to read `profiles.plan`**, while the front end
+  and the SQL client-limit trigger read `organizations.plan`: a member of a paying org was
+  entitled in the UI and 403'd by the API. Since 04/10/2026 (`CORE-V2-ME`) they read the
+  organization's current subscription period (`_utils/supabase.getCurrentPlan`), as the screen does;
+  the client-limit trigger and `invite.js` still read `organizations.plan`, kept equal by the mirror.
 - **`chat_messages` UPDATE is `user_id = auth.uid()`.** A PostgREST `UPDATE` that matches
   zero rows returns **204 with `error = null`** — a false success no `error` test can catch.
   That is why reacting to or pinning someone else's message did nothing at all. Both now go
   through `toggle_chat_reaction` / `set_chat_message_pinned`
   (`20260909120000_chat_reactions_rpc.sql`); `can_read_chat_message` mirrors
-  `chat_messages_select` **by hand** — keep them in parity.
+  `chat_messages_select` **by hand** — keep them in parity. Editing and deleting your own
+  message stay direct writes, so both are `.select()`-ed and treat "no row back" as a failure
+  (`CHAT-EDIT` / `CHAT-DELETE`, 03/10/2026).
 - **Chat realtime can report `SUBSCRIBED` and deliver nothing.** The client cannot tell that
   apart from a healthy socket, so the safety-net sweep in `stores/chat.js` runs *even when
   `connected` is true*. Do not turn it back into a fallback armed only on error.
@@ -266,11 +301,11 @@ broke something visible. Do not relax one without saying so explicitly.
   test enforces it.
 - **An MCP tenant context read `organization_members limit 1`.** That is whichever row
   Postgres felt like returning: with two memberships, "my portfolio" could answer for a
-  different company between two calls a second apart, with nothing on screen to say which.
-  `mcp-worker/src/auth/user-context.ts` now takes `profiles.organization_id` — the same
-  canonical source `stores/auth.js` uses — cross-checks it against `organization_members`,
-  and **refuses** rather than guessing when the two disagree or when there is no profile
-  organization and several memberships (`MCP-ORG-DETERMINISTIC`).
+  different company between two calls a second apart, with nothing on screen to say which
+  (`MCP-ORG-DETERMINISTIC`). Since 04/10/2026 `mcp-worker/src/auth/user-context.ts` reads
+  `core_v2_me()` — the same function `stores/auth.js` reads — and core_v2 allows one organization
+  per person, so the ambiguity cannot exist. `core_v2_me` is the only RPC the Worker may call
+  (`MCP-RPC-ALLOWLIST`).
 - **A valid Scalyo session token is not the same thing as a token issued for MCP.**
   `/auth/v1/user` proves the first, never the second. `mcp-worker/src/auth/verify-token.ts`
   `checkTokenBinding()` proves the second — and the resource string it validates against is
@@ -335,12 +370,15 @@ broke something visible. Do not relax one without saying so explicitly.
   explicit go. Respect the stated ordering against the front-end deploy.
 - **Zero dead code**: a removed feature takes its CSS, i18n keys and imports with it.
   What is dormant on purpose (Integrations, `_future/*`) says so in a comment.
-- **Before finishing**: run `node scripts/check-i18n.mjs` (one pre-existing gap,
-  `wellbeing_fri`, is expected; the three `chat_ch_*` keys that used to be missing were
-  unused and have been deleted) **and `node scripts/check-i18n-quality.mjs`**, which
+- **Before finishing**: run `node scripts/check-i18n.mjs` (parity is 100% since 03/10/2026 —
+  the old "expected" `wellbeing_fri` gap is gone — and the script now **exits 1 on any gap**,
+  `I18N-GATE`) **and `node scripts/check-i18n-quality.mjs`**, which
   checks that the three values of a key still MEAN the same thing — missing `{n}`, Korean prose
   in the French file, an untranslated or English-left-in-place Korean value, a procedure that
-  lost a step. `check-i18n.mjs` only proves a key exists; a wrong value fails nothing there. Also
+  lost a step. `check-i18n.mjs` only proves a key exists; a wrong value fails nothing there.
+  Neither catches Korean left in **English word order** ("삭제 이 고객?", "만들기 a 작업",
+  "초대 a 팀 멤버") or a wrong meaning ("탁월함" for *Special leave*, "모니터링" for *Mon*) — a
+  pass on 03/10/2026 fixed ~50 by hand; read the Korean of anything you add. Also
   `node scripts/proof-paywall-member.mjs` if you touched the computeds in
   `src/stores/auth.js`. Both need `npm install` first — `node_modules` is not in this
   snapshot.
@@ -370,7 +408,8 @@ Do not "fix" these without asking:
 Tracked, not fixed in this snapshot:
 
 - The two `plans.config.js` copies are synced by hand and **have already drifted**
-  (`oxygen_team` is front-end only). A parity test would remove a class of drift.
+  (`oxygen_team` is front-end only). A parity test would remove a class of drift. `maxSeats`
+  has a third copy in SQL, `plan_seat_ceiling()` (`20261003110000`) — change all three.
 - Eight code-vs-code contradictions, derived and listed in
   [docs/BUSINESS.md](docs/BUSINESS.md#8-contradictions-inside-the-machine) — notably the
   split plan source above.
@@ -419,5 +458,5 @@ Tracked, not fixed in this snapshot:
 
 ---
 
-*Last updated: 2026-10-03. If you changed something described above and did not update
+*Last updated: 2026-10-04. If you changed something described above and did not update
 this file, you are not done.*

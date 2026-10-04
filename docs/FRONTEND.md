@@ -114,8 +114,9 @@ fallback `fr`.
   the static `<head>` generated at build time. Its Korean labels are indexed under the
   key `kr`, while the URL and the `hreflang` use ISO 639-1 `ko`.
 - `legal.js` and `dpa.js` carry the legal surfaces.
-- `scripts/check-i18n.mjs` compares the FR / EN / KO key sets. It currently reports a
-  small pre-existing gap (`wb_fri`, three `chat_ch_*` keys).
+- `scripts/check-i18n.mjs` compares the FR / EN / KO key sets — 100% parity since 03/10/2026,
+  and it exits 1 on any missing or extra key (`I18N-GATE`). It does **not** load `regional.js`,
+  despite that file's header saying it rejects a regional key that overrides nothing.
 
 Outside a component, i18n is reached through `i18n.global` — never `useI18n()`.
 

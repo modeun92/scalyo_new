@@ -182,6 +182,13 @@ Three properties fall out of that code:
 
 ### Seat accounting — billed at acceptance, reserved at invitation
 
+The ceiling is the plan's (`SEAT-CEILING`, decided 03/10/2026): **starter 3 seats, growth 7,
+elite 24, enterprise no limit**. At the ceiling no invitation can be sent and none accepted —
+checked by `invite.js`, by `invite/accept.js`, and by the database (`trg_seat_ceiling`). An alpha
+code's `max_seats` caps nothing.
+A seat is held by a member who is `ACTIVE` or `ON_LEAVE` — not `INACTIVE`, not gone (`JOB-STATUS`,
+core_v2); whether an inactive member is still billed is open.
+
 Decided 03/10/2026 (`SEAT-AT-ACCEPT`): a seat is billed only once the invitation is
 **accepted** — the person has joined. Before, it was billed at invitation, and an
 invitation nobody opened was charged for its whole life, expired ones included.
@@ -190,7 +197,7 @@ Two quantities, no longer one:
 
 ```
 reserved = organization_members.filter(role !== 'viewer').length
-         + invitations.filter(status='pending' && role !== 'viewer').length   → plan ceiling
+         + invitations.filter(status='pending' && role !== 'viewer' && not expired).length   → plan ceiling
 billed   = organization_members.filter(role !== 'viewer').length              → Stripe, seats_paid
 ```
 
@@ -228,6 +235,14 @@ while the organization is set to `plan: 'starter', seats_paid: 1`. **Cancellatio
 downgrades to Starter rather than terminating access.** The comment records the reason:
 `organizations.plan` is `NOT NULL`, so `'starter'` is the floor, and a still-valid promo
 window carried by `trial_ends_at` is deliberately not touched.
+
+Any other status — `past_due` above all, while Stripe retries a failed renewal — keeps the
+plan: today a renewal that is not paid still grants access. **Decided 03/10/2026 for the
+`subscription` periods (`RENEWAL-FAILED`): no grace — an unpaid renewal means no access, and
+nothing is deleted**; the data is usable again the moment a payment lands. It takes effect
+when the webhook writes `subscription` (step D of retiring `profiles`). **Alpha testers keep
+access for good** (`ALPHA-FOREVER`, same day): their PROMO period has no end, which is what
+`isAlphaTester` already does in the app.
 
 Checkout uses Stripe **Payment Links**, not a server-created session:
 `src/config/stripeLinks.js` holds three links injected per environment, appends

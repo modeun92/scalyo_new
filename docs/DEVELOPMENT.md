@@ -126,7 +126,7 @@ The protocol every migration header documents:
 1. `node scripts/check-i18n.mjs` — if you added a key, add it to all three locales.
 1. `node scripts/check-i18n-quality.mjs` — a key can exist in all three files and still say
    three different things. This catches that; `check-i18n.mjs` cannot.
-   (A small pre-existing gap is currently reported: `wb_fri` and three `chat_ch_*` keys.)
+   (`check-i18n.mjs` is at 100% parity since 03/10/2026 and exits 1 on any gap.)
 2. `node scripts/proof-paywall-member.mjs` if you touched the computeds in
    `src/stores/auth.js`.
 3. Re-read [CODE_STYLE.md](CODE_STYLE.md) if you touched money, dates, health scores,

@@ -24,6 +24,8 @@ allow-list is `scalyo.app`, `www.scalyo.app`, `preprod.scalyo.app`,
 
 ## Endpoints
 
+**Membership, plan and read-only (`CORE-V2-ME`, 04/10/2026, stage 2 step B).** `_utils/supabase.getUserMembership` reads `core_v2_membership(uuid)` (organization = the OLD uuid, role owner / admin / member / viewer, plus `job_status`, `can_send_email`, `locale`) instead of `organization_members`. `/api/ai`, `/api/email` and `/api/usage` read the plan with `getCurrentPlan` — the **organization's** current period (`core_v2_my_subscription`) — instead of `profiles.plan`, which closes the split plan source (no period: no module); `/api/billing` prices that period. A route that writes (`invite`, `invitations/[id]`, `members/[id]`, `email`) refuses an `INACTIVE` / `ON_LEAVE` caller with `403 read_only` (`isReadOnlyMembership`, `JOB-STATUS-READ`). The invitation e-mail is written in the inviter's core_v2 language.
+
 ### AI
 
 | Route | Method | Notes |
@@ -42,7 +44,7 @@ files, so a fallback also exists inside `ai.js`.
 | Route | Method | Notes |
 |---|---|---|
 | `/api/billing` | GET | The **only** source of subscription amounts. The server decides role, source (real Stripe data if subscribed, otherwise price table × seats), currency, and returns amounts in the major unit. Members/viewers get plan and seats but **no amount**. |
-| `/api/stripe/portal` | POST | Creates a Stripe Billing Portal session |
+| `/api/stripe/portal` | POST | Creates a Stripe Billing Portal session — **billing owner only** (403 otherwise); the customer is the organization's, its latest PAID period's, else `organizations.stripe_customer_id` (`CORE-V2-ME`, 04/10/2026; it was the caller's own `profiles.stripe_customer_id`) |
 | `/api/stripe-webhook` | POST | Verifies the HMAC signature, provisions plan + seats on `profiles` **and** `organizations` |
 | `/api/subscribe` | POST | Subscription entry point |
 
@@ -59,12 +61,12 @@ stays unresolved, so `customer.subscription.updated` can catch up later.
 
 | Route | Method | Notes |
 |---|---|---|
-| `/api/members` | GET | Members + pending invitations. Invitation **tokens are only exposed to owner/admin** — a member must not be able to copy a pending invitation link. `seats.used` = members + pending (reserved, against the plan ceiling); `seats.paid` = `seats_paid` (billed) — `used` may exceed `paid` while invitations are pending (`SEAT-AT-ACCEPT`). |
-| `/api/members/[id]` | DELETE | Remove a member. Stripe **before** any write, fail-closed, `proration_behavior: 'none'`; the new quantity is the remaining non-viewer members (pending invitations are not billed). The removed person then gets an organization of their own back (`ensure_own_organization`, `OWN-ORG`, 27/09/2026). |
-| `/api/invite` | POST | Send an invitation; **reserves** a seat against the plan ceiling but does not bill it (`SEAT-AT-ACCEPT`, 03/10/2026); returns `email_sent`. |
+| `/api/members` | GET | Members (`core_v2_team`: `id` = the **login id**, `role`, `job_status`, `joined_at`; `ENDED` not listed) + pending invitations. Invitation **tokens are only exposed to owner/admin** — a member must not be able to copy a pending invitation link. `seats.used` = `core_v2_seats_taken` — members holding a seat (not `INACTIVE`) + live pending invitations (reserved, against the plan ceiling); `seats.paid` = `seats_paid` (billed) — `used` may exceed `paid` while invitations are pending (`SEAT-AT-ACCEPT`). |
+| `/api/members/[id]` | DELETE | Remove a member; `[id]` is the member's **login id** (`STAGE2-WRITES`, 04/10/2026 — it was the `organization_members` row id); not in the caller's organization, or malformed: `404`. Stripe **before** any write, fail-closed, `proration_behavior: 'none'`; the new quantity is `core_v2_billable_seats` − 1 (an `INACTIVE` member is still billed; pending invitations are not). Then ONE transaction, `core_v2_remove_member`: the membership, `seats_paid`, and an organization of their own back for the removed person (`OWN-ORG`). If the database refuses, Stripe is put back to the real count and the route answers `500`. |
+| `/api/invite` | POST | Send an invitation; **reserves** a seat against the plan ceiling (starter 3, growth 7, elite 24, enterprise none) but does not bill it (`SEAT-AT-ACCEPT`, 03/10/2026); the count is `core_v2_seats_taken` (an `INACTIVE` member and an expired invitation reserve nothing, `JOB-STATUS`); at the ceiling `403 seat_limit_reached` with `seats_used` / `seats_cap` (`SEAT-CEILING`); returns `email_sent`. |
 | `/api/invitations/[id]` | DELETE | Revoke a pending invitation and free its reservation. No billing: it was never billed. |
 | `/api/invite/verify` | GET | Public: validate an invitation token |
-| `/api/invite/accept` | POST | Hard refusal if the target email is not the logged-in account (D1①) or if the account already belongs to another org (D2①). Idempotent when already a member. Never an implicit overwrite of `profiles.organization_id`. OWN-ORG (27/09/2026): every account has an organization of its own, so the switch is one transaction, `switch_to_invited_organization` — an **empty** own organization is deleted and the account joins; one that holds anything is refused with `409 own_organization_not_empty`. **Bills the seat** (`SEAT-AT-ACCEPT`, 03/10/2026), non-viewer roles only: plan ceiling, then Stripe quantity = members + 1 with `create_prorations` *before* the membership — `409 billing_failed` and nothing written if Stripe refuses — then a re-sync from a recount on every exit, which gives the seat back when the switch is refused. |
+| `/api/invite/accept` | POST | Hard refusal if the target email is not the logged-in account (D1①) or if the account already belongs to another org (D2①). Idempotent when already a member. Never an implicit overwrite of `profiles.organization_id`. OWN-ORG (27/09/2026): every account has an organization of its own, so the switch is one transaction, `switch_to_invited_organization` — an **empty** own organization is deleted and the account joins; one that holds anything is refused with `409 own_organization_not_empty`. **Bills the seat** (`SEAT-AT-ACCEPT`, 03/10/2026), non-viewer roles only: plan ceiling against the seats held (`core_v2_seats_held`; again in the database, `trg_seat_ceiling` — `409 seat_limit_reached` when a concurrent acceptance took the last seat), then Stripe quantity = billable members (`core_v2_billable_seats`) + 1 with `create_prorations` *before* the membership — `409 billing_failed` and nothing written if Stripe refuses — then a re-sync from a recount on every exit, which gives the seat back when the switch is refused. |
 | `/api/alpha/verify` | POST | Validate a promo/alpha code before signup through the SQL function `promo_code_lookup` — the same test the signup redemption runs (`promo_code_find`: unused, and `active` while `status` exists — `PROMO-STATUS`, 03/10/2026). The code is then **applied at signup by the database** (`redeem_promo_code`, `PROMO-AT-SIGNUP`); `/api/alpha/activate`, which trusted a `userId` from the body with no authentication, is deleted |
 
 ### Email (Resend)
@@ -91,7 +93,7 @@ the dashboard); the code is kept dormant.
 
 | Route | Method | Notes |
 |---|---|---|
-| `/api/export` · `/api/account/export` | GET | Right to portability (Art. 20) — full JSON export |
+| `/api/export` · `/api/account/export` | GET | Right to portability (Art. 20) — full JSON export, the person's core_v2 data included (`core_v2_me`, 04/10/2026) |
 | `/api/users/me` · `/api/account/delete` | DELETE / POST | Right to erasure (Art. 17) |
 | `/api/health` | GET | Health probe |
 

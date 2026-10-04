@@ -7,8 +7,8 @@
 plus, in §8, the 29 old tables that stay and where their references land.
 
 > **Not applied to any Supabase project yet.** Tested on a local PostgreSQL 16 with Supabase stand-ins
-> (219 assertions) — **the 3 October 2026 subscription changes were NOT run** (the local test database was lost;
-> run them before applying). The old schema is drawn in [DATABASE_DIAGRAM.md](DATABASE_DIAGRAM.md) (7 September 2026);
+> (219 assertions, 26 September 2026); the 3 October 2026 subscription changes were tested on PostgreSQL 18.3 in
+> PGlite with the same stand-ins (330 + 40 checks pass). The old schema is drawn in [DATABASE_DIAGRAM.md](DATABASE_DIAGRAM.md) (7 September 2026);
 > the decisions behind this one are in [DATABASE.md](DATABASE.md#core_v2--the-new-core-schema-additive).
 > Maintained by hand: update it in the same change as any core_v2 migration — a stale diagram is worse than none.
 
@@ -80,6 +80,7 @@ erDiagram
   member {
     bigint personage_id PK, FK
     uuid auth_user_id UK "the login — no FK to auth.users, on purpose"
+    boolean tour_completed "not null; default false; the first-run tour"
   }
   manager {
     bigint personage_id PK, FK
@@ -126,7 +127,7 @@ erDiagram
     bigint organization_id PK, FK
     bigint personage_id PK, FK, UK "one organization per personage"
     bigint position_id FK "with organization_id — same organization"
-    job_status job_status "not null; ACTIVE while in, ENDED (kept) after removal"
+    job_status job_status "not null; ACTIVE while in, ENDED (kept) after removal; a member holds a seat while ACTIVE or ON_LEAVE"
     bigint role_id FK "with organization_id — same organization"
     integer seniority "junior 1 … c_level 7"
     timestamptz joined_at "NULL when unknown"
@@ -211,7 +212,7 @@ erDiagram
     bigint id PK
     bigint organization_id FK "set null — a period outlives its organization"
     timestamptz issue_date "not null; the period's start"
-    interval duration "not null; > 0; covers [issue_date, issue_date + duration) — no end column"
+    interval duration "> 0; covers [issue_date, issue_date + duration); NULL = no end, PROMO (alpha) or CONTRACT only"
     subscription_type type "not null; the plan: STARTER · GROWTH · ELITE · ENTERPRISE"
     subscription_kind kind "not null; TRIAL · PROMO · PAID · CONTRACT"
     integer seats "NULL = the tier's ceiling; > 0"
@@ -273,7 +274,9 @@ erDiagram
 ## 5. Where the data comes from today
 
 Until each old table is retired it stays the source of truth: fail-open triggers on five of them copy
-every write into core_v2. The stage-1 front end is the only code that writes core_v2 directly.
+every write into core_v2. Two exceptions write core_v2 directly: the stage-1 front end, and since stage 2
+step C (04/10/2026) every write about a person or a membership — RPCs that write core_v2 and, in the same
+transaction, the old row as a shadow (`STAGE2-SHADOW`, until step E), so the mirror finds nothing to change.
 
 ```mermaid
 flowchart LR
@@ -286,6 +289,8 @@ flowchart LR
   C["clients<br/>retiring — stage 3"]:::old -- "core_v2_client_sync" --> C2["company (public_id = clients.id)<br/>client_group: PROSPECT · ACTIVE · CHURNED<br/>contacts · CSM · opening profit row · churn row"]:::v2
   N["client_notes<br/>retiring — stage 3"]:::old -- "core_v2_note_sync" --> N2["issue (status NOTE)<br/>kind · content · author_name<br/>one issue per note"]:::v2
   F["stage-1 front end"]:::fe -- "RPCs, user's token<br/>core_v2_complete_onboarding<br/>core_v2_set_organization_currency" --> F2["organization_worker answers · consent<br/>company.currency_code"]:::v2
+  W["stage-2 writes<br/>app + Pages Functions"]:::fe -- "RPCs<br/>core_v2_set_my_name · _set_my_language<br/>_complete_tour · _start_trial<br/>_set_member_can_send_email · _remove_member" --> W2["personage · member.tour_completed<br/>subscription TRIAL · member_authority"]:::v2
+  W -. "STAGE2-SHADOW<br/>same transaction" .-> P
 ```
 
 ## 6. Enums
@@ -318,6 +323,11 @@ Each tag is grep-able in the SQL, next to the code it explains.
 | `CORE-V2-ARR-PROFIT` | ARR = a client group's `profit` rows dated in the last 12 months; MRR = ARR ÷ 12; one opening row from `clients.arr`. |
 | `CORE-V2-CONSENT` | `consent` is append-only; the latest row per person and kind is the current state. |
 | `CORE-V2-SUBSCRIPTION` | One row = one period of one organization: `issue_date` + `duration` (no end column), plan, kind, seats, who obtained it, Stripe ids; one PAID row per paid invoice; current = the latest-started row covering now; a period outlives its organization (03/10/2026). |
+| `CORE-V2-REGION` | `personage.language_region_code` carries the region too: `fr-CA`, `en-GB` — the seed holds the variants of `regional.js`; the base country is the bare language (04/10/2026). |
+| `CORE-V2-TOUR` | `member.tour_completed` — the first-run tour flag, from `profiles.onboarding_completed` (04/10/2026). |
+| `JOB-STATUS` | A seat = a member whose `job_status` is ACTIVE or ON_LEAVE (not INACTIVE, not ENDED); a manager changes it only through `core_v2_set_job_status`, within the plan's ceiling (`20261003120000`, 03/10/2026). |
+| `JOB-STATUS-READ` | `INACTIVE` / `ON_LEAVE` workers still READ their organization (`core_v2_my_org_ids`); every write asks for `ACTIVE` — the app shows them the product read-only (04/10/2026). |
+| `STAGE2-SHADOW` | The stage-2 write RPCs (`20261004120000`) write core_v2 and the old `profiles` / `organization_members` row in one transaction, until step E removes the old tables (04/10/2026). |
 | `CORE-V2-PLAN-HOME` | The plan tier is never a column of `organization` or `organization_worker` — it is `subscription.type`. |
 | `CORE-V2-AUTH-LINK` | `member` / `viewer.auth_user_id` link a login, with no foreign key to `auth.users`, on purpose. |
 | `CORE-V2-AUTHORITY` | The `authority` enum adds `INVITE`, `SEND_EMAIL`, `ASSIGN_CLIENT_GROUP` to the four verbs. |

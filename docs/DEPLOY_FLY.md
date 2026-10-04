@@ -524,8 +524,7 @@ jobs:
           cache-dependency-path: app-v2/frontend/package-lock.json
       - run: npm ci
 
-      # Known, accepted gap: wellbeing_fri is missing in EN and KO. The step must fail on
-      # anything else, so assert the exact expected output rather than `|| true`.
+      # Exits 1 on any missing or extra key (I18N-GATE, 03/10/2026). Never `|| true`.
       - name: i18n key parity
         run: node scripts/check-i18n.mjs
 
@@ -544,10 +543,8 @@ jobs:
           VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY_PREPROD }}
 ```
 
-> `check-i18n.mjs` currently **exits 0** while printing its `❌` lines, and the known
-> `wellbeing_fri` gap would make a strict exit code red on day one. Decide before wiring CI:
-> either fix `wellbeing_fri` and make the script exit non-zero on any gap (preferred — it is
-> the only thing that makes the gate real), or have CI grep the output against an allowlist.
+> Settled on 03/10/2026: `wellbeing_fri` is fixed (parity is 100%) and `check-i18n.mjs` exits
+> non-zero on any gap, so the step above is a real gate as written — no allowlist needed.
 
 ### 8.2 `deploy-preprod.yml`
 
